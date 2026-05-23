@@ -2909,7 +2909,12 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
     else setData(prev => [...prev, { ...sph, id: 'sph_' + Date.now() }]);
     setModalOpen(false); setEditingSph(null);
   };
-  const handleDelete = (id) => { if (confirm(t.confirm_delete)) setData(prev => prev.filter(s => s.id !== id)); };
+  const [deleteSphId, setDeleteSphId] = useState(null);
+  const handleDelete = (id) => setDeleteSphId(id);
+  const confirmDeleteSph = () => {
+    setData(prev => prev.filter(s => s.id !== deleteSphId));
+    setDeleteSphId(null);
+  };
 
   return (
     <div style={{minHeight: '100vh', background: '#f8f5ef', fontFamily: 'Inter, sans-serif', color: '#1a2942'}}>
@@ -2932,6 +2937,7 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
       </main>
 
       {modalOpen && <SPHModal sph={editingSph} t={t} lang={lang} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingSph(null); }} fmtFull={fmtFull} />}
+      <ConfirmDialog open={!!deleteSphId} title={lang === 'id' ? 'Hapus SPH?' : 'Delete SPH?'} message={t.confirm_delete || (lang === 'id' ? 'Yakin ingin menghapus SPH ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this SPH? This action cannot be undone.')} onConfirm={confirmDeleteSph} onCancel={() => setDeleteSphId(null)} danger lang={lang} />
       <Footer t={t} />
     </div>
   );
@@ -3328,6 +3334,57 @@ function Field({ label, full, children }) {
   );
 }
 
+// ============== Confirm Dialog (replaces native confirm() which is blocked in artifact iframe) ==============
+function ConfirmDialog({ open, title, message, confirmText, cancelText, onConfirm, onCancel, danger, lang }) {
+  if (!open) return null;
+  return (
+    <div className="modal-overlay" onClick={onCancel} style={{zIndex: 9999}}>
+      <div onClick={e => e.stopPropagation()} style={{background: '#fefcf7', maxWidth: '420px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', border: '1px solid #d4cdb8'}}>
+        <div style={{padding: '20px 24px', borderBottom: '1px solid #e8e1cc', display: 'flex', alignItems: 'center', gap: '12px'}}>
+          {danger && <div style={{width: '36px', height: '36px', borderRadius: '50%', background: '#c0303020', display: 'flex', alignItems: 'center', justifyContent: 'center'}}><AlertTriangle size={20} color="#c03030" /></div>}
+          <h3 className="serif" style={{fontSize: '18px', fontWeight: 500, margin: 0, color: '#1a2942'}}>{title || (lang === 'id' ? 'Konfirmasi' : 'Confirm')}</h3>
+        </div>
+        <div style={{padding: '20px 24px', fontSize: '13px', lineHeight: 1.6, color: '#1a2942'}}>{message}</div>
+        <div style={{padding: '14px 24px', borderTop: '1px solid #e8e1cc', background: '#f8f5ef', display: 'flex', justifyContent: 'flex-end', gap: '10px'}}>
+          <button onClick={onCancel} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '8px 16px', fontSize: '12px', cursor: 'pointer', color: '#8a7d5c', fontFamily: 'inherit', letterSpacing: '0.05em'}}>{cancelText || (lang === 'id' ? 'Batal' : 'Cancel')}</button>
+          <button onClick={onConfirm} style={{background: danger ? '#c03030' : '#1a2942', border: 'none', padding: '8px 16px', fontSize: '12px', cursor: 'pointer', color: '#fff', fontFamily: 'inherit', letterSpacing: '0.05em', fontWeight: 600}}>{confirmText || (lang === 'id' ? 'Ya, Hapus' : 'Yes, Delete')}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============== LinkAttachment (clickable hyperlink with icon + truncated filename) ==============
+function LinkAttachment({ url, label, lang }) {
+  if (!url || !url.trim()) return null;
+  // Truncate long URLs, extract filename or domain
+  let displayName = label || (() => {
+    try {
+      const u = new URL(url);
+      const path = u.pathname.split('/').filter(Boolean).pop() || u.hostname;
+      return path.length > 28 ? path.substring(0, 25) + '...' : path;
+    } catch { return url.length > 28 ? url.substring(0, 25) + '...' : url; }
+  })();
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" style={{display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', background: '#1a294215', color: '#1a4d8a', fontSize: '11px', fontWeight: 500, textDecoration: 'none', border: '1px solid #1a294230', borderRadius: '3px', cursor: 'pointer'}} title={url} onClick={e => e.stopPropagation()}>
+      <span style={{fontSize: '12px'}}>📎</span>
+      <span style={{maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{displayName}</span>
+    </a>
+  );
+}
+
+// ============== Sort Toggle Component ==============
+function SortToggle({ value, onChange, options, lang }) {
+  return (
+    <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
+      <span style={{fontSize: '10px', letterSpacing: '0.1em', color: '#8a7d5c', textTransform: 'uppercase'}}>{lang === 'id' ? 'Urutkan' : 'Sort'}:</span>
+      <select value={value} onChange={e => onChange(e.target.value)} style={{padding: '4px 8px', fontSize: '11px', fontFamily: 'inherit', background: '#fefcf7', border: '1px solid #d4cdb8', color: '#1a2942', cursor: 'pointer'}}>
+        {options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+      </select>
+    </div>
+  );
+}
+
 function Th({ children, align = 'left' }) { return <th style={{padding: '12px 14px', textAlign: align, fontSize: '9px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, borderBottom: '1px solid #d4cdb8', whiteSpace: 'nowrap'}}>{children}</th>; }
 function Td({ children, align = 'left' }) { return <td style={{padding: '12px 14px', textAlign: align, verticalAlign: 'middle'}}>{children}</td>; }
 
@@ -3641,10 +3698,11 @@ function SalesReport({ reports, setReports, t, lang, session }) {
     setEditingReport(report);
     setTab('new');
   };
-  const handleDelete = (id) => {
-    if (confirm(t.sr_confirm_delete)) {
-      setReports(prev => prev.filter(r => r.id !== id));
-    }
+  const [deleteReportId, setDeleteReportId] = useState(null);
+  const handleDelete = (id) => setDeleteReportId(id);
+  const confirmDeleteReport = () => {
+    setReports(prev => prev.filter(r => r.id !== deleteReportId));
+    setDeleteReportId(null);
   };
   const handleSaved = () => {
     setEditingReport(null);
@@ -3681,6 +3739,7 @@ function SalesReport({ reports, setReports, t, lang, session }) {
       {tab === 'dashboard' && <SRDashboard reports={visibleReports} t={t} lang={lang} />}
       {tab === 'new' && session.role === 'sales' && <SRForm reports={reports} setReports={setReports} t={t} lang={lang} session={session} editingReport={editingReport} onSaved={handleSaved} onCancel={() => { setEditingReport(null); setTab('history'); }} />}
       {tab === 'history' && <SRHistory reports={visibleReports} t={t} lang={lang} canEdit={session.role === 'sales'} onEdit={handleEdit} onDelete={handleDelete} session={session} />}
+      <ConfirmDialog open={!!deleteReportId} title={lang === 'id' ? 'Hapus Laporan?' : 'Delete Report?'} message={t.sr_confirm_delete || (lang === 'id' ? 'Yakin ingin menghapus laporan ini?' : 'Are you sure you want to delete this report?')} onConfirm={confirmDeleteReport} onCancel={() => setDeleteReportId(null)} danger lang={lang} />
     </div>
   );
 }
@@ -3926,6 +3985,16 @@ function SRForm({ reports, setReports, t, lang, session, editingReport, onSaved,
 
 function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, session }) {
   const [expanded, setExpanded] = useState(null);
+  const [sortBy, setSortBy] = useState('date_desc');
+
+  const sortedReports = useMemo(() => {
+    const arr = [...reports];
+    if (sortBy === 'date_desc') return arr.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    if (sortBy === 'date_asc') return arr.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    if (sortBy === 'visits_desc') return arr.sort((a, b) => (b.visits?.length || 0) - (a.visits?.length || 0));
+    if (sortBy === 'cost_desc') return arr.sort((a, b) => (b.totalCost || 0) - (a.totalCost || 0));
+    return arr;
+  }, [reports, sortBy]);
 
   if (!reports.length) return (
     <div style={{padding: '60px 30px', textAlign: 'center', background: '#fefcf7', border: '1px solid #e8e1cc'}}>
@@ -3935,8 +4004,17 @@ function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, session }) {
   );
 
   return (
-    <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
-      {reports.map(r => {
+    <div>
+      <div style={{display: 'flex', justifyContent: 'flex-end', marginBottom: '10px'}}>
+        <SortToggle value={sortBy} onChange={setSortBy} lang={lang} options={[
+          {value: 'date_desc', label: lang === 'id' ? 'Terbaru' : 'Newest'},
+          {value: 'date_asc', label: lang === 'id' ? 'Terlama' : 'Oldest'},
+          {value: 'visits_desc', label: lang === 'id' ? 'Visit Terbanyak' : 'Most Visits'},
+          {value: 'cost_desc', label: lang === 'id' ? 'Biaya Terbesar' : 'Highest Cost'},
+        ]} />
+      </div>
+      <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
+        {sortedReports.map(r => {
         const sales = SALES_TEAM.find(s => s.id === r.salesId);
         const isOpen = expanded === r.id;
         // Only the report owner (sales) can edit/delete their own report
@@ -3984,6 +4062,7 @@ function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, session }) {
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
@@ -4289,6 +4368,7 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
 function ManifestList({ manifests, setManifests, t, lang, canEdit, fmt }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [sortBy, setSortBy] = useState('date_desc');
   const statusColors = { planning: '#94a3b8', loading: '#7d9cc5', in_transit: '#c8a96a', arrived: '#5b87b8', cleared: '#3a6b3a' };
 
   const handleSave = (rec) => {
@@ -4298,18 +4378,35 @@ function ManifestList({ manifests, setManifests, t, lang, canEdit, fmt }) {
     });
     setModalOpen(false); setEditingRecord(null);
   };
+  const [deleteId, setDeleteId] = useState(null);
   const handleDelete = (id) => {
     if (!canEdit) return;
-    if (confirm(t.crud_confirm_delete)) setManifests(prev => prev.filter(r => r.id !== id));
+    setDeleteId(id);
   };
+  const confirmDelete = () => {
+    setManifests(prev => prev.filter(r => r.id !== deleteId));
+    setDeleteId(null);
+  };
+
+  const sortedManifests = useMemo(() => {
+    const arr = [...manifests];
+    if (sortBy === 'date_desc') return arr.sort((a, b) => (b.etd || '').localeCompare(a.etd || ''));
+    if (sortBy === 'date_asc') return arr.sort((a, b) => (a.etd || '').localeCompare(b.etd || ''));
+    if (sortBy === 'value_desc') return arr.sort((a, b) => (b.totalValue || 0) - (a.totalValue || 0));
+    if (sortBy === 'status') return arr.sort((a, b) => (a.status || '').localeCompare(b.status || ''));
+    return arr;
+  }, [manifests, sortBy]);
 
   return (
     <div style={{background: '#fefcf7', border: '1px solid #e8e1cc'}}>
       <div style={{padding: '14px 18px', borderBottom: '1px solid #e8e1cc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px'}}>
         <div className="serif" style={{fontSize: '17px', fontWeight: 500}}>{t.ops_tab_manifest}</div>
-        {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
+        <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+          <SortToggle value={sortBy} onChange={setSortBy} lang={lang} options={[{value: 'date_desc', label: lang === 'id' ? 'Terbaru' : 'Newest'}, {value: 'date_asc', label: lang === 'id' ? 'Terlama' : 'Oldest'}, {value: 'value_desc', label: lang === 'id' ? 'Nilai Tertinggi' : 'Highest Value'}, {value: 'status', label: lang === 'id' ? 'Status' : 'Status'}]} />
+          {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
+        </div>
       </div>
-      {manifests.map(m => {
+      {sortedManifests.map(m => {
         const statusColor = statusColors[m.status];
         const principalColor = m.principal === 'SG Healthcare' ? '#1a4d8a' : m.principal === 'ANKE' ? '#c03030' : m.principal === 'Hyde Medical' ? '#7b3fb5' : m.principal === 'SINO MDT' ? '#d4780a' : m.principal === 'Angell' ? '#0f7a5a' : '#b8860b';
         return (
@@ -4349,6 +4446,7 @@ function ManifestList({ manifests, setManifests, t, lang, canEdit, fmt }) {
       })}
       {manifests.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
       {modalOpen && <ManifestModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
+      <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Manifest?' : 'Delete Manifest?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
   );
 }
@@ -4357,6 +4455,7 @@ function ManifestList({ manifests, setManifests, t, lang, canEdit, fmt }) {
 function CustomsDocsList({ customsDocs, setCustomsDocs, manifests, t, lang, canEdit }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [sortBy, setSortBy] = useState('date_desc');
   const statusColors = { received: '#94a3b8', submitted: '#c8a96a', approved: '#3a6b3a', rejected: '#c03030' };
 
   const handleSave = (rec) => {
@@ -4366,16 +4465,33 @@ function CustomsDocsList({ customsDocs, setCustomsDocs, manifests, t, lang, canE
     });
     setModalOpen(false); setEditingRecord(null);
   };
+  const [deleteId, setDeleteId] = useState(null);
   const handleDelete = (id) => {
     if (!canEdit) return;
-    if (confirm(t.crud_confirm_delete)) setCustomsDocs(prev => prev.filter(r => r.id !== id));
+    setDeleteId(id);
   };
+  const confirmDelete = () => {
+    setCustomsDocs(prev => prev.filter(r => r.id !== deleteId));
+    setDeleteId(null);
+  };
+
+  const sortedDocs = useMemo(() => {
+    const arr = [...customsDocs];
+    if (sortBy === 'date_desc') return arr.sort((a, b) => (b.docDate || '').localeCompare(a.docDate || ''));
+    if (sortBy === 'date_asc') return arr.sort((a, b) => (a.docDate || '').localeCompare(b.docDate || ''));
+    if (sortBy === 'value_desc') return arr.sort((a, b) => (b.totalValue || 0) - (a.totalValue || 0));
+    if (sortBy === 'status') return arr.sort((a, b) => (a.status || '').localeCompare(b.status || ''));
+    return arr;
+  }, [customsDocs, sortBy]);
 
   return (
     <div style={{background: '#fefcf7', border: '1px solid #e8e1cc', overflowX: 'auto'}}>
       <div style={{padding: '14px 18px', borderBottom: '1px solid #e8e1cc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px'}}>
         <div className="serif" style={{fontSize: '17px', fontWeight: 500}}>{t.ops_tab_customs}</div>
-        {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
+        <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+          <SortToggle value={sortBy} onChange={setSortBy} lang={lang} options={[{value: 'date_desc', label: lang === 'id' ? 'Terbaru' : 'Newest'}, {value: 'date_asc', label: lang === 'id' ? 'Terlama' : 'Oldest'}, {value: 'status', label: lang === 'id' ? 'Status' : 'Status'}]} />
+          {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
+        </div>
       </div>
       <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px', minWidth: '800px'}}>
         <thead>
@@ -4387,13 +4503,13 @@ function CustomsDocsList({ customsDocs, setCustomsDocs, manifests, t, lang, canE
           </tr>
         </thead>
         <tbody>
-          {customsDocs.map(d => {
+          {sortedDocs.map(d => {
             const statusColor = statusColors[d.status];
             return (
               <tr key={d.id} className="hover-row" style={{borderTop: '1px solid #e8e1cc'}}>
                 <Td>
                   <span className="mono" style={{fontSize: '11px', fontWeight: 600}}>{d.docNo}</span>
-                  {d.fileUrl && <a href={d.fileUrl} target="_blank" rel="noopener noreferrer" style={{display: 'block', fontSize: '10px', color: '#5b87b8', marginTop: '2px'}}>📎 {lang === 'id' ? 'Lihat File' : 'View File'}</a>}
+                  {d.fileUrl && <div style={{marginTop: '4px'}}><LinkAttachment url={d.fileUrl} lang={lang} /></div>}
                   {d.notes && <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px', fontStyle: 'italic'}}>{d.notes}</div>}
                 </Td>
                 <Td><span style={{padding: '2px 7px', fontSize: '10px', background: '#e8e1cc', color: '#1a2942', fontWeight: 600}}>{t[`ops_doc_${d.docType}`]}</span></Td>
@@ -4414,6 +4530,7 @@ function CustomsDocsList({ customsDocs, setCustomsDocs, manifests, t, lang, canE
       </table>
       {customsDocs.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
       {modalOpen && <CustomsDocModal record={editingRecord} manifests={manifests} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
+      <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Dokumen?' : 'Delete Document?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
   );
 }
@@ -4667,6 +4784,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
 function InstallRecordsList({ records, setRecords, t, lang, canEdit }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [sortBy, setSortBy] = useState('date_desc');
   const statusColors = { planning: '#94a3b8', progress: '#c8a96a', completed: '#3a6b3a', delayed: '#c03030' };
 
   const handleSave = (rec) => {
@@ -4676,18 +4794,35 @@ function InstallRecordsList({ records, setRecords, t, lang, canEdit }) {
     });
     setModalOpen(false); setEditingRecord(null);
   };
+  const [deleteId, setDeleteId] = useState(null);
   const handleDelete = (id) => {
     if (!canEdit) return;
-    if (confirm(t.crud_confirm_delete)) setRecords(prev => prev.filter(r => r.id !== id));
+    setDeleteId(id);
   };
+  const confirmDelete = () => {
+    setRecords(prev => prev.filter(r => r.id !== deleteId));
+    setDeleteId(null);
+  };
+
+  const sortedRecords = useMemo(() => {
+    const arr = [...records];
+    if (sortBy === 'date_desc') return arr.sort((a, b) => (b.installStart || '').localeCompare(a.installStart || ''));
+    if (sortBy === 'date_asc') return arr.sort((a, b) => (a.installStart || '').localeCompare(b.installStart || ''));
+    if (sortBy === 'value_desc') return arr.sort((a, b) => (b.totalValue || 0) - (a.totalValue || 0));
+    if (sortBy === 'status') return arr.sort((a, b) => (a.status || '').localeCompare(b.status || ''));
+    return arr;
+  }, [records, sortBy]);
 
   return (
     <div style={{background: '#fefcf7', border: '1px solid #e8e1cc'}}>
       <div style={{padding: '14px 18px', borderBottom: '1px solid #e8e1cc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px'}}>
         <div className="serif" style={{fontSize: '17px', fontWeight: 500}}>{t.inst_tab_records}</div>
-        {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
+        <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+          <SortToggle value={sortBy} onChange={setSortBy} lang={lang} options={[{value: 'date_desc', label: lang === 'id' ? 'Terbaru' : 'Newest'}, {value: 'date_asc', label: lang === 'id' ? 'Terlama' : 'Oldest'}, {value: 'status', label: lang === 'id' ? 'Status' : 'Status'}]} />
+          {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
+        </div>
       </div>
-      {records.map(r => {
+      {sortedRecords.map(r => {
         const statusColor = statusColors[r.status];
         return (
           <div key={r.id} style={{padding: '16px 18px', borderTop: '1px solid #e8e1cc'}}>
@@ -4726,6 +4861,7 @@ function InstallRecordsList({ records, setRecords, t, lang, canEdit }) {
       })}
       {records.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
       {modalOpen && <InstallRecordModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
+      <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Riwayat Instalasi?' : 'Delete Installation Record?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
   );
 }
@@ -4734,6 +4870,7 @@ function InstallRecordsList({ records, setRecords, t, lang, canEdit }) {
 function BASTList({ records, setRecords, t, lang, canEdit }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [sortBy, setSortBy] = useState('date_desc');
   const statusColors = { draft: '#94a3b8', pending: '#c8a96a', signed: '#3a6b3a' };
 
   const handleSave = (rec) => {
@@ -4743,18 +4880,35 @@ function BASTList({ records, setRecords, t, lang, canEdit }) {
     });
     setModalOpen(false); setEditingRecord(null);
   };
+  const [deleteId, setDeleteId] = useState(null);
   const handleDelete = (id) => {
     if (!canEdit) return;
-    if (confirm(t.crud_confirm_delete)) setRecords(prev => prev.filter(r => r.id !== id));
+    setDeleteId(id);
   };
+  const confirmDelete = () => {
+    setRecords(prev => prev.filter(r => r.id !== deleteId));
+    setDeleteId(null);
+  };
+
+  const sortedRecords = useMemo(() => {
+    const arr = [...records];
+    if (sortBy === 'date_desc') return arr.sort((a, b) => (b.signedDate || '').localeCompare(a.signedDate || ''));
+    if (sortBy === 'date_asc') return arr.sort((a, b) => (a.signedDate || '').localeCompare(b.signedDate || ''));
+    if (sortBy === 'value_desc') return arr.sort((a, b) => (b.totalValue || 0) - (a.totalValue || 0));
+    if (sortBy === 'status') return arr.sort((a, b) => (a.status || '').localeCompare(b.status || ''));
+    return arr;
+  }, [records, sortBy]);
 
   return (
     <div style={{background: '#fefcf7', border: '1px solid #e8e1cc'}}>
       <div style={{padding: '14px 18px', borderBottom: '1px solid #e8e1cc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px'}}>
         <div className="serif" style={{fontSize: '17px', fontWeight: 500}}>{t.inst_tab_bast}</div>
-        {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
+        <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+          <SortToggle value={sortBy} onChange={setSortBy} lang={lang} options={[{value: 'date_desc', label: lang === 'id' ? 'Terbaru' : 'Newest'}, {value: 'date_asc', label: lang === 'id' ? 'Terlama' : 'Oldest'}, {value: 'status', label: lang === 'id' ? 'Status' : 'Status'}]} />
+          {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
+        </div>
       </div>
-      {records.map(r => {
+      {sortedRecords.map(r => {
         const statusColor = statusColors[r.status];
         return (
           <div key={r.id} style={{padding: '16px 18px', borderTop: '1px solid #e8e1cc'}}>
@@ -4769,7 +4923,7 @@ function BASTList({ records, setRecords, t, lang, canEdit }) {
               </div>
               <div style={{textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px'}}>
                 <span style={{padding: '4px 10px', fontSize: '10px', background: statusColor + '25', color: statusColor, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{t[`bast_status_${r.status}`]}</span>
-                {r.docUrl && <a href={r.docUrl} target="_blank" rel="noopener noreferrer" style={{fontSize: '10px', color: '#5b87b8'}}>📎 {lang === 'id' ? 'Lihat Dokumen' : 'View Document'}</a>}
+                {r.docUrl && <LinkAttachment url={r.docUrl} lang={lang} />}
                 {canEdit && (
                   <div style={{display: 'flex', gap: '4px'}}>
                     <button onClick={() => { setEditingRecord(r); setModalOpen(true); }} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: '#1a2942', fontFamily: 'inherit'}}><Edit2 size={11} /></button>
@@ -4789,6 +4943,7 @@ function BASTList({ records, setRecords, t, lang, canEdit }) {
       })}
       {records.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
       {modalOpen && <BASTModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
+      <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus BAST?' : 'Delete BAST?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
   );
 }
@@ -4797,6 +4952,7 @@ function BASTList({ records, setRecords, t, lang, canEdit }) {
 function TrainingCertList({ records, setRecords, t, lang, canEdit }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [sortBy, setSortBy] = useState('date_desc');
   const statusColors = { pending: '#c8a96a', completed: '#3a6b3a' };
 
   const handleSave = (rec) => {
@@ -4806,18 +4962,35 @@ function TrainingCertList({ records, setRecords, t, lang, canEdit }) {
     });
     setModalOpen(false); setEditingRecord(null);
   };
+  const [deleteId, setDeleteId] = useState(null);
   const handleDelete = (id) => {
     if (!canEdit) return;
-    if (confirm(t.crud_confirm_delete)) setRecords(prev => prev.filter(r => r.id !== id));
+    setDeleteId(id);
   };
+  const confirmDelete = () => {
+    setRecords(prev => prev.filter(r => r.id !== deleteId));
+    setDeleteId(null);
+  };
+
+  const sortedRecords = useMemo(() => {
+    const arr = [...records];
+    if (sortBy === 'date_desc') return arr.sort((a, b) => (b.sessionDate || '').localeCompare(a.sessionDate || ''));
+    if (sortBy === 'date_asc') return arr.sort((a, b) => (a.sessionDate || '').localeCompare(b.sessionDate || ''));
+    if (sortBy === 'value_desc') return arr.sort((a, b) => (b.totalValue || 0) - (a.totalValue || 0));
+    if (sortBy === 'status') return arr.sort((a, b) => (a.status || '').localeCompare(b.status || ''));
+    return arr;
+  }, [records, sortBy]);
 
   return (
     <div style={{background: '#fefcf7', border: '1px solid #e8e1cc'}}>
       <div style={{padding: '14px 18px', borderBottom: '1px solid #e8e1cc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px'}}>
         <div className="serif" style={{fontSize: '17px', fontWeight: 500}}>{t.inst_tab_training}</div>
-        {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
+        <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+          <SortToggle value={sortBy} onChange={setSortBy} lang={lang} options={[{value: 'date_desc', label: lang === 'id' ? 'Terbaru' : 'Newest'}, {value: 'date_asc', label: lang === 'id' ? 'Terlama' : 'Oldest'}, {value: 'status', label: lang === 'id' ? 'Status' : 'Status'}]} />
+          {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
+        </div>
       </div>
-      {records.map(r => {
+      {sortedRecords.map(r => {
         const statusColor = statusColors[r.status];
         return (
           <div key={r.id} style={{padding: '16px 18px', borderTop: '1px solid #e8e1cc'}}>
@@ -4830,7 +5003,7 @@ function TrainingCertList({ records, setRecords, t, lang, canEdit }) {
               </div>
               <div style={{textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px'}}>
                 <span style={{padding: '4px 10px', fontSize: '10px', background: statusColor + '25', color: statusColor, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{r.status === 'completed' ? t.train_completed : t.train_pending}</span>
-                {r.certUrl && <a href={r.certUrl} target="_blank" rel="noopener noreferrer" style={{fontSize: '10px', color: '#5b87b8'}}>📎 {lang === 'id' ? 'Sertifikat' : 'Certificate'}</a>}
+                {r.certUrl && <LinkAttachment url={r.certUrl} lang={lang} />}
                 {canEdit && (
                   <div style={{display: 'flex', gap: '4px'}}>
                     <button onClick={() => { setEditingRecord(r); setModalOpen(true); }} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: '#1a2942', fontFamily: 'inherit'}}><Edit2 size={11} /></button>
@@ -4851,6 +5024,7 @@ function TrainingCertList({ records, setRecords, t, lang, canEdit }) {
       })}
       {records.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
       {modalOpen && <TrainingCertModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
+      <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Sertifikat?' : 'Delete Certificate?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
   );
 }
@@ -5227,7 +5401,7 @@ function Footer({ t }) {
           <IMSLogo size="sm" />
           <span style={{fontSize: '11px', color: '#8a7d5c'}}>· {t.company}</span>
         </div>
-        <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>Phase 16 · © 2026</div>
+        <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>Phase 17 · © 2026</div>
       </div>
     </footer>
   );
@@ -5264,6 +5438,30 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
   const repairs = issues.filter(i => i.type === 'repair');
   const complaints = issues.filter(i => i.type === 'complaint');
 
+  // Sort by priority (critical→high→medium→low), then by date desc
+  const [repairsSortBy, setRepairsSortBy] = useState('priority');
+  const [complaintsSortBy, setComplaintsSortBy] = useState('priority');
+
+  const sortByPriorityAndDate = (arr, sortBy) => {
+    const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+    const list = [...arr];
+    if (sortBy === 'priority') {
+      return list.sort((a, b) => {
+        const pa = priorityOrder[a.priority] ?? 99;
+        const pb = priorityOrder[b.priority] ?? 99;
+        if (pa !== pb) return pa - pb;
+        return (b.reportedDate || '').localeCompare(a.reportedDate || '');
+      });
+    }
+    if (sortBy === 'date_desc') return list.sort((a, b) => (b.reportedDate || '').localeCompare(a.reportedDate || ''));
+    if (sortBy === 'date_asc') return list.sort((a, b) => (a.reportedDate || '').localeCompare(b.reportedDate || ''));
+    if (sortBy === 'status') return list.sort((a, b) => (a.status || '').localeCompare(b.status || ''));
+    return list;
+  };
+
+  const sortedRepairs = useMemo(() => sortByPriorityAndDate(repairs, repairsSortBy), [repairs, repairsSortBy]);
+  const sortedComplaints = useMemo(() => sortByPriorityAndDate(complaints, complaintsSortBy), [complaints, complaintsSortBy]);
+
   const updateIssueStatus = (id, newStatus) => {
     if (!canEdit) return;
     setIssues(prev => prev.map(i => i.id === id ? { ...i, status: newStatus } : i));
@@ -5277,9 +5475,14 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
     });
     setIssueModalOpen(false); setEditingIssue(null);
   };
+  const [deleteIssueId, setDeleteIssueId] = useState(null);
   const handleDeleteIssue = (id) => {
     if (!canEdit) return;
-    if (confirm(t.crud_confirm_delete)) setIssues(prev => prev.filter(i => i.id !== id));
+    setDeleteIssueId(id);
+  };
+  const confirmDeleteIssue = () => {
+    setIssues(prev => prev.filter(i => i.id !== deleteIssueId));
+    setDeleteIssueId(null);
   };
 
   // CRUD handlers for PM
@@ -5290,9 +5493,14 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
     });
     setPmModalOpen(false); setEditingPm(null);
   };
+  const [deletePmId, setDeletePmId] = useState(null);
   const handleDeletePm = (id) => {
     if (!canEdit) return;
-    if (confirm(t.crud_confirm_delete)) setPmSchedule(prev => prev.filter(p => p.id !== id));
+    setDeletePmId(id);
+  };
+  const confirmDeletePm = () => {
+    setPmSchedule(prev => prev.filter(p => p.id !== deletePmId));
+    setDeletePmId(null);
   };
 
   const markPmDone = (unitId) => {
@@ -5469,12 +5677,18 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
         <div style={{background: '#fefcf7', border: '1px solid #e8e1cc'}}>
           <div style={{padding: '14px 18px', borderBottom: '1px solid #e8e1cc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px'}}>
             <div className="serif" style={{fontSize: '17px', fontWeight: 500}}>{t.mt_repair_title}</div>
-            <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap'}}>
               <span style={{fontSize: '11px', color: '#8a7d5c'}}>{repairs.length} {t.project_count}</span>
+              <SortToggle value={repairsSortBy} onChange={setRepairsSortBy} lang={lang} options={[
+                {value: 'priority', label: lang === 'id' ? 'Prioritas (Kritis→Rendah)' : 'Priority (Critical→Low)'},
+                {value: 'date_desc', label: lang === 'id' ? 'Terbaru' : 'Newest'},
+                {value: 'date_asc', label: lang === 'id' ? 'Terlama' : 'Oldest'},
+                {value: 'status', label: 'Status'},
+              ]} />
               {canEdit && <button className="btn-primary" onClick={() => { setEditingIssue({ type: 'repair' }); setIssueModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
             </div>
           </div>
-          {repairs.map(r => (
+          {sortedRepairs.map(r => (
             <div key={r.id} style={{padding: '16px 18px', borderTop: '1px solid #e8e1cc'}}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '8px'}}>
                 <div style={{flex: '1 1 300px'}}>
@@ -5516,12 +5730,18 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
         <div style={{background: '#fefcf7', border: '1px solid #e8e1cc'}}>
           <div style={{padding: '14px 18px', borderBottom: '1px solid #e8e1cc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px'}}>
             <div className="serif" style={{fontSize: '17px', fontWeight: 500}}>{t.mt_complaint_title}</div>
-            <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap'}}>
               <span style={{fontSize: '11px', color: '#8a7d5c'}}>{complaints.length} {t.project_count}</span>
+              <SortToggle value={complaintsSortBy} onChange={setComplaintsSortBy} lang={lang} options={[
+                {value: 'priority', label: lang === 'id' ? 'Prioritas (Kritis→Rendah)' : 'Priority (Critical→Low)'},
+                {value: 'date_desc', label: lang === 'id' ? 'Terbaru' : 'Newest'},
+                {value: 'date_asc', label: lang === 'id' ? 'Terlama' : 'Oldest'},
+                {value: 'status', label: 'Status'},
+              ]} />
               {canEdit && <button className="btn-primary" onClick={() => { setEditingIssue({ type: 'complaint' }); setIssueModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
             </div>
           </div>
-          {complaints.map(c => (
+          {sortedComplaints.map(c => (
             <div key={c.id} style={{padding: '16px 18px', borderTop: '1px solid #e8e1cc'}}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '8px'}}>
                 <div style={{flex: '1 1 300px'}}>
@@ -5560,6 +5780,8 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
       )}
       {issueModalOpen && <MaintenanceIssueModal record={editingIssue} onSave={handleSaveIssue} onClose={() => { setIssueModalOpen(false); setEditingIssue(null); }} t={t} lang={lang} units={units} session={session} />}
       {pmModalOpen && <PMScheduleModal record={editingPm} onSave={handleSavePm} onClose={() => { setPmModalOpen(false); setEditingPm(null); }} t={t} lang={lang} units={units} session={session} />}
+      <ConfirmDialog open={!!deleteIssueId} title={lang === 'id' ? 'Hapus Catatan?' : 'Delete Record?'} message={lang === 'id' ? 'Yakin ingin menghapus catatan perbaikan/keluhan ini?' : 'Are you sure you want to delete this issue/complaint?'} onConfirm={confirmDeleteIssue} onCancel={() => setDeleteIssueId(null)} danger lang={lang} />
+      <ConfirmDialog open={!!deletePmId} title={lang === 'id' ? 'Hapus Jadwal PM?' : 'Delete PM Schedule?'} message={lang === 'id' ? 'Yakin ingin menghapus jadwal preventive maintenance ini?' : 'Are you sure you want to delete this PM schedule?'} onConfirm={confirmDeletePm} onCancel={() => setDeletePmId(null)} danger lang={lang} />
     </div>
   );
 }
@@ -5775,6 +5997,16 @@ function ImportPipeline({ records, setImportRecords, t, lang, canEdit }) {
   const totalIssued = records.filter(r => r.stage === 'issued').length;
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [sortBy, setSortBy] = useState('date_desc');
+
+  const sortedRecords = useMemo(() => {
+    const arr = [...records];
+    if (sortBy === 'date_desc') return arr.sort((a, b) => (b.preregistDate || b.docsDate || '').localeCompare(a.preregistDate || a.docsDate || ''));
+    if (sortBy === 'date_asc') return arr.sort((a, b) => (a.preregistDate || a.docsDate || '').localeCompare(b.preregistDate || b.docsDate || ''));
+    if (sortBy === 'stage') return arr.sort((a, b) => stages.indexOf(b.stage) - stages.indexOf(a.stage));
+    if (sortBy === 'principal') return arr.sort((a, b) => (a.principal || '').localeCompare(b.principal || ''));
+    return arr;
+  }, [records, sortBy, stages]);
 
   const handleSave = (rec) => {
     setImportRecords(prev => {
@@ -5783,9 +6015,14 @@ function ImportPipeline({ records, setImportRecords, t, lang, canEdit }) {
     });
     setModalOpen(false); setEditingRecord(null);
   };
+  const [deleteId, setDeleteId] = useState(null);
   const handleDelete = (id) => {
     if (!canEdit) return;
-    if (confirm(t.crud_confirm_delete)) setImportRecords(prev => prev.filter(r => r.id !== id));
+    setDeleteId(id);
+  };
+  const confirmDelete = () => {
+    setImportRecords(prev => prev.filter(r => r.id !== deleteId));
+    setDeleteId(null);
   };
 
   const advanceStage = (id) => {
@@ -5847,9 +6084,17 @@ function ImportPipeline({ records, setImportRecords, t, lang, canEdit }) {
       <div style={{background: '#fefcf7', border: '1px solid #e8e1cc'}}>
         <div style={{padding: '14px 18px', borderBottom: '1px solid #e8e1cc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px'}}>
           <div className="serif" style={{fontSize: '17px', fontWeight: 500}}>{t.imp_records_title}</div>
-          {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
+          <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+            <SortToggle value={sortBy} onChange={setSortBy} lang={lang} options={[
+              {value: 'date_desc', label: lang === 'id' ? 'Terbaru' : 'Newest'},
+              {value: 'date_asc', label: lang === 'id' ? 'Terlama' : 'Oldest'},
+              {value: 'stage', label: lang === 'id' ? 'Stage Terakhir' : 'Latest Stage'},
+              {value: 'principal', label: 'Principal'},
+            ]} />
+            {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
+          </div>
         </div>
-        {records.map(r => {
+        {sortedRecords.map(r => {
           const stageIdx = stages.indexOf(r.stage);
           const stageColor = stageColors[r.stage];
           const principalColor = r.principal === 'Angell' ? '#0f7a5a' : r.principal === 'Innocare' ? '#b8860b' : '#c03030';
@@ -5898,6 +6143,7 @@ function ImportPipeline({ records, setImportRecords, t, lang, canEdit }) {
         {records.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
       </div>
       {modalOpen && <RegulatoryRecordModal record={editingRecord} recordType="import" onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
+      <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Izin Import?' : 'Delete Import Permit?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
   );
 }
@@ -5910,6 +6156,15 @@ function PengalihanPipeline({ records, setRecords, t, lang, canEdit }) {
   const totalIssued = records.filter(r => r.stage === 'issued').length;
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [sortBy, setSortBy] = useState('date_desc');
+
+  const sortedRecords = useMemo(() => {
+    const arr = [...records];
+    if (sortBy === 'date_desc') return arr.sort((a, b) => (b.submitDate || b.issuedDate || '').localeCompare(a.submitDate || a.issuedDate || ''));
+    if (sortBy === 'date_asc') return arr.sort((a, b) => (a.submitDate || a.issuedDate || '').localeCompare(b.submitDate || b.issuedDate || ''));
+    if (sortBy === 'stage') return arr.sort((a, b) => stages.indexOf(b.stage) - stages.indexOf(a.stage));
+    return arr;
+  }, [records, sortBy, stages]);
 
   const handleSave = (rec) => {
     setRecords(prev => {
@@ -5918,9 +6173,14 @@ function PengalihanPipeline({ records, setRecords, t, lang, canEdit }) {
     });
     setModalOpen(false); setEditingRecord(null);
   };
+  const [deleteId, setDeleteId] = useState(null);
   const handleDelete = (id) => {
     if (!canEdit) return;
-    if (confirm(t.crud_confirm_delete)) setRecords(prev => prev.filter(r => r.id !== id));
+    setDeleteId(id);
+  };
+  const confirmDelete = () => {
+    setRecords(prev => prev.filter(r => r.id !== deleteId));
+    setDeleteId(null);
   };
 
   const advanceStage = (id) => {
@@ -5975,9 +6235,16 @@ function PengalihanPipeline({ records, setRecords, t, lang, canEdit }) {
       <div style={{background: '#fefcf7', border: '1px solid #e8e1cc'}}>
         <div style={{padding: '14px 18px', borderBottom: '1px solid #e8e1cc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px'}}>
           <div className="serif" style={{fontSize: '17px', fontWeight: 500}}>{t.pgl_records_title}</div>
-          {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
+          <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+            <SortToggle value={sortBy} onChange={setSortBy} lang={lang} options={[
+              {value: 'date_desc', label: lang === 'id' ? 'Terbaru' : 'Newest'},
+              {value: 'date_asc', label: lang === 'id' ? 'Terlama' : 'Oldest'},
+              {value: 'stage', label: lang === 'id' ? 'Stage Terakhir' : 'Latest Stage'},
+            ]} />
+            {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
+          </div>
         </div>
-        {records.map(r => {
+        {sortedRecords.map(r => {
           const stageIdx = stages.indexOf(r.stage);
           const stageColor = stageColors[r.stage];
           return (
@@ -6021,6 +6288,7 @@ function PengalihanPipeline({ records, setRecords, t, lang, canEdit }) {
         {records.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
       </div>
       {modalOpen && <RegulatoryRecordModal record={editingRecord} recordType="pengalihan" onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
+      <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Izin Pengalihan?' : 'Delete Transfer Permit?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
   );
 }
@@ -6030,6 +6298,7 @@ function PIPipeline({ records, setRecords, t, lang, canEdit }) {
   const today = new Date('2026-05-16');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [sortBy, setSortBy] = useState('date_desc');
 
   const enriched = records.map(r => {
     const expDate = new Date(r.expiredDate);
@@ -6038,6 +6307,15 @@ function PIPipeline({ records, setRecords, t, lang, canEdit }) {
     if (status !== 'used' && daysRemaining < 0) status = 'expired';
     return { ...r, daysRemaining, computedStatus: status };
   });
+
+  const sortedEnriched = useMemo(() => {
+    const arr = [...enriched];
+    if (sortBy === 'date_desc') return arr.sort((a, b) => (b.issuedDate || '').localeCompare(a.issuedDate || ''));
+    if (sortBy === 'date_asc') return arr.sort((a, b) => (a.issuedDate || '').localeCompare(b.issuedDate || ''));
+    if (sortBy === 'expiry') return arr.sort((a, b) => (a.daysRemaining || 0) - (b.daysRemaining || 0));
+    if (sortBy === 'status') return arr.sort((a, b) => (a.computedStatus || '').localeCompare(b.computedStatus || ''));
+    return arr;
+  }, [enriched, sortBy]);
   const totalActive = enriched.filter(r => r.computedStatus === 'active').length;
   const totalUsed = enriched.filter(r => r.computedStatus === 'used').length;
   const totalExpired = enriched.filter(r => r.computedStatus === 'expired').length;
@@ -6050,9 +6328,14 @@ function PIPipeline({ records, setRecords, t, lang, canEdit }) {
     });
     setModalOpen(false); setEditingRecord(null);
   };
+  const [deleteId, setDeleteId] = useState(null);
   const handleDelete = (id) => {
     if (!canEdit) return;
-    if (confirm(t.crud_confirm_delete)) setRecords(prev => prev.filter(r => r.id !== id));
+    setDeleteId(id);
+  };
+  const confirmDelete = () => {
+    setRecords(prev => prev.filter(r => r.id !== deleteId));
+    setDeleteId(null);
   };
   const markUsed = (id) => {
     if (!canEdit) return;
@@ -6084,9 +6367,17 @@ function PIPipeline({ records, setRecords, t, lang, canEdit }) {
       <div style={{background: '#fefcf7', border: '1px solid #e8e1cc'}}>
         <div style={{padding: '14px 18px', borderBottom: '1px solid #e8e1cc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px'}}>
           <div className="serif" style={{fontSize: '17px', fontWeight: 500}}>{t.pi_records_title}</div>
-          {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
+          <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+            <SortToggle value={sortBy} onChange={setSortBy} lang={lang} options={[
+              {value: 'date_desc', label: lang === 'id' ? 'Terbaru' : 'Newest'},
+              {value: 'date_asc', label: lang === 'id' ? 'Terlama' : 'Oldest'},
+              {value: 'expiry', label: lang === 'id' ? 'Mendekati Expired' : 'Nearest Expiry'},
+              {value: 'status', label: 'Status'},
+            ]} />
+            {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
+          </div>
         </div>
-        {enriched.map(r => {
+        {sortedEnriched.map(r => {
           const statusColor = statusColors[r.computedStatus];
           const isExpiring = r.computedStatus === 'active' && r.daysRemaining <= 5;
           return (
@@ -6129,6 +6420,7 @@ function PIPipeline({ records, setRecords, t, lang, canEdit }) {
         {records.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
       </div>
       {modalOpen && <RegulatoryRecordModal record={editingRecord} recordType="pi" onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
+      <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus PI?' : 'Delete PI?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
   );
 }
@@ -6139,6 +6431,15 @@ function BAPETENPipeline({ records, setRegRecords, t, lang, canEdit }) {
   const stageColors = { docs: '#94a3b8', submit: '#7d9cc5', eval: '#c8a96a', pnbp: '#b8935a', issued: '#3a6b3a' };
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [sortBy, setSortBy] = useState('date_desc');
+
+  const sortedRecords = useMemo(() => {
+    const arr = [...records];
+    if (sortBy === 'date_desc') return arr.sort((a, b) => (b.startDate || '').localeCompare(a.startDate || ''));
+    if (sortBy === 'date_asc') return arr.sort((a, b) => (a.startDate || '').localeCompare(b.startDate || ''));
+    if (sortBy === 'stage') return arr.sort((a, b) => stages.indexOf(b.stage) - stages.indexOf(a.stage));
+    return arr;
+  }, [records, sortBy]);
 
   const totalPending = records.filter(r => r.stage !== 'issued').length;
   const totalIssued = records.filter(r => r.stage === 'issued').length;
@@ -6151,9 +6452,14 @@ function BAPETENPipeline({ records, setRegRecords, t, lang, canEdit }) {
     });
     setModalOpen(false); setEditingRecord(null);
   };
+  const [deleteId, setDeleteId] = useState(null);
   const handleDelete = (id) => {
     if (!canEdit) return;
-    if (confirm(t.crud_confirm_delete)) setRegRecords(prev => prev.filter(r => r.id !== id));
+    setDeleteId(id);
+  };
+  const confirmDelete = () => {
+    setRegRecords(prev => prev.filter(r => r.id !== deleteId));
+    setDeleteId(null);
   };
 
   const advanceStage = (id) => {
@@ -6211,9 +6517,16 @@ function BAPETENPipeline({ records, setRegRecords, t, lang, canEdit }) {
       <div style={{background: '#fefcf7', border: '1px solid #e8e1cc'}}>
         <div style={{padding: '14px 18px', borderBottom: '1px solid #e8e1cc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px'}}>
           <div className="serif" style={{fontSize: '17px', fontWeight: 500}}>{lang === 'id' ? 'Daftar Permohonan Izin' : 'Permit Applications'}</div>
-          {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
+          <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+            <SortToggle value={sortBy} onChange={setSortBy} lang={lang} options={[
+              {value: 'date_desc', label: lang === 'id' ? 'Terbaru' : 'Newest'},
+              {value: 'date_asc', label: lang === 'id' ? 'Terlama' : 'Oldest'},
+              {value: 'stage', label: lang === 'id' ? 'Stage Terakhir' : 'Latest Stage'},
+            ]} />
+            {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
+          </div>
         </div>
-        {records.map(r => {
+        {sortedRecords.map(r => {
           const stageIdx = stages.indexOf(r.stage);
           const stageColor = stageColors[r.stage];
           return (
@@ -6258,6 +6571,7 @@ function BAPETENPipeline({ records, setRegRecords, t, lang, canEdit }) {
         {records.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
       </div>
       {modalOpen && <RegulatoryRecordModal record={editingRecord} recordType="bapeten" onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
+      <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Catatan?' : 'Delete Record?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
   );
 }
@@ -6271,6 +6585,7 @@ function AKLPipeline({ aklRecords, setAklRecords, t, lang, canEdit }) {
   };
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [sortBy, setSortBy] = useState('date_desc');
 
   const totalActive = aklRecords.filter(r => r.stage !== 'issued').length;
   const totalIssued = aklRecords.filter(r => r.stage === 'issued').length;
@@ -6279,6 +6594,14 @@ function AKLPipeline({ aklRecords, setAklRecords, t, lang, canEdit }) {
     ? Math.round(issuedRecords.reduce((sum, r) => sum + (r.daysElapsed || 0), 0) / issuedRecords.length)
     : 0;
 
+  const sortedAklRecords = useMemo(() => {
+    const arr = [...aklRecords];
+    if (sortBy === 'date_desc') return arr.sort((a, b) => (b.registerDate || '').localeCompare(a.registerDate || ''));
+    if (sortBy === 'date_asc') return arr.sort((a, b) => (a.registerDate || '').localeCompare(b.registerDate || ''));
+    if (sortBy === 'stage') return arr.sort((a, b) => (a.stage || '').localeCompare(b.stage || ''));
+    return arr;
+  }, [aklRecords, sortBy]);
+
   const handleSave = (rec) => {
     setAklRecords(prev => {
       const exists = prev.find(r => r.id === rec.id);
@@ -6286,9 +6609,14 @@ function AKLPipeline({ aklRecords, setAklRecords, t, lang, canEdit }) {
     });
     setModalOpen(false); setEditingRecord(null);
   };
+  const [deleteId, setDeleteId] = useState(null);
   const handleDelete = (id) => {
     if (!canEdit) return;
-    if (confirm(t.crud_confirm_delete)) setAklRecords(prev => prev.filter(r => r.id !== id));
+    setDeleteId(id);
+  };
+  const confirmDelete = () => {
+    setAklRecords(prev => prev.filter(r => r.id !== deleteId));
+    setDeleteId(null);
   };
 
   const advanceStage = (id) => {
@@ -6359,9 +6687,16 @@ function AKLPipeline({ aklRecords, setAklRecords, t, lang, canEdit }) {
       <div style={{background: '#fefcf7', border: '1px solid #e8e1cc'}}>
         <div style={{padding: '14px 18px', borderBottom: '1px solid #e8e1cc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px'}}>
           <div className="serif" style={{fontSize: '17px', fontWeight: 500}}>{t.akl_records_title}</div>
-          {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
+          <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+            <SortToggle value={sortBy} onChange={setSortBy} lang={lang} options={[
+              {value: 'date_desc', label: lang === 'id' ? 'Terbaru' : 'Newest'},
+              {value: 'date_asc', label: lang === 'id' ? 'Terlama' : 'Oldest'},
+              {value: 'stage', label: lang === 'id' ? 'Stage Terakhir' : 'Latest Stage'},
+            ]} />
+            {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
+          </div>
         </div>
-        {aklRecords.map(r => {
+        {sortedAklRecords.map(r => {
           const stageIdx = stages.indexOf(r.stage);
           const stageColor = stageColors[r.stage];
           const isOverdue = r.workingDaysRemaining <= 0 && r.stage !== 'issued';
@@ -6427,6 +6762,7 @@ function AKLPipeline({ aklRecords, setAklRecords, t, lang, canEdit }) {
         {aklRecords.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
       </div>
       {modalOpen && <RegulatoryRecordModal record={editingRecord} recordType="akl" onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
+      <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus AKL?' : 'Delete AKL?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
   );
 }

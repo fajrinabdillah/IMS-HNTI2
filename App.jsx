@@ -14,6 +14,7 @@ const translations = {
     username: 'Nama Pengguna', password: 'Kata Sandi', login_btn: 'Masuk',
     demo_credentials: 'Kredensial Demo', login_error: 'Nama pengguna atau kata sandi salah',
     logout: 'Keluar', welcome: 'Selamat datang',
+    change_password: 'Ganti Password', cp_current: 'Password Saat Ini', cp_new: 'Password Baru', cp_confirm: 'Konfirmasi Password Baru', cp_save: 'Simpan Password',
     role_super_admin: 'Super Admin (CEO)', role_admin: 'Admin', role_technician: 'Teknisi',
     role_operations: 'Operasional', role_finance: 'Finance', role_sales: 'Sales', role_regulatory: 'Regulatory',
     role_gm: 'General Manager', role_manager_ops: 'Manager Operasional',
@@ -62,6 +63,14 @@ const translations = {
     invoice_status: 'Status Invoice',
     dp_paid: 'DP Dibayar', final_paid: 'Pelunasan', awaiting_payment: 'Menunggu',
     customs_status: 'Customs',
+    status_note_label: 'Keterangan Status',
+    status_note_hold_required: 'Wajib isi alasan saat status On Hold',
+    status_note_placeholder: 'Contoh: Menunggu dokumen COO dari principal, tertahan inspeksi karantina, dll.',
+    status_note_add: 'Tambah/Edit Keterangan',
+    status_note_empty: 'Belum ada keterangan',
+    shipment_auto_synced: 'Status disinkronkan otomatis dari Manifest',
+    shipment_manifest_link: 'Terhubung ke Manifest',
+    shipment_no_manifest: 'Belum terhubung ke manifest',
     plan_order_to_factory: 'Plan Order', ready_to_ship: 'Siap Kirim',
     on_shipment: 'Pengiriman', customs_released: 'Released', customs_ongoing: 'Proses', customs_hold: 'On Hold',
     delivery_to_site: 'Diterima', installation_done: 'Instalasi Selesai',
@@ -69,7 +78,7 @@ const translations = {
     bapeten_permit: 'Izin BAPETEN',
     view_only_notice: 'Mode baca-saja: Anda tidak dapat mengubah data ini',
     sales_title: 'Performa Tim Sales',
-    sales_subtitle: 'KPI dan ranking 5 sales',
+    sales_subtitle: 'KPI dan ranking tim sales',
     territory: 'Wilayah', deals_won: 'Menang', deals_active: 'Aktif',
     contribution: 'Kontribusi',
     valuation_title: 'Valuation Tracker',
@@ -419,6 +428,7 @@ const translations = {
     ops_doc_status: 'Status',
     ops_shipping_notes: 'Catatan',
     ops_total_manifests: 'Total Manifest',
+    ops_po_in_shipping: 'PO Dalam Pengiriman',
     ops_in_transit: 'Dalam Transit',
     ops_arrived_count: 'Sudah Sampai',
     ops_pending_docs: 'Dokumen Pending',
@@ -427,6 +437,18 @@ const translations = {
     inst_tab_records: 'Riwayat Instalasi',
     inst_tab_bast: 'BAST',
     inst_tab_training: 'Sertifikat Training',
+    inst_prog_dates: 'Tanggal Pekerjaan',
+    inst_prog_start: 'Tgl Mulai',
+    inst_prog_end: 'Tgl Selesai',
+    inst_prog_evidence: 'Dokumentasi (Foto/Video)',
+    inst_prog_evidence_add: 'Link Bukti',
+    inst_prog_auto_synced: 'Tersinkron otomatis dari Riwayat Instalasi & BAST',
+    inst_prog_from_record: 'dari Riwayat Instalasi',
+    inst_prog_from_bast: 'dari BAST',
+    inst_prog_from_training: 'dari Sertifikat Training',
+    inst_prog_no_record: 'Belum ada riwayat instalasi untuk PO ini',
+    inst_prog_bast_status: 'Status BAST',
+    inst_step_bast: 'BAST',
     inst_modal_add_record: 'Tambah Riwayat Instalasi',
     inst_modal_edit_record: 'Edit Riwayat Instalasi',
     inst_modal_add_bast: 'Tambah BAST',
@@ -469,7 +491,7 @@ const translations = {
     inst_total_records: 'Total Instalasi',
     inst_in_progress: 'Sedang Berlangsung',
     inst_completed_count: 'Selesai',
-    inst_bast_signed: 'BAST Tertanda',
+    inst_bast_signed: 'BAST Ditandatangani',
     inst_training_done: 'Training Selesai',
     // Sales Reporting CRUD
     sr_edit_report: 'Edit Laporan',
@@ -498,6 +520,8 @@ const translations = {
     emp_modal_edit: 'Edit Data Karyawan',
     emp_deactivate: 'Non-aktifkan',
     emp_activate: 'Aktifkan',
+    emp_reset_pw: 'Reset Password ke Default',
+    emp_delete: 'Hapus Akun Permanen',
     emp_restricted: 'Hanya CEO, General Manager, dan Manager Operasional yang dapat mengakses modul ini.',
     emp_pos_staff: 'Staff', emp_pos_supervisor: 'Supervisor', emp_pos_manager: 'Manager',
     emp_pos_manager_ops: 'Manager Operasional', emp_pos_gm: 'General Manager', emp_pos_direksi: 'Direksi',
@@ -665,6 +689,7 @@ const translations = {
     username: 'Username', password: 'Password', login_btn: 'Sign In',
     demo_credentials: 'Demo Credentials', login_error: 'Invalid username or password',
     logout: 'Sign Out', welcome: 'Welcome',
+    change_password: 'Change Password', cp_current: 'Current Password', cp_new: 'New Password', cp_confirm: 'Confirm New Password', cp_save: 'Save Password',
     role_super_admin: 'Super Admin (CEO)', role_admin: 'Admin', role_technician: 'Technician',
     role_operations: 'Operations', role_finance: 'Finance', role_sales: 'Sales', role_regulatory: 'Regulatory',
     role_gm: 'General Manager', role_manager_ops: 'Operations Manager',
@@ -712,6 +737,14 @@ const translations = {
     invoice_status: 'Invoice Status',
     dp_paid: 'DP Paid', final_paid: 'Final Payment', awaiting_payment: 'Awaiting',
     customs_status: 'Customs',
+    status_note_label: 'Status Note',
+    status_note_hold_required: 'Reason required when status is On Hold',
+    status_note_placeholder: 'E.g.: Awaiting COO document from principal, held at quarantine inspection, etc.',
+    status_note_add: 'Add/Edit Note',
+    status_note_empty: 'No note yet',
+    shipment_auto_synced: 'Status auto-synced from Manifest',
+    shipment_manifest_link: 'Linked to Manifest',
+    shipment_no_manifest: 'Not linked to manifest yet',
     plan_order_to_factory: 'Plan Order', ready_to_ship: 'Ready to Ship',
     on_shipment: 'On Shipment', customs_released: 'Released', customs_ongoing: 'Processing', customs_hold: 'On Hold',
     delivery_to_site: 'Delivered', installation_done: 'Installation Done',
@@ -719,7 +752,7 @@ const translations = {
     bapeten_permit: 'BAPETEN Permit',
     view_only_notice: 'Read-only mode: you cannot modify this data',
     sales_title: 'Sales Team Performance',
-    sales_subtitle: 'KPI and ranking of 5 sales',
+    sales_subtitle: 'Sales team KPI and ranking',
     territory: 'Territory', deals_won: 'Won', deals_active: 'Active',
     contribution: 'Contribution',
     valuation_title: 'Valuation Tracker',
@@ -1065,6 +1098,7 @@ const translations = {
     ops_doc_status: 'Status',
     ops_shipping_notes: 'Notes',
     ops_total_manifests: 'Total Manifests',
+    ops_po_in_shipping: 'PO In Shipping',
     ops_in_transit: 'In Transit',
     ops_arrived_count: 'Arrived',
     ops_pending_docs: 'Pending Docs',
@@ -1073,6 +1107,18 @@ const translations = {
     inst_tab_records: 'Installation Records',
     inst_tab_bast: 'BAST',
     inst_tab_training: 'Training Certificates',
+    inst_prog_dates: 'Work Dates',
+    inst_prog_start: 'Start Date',
+    inst_prog_end: 'End Date',
+    inst_prog_evidence: 'Documentation (Photo/Video)',
+    inst_prog_evidence_add: 'Evidence Link',
+    inst_prog_auto_synced: 'Auto-synced from Installation Records & BAST',
+    inst_prog_from_record: 'from Installation Records',
+    inst_prog_from_bast: 'from BAST',
+    inst_prog_from_training: 'from Training Certificate',
+    inst_prog_no_record: 'No installation record for this PO yet',
+    inst_prog_bast_status: 'BAST Status',
+    inst_step_bast: 'BAST',
     inst_modal_add_record: 'Add Installation Record',
     inst_modal_edit_record: 'Edit Installation Record',
     inst_modal_add_bast: 'Add BAST',
@@ -1144,6 +1190,8 @@ const translations = {
     emp_modal_edit: 'Edit Employee Data',
     emp_deactivate: 'Deactivate',
     emp_activate: 'Activate',
+    emp_reset_pw: 'Reset Password to Default',
+    emp_delete: 'Delete Account Permanently',
     emp_restricted: 'Only CEO, General Manager, and Operations Manager can access this module.',
     emp_pos_staff: 'Staff', emp_pos_supervisor: 'Supervisor', emp_pos_manager: 'Manager',
     emp_pos_manager_ops: 'Operations Manager', emp_pos_gm: 'General Manager', emp_pos_direksi: 'Direksi',
@@ -1385,6 +1433,8 @@ const mk = (id, no, customer, ct, pt, mod, sub, qty, price, owner, region, stage
     dpPaid: !!opts.dpPaid, finalPaid: !!opts.finalPaid,
     shippingStatus: opts.shippingStatus || null,
     customsStatus: opts.customsStatus || null,
+    customsStatusNote: opts.customsStatusNote || '',
+    manifestId: opts.manifestId || null,
   };
 };
 
@@ -1412,6 +1462,11 @@ const SEED_SPH = [
   mk('p19','SPH/2026/P19','RS Husada Utama Surabaya','hospital','private','MRI','MRI 1.5T',1,14500000000,'bagus','Jatim 2','presentation_done'),
   mk('p20','SPH/2026/P20','RS Hermina Tangerang','hospital','private','CT Scan','CT 64 Slice',1,6200000000,'dwi','Jabodetabek','sph_sent'),
   mk('p21','SPH/2026/P21','RS Bhakti Wira Tamtama','hospital','private','CT Scan','CT 128 Slice',1,8200000000,'hatim','Jateng A','po_issued',{status:'won',dpPaid:true,shippingStatus:'delivered',customsStatus:'released'}),
+  mk('p21d','SPH/2026/P21D','RS Premier Bintaro','hospital','private','MRI','MRI 1.5T Supermark',1,13800000000,'dwi','Jabodetabek','po_issued',{status:'won',dpPaid:true,finalPaid:true,shippingStatus:'delivered',customsStatus:'released'}),
+  mk('p21e','SPH/2026/P21E','RSUD Banyumas','hospital','government','X-Ray','X-Ray Stationary Jumong General',1,2100000000,'lukman','Jateng','po_issued',{status:'won',dpPaid:true,shippingStatus:'delivered',customsStatus:'released'}),
+  mk('p21f','SPH/2026/P21F','RS Hermina Galaxy Bekasi','hospital','private','CT Scan','CT 64 Slice Anatom Clarity',1,6100000000,'dwi','Jabodetabek','po_issued',{status:'won',dpPaid:true,shippingStatus:'delivered',customsStatus:'ongoing'}),
+  mk('p21b','SPH/2026/P21B','RS Panti Rapih Yogyakarta','hospital','private','C-Arm','C-Arm Garion',1,2400000000,'lukman','DIY','po_issued',{status:'won',dpPaid:true,manifestId:'mfst_001',customsStatus:'ongoing'}),
+  mk('p21c','SPH/2026/P21C','RS Telogorejo Semarang','hospital','private','ESWL','ESWL Tipe 109X',1,5200000000,'hatim','Jateng A','po_issued',{status:'won',dpPaid:true,manifestId:'mfst_003',customsStatus:'hold',customsStatusNote:'Tertahan di Bea Cukai Tanjung Priok — menunggu dokumen COO (Certificate of Origin) dari principal Hyde Medical. Estimasi rilis 3-5 hari kerja.'}),
   mk('p22','SPH/2026/P22','RS Permata Hati Yogyakarta','hospital','private','MRI','MRI 1.5T',1,13800000000,'lukman','DIY','lost',{status:'lost',probability:0}),
   mk('p23','SPH/2026/P23','RS Pertamedika Sentul','hospital','private','X-Ray','X-Ray Digital DR',1,1850000000,'dwi','Jabodetabek','sph_sent'),
   mk('p24','SPH/2026/P24','RS Sari Asih Tangerang','hospital','private','C-Arm','C-Arm Surgical',1,2300000000,'dwi','Jabodetabek','sph_sent'),
@@ -1527,9 +1582,9 @@ function generateBulkSPH() {
   const rand = seedRand(2026);
   const sphList = [];
 
-  // ========== 2025 Historical SPH (Jan-Dec 2025): ~245 SPH ==========
+  // ========== 2025 Historical SPH (Jan-Dec 2025): ~122 SPH (pruned 50%) ==========
   // Distribution: 70% private, 12% gov, 8% tender, 10% kso
-  // ~58 won (matches 58 installed units), ~25 lost, rest closed out
+  // ~29 won (matches installed units), ~13 lost, rest closed out
   const customers2025 = [
     'RS Husada Utama Surabaya', 'RSUD Soewandhie Surabaya', 'RS Mitra Keluarga Tegal',
     'RSUD Tarakan Jakarta', 'RSUD Banyumas', 'RS Premier Bintaro', 'RS Hermina Galaxy',
@@ -1553,15 +1608,15 @@ function generateBulkSPH() {
     'RSUD Wonosobo', 'RSUD Cilacap', 'RSUD Banjarnegara', 'RSUD Purbalingga',
   ];
 
-  for (let i = 0; i < 245; i++) {
+  for (let i = 0; i < 122; i++) {
     const cust = customers2025[i % customers2025.length] + (i > customers2025.length ? ' II' : '');
     const r = rand();
     const ptype = r < 0.70 ? 'private' : r < 0.82 ? 'government' : r < 0.90 ? 'tender' : 'kso';
     const ct = ptype === 'kso' || cust.startsWith('RS') ? 'hospital' : (r > 0.85 ? 'clinic' : 'hospital');
     const prod = PRODUCT_CATALOG[Math.floor(rand() * PRODUCT_CATALOG.length)];
     const qty = rand() < 0.85 ? 1 : 2;
-    // 2025 outcomes: 58 won, ~25 lost, rest active/closed
-    const outcome = i < 58 ? 'won' : i < 83 ? 'lost' : (rand() < 0.5 ? 'won' : 'lost');
+    // 2025 outcomes: 29 won, ~13 lost, rest active/closed (pruned 50%)
+    const outcome = i < 29 ? 'won' : i < 42 ? 'lost' : (rand() < 0.5 ? 'won' : 'lost');
     const stage = outcome === 'won' ? 'po_issued' : 'lost';
     const month = Math.floor(rand() * 12) + 1;
     const day = Math.floor(rand() * 28) + 1;
@@ -1583,8 +1638,8 @@ function generateBulkSPH() {
     });
   }
 
-  // ========== 2026 Jan-May: 276 SPH ==========
-  // 22 PO issued, all invoiced, 90% DP paid
+  // ========== 2026 Jan-May: 138 SPH (pruned 50%) ==========
+  // 11 PO issued, all invoiced, 90% DP paid
   // 60% of PO units installed, rest in production at factory
   const customers2026 = [
     ...customers2025,
@@ -1599,7 +1654,7 @@ function generateBulkSPH() {
   ];
 
   let poCount = 0;
-  for (let i = 0; i < 276; i++) {
+  for (let i = 0; i < 138; i++) {
     const cust = customers2026[i % customers2026.length] + (i > customers2026.length ? ' (Cab. ' + Math.floor(i/customers2026.length) + ')' : '');
     const r = rand();
     const ptype = r < 0.65 ? 'private' : r < 0.82 ? 'government' : r < 0.92 ? 'tender' : 'kso';
@@ -1607,9 +1662,9 @@ function generateBulkSPH() {
     const prod = PRODUCT_CATALOG[Math.floor(rand() * PRODUCT_CATALOG.length)];
     const qty = rand() < 0.88 ? 1 : 2;
 
-    // Stage distribution following funnel logic
+    // Stage distribution following funnel logic (pruned 50%: 11 PO issued)
     let stage, status = 'active', probability;
-    if (poCount < 22) {
+    if (poCount < 11) {
       stage = 'po_issued'; status = 'won'; probability = 100; poCount++;
     } else {
       const sr = rand();
@@ -4006,6 +4061,13 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSph, setEditingSph] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [changePwOpen, setChangePwOpen] = useState(false);
+
+  // Self-service password change for the logged-in user
+  const handleChangePassword = (newPassword) => {
+    setEmployees(prev => ({ ...prev, [session.username]: { ...prev[session.username], password: newPassword, mustChangePassword: false } }));
+    setChangePwOpen(false);
+  };
 
   const perms = PERMISSIONS[session.role];
   const allowedNav = NAV_BY_ROLE[session.role];
@@ -4032,7 +4094,7 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
   return (
     <div style={{minHeight: '100vh', background: '#f8f5ef', fontFamily: 'Inter, sans-serif', color: '#1a2942'}}>
       <GlobalStyles />
-      <Header session={session} setSession={setSession} lang={lang} setLang={setLang} view={view} setView={setView} allowedNav={allowedNav} t={t} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} businessTrips={businessTrips} realizations={realizations} />
+      <Header session={session} setSession={setSession} lang={lang} setLang={setLang} view={view} setView={setView} allowedNav={allowedNav} t={t} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} businessTrips={businessTrips} realizations={realizations} onChangePassword={() => setChangePwOpen(true)} />
 
       <main className="main-content fade-in" style={{maxWidth: '1440px', margin: '0 auto', padding: '32px 48px 60px'}}>
         {view === 'dashboard' && <Dashboard data={filteredData} reports={reports} t={t} lang={lang} session={session} fmt={fmt} />}
@@ -4053,12 +4115,73 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
 
       {modalOpen && <SPHModal sph={editingSph} t={t} lang={lang} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingSph(null); }} fmtFull={fmtFull} />}
       <ConfirmDialog open={!!deleteSphId} title={lang === 'id' ? 'Hapus SPH?' : 'Delete SPH?'} message={t.confirm_delete || (lang === 'id' ? 'Yakin ingin menghapus SPH ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this SPH? This action cannot be undone.')} onConfirm={confirmDeleteSph} onCancel={() => setDeleteSphId(null)} danger lang={lang} />
+      {changePwOpen && <ChangePasswordModal session={session} employees={employees} onSave={handleChangePassword} onClose={() => setChangePwOpen(false)} t={t} lang={lang} />}
       <Footer t={t} />
     </div>
   );
 }
 
-function Header({ session, setSession, lang, setLang, view, setView, allowedNav, t, mobileMenuOpen, setMobileMenuOpen, exchangeRate, setExchangeRate, businessTrips, realizations }) {
+// ============== Change Password Modal (self-service) ==============
+function ChangePasswordModal({ session, employees, onSave, onClose, t, lang }) {
+  const [current, setCurrent] = useState('');
+  const [next, setNext] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [error, setError] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const currentPassword = employees[session.username]?.password || '';
+
+  const handleSubmit = () => {
+    setError('');
+    if (current !== currentPassword) { setError(lang === 'id' ? 'Password saat ini salah.' : 'Current password is incorrect.'); return; }
+    if (next.length < 6) { setError(lang === 'id' ? 'Password baru minimal 6 karakter.' : 'New password must be at least 6 characters.'); return; }
+    if (next === currentPassword) { setError(lang === 'id' ? 'Password baru harus berbeda dari yang lama.' : 'New password must differ from the current one.'); return; }
+    if (next !== confirm) { setError(lang === 'id' ? 'Konfirmasi password tidak cocok.' : 'Password confirmation does not match.'); return; }
+    onSave(next);
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{background: '#fefcf7', maxWidth: '440px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', border: '1px solid #d4cdb8'}}>
+        <div style={{padding: '20px 24px', borderBottom: '1px solid #e8e1cc', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+          <h2 className="serif" style={{fontSize: '20px', margin: 0, fontWeight: 500, display: 'flex', alignItems: 'center', gap: '10px'}}><Lock size={18} />{t.change_password}</h2>
+          <button onClick={onClose} style={{background: 'transparent', border: 'none', cursor: 'pointer', color: '#8a7d5c'}}><X size={20} /></button>
+        </div>
+        <div style={{padding: '22px 24px'}}>
+          {employees[session.username]?.mustChangePassword && (
+            <div style={{padding: '10px 12px', background: '#fef9e7', border: '1px solid #c8a96a', borderLeft: '3px solid #c8a96a', marginBottom: '16px', fontSize: '12px', color: '#5a4a1a'}}>
+              ⚠ {lang === 'id' ? 'Password Anda masih default. Demi keamanan, mohon ganti sekarang.' : 'Your password is still the default. For security, please change it now.'}
+            </div>
+          )}
+          <div style={{display: 'flex', flexDirection: 'column', gap: '14px'}}>
+            <div>
+              <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '6px'}}>{t.cp_current}</label>
+              <input type={showPw ? 'text' : 'password'} value={current} onChange={e => setCurrent(e.target.value)} style={{width: '100%'}} />
+            </div>
+            <div>
+              <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '6px'}}>{t.cp_new}</label>
+              <input type={showPw ? 'text' : 'password'} value={next} onChange={e => setNext(e.target.value)} style={{width: '100%'}} />
+            </div>
+            <div>
+              <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '6px'}}>{t.cp_confirm}</label>
+              <input type={showPw ? 'text' : 'password'} value={confirm} onChange={e => setConfirm(e.target.value)} style={{width: '100%'}} onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
+            </div>
+            <label style={{display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#8a7d5c', cursor: 'pointer'}}>
+              <input type="checkbox" checked={showPw} onChange={e => setShowPw(e.target.checked)} style={{width: 'auto'}} />
+              {lang === 'id' ? 'Tampilkan password' : 'Show password'}
+            </label>
+            {error && <div style={{padding: '8px 12px', background: '#c0303015', borderLeft: '3px solid #c03030', fontSize: '12px', color: '#c03030'}}>{error}</div>}
+          </div>
+        </div>
+        <div style={{padding: '14px 24px', borderTop: '1px solid #e8e1cc', background: '#f8f5ef', display: 'flex', justifyContent: 'flex-end', gap: '10px'}}>
+          <button onClick={onClose} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '8px 16px', fontSize: '12px', cursor: 'pointer', color: '#8a7d5c', fontFamily: 'inherit'}}>{lang === 'id' ? 'Batal' : 'Cancel'}</button>
+          <button onClick={handleSubmit} style={{background: '#1a2942', border: 'none', padding: '8px 16px', fontSize: '12px', cursor: 'pointer', color: '#fff', fontFamily: 'inherit', fontWeight: 600}}>{t.cp_save}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Header({ session, setSession, lang, setLang, view, setView, allowedNav, t, mobileMenuOpen, setMobileMenuOpen, exchangeRate, setExchangeRate, businessTrips, realizations, onChangePassword }) {
   const navIcons = { dashboard: Activity, sph: FileText, pipeline: Briefcase, sales: Users, sales_report: ClipboardList, incentive: DollarSign, finance: Wallet, operations: Truck, installation: Wrench, maintenance: Settings, regulatory: ShieldCheck, valuation: TrendingUp, employees: UserPlus, business_trip: Plane };
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [rateMenuOpen, setRateMenuOpen] = useState(false);
@@ -4143,6 +4266,9 @@ function Header({ session, setSession, lang, setLang, view, setView, allowedNav,
                     <div style={{fontSize: '13px', fontWeight: 600}}>{session.name}</div>
                     <div style={{fontSize: '11px', color: '#8a7d5c', marginTop: '2px'}}>{t[`role_${session.role}`]}</div>
                   </div>
+                  <button onClick={() => { onChangePassword(); setUserMenuOpen(false); }} style={{width: '100%', padding: '12px 14px', background: 'transparent', border: 'none', borderBottom: '1px solid #e8e1cc', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', color: '#1a2942', fontFamily: 'inherit', fontSize: '13px'}}>
+                    <Lock size={14} strokeWidth={1.5} />{t.change_password}
+                  </button>
                   <button onClick={() => { setSession(null); setUserMenuOpen(false); }} style={{width: '100%', padding: '12px 14px', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', color: '#1a2942', fontFamily: 'inherit', fontSize: '13px'}}>
                     <LogOut size={14} strokeWidth={1.5} />{t.logout}
                   </button>
@@ -5010,14 +5136,12 @@ function SRDashboard({ reports, t, lang }) {
     const totalDays = reports.reduce((s, r) => s + (r.days || 0), 0);
     const totalDeals = reports.reduce((s, r) => s + (r.visits?.filter(v => v.visit === 'closed').length || 0), 0);
     const totalPipeRS = reports.reduce((s, r) => s + (r.pipeN || 0), 0);
-    const totalCost = reports.reduce((s, r) => s + (r.totalCost || 0), 0);
     const bySales = {};
     reports.forEach(r => {
-      if (!bySales[r.salesId]) bySales[r.salesId] = { count: 0, cost: 0 };
+      if (!bySales[r.salesId]) bySales[r.salesId] = { count: 0 };
       bySales[r.salesId].count += r.visits?.length || 0;
-      bySales[r.salesId].cost += r.totalCost || 0;
     });
-    return { totalVisits, totalDays, totalDeals, totalPipeRS, totalCost, bySales };
+    return { totalVisits, totalDays, totalDeals, totalPipeRS, bySales };
   }, [reports]);
 
   if (!reports.length) return (
@@ -5027,7 +5151,7 @@ function SRDashboard({ reports, t, lang }) {
     </div>
   );
 
-  const { totalVisits, totalDays, totalDeals, totalPipeRS, totalCost, bySales } = stats;
+  const { totalVisits, totalDays, totalDeals, totalPipeRS, bySales } = stats;
 
   return (
     <div>
@@ -5071,7 +5195,7 @@ function SRForm({ reports, setReports, t, lang, session, editingReport, onSaved,
   const [form, setForm] = useState(editingReport || {
     date: '2026-05-16', week: 'Minggu 1', days: 0, nights: 0, area: '',
     visits: [{ name: '', city: '', visit: 'first', product: '', pipeline: 'cold', contact: '', note: '' }],
-    pipeN: 0, pipeVal: 0, closest: '', totalCost: 0,
+    pipeN: 0, pipeVal: 0, closest: '',
     block: '', win: '', next: '', fatigue: 0,
   });
 
@@ -5086,7 +5210,7 @@ function SRForm({ reports, setReports, t, lang, session, editingReport, onSaved,
       salesId: isEdit ? form.salesId : session.salesId,
       date: form.date, week: form.week, days: parseInt(form.days) || 0, nights: parseInt(form.nights) || 0,
       area: form.area, visits: validVisits, pipeN: parseInt(form.pipeN) || 0, pipeVal: parseInt(form.pipeVal) || 0,
-      closest: form.closest, totalCost: parseInt(form.totalCost) || 0,
+      closest: form.closest,
       block: form.block, win: form.win, next: form.next, fatigue: form.fatigue,
       createdAt: isEdit ? form.createdAt : new Date().toISOString(),
       updatedAt: isEdit ? new Date().toISOString() : undefined,
@@ -5192,12 +5316,7 @@ function SRForm({ reports, setReports, t, lang, session, editingReport, onSaved,
       </div>
 
       <div className="card">
-        <div className="card-title">04 · {t.sr_cost}</div>
-        <input type="number" min="0" value={form.totalCost} onChange={e => setForm(f => ({...f, totalCost: e.target.value}))} placeholder="0" />
-      </div>
-
-      <div className="card">
-        <div className="card-title">05 · {t.sr_reflection}</div>
+        <div className="card-title">04 · {t.sr_reflection}</div>
         <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '14px'}}>
           <div><label style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '6px', display: 'block'}}>{t.sr_win}</label><textarea rows={3} value={form.win} onChange={e => setForm(f => ({...f, win: e.target.value}))} /></div>
           <div><label style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '6px', display: 'block'}}>{t.sr_block}</label><textarea rows={3} value={form.block} onChange={e => setForm(f => ({...f, block: e.target.value}))} /></div>
@@ -5232,7 +5351,6 @@ function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, session, fmt }
     if (sortBy === 'date_desc') return arr.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     if (sortBy === 'date_asc') return arr.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
     if (sortBy === 'visits_desc') return arr.sort((a, b) => (b.visits?.length || 0) - (a.visits?.length || 0));
-    if (sortBy === 'cost_desc') return arr.sort((a, b) => (b.totalCost || 0) - (a.totalCost || 0));
     return arr;
   }, [reports, sortBy]);
 
@@ -5250,7 +5368,6 @@ function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, session, fmt }
           {value: 'date_desc', label: lang === 'id' ? 'Terbaru' : 'Newest'},
           {value: 'date_asc', label: lang === 'id' ? 'Terlama' : 'Oldest'},
           {value: 'visits_desc', label: lang === 'id' ? 'Visit Terbanyak' : 'Most Visits'},
-          {value: 'cost_desc', label: lang === 'id' ? 'Biaya Terbesar' : 'Highest Cost'},
         ]} />
       </div>
       <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
@@ -5271,7 +5388,6 @@ function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, session, fmt }
                 <div style={{display: 'flex', gap: '14px', fontSize: '11px', color: '#8a7d5c', flexWrap: 'wrap'}} className="mono">
                   <span><b style={{color: '#1a2942'}}>{r.visits?.length || 0}</b> RS</span>
                   <span><b style={{color: '#1a2942'}}>{r.days}</b> {t.days}</span>
-                  <span><b style={{color: '#1a2942'}}>{fmt(r.totalCost || 0)}</b></span>
                 </div>
                 <ChevronDown size={16} style={{transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', color: '#8a7d5c'}} />
               </div>
@@ -5315,6 +5431,8 @@ function EmployeesModule({ employees, setEmployees, t, lang, session, fmt }) {
   const [editingEmp, setEditingEmp] = useState(null);
   const [confirmDeactivateUser, setConfirmDeactivateUser] = useState(null);
   const [confirmActivateUser, setConfirmActivateUser] = useState(null);
+  const [confirmDeleteUser, setConfirmDeleteUser] = useState(null);
+  const [resetPwUser, setResetPwUser] = useState(null);
   const [filter, setFilter] = useState('all');
 
   // PERFORMANCE: Memoize transformation + filter
@@ -5345,6 +5463,18 @@ function EmployeesModule({ employees, setEmployees, t, lang, session, fmt }) {
   const handleActivate = (username) => {
     setEmployees(prev => ({ ...prev, [username]: { ...prev[username], active: true } }));
     setConfirmActivateUser(null);
+  };
+  const handleDelete = (username) => {
+    setEmployees(prev => {
+      const next = { ...prev };
+      delete next[username];
+      return next;
+    });
+    setConfirmDeleteUser(null);
+  };
+  const handleResetPassword = (username) => {
+    setEmployees(prev => ({ ...prev, [username]: { ...prev[username], password: 'hnti2026', mustChangePassword: true } }));
+    setResetPwUser(null);
   };
 
   // KPI stats
@@ -5462,8 +5592,12 @@ function EmployeesModule({ employees, setEmployees, t, lang, session, fmt }) {
                   <Td align="center">
                     <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
                       <button onClick={() => { setEditingEmp(emp); setModalOpen(true); }} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: '#1a2942', fontFamily: 'inherit'}} title={t.crud_edit}><Edit2 size={11} /></button>
+                      <button onClick={() => setResetPwUser(emp.username)} style={{background: 'transparent', border: '1px solid #1a4d8a', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: '#1a4d8a', fontFamily: 'inherit'}} title={t.emp_reset_pw}><Lock size={11} /></button>
                       {isInactive
-                        ? <button onClick={() => setConfirmActivateUser(emp.username)} style={{background: 'transparent', border: '1px solid #3a6b3a', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: '#3a6b3a', fontFamily: 'inherit'}} title={t.emp_activate}><UserCheck size={11} /></button>
+                        ? <>
+                            <button onClick={() => setConfirmActivateUser(emp.username)} style={{background: 'transparent', border: '1px solid #3a6b3a', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: '#3a6b3a', fontFamily: 'inherit'}} title={t.emp_activate}><UserCheck size={11} /></button>
+                            <button onClick={() => setConfirmDeleteUser(emp.username)} style={{background: 'transparent', border: '1px solid #c03030', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: '#c03030', fontFamily: 'inherit'}} title={t.emp_delete}><Trash2 size={11} /></button>
+                          </>
                         : (emp.username !== session.username && <button onClick={() => setConfirmDeactivateUser(emp.username)} style={{background: 'transparent', border: '1px solid #c8a96a', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: '#c8a96a', fontFamily: 'inherit'}} title={t.emp_deactivate}><UserX size={11} /></button>)}
                     </div>
                   </Td>
@@ -5478,6 +5612,8 @@ function EmployeesModule({ employees, setEmployees, t, lang, session, fmt }) {
       {modalOpen && <EmployeeModal emp={editingEmp} employees={employees} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingEmp(null); }} t={t} lang={lang} />}
       <ConfirmDialog open={!!confirmDeactivateUser} title={lang === 'id' ? 'Non-aktifkan Karyawan?' : 'Deactivate Employee?'} message={t.emp_confirm_deactivate} confirmText={lang === 'id' ? 'Ya, Non-aktifkan' : 'Yes, Deactivate'} onConfirm={() => handleDeactivate(confirmDeactivateUser)} onCancel={() => setConfirmDeactivateUser(null)} danger lang={lang} />
       <ConfirmDialog open={!!confirmActivateUser} title={lang === 'id' ? 'Aktifkan Karyawan?' : 'Activate Employee?'} message={t.emp_confirm_activate} confirmText={lang === 'id' ? 'Ya, Aktifkan' : 'Yes, Activate'} onConfirm={() => handleActivate(confirmActivateUser)} onCancel={() => setConfirmActivateUser(null)} lang={lang} />
+      <ConfirmDialog open={!!confirmDeleteUser} title={lang === 'id' ? 'Hapus Akun Permanen?' : 'Delete Account Permanently?'} message={lang === 'id' ? `Akun "${confirmDeleteUser}" akan dihapus permanen dan tidak bisa dikembalikan. Semua histori login akun ini akan hilang. Lanjutkan?` : `Account "${confirmDeleteUser}" will be permanently deleted and cannot be recovered. Continue?`} confirmText={lang === 'id' ? 'Ya, Hapus Permanen' : 'Yes, Delete Permanently'} onConfirm={() => handleDelete(confirmDeleteUser)} onCancel={() => setConfirmDeleteUser(null)} danger lang={lang} />
+      <ConfirmDialog open={!!resetPwUser} title={lang === 'id' ? 'Reset Password?' : 'Reset Password?'} message={lang === 'id' ? `Password akun "${resetPwUser}" akan direset ke default (hnti2026). Karyawan wajib menggantinya saat login berikutnya. Lanjutkan?` : `Password for "${resetPwUser}" will be reset to default (hnti2026). The employee must change it on next login. Continue?`} confirmText={lang === 'id' ? 'Ya, Reset' : 'Yes, Reset'} onConfirm={() => handleResetPassword(resetPwUser)} onCancel={() => setResetPwUser(null)} lang={lang} />
     </div>
   );
 }
@@ -7396,9 +7532,53 @@ function NetProfitAnalysis({ data, t, lang, fmt }) {
 
 function OperationsModule({ data, setData, manifests, setManifests, customsDocs, setCustomsDocs, t, lang, canEdit, fmt }) {
   const [tab, setTab] = useState('shipment');
-  const poProjects = useMemo(() => data.filter(s => s.poStatus === 'issued'), [data]);
-  const updateShipping = (id, status) => { if (!canEdit) return; setData(prev => prev.map(s => s.id === id ? { ...s, shippingStatus: status } : s)); };
-  const updateCustoms = (id, status) => { if (!canEdit) return; setData(prev => prev.map(s => s.id === id ? { ...s, customsStatus: status } : s)); };
+  // Only show PO still in active shipping pipeline (not yet delivered/installed).
+  // Historical delivered units are excluded to keep this tab focused on live logistics.
+  const poProjects = useMemo(() => data.filter(s =>
+    s.poStatus === 'issued' &&
+    s.shippingStatus !== 'delivered' &&
+    s.installationStatus !== 'installed'
+  ), [data]);
+  const totalPoIssued = useMemo(() => data.filter(s => s.poStatus === 'issued').length, [data]);
+
+  // Manifest status → Shipment status mapping (cross-tab link)
+  const MANIFEST_TO_SHIPPING = {
+    planning: 'plan_order',
+    loading: 'ready_to_ship',
+    in_transit: 'on_shipment',
+    arrived: 'delivered',
+    cleared: 'delivered',
+  };
+
+  // Build manifest lookup by id for linked SPH
+  const manifestById = useMemo(() => new Map(manifests.map(m => [m.id, m])), [manifests]);
+
+  // For a PO project, determine effective shipping status (synced from manifest if linked)
+  const getEffectiveShipping = (p) => {
+    if (p.manifestId && manifestById.has(p.manifestId)) {
+      const mfst = manifestById.get(p.manifestId);
+      return MANIFEST_TO_SHIPPING[mfst.status] || p.shippingStatus;
+    }
+    return p.shippingStatus;
+  };
+
+  const updateShipping = (id, status) => {
+    if (!canEdit) return;
+    setData(prev => prev.map(s => s.id === id ? { ...s, shippingStatus: status } : s));
+  };
+  const updateCustoms = (id, status) => {
+    if (!canEdit) return;
+    // If switching to hold, keep existing note; UI will prompt for note
+    setData(prev => prev.map(s => s.id === id ? { ...s, customsStatus: status } : s));
+  };
+  const updateStatusNote = (id, note) => {
+    if (!canEdit) return;
+    setData(prev => prev.map(s => s.id === id ? { ...s, customsStatusNote: note } : s));
+  };
+  const linkManifest = (id, manifestId) => {
+    if (!canEdit) return;
+    setData(prev => prev.map(s => s.id === id ? { ...s, manifestId: manifestId || null } : s));
+  };
 
   const shippingSteps = useMemo(() => [
     { id: 'plan_order', label: t.plan_order_to_factory, color: '#94a3b8' },
@@ -7408,12 +7588,12 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
   ], [t]);
 
   const opsStats = useMemo(() => ({
+    poInShipping: poProjects.length,
     totalManifests: manifests.length,
     inTransit: manifests.filter(m => m.status === 'in_transit').length,
-    arrivedCount: manifests.filter(m => m.status === 'arrived').length,
     pendingDocs: customsDocs.filter(d => d.status === 'submitted' || d.status === 'received').length,
-  }), [manifests, customsDocs]);
-  const { totalManifests, inTransit, arrivedCount, pendingDocs } = opsStats;
+  }), [poProjects, manifests, customsDocs]);
+  const { poInShipping, totalManifests, inTransit, pendingDocs } = opsStats;
 
   return (
     <div>
@@ -7426,16 +7606,18 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
 
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '22px', border: '1px solid #d4cdb8'}}>
         <div className="card-pad">
+          <div className="lbl-tag">{t.ops_po_in_shipping}</div>
+          <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{poInShipping}</div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{lang === 'id' ? `dari ${totalPoIssued} PO terbit (sisanya sudah terkirim)` : `of ${totalPoIssued} PO issued (rest delivered)`}</div>
+        </div>
+        <div className="card-pad">
           <div className="lbl-tag">{t.ops_total_manifests}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{totalManifests}</div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{lang === 'id' ? 'manifest pengapalan aktif' : 'active shipment manifests'}</div>
         </div>
         <div className="card-pad">
           <div className="lbl-tag">{t.ops_in_transit}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#c8a96a'}}>{inTransit}</div>
-        </div>
-        <div className="card-pad">
-          <div className="lbl-tag">{t.ops_arrived_count}</div>
-          <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#5b87b8'}}>{arrivedCount}</div>
         </div>
         <div className="card-pad">
           <div className="lbl-tag">{t.ops_pending_docs}</div>
@@ -7462,7 +7644,11 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
 
       {tab === 'shipment' && (
         <div style={{display: 'flex', flexDirection: 'column', gap: '14px'}}>
-          {poProjects.map(p => (
+          {poProjects.map(p => {
+            const effectiveShipping = getEffectiveShipping(p);
+            const isSynced = p.manifestId && manifestById.has(p.manifestId);
+            const linkedManifest = isSynced ? manifestById.get(p.manifestId) : null;
+            return (
             <div key={p.id} style={{padding: '18px', background: '#fefcf7', border: '1px solid #e8e1cc'}}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px', flexWrap: 'wrap', gap: '10px'}}>
                 <div>
@@ -7471,13 +7657,28 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
                 </div>
                 <div className="mono" style={{fontSize: '14px', fontWeight: 500}}>{fmt(p.totalValue)}</div>
               </div>
+
+              {/* Manifest link selector */}
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', flexWrap: 'wrap'}}>
+                <span style={{fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{t.shipment_manifest_link}:</span>
+                {canEdit ? (
+                  <select value={p.manifestId || ''} onChange={e => linkManifest(p.id, e.target.value)} style={{padding: '4px 8px', fontSize: '11px', fontFamily: 'inherit', background: '#fff', border: '1px solid #d4cdb8', color: '#1a2942', cursor: 'pointer', maxWidth: '320px'}}>
+                    <option value="">— {t.shipment_no_manifest} —</option>
+                    {manifests.map(m => <option key={m.id} value={m.id}>{m.manifestNo} · {m.principal} ({t[`ops_status_${m.status}`]})</option>)}
+                  </select>
+                ) : (
+                  <span style={{fontSize: '11px', color: linkedManifest ? '#1a2942' : '#8a7d5c'}}>{linkedManifest ? `${linkedManifest.manifestNo} · ${linkedManifest.principal}` : t.shipment_no_manifest}</span>
+                )}
+                {isSynced && <span style={{padding: '2px 8px', fontSize: '9px', background: '#3a6b3a20', color: '#3a6b3a', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', borderRadius: '3px'}}>🔗 {t.shipment_auto_synced}</span>}
+              </div>
+
               <div style={{display: 'flex', gap: '0', marginBottom: '14px'}}>
                 {shippingSteps.map((step, i) => {
-                  const isActive = p.shippingStatus === step.id;
-                  const stepIdx = shippingSteps.findIndex(s => s.id === p.shippingStatus);
+                  const isActive = effectiveShipping === step.id;
+                  const stepIdx = shippingSteps.findIndex(s => s.id === effectiveShipping);
                   const isPast = stepIdx > i;
                   return (
-                    <button key={step.id} onClick={() => updateShipping(p.id, step.id)} disabled={!canEdit} style={{flex: 1, padding: '9px 6px', fontSize: '9px', fontWeight: 600, letterSpacing: '0.05em', background: isActive ? step.color : isPast ? step.color + '40' : 'transparent', color: isActive ? '#fff' : isPast ? step.color : '#8a7d5c', border: `1px solid ${isActive || isPast ? step.color : '#d4cdb8'}`, cursor: canEdit ? 'pointer' : 'default', fontFamily: 'inherit', textTransform: 'uppercase'}}>{step.label}</button>
+                    <button key={step.id} onClick={() => !isSynced && updateShipping(p.id, step.id)} disabled={!canEdit || isSynced} title={isSynced ? t.shipment_auto_synced : ''} style={{flex: 1, padding: '9px 6px', fontSize: '9px', fontWeight: 600, letterSpacing: '0.05em', background: isActive ? step.color : isPast ? step.color + '40' : 'transparent', color: isActive ? '#fff' : isPast ? step.color : '#8a7d5c', border: `1px solid ${isActive || isPast ? step.color : '#d4cdb8'}`, cursor: (canEdit && !isSynced) ? 'pointer' : 'default', fontFamily: 'inherit', textTransform: 'uppercase', opacity: isSynced && !isActive && !isPast ? 0.6 : 1}}>{step.label}</button>
                   );
                 })}
               </div>
@@ -7487,24 +7688,57 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
                   <button key={status} onClick={() => updateCustoms(p.id, status)} disabled={!canEdit} style={{padding: '5px 11px', fontSize: '11px', fontFamily: 'inherit', background: p.customsStatus === status ? (status === 'released' ? '#3a6b3a' : status === 'ongoing' ? '#c8a96a' : '#8b3a3a') : 'transparent', color: p.customsStatus === status ? '#fff' : '#8a7d5c', border: `1px solid ${p.customsStatus === status ? 'transparent' : '#d4cdb8'}`, cursor: canEdit ? 'pointer' : 'default', fontWeight: 500}}>{t[`customs_${status}`]}</button>
                 ))}
               </div>
+
+              {/* Status Note - especially important for "hold" */}
+              {(p.customsStatus === 'hold' || p.customsStatusNote) && (
+                <div style={{marginTop: '12px', padding: '10px 12px', background: p.customsStatus === 'hold' ? '#8b3a3a10' : '#f8f5ef', borderLeft: `3px solid ${p.customsStatus === 'hold' ? '#8b3a3a' : '#c8a96a'}`}}>
+                  <div style={{fontSize: '9px', letterSpacing: '0.15em', textTransform: 'uppercase', color: p.customsStatus === 'hold' ? '#8b3a3a' : '#8a7d5c', fontWeight: 600, marginBottom: '6px'}}>
+                    {t.status_note_label} {p.customsStatus === 'hold' && <span style={{color: '#c03030'}}>* {t.status_note_hold_required}</span>}
+                  </div>
+                  {canEdit ? (
+                    <textarea
+                      value={p.customsStatusNote || ''}
+                      onChange={e => updateStatusNote(p.id, e.target.value)}
+                      placeholder={t.status_note_placeholder}
+                      rows={2}
+                      style={{width: '100%', fontSize: '12px', padding: '6px 8px', border: `1px solid ${p.customsStatus === 'hold' && !p.customsStatusNote ? '#c03030' : '#d4cdb8'}`, background: '#fff', fontFamily: 'inherit', resize: 'vertical'}}
+                    />
+                  ) : (
+                    <div style={{fontSize: '12px', color: '#1a2942', fontStyle: p.customsStatusNote ? 'normal' : 'italic'}}>{p.customsStatusNote || t.status_note_empty}</div>
+                  )}
+                </div>
+              )}
             </div>
-          ))}
+            );
+          })}
           {poProjects.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c', background: '#fefcf7', border: '1px solid #e8e1cc'}}>{t.no_data}</div>}
         </div>
       )}
 
-      {tab === 'manifest' && <ManifestList manifests={manifests} setManifests={setManifests} t={t} lang={lang} canEdit={canEdit} fmt={fmt} />}
+      {tab === 'manifest' && <ManifestList manifests={manifests} setManifests={setManifests} data={data} t={t} lang={lang} canEdit={canEdit} fmt={fmt} />}
       {tab === 'customs' && <CustomsDocsList customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} manifests={manifests} t={t} lang={lang} canEdit={canEdit} />}
     </div>
   );
 }
 
 // ============== Manifest List ==============
-function ManifestList({ manifests, setManifests, t, lang, canEdit, fmt }) {
+function ManifestList({ manifests, setManifests, data, t, lang, canEdit, fmt }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc');
   const statusColors = { planning: '#94a3b8', loading: '#7d9cc5', in_transit: '#c8a96a', arrived: '#5b87b8', cleared: '#3a6b3a' };
+
+  // Build linked-SPH lookup: manifestId → array of linked PO projects
+  const linkedByManifest = useMemo(() => {
+    const map = new Map();
+    (data || []).forEach(s => {
+      if (s.manifestId) {
+        if (!map.has(s.manifestId)) map.set(s.manifestId, []);
+        map.get(s.manifestId).push(s);
+      }
+    });
+    return map;
+  }, [data]);
 
   const handleSave = (rec) => {
     setManifests(prev => {
@@ -7576,6 +7810,14 @@ function ManifestList({ manifests, setManifests, t, lang, canEdit, fmt }) {
               {m.piRef && <span><strong>PI:</strong> <span className="mono">{m.piRef}</span></span>}
             </div>
             {m.notes && <div style={{padding: '8px 10px', background: '#f0ebe0', fontSize: '11px', fontStyle: 'italic', color: '#1a2942'}}>📝 {m.notes}</div>}
+            {linkedByManifest.has(m.id) && (
+              <div style={{marginTop: '8px', padding: '8px 10px', background: '#3a6b3a10', borderLeft: '3px solid #3a6b3a'}}>
+                <div style={{fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#3a6b3a', fontWeight: 600, marginBottom: '4px'}}>🔗 {lang === 'id' ? 'PO Terhubung' : 'Linked PO'} ({linkedByManifest.get(m.id).length})</div>
+                {linkedByManifest.get(m.id).map(s => (
+                  <div key={s.id} style={{fontSize: '11px', color: '#1a2942', marginTop: '2px'}}>• {s.customer} — {s.subModality} <span className="mono" style={{fontSize: '10px', color: '#8a7d5c'}}>({s.sphNo})</span></div>
+                ))}
+              </div>
+            )}
           </div>
         );
       })}
@@ -7809,18 +8051,67 @@ function CustomsDocModal({ record, manifests, onSave, onClose, t, lang }) {
 
 function InstallationModule({ data, setData, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, t, lang, canEdit, fmt }) {
   const [tab, setTab] = useState('progress');
-  const installProjects = useMemo(() => data.filter(s => s.poStatus === 'issued' && (s.shippingStatus === 'delivered' || s.installationStatus)), [data]);
+  // Build lookup of install-record customers first (used to scope the progress list)
+  const installRecordCustomers = useMemo(() => new Set(installRecords.map(r => r.customer)), [installRecords]);
+  // Progress tab shows PO that are in the LIVE installation pipeline:
+  // delivered-but-not-yet-installed, OR has an active installation record.
+  // Historical (already installed long ago) units are excluded to keep counts meaningful.
+  const installProjects = useMemo(() => data.filter(s =>
+    s.poStatus === 'issued' && (
+      (s.shippingStatus === 'delivered' && s.installationStatus !== 'installed') ||
+      installRecordCustomers.has(s.customer)
+    )
+  ), [data, installRecordCustomers]);
+  const totalInstalled = useMemo(() => data.filter(s => s.installationStatus === 'installed').length, [data]);
   const toggleStep = (id, field) => { if (!canEdit) return; setData(prev => prev.map(s => s.id === id ? { ...s, [field]: !s[field] } : s)); };
+  const updateEvidence = (id, field, url) => { if (!canEdit) return; setData(prev => prev.map(s => s.id === id ? { ...s, [field]: url } : s)); };
+
+  // CROSS-TAB SYNC: build lookup maps by customer (single source of truth)
+  const recordsByCustomer = useMemo(() => {
+    const map = new Map();
+    installRecords.forEach(r => map.set(r.customer, r));
+    return map;
+  }, [installRecords]);
+  const bastByCustomer = useMemo(() => {
+    const map = new Map();
+    bastRecords.forEach(b => map.set(b.customer, b));
+    return map;
+  }, [bastRecords]);
+  const trainingByCustomer = useMemo(() => {
+    const map = new Map();
+    trainingRecords.forEach(tr => map.set(tr.customer, tr));
+    return map;
+  }, [trainingRecords]);
+
+  // Derive effective step status for a PO project (auto-synced from other tabs)
+  const getStepStatus = (p) => {
+    const rec = recordsByCustomer.get(p.customer);
+    const bast = bastByCustomer.get(p.customer);
+    const training = trainingByCustomer.get(p.customer);
+    return {
+      // Installation done: auto-green if install record is completed, OR manual toggle
+      installation_done: (rec && rec.status === 'completed') || !!p.installation_done,
+      functionTest: (rec && rec.calibrationDone) || !!p.functionTest,
+      exposureTest: !!p.exposureTest,
+      trainingCert: (training && training.status === 'completed') || !!p.trainingCert,
+      bapetenPermit: !!p.bapetenPermit,
+      // BAST: auto-green if BAST signed
+      bast: (bast && bast.status === 'signed') || !!p.bastDone,
+      // Source tracking for UI hints
+      _rec: rec, _bast: bast, _training: training,
+    };
+  };
 
   const installSteps = useMemo(() => [
-    { id: 'installation_done', label: t.installation_done, icon: Wrench },
-    { id: 'functionTest', label: t.function_test, icon: CheckCircle2 },
-    { id: 'exposureTest', label: t.exposure_test, icon: CheckCircle2 },
-    { id: 'trainingCert', label: t.training_cert, icon: FileCheck },
-    { id: 'bapetenPermit', label: t.bapeten_permit, icon: Shield },
+    { id: 'installation_done', label: t.installation_done, icon: Wrench, syncSrc: 'record' },
+    { id: 'functionTest', label: t.function_test, icon: CheckCircle2, syncSrc: 'record' },
+    { id: 'exposureTest', label: t.exposure_test, icon: CheckCircle2, syncSrc: null },
+    { id: 'trainingCert', label: t.training_cert, icon: FileCheck, syncSrc: 'training' },
+    { id: 'bapetenPermit', label: t.bapeten_permit, icon: Shield, syncSrc: null },
+    { id: 'bast', label: t.inst_step_bast, icon: FileCheck, syncSrc: 'bast' },
   ], [t]);
 
-  // PERFORMANCE: KPI calculations memoized; renamed inner `t` to `tr` to avoid shadowing translations
+  // PERFORMANCE: KPI calculations memoized
   const kpis = useMemo(() => ({
     totalRecords: installRecords.length,
     inProgressCount: installRecords.filter(r => r.status === 'progress').length,
@@ -7844,6 +8135,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
         <div style={{padding: '16px 18px', background: '#fefcf7'}}>
           <div className="lbl-tag">{t.inst_total_records}</div>
           <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px'}}>{totalRecords}</div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{lang === 'id' ? `${totalInstalled} unit total terpasang (kumulatif)` : `${totalInstalled} units installed (cumulative)`}</div>
         </div>
         <div style={{padding: '16px 18px', background: '#fefcf7'}}>
           <div className="lbl-tag">{t.inst_in_progress}</div>
@@ -7884,7 +8176,13 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
 
       {tab === 'progress' && (
         <div style={{display: 'flex', flexDirection: 'column', gap: '14px'}}>
-          {installProjects.map(p => (
+          <div style={{padding: '10px 14px', background: '#3a6b3a10', borderLeft: '3px solid #3a6b3a', fontSize: '11px', color: '#1a4d2a'}}>
+            🔗 {t.inst_prog_auto_synced}
+          </div>
+          {installProjects.map(p => {
+            const ss = getStepStatus(p);
+            const rec = ss._rec;
+            return (
             <div key={p.id} style={{padding: '18px', background: '#fefcf7', border: '1px solid #e8e1cc'}}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px', flexWrap: 'wrap', gap: '10px'}}>
                 <div>
@@ -7893,20 +8191,67 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
                 </div>
                 <div className="mono" style={{fontSize: '13px', fontWeight: 500}}>{fmt(p.totalValue)}</div>
               </div>
-              <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px'}}>
+
+              {/* Work dates from install record */}
+              <div style={{display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '12px', padding: '10px 12px', background: '#f8f5ef', fontSize: '11px'}}>
+                <div>
+                  <span style={{color: '#8a7d5c', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '9px', fontWeight: 600}}>{t.inst_prog_start}: </span>
+                  <span className="mono" style={{color: '#1a2942', fontWeight: 600}}>{rec?.installStart || '—'}</span>
+                </div>
+                <div>
+                  <span style={{color: '#8a7d5c', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '9px', fontWeight: 600}}>{t.inst_prog_end}: </span>
+                  <span className="mono" style={{color: '#1a2942', fontWeight: 600}}>{rec?.installEnd || (lang === 'id' ? 'Sedang berjalan' : 'In progress')}</span>
+                </div>
+                {rec?.leadTechnician && <div><span style={{color: '#8a7d5c', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '9px', fontWeight: 600}}>{lang === 'id' ? 'Teknisi' : 'Technician'}: </span><span style={{color: '#1a2942'}}>{rec.leadTechnician}</span></div>}
+                {!rec && <span style={{color: '#c8a96a', fontStyle: 'italic'}}>⚠ {t.inst_prog_no_record}</span>}
+              </div>
+
+              {/* Step buttons - auto-synced where applicable */}
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '8px', marginBottom: '12px'}}>
                 {installSteps.map(step => {
                   const Icon = step.icon;
-                  const done = p[step.id];
+                  const done = ss[step.id];
+                  const isSynced = step.syncSrc && (
+                    (step.syncSrc === 'record' && rec) ||
+                    (step.syncSrc === 'bast' && ss._bast) ||
+                    (step.syncSrc === 'training' && ss._training)
+                  );
                   return (
-                    <button key={step.id} onClick={() => toggleStep(p.id, step.id)} disabled={!canEdit} style={{padding: '11px', fontSize: '11px', fontFamily: 'inherit', background: done ? '#3a6b3a' : 'transparent', color: done ? '#fff' : '#8a7d5c', border: `1px solid ${done ? '#3a6b3a' : '#d4cdb8'}`, cursor: canEdit ? 'pointer' : 'default', fontWeight: 500, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', textAlign: 'center'}}>
-                      <Icon size={17} strokeWidth={1.5} />{step.label}
-                      {done && <span style={{fontSize: '9px', letterSpacing: '0.1em'}}>✓ DONE</span>}
+                    <button key={step.id} onClick={() => { if (step.id === 'bast') { toggleStep(p.id, 'bastDone'); } else { toggleStep(p.id, step.id); } }} disabled={!canEdit} title={isSynced ? t.inst_prog_auto_synced : ''} style={{padding: '11px', fontSize: '10.5px', fontFamily: 'inherit', background: done ? '#3a6b3a' : 'transparent', color: done ? '#fff' : '#8a7d5c', border: `1px solid ${done ? '#3a6b3a' : '#d4cdb8'}`, cursor: canEdit ? 'pointer' : 'default', fontWeight: 500, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', textAlign: 'center', position: 'relative'}}>
+                      <Icon size={16} strokeWidth={1.5} />{step.label}
+                      {done && <span style={{fontSize: '8px', letterSpacing: '0.1em'}}>✓ {isSynced ? '🔗 AUTO' : 'DONE'}</span>}
                     </button>
                   );
                 })}
               </div>
+
+              {/* Evidence links (photo/video documentation) */}
+              <div style={{padding: '10px 12px', background: '#f8f5ef', border: '1px solid #e8e1cc'}}>
+                <div style={{fontSize: '9px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '8px'}}>{t.inst_prog_evidence}</div>
+                <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px'}}>
+                  {[
+                    { field: 'evidenceInstall', label: lang === 'id' ? 'Foto/Video Instalasi' : 'Installation Photo/Video' },
+                    { field: 'evidenceTest', label: lang === 'id' ? 'Foto/Video Uji Fungsi' : 'Function Test Photo/Video' },
+                  ].map(ev => (
+                    <div key={ev.field}>
+                      {canEdit ? (
+                        <div>
+                          <div style={{fontSize: '10px', color: '#8a7d5c', marginBottom: '3px'}}>{ev.label}</div>
+                          <input value={p[ev.field] || ''} onChange={e => updateEvidence(p.id, ev.field, e.target.value)} placeholder="https://drive.google.com/..." style={{fontSize: '11px', padding: '5px 8px'}} />
+                        </div>
+                      ) : (
+                        <div>
+                          <div style={{fontSize: '10px', color: '#8a7d5c', marginBottom: '3px'}}>{ev.label}</div>
+                          {p[ev.field] ? <LinkAttachment url={p[ev.field]} lang={lang} /> : <span style={{fontSize: '10px', color: '#8a7d5c', fontStyle: 'italic'}}>—</span>}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          ))}
+            );
+          })}
           {installProjects.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c', background: '#fefcf7', border: '1px solid #e8e1cc'}}>{t.no_data}</div>}
         </div>
       )}
@@ -8539,7 +8884,7 @@ const Footer = React.memo(function Footer({ t }) {
           <IMSLogo size="sm" />
           <span style={{fontSize: '11px', color: '#8a7d5c'}}>· {t.company}</span>
         </div>
-        <div className="lbl-tag">Phase 25 · © 2026</div>
+        <div className="lbl-tag">Phase 27 · © 2026</div>
       </div>
     </footer>
   );

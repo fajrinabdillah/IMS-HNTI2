@@ -1418,8 +1418,19 @@ const ROLE_LABEL_REGULATORY_ID = 'Regulatory';
 // GOVERNMENT: 16 (30% presentation_done = 5, 60% presentation_scheduled = 10, 10% ecatalog = 1, +0 = 16)
 // KSO: 11 (5 CT 128, 2 MRI 1.5T, 4 ESWL)
 
+// Helper: detect payment scheme from project type + customer type
+// - KSO: deposit + 60× bagi hasil bulanan (5 tahun)
+// - Government/RSUD (project type government or tender to RSUD): 100% after BAST (no DP)
+// - Private RS/Klinik: DP 30% + cicilan (default 12×, bisa sampai 36×)
+const detectPaymentScheme = (projectType, customerType) => {
+  if (projectType === 'kso') return 'kso';
+  if (projectType === 'government' || projectType === 'tender') return 'after_bast';
+  return 'dp_installment';
+};
+
 const mk = (id, no, customer, ct, pt, mod, sub, qty, price, owner, region, stage, opts = {}) => {
   const baseProbs = { sph_sent: 20, presentation_scheduled: 35, presentation_done: 50, ecatalog: 40, negotiation: 70, tender: 55, po_issued: 100, lost: 0 };
+  const scheme = opts.paymentScheme || detectPaymentScheme(pt, ct);
   return {
     id, sphNo: no, customer, customerType: ct, projectType: pt, modality: mod, subModality: sub,
     qty, unitPrice: price, totalValue: qty * price,
@@ -1435,6 +1446,12 @@ const mk = (id, no, customer, ct, pt, mod, sub, qty, price, owner, region, stage
     customsStatus: opts.customsStatus || null,
     customsStatusNote: opts.customsStatusNote || '',
     manifestId: opts.manifestId || null,
+    // PAYMENT TRACKING (3 schemes)
+    paymentScheme: scheme,
+    dpPercent: opts.dpPercent !== undefined ? opts.dpPercent : (scheme === 'dp_installment' ? 30 : (scheme === 'kso' ? 10 : 0)),
+    installmentMonths: opts.installmentMonths || (scheme === 'dp_installment' ? 12 : scheme === 'kso' ? 60 : 0),
+    paymentHistory: opts.paymentHistory || [], // [{id, date, amount, type, note, recordedBy}]
+    paymentNote: opts.paymentNote || '',
   };
 };
 
@@ -1620,6 +1637,9 @@ function generateBulkSPH() {
     const stage = outcome === 'won' ? 'po_issued' : 'lost';
     const month = Math.floor(rand() * 12) + 1;
     const day = Math.floor(rand() * 28) + 1;
+    const scheme = detectPaymentScheme(ptype, ct);
+    const installmentMonths = scheme === 'dp_installment' ? 12 : scheme === 'kso' ? 60 : 0;
+    const dpPercent = scheme === 'dp_installment' ? 30 : (scheme === 'kso' ? 10 : 0);
     sphList.push({
       id: `sph2025_${i}`, sphNo: `SPH/2025/${String(i + 1).padStart(3, '0')}`,
       customer: cust, customerType: ct, projectType: ptype,
@@ -1635,6 +1655,8 @@ function generateBulkSPH() {
       shippingStatus: outcome === 'won' ? 'delivered' : null,
       customsStatus: outcome === 'won' ? 'released' : null,
       installationStatus: outcome === 'won' ? 'installed' : null,
+      paymentScheme: scheme, dpPercent, installmentMonths,
+      paymentHistory: [], paymentNote: '',
     });
   }
 
@@ -1682,6 +1704,9 @@ function generateBulkSPH() {
     const isPO = stage === 'po_issued';
     const dpPaid = isPO && rand() < 0.90; // 90% of PO have DP paid
     const installed = isPO && rand() < 0.60; // 60% installed
+    const scheme = detectPaymentScheme(ptype, ct);
+    const installmentMonths = scheme === 'dp_installment' ? 12 : scheme === 'kso' ? 60 : 0;
+    const dpPercent = scheme === 'dp_installment' ? 30 : (scheme === 'kso' ? 10 : 0);
     sphList.push({
       id: `sph2026_${i}`, sphNo: `SPH/2026/${String(i + 100).padStart(3, '0')}`,
       customer: cust, customerType: ct, projectType: ptype,
@@ -1697,6 +1722,8 @@ function generateBulkSPH() {
       shippingStatus: isPO ? (installed ? 'delivered' : 'plan_order') : null,
       customsStatus: isPO ? (installed ? 'released' : null) : null,
       installationStatus: installed ? 'installed' : null,
+      paymentScheme: scheme, dpPercent, installmentMonths,
+      paymentHistory: [], paymentNote: '',
     });
   }
 
@@ -3614,11 +3641,11 @@ const formatCurrencyFull = (n, lang, rate) => {
 const formatDate = (dateStr, lang) => new Date(dateStr).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' });
 
 // Storage
-const STORAGE_KEY = 'ims_hnti:data_v15';
-const REPORTS_KEY = 'ims_hnti:reports_v15';
-const LANG_KEY = 'ims_hnti:lang_v15';
-const SESSION_KEY = 'ims_hnti:session_v15';
-const RATE_KEY = 'ims_hnti:rate_v15';
+const STORAGE_KEY = 'ims_hnti:data_v22';
+const REPORTS_KEY = 'ims_hnti:reports_v22';
+const LANG_KEY = 'ims_hnti:lang_v22';
+const SESSION_KEY = 'ims_hnti:session_v22';
+const RATE_KEY = 'ims_hnti:rate_v22';
 const storeGet = async (k) => { try { const r = await window.storage.get(k); return r?.value; } catch { return null; } };
 const storeSet = async (k, v) => { try { await window.storage.set(k, v); } catch {} };
 const storeDel = async (k) => { try { await window.storage.delete(k); } catch {} };
@@ -3901,17 +3928,36 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
+      // ONE-TIME MIGRATION: clear obsolete storage keys from older versions
+      // This forces a fresh seed load when user upgrades to v22 schema (with payment scheme fields)
+      const MIGRATION_MARKER = 'ims_hnti:schema_v22_migrated';
+      const migrated = await storeGet(MIGRATION_MARKER);
+      if (!migrated) {
+        const obsoleteKeys = [
+          'ims_hnti:data_v15', 'ims_hnti:reports_v15', 'ims_hnti:lang_v15', 'ims_hnti:session_v15', 'ims_hnti:rate_v15',
+          'ims_hnti:issues_v15', 'ims_hnti:reg_v15', 'ims_hnti:akl_v15', 'ims_hnti:imp_v15', 'ims_hnti:pgl_v15',
+          'ims_hnti:pi_v15', 'ims_hnti:pm_v15', 'ims_hnti:mfst_v15', 'ims_hnti:cdoc_v15', 'ims_hnti:inst_v15',
+          'ims_hnti:bast_v15', 'ims_hnti:train_v15', 'ims_hnti:emp_v18', 'ims_hnti:bt_v19', 'ims_hnti:btr_v20',
+          // also previous attempts
+          'ims_hnti:data_v14', 'ims_hnti:data_v13', 'ims_hnti:data_v12',
+        ];
+        for (const k of obsoleteKeys) {
+          try { await window.storage.delete(k); } catch {}
+        }
+        await storeSet(MIGRATION_MARKER, 'true');
+      }
+
       const [d, l, s, r, rep, iss, reg, akl, imp, pgl, pi, pm, mfst, cdoc, inst, bast, train, emp, bt] = await Promise.all([
         storeGet(STORAGE_KEY), storeGet(LANG_KEY), storeGet(SESSION_KEY),
         storeGet(RATE_KEY), storeGet(REPORTS_KEY),
-        storeGet('ims_hnti:issues_v15'), storeGet('ims_hnti:reg_v15'),
-        storeGet('ims_hnti:akl_v15'),
-        storeGet('ims_hnti:imp_v15'), storeGet('ims_hnti:pgl_v15'), storeGet('ims_hnti:pi_v15'),
-        storeGet('ims_hnti:pm_v15'),
-        storeGet('ims_hnti:mfst_v15'), storeGet('ims_hnti:cdoc_v15'),
-        storeGet('ims_hnti:inst_v15'), storeGet('ims_hnti:bast_v15'), storeGet('ims_hnti:train_v15'),
-        storeGet('ims_hnti:emp_v18'),
-        storeGet('ims_hnti:bt_v19')
+        storeGet('ims_hnti:issues_v22'), storeGet('ims_hnti:reg_v22'),
+        storeGet('ims_hnti:akl_v22'),
+        storeGet('ims_hnti:imp_v22'), storeGet('ims_hnti:pgl_v22'), storeGet('ims_hnti:pi_v22'),
+        storeGet('ims_hnti:pm_v22'),
+        storeGet('ims_hnti:mfst_v22'), storeGet('ims_hnti:cdoc_v22'),
+        storeGet('ims_hnti:inst_v22'), storeGet('ims_hnti:bast_v22'), storeGet('ims_hnti:train_v22'),
+        storeGet('ims_hnti:emp_v22'),
+        storeGet('ims_hnti:bt_v22')
       ]);
       if (d) try { setData(JSON.parse(d)); } catch {}
       if (l) setLang(l);
@@ -3931,7 +3977,7 @@ export default function App() {
       if (train) try { setTrainingRecords(JSON.parse(train)); } catch {}
       if (emp) try { setEmployees(JSON.parse(emp)); } catch {}
       if (bt) try { setBusinessTrips(JSON.parse(bt)); } catch {}
-      const btrStored = await storeGet('ims_hnti:btr_v20');
+      const btrStored = await storeGet('ims_hnti:btr_v22');
       if (btrStored) try { setRealizations(JSON.parse(btrStored)); } catch {}
       // Generate reg records on first load from current data
       if (reg) {
@@ -3946,21 +3992,21 @@ export default function App() {
 
   useEffect(() => { if (!loading) storeSet(STORAGE_KEY, JSON.stringify(data)); }, [data, loading]);
   useEffect(() => { if (!loading) storeSet(REPORTS_KEY, JSON.stringify(reports)); }, [reports, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:issues_v15', JSON.stringify(issues)); }, [issues, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:reg_v15', JSON.stringify(regRecords)); }, [regRecords, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:akl_v15', JSON.stringify(aklRecords)); }, [aklRecords, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:imp_v15', JSON.stringify(importRecords)); }, [importRecords, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:pgl_v15', JSON.stringify(pengalihanRecords)); }, [pengalihanRecords, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:pi_v15', JSON.stringify(piRecords)); }, [piRecords, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:pm_v15', JSON.stringify(pmSchedule)); }, [pmSchedule, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:mfst_v15', JSON.stringify(manifests)); }, [manifests, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:cdoc_v15', JSON.stringify(customsDocs)); }, [customsDocs, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:inst_v15', JSON.stringify(installRecords)); }, [installRecords, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:bast_v15', JSON.stringify(bastRecords)); }, [bastRecords, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:train_v15', JSON.stringify(trainingRecords)); }, [trainingRecords, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:emp_v18', JSON.stringify(employees)); }, [employees, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:bt_v19', JSON.stringify(businessTrips)); }, [businessTrips, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:btr_v20', JSON.stringify(realizations)); }, [realizations, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:issues_v22', JSON.stringify(issues)); }, [issues, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:reg_v22', JSON.stringify(regRecords)); }, [regRecords, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:akl_v22', JSON.stringify(aklRecords)); }, [aklRecords, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:imp_v22', JSON.stringify(importRecords)); }, [importRecords, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:pgl_v22', JSON.stringify(pengalihanRecords)); }, [pengalihanRecords, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:pi_v22', JSON.stringify(piRecords)); }, [piRecords, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:pm_v22', JSON.stringify(pmSchedule)); }, [pmSchedule, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:mfst_v22', JSON.stringify(manifests)); }, [manifests, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:cdoc_v22', JSON.stringify(customsDocs)); }, [customsDocs, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:inst_v22', JSON.stringify(installRecords)); }, [installRecords, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:bast_v22', JSON.stringify(bastRecords)); }, [bastRecords, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:train_v22', JSON.stringify(trainingRecords)); }, [trainingRecords, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:emp_v22', JSON.stringify(employees)); }, [employees, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:bt_v22', JSON.stringify(businessTrips)); }, [businessTrips, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:btr_v22', JSON.stringify(realizations)); }, [realizations, loading]);
   useEffect(() => { if (!loading) storeSet(LANG_KEY, lang); }, [lang, loading]);
   useEffect(() => { if (!loading) { session ? storeSet(SESSION_KEY, JSON.stringify(session)) : storeDel(SESSION_KEY); } }, [session, loading]);
   useEffect(() => { if (!loading) storeSet(RATE_KEY, String(exchangeRate)); }, [exchangeRate, loading]);
@@ -4724,7 +4770,7 @@ function SPHManagement({ data, t, lang, canEdit, fmt, onAdd, onEdit, onDelete })
   const [search, setSearch] = useState('');
   const [filterPType, setFilterPType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [filterYear, setFilterYear] = useState('all');
+  const [filterYear, setFilterYear] = useState('2026');
   const [pageSize, setPageSize] = useState(50);  // Pagination: 50 rows initial, "Load more" button
   const [visibleCount, setVisibleCount] = useState(50);
 
@@ -4796,6 +4842,13 @@ function SPHManagement({ data, t, lang, canEdit, fmt, onAdd, onEdit, onDelete })
           <option value="all">{lang === 'id' ? 'Semua Status' : 'All Status'}</option>
           <option value="active">{t.status_active}</option><option value="won">{t.status_won}</option><option value="lost">{t.status_lost}</option>
         </select>
+        <button onClick={() => {
+          const header = ['SPH No', lang === 'id' ? 'Pelanggan' : 'Customer', lang === 'id' ? 'Tipe' : 'Type', lang === 'id' ? 'Jenis Proyek' : 'Project Type', 'Modality', 'Sub-Modality', 'Qty', lang === 'id' ? 'Harga Satuan' : 'Unit Price', lang === 'id' ? 'Total Nilai' : 'Total Value', 'Stage', lang === 'id' ? 'Status' : 'Status', 'Sales', lang === 'id' ? 'Tanggal Terbit' : 'Issue Date', lang === 'id' ? 'Update Terakhir' : 'Last Update'];
+          const rows = [header, ...filtered.map(s => [s.sphNo, s.customer, s.customerType, s.projectType, s.modality, s.subModality, s.qty, s.unitPrice, s.totalValue, s.stage, s.status, s.salesOwner, s.issuedDate, s.lastUpdate])];
+          downloadCSV(`HNTI_SPH_${new Date().toISOString().split('T')[0]}.csv`, rows);
+        }} style={{background: '#3a6b3a', border: 'none', color: '#fff', padding: '6px 12px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px', marginLeft: 'auto'}} title={lang === 'id' ? 'Export SPH ke CSV' : 'Export SPH to CSV'}>
+          <FileText size={12} />CSV ({filtered.length})
+        </button>
       </div>
 
       <div style={{background: '#fefcf7', border: '1px solid #e8e1cc', overflowX: 'auto'}}>
@@ -4859,17 +4912,25 @@ function SPHManagement({ data, t, lang, canEdit, fmt, onAdd, onEdit, onDelete })
 }
 
 function PipelineBoard({ data, t, lang, canEdit, fmt, onEdit }) {
-  // PERFORMANCE: All pipeline calcs memoized
+  // Default to current year (2026) so pipeline shows current-year deals
+  const [filterYear, setFilterYear] = useState('2026');
+  const availableYears = useMemo(() => {
+    const years = new Set(data.map(s => s.issuedDate?.substring(0, 4)).filter(Boolean));
+    return Array.from(years).sort().reverse();
+  }, [data]);
+
+  // PERFORMANCE: All pipeline calcs memoized (now scoped by selected year)
   const pipelineStats = useMemo(() => {
-    const pipelineData = data.filter(s => s.status === 'active' || s.status === 'won' || s.status === 'lost');
+    const yearScoped = filterYear === 'all' ? data : data.filter(s => s.issuedDate?.startsWith(filterYear));
+    const pipelineData = yearScoped.filter(s => s.status === 'active' || s.status === 'won' || s.status === 'lost');
     const totalDeals = pipelineData.length;
-    const totalValue = pipelineData.reduce((s, p) => s + p.totalValue, 0);
+    const totalValue = pipelineData.reduce((s, p) => s + (Number(p.totalValue) || 0), 0);
     const wonCount = pipelineData.filter(p => p.status === 'won').length;
     const lostCount = pipelineData.filter(p => p.status === 'lost').length;
     const activeCount = pipelineData.filter(p => p.status === 'active').length;
     const winRate = (wonCount + lostCount) > 0 ? (wonCount / (wonCount + lostCount)) * 100 : 0;
     return { pipelineData, totalDeals, totalValue, wonCount, lostCount, activeCount, winRate };
-  }, [data]);
+  }, [data, filterYear]);
   const { pipelineData, totalDeals, totalValue, wonCount, lostCount, activeCount, winRate } = pipelineStats;
 
   // Stage definitions including lost - show statistical view of full journey
@@ -4896,12 +4957,22 @@ function PipelineBoard({ data, t, lang, canEdit, fmt, onEdit }) {
       </div>
       {!canEdit && <ReadOnlyBanner t={t} />}
 
+      {/* Year filter */}
+      <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', flexWrap: 'wrap'}}>
+        <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{lang === 'id' ? 'Tahun' : 'Year'}:</span>
+        <select value={filterYear} onChange={e => setFilterYear(e.target.value)} style={{width: 'auto', minWidth: '110px'}}>
+          <option value="all">{lang === 'id' ? 'Semua Tahun' : 'All Years'}</option>
+          {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+        </select>
+        <span style={{fontSize: '11px', color: '#8a7d5c', fontStyle: 'italic'}}>{lang === 'id' ? `Menampilkan ${pipelineData.length} deal untuk ${filterYear === 'all' ? 'semua tahun' : filterYear}` : `Showing ${pipelineData.length} deals for ${filterYear === 'all' ? 'all years' : filterYear}`}</span>
+      </div>
+
       {/* Info box explaining pipeline columns */}
       <div style={{padding: '12px 16px', background: 'rgba(26,41,66,0.04)', borderLeft: '3px solid #1a2942', marginBottom: '16px', fontSize: '11.5px', color: '#1a2942', lineHeight: 1.6}}>
         <strong style={{letterSpacing: '0.05em'}}>📊 {lang === 'id' ? 'Cara Membaca Pipeline' : 'How to Read Pipeline'}:</strong>{' '}
         {lang === 'id'
-          ? 'Setiap kolom menampilkan jumlah deal yang sedang di stage tersebut (bukan akumulatif). Total semua kolom = total SPH lifecycle. "SPH Awal" = baru dikirim, belum ada follow-up.'
-          : 'Each column shows deals currently at that stage (not cumulative). Sum of all columns = total SPH lifecycle. "New SPH" = just sent, no follow-up yet.'}
+          ? 'Setiap kolom menampilkan jumlah deal yang sedang di stage tersebut (bukan akumulatif). Total semua kolom = total SPH lifecycle pada tahun terpilih. "SPH Awal" = baru dikirim, belum ada follow-up.'
+          : 'Each column shows deals currently at that stage (not cumulative). Sum of all columns = total SPH lifecycle for the selected year. "New SPH" = just sent, no follow-up yet.'}
       </div>
 
       {/* Summary KPI Strip */}
@@ -7329,23 +7400,207 @@ function BusinessTripDashboard({ businessTrips, realizations, employees, t, lang
 }
 
 // ============== Finance, Operations, Installation (compact) ==============
+// ============== Payment Schedule Helpers ==============
+// Generate expected payment schedule for a PO based on its scheme
+// Defensive scheme detection - works even on legacy data without paymentScheme field
+const effectiveScheme = (p) => p.paymentScheme || (p.projectType === 'kso' ? 'kso' : (p.projectType === 'government' || p.projectType === 'tender' ? 'after_bast' : 'dp_installment'));
+
+function generatePaymentSchedule(p) {
+  if (!p.poStatus || p.poStatus !== 'issued') return [];
+  const total = Number(p.totalValue) || 0;
+  if (total <= 0) return [];
+  // Migration: if scheme/percent/months missing (data lama), derive sensible defaults from projectType
+  const scheme = p.paymentScheme || (p.projectType === 'kso' ? 'kso' : (p.projectType === 'government' || p.projectType === 'tender' ? 'after_bast' : 'dp_installment'));
+  const dpPercent = (typeof p.dpPercent === 'number' ? p.dpPercent : (scheme === 'dp_installment' ? 30 : scheme === 'kso' ? 10 : 0));
+  const installmentMonths = (typeof p.installmentMonths === 'number' && p.installmentMonths > 0 ? p.installmentMonths : (scheme === 'dp_installment' ? 12 : scheme === 'kso' ? 60 : 0));
+  const issueDate = new Date(p.issuedDate || '2026-01-01');
+  const schedule = [];
+
+  if (scheme === 'dp_installment') {
+    const dpAmt = total * (dpPercent / 100);
+    const remaining = total - dpAmt;
+    const months = installmentMonths || 12;
+    const monthly = months > 0 ? remaining / months : 0;
+    schedule.push({ seq: 0, label: `DP ${dpPercent}%`, dueDate: p.issuedDate || '', amount: dpAmt, type: 'dp' });
+    for (let i = 1; i <= months; i++) {
+      const due = new Date(issueDate);
+      due.setMonth(due.getMonth() + i);
+      schedule.push({ seq: i, label: `Cicilan ke-${i}`, dueDate: due.toISOString().split('T')[0], amount: monthly, type: 'installment' });
+    }
+  } else if (scheme === 'after_bast') {
+    schedule.push({ seq: 0, label: 'Pelunasan 100% setelah BAST', dueDate: p.issuedDate || '', amount: total, type: 'full_after_bast' });
+  } else if (scheme === 'kso') {
+    const depositAmt = total * (dpPercent / 100);
+    const months = installmentMonths || 60;
+    const monthly = months > 0 ? (total - depositAmt) / months : 0;
+    schedule.push({ seq: 0, label: `Deposit ${dpPercent}%`, dueDate: p.issuedDate || '', amount: depositAmt, type: 'deposit' });
+    for (let i = 1; i <= months; i++) {
+      const due = new Date(issueDate);
+      due.setMonth(due.getMonth() + i);
+      schedule.push({ seq: i, label: `Bagi hasil bulan ke-${i}`, dueDate: due.toISOString().split('T')[0], amount: monthly, type: 'revenue_share' });
+    }
+  }
+  return schedule;
+}
+
+// Compute payment status summary for a PO (defensive against missing/legacy fields)
+function getPaymentSummary(p) {
+  const schedule = generatePaymentSchedule(p);
+  const totalDue = schedule.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  const history = Array.isArray(p.paymentHistory) ? p.paymentHistory : [];
+  const totalPaid = history.reduce((s, h) => s + (Number(h.amount) || 0), 0);
+  const outstanding = Math.max(0, totalDue - totalPaid);
+  const pctPaid = totalDue > 0 ? Math.round((totalPaid / totalDue) * 100) : 0;
+  const installmentsPaid = history.filter(h => h.type === 'installment' || h.type === 'revenue_share').length;
+  const installmentsExpected = schedule.filter(x => x.type === 'installment' || x.type === 'revenue_share').length;
+  return { schedule, totalDue, totalPaid, outstanding, pctPaid, installmentsPaid, installmentsExpected };
+}
+
+// CSV export helpers
+function downloadCSV(filename, rows) {
+  // Escape values: wrap in "..." if contains comma/quote/newline; escape "..." inside
+  const esc = (v) => {
+    if (v == null) return '';
+    const s = String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const csv = rows.map(row => row.map(esc).join(',')).join('\n');
+  // BOM for Excel UTF-8 compatibility
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
   const [tab, setTab] = useState('finance');
-  const stats = useMemo(() => {
-    const poProjects = data.filter(s => s.poStatus === 'issued');
-    return {
-      poProjects,
-      totalPOValue: poProjects.reduce((s, p) => s + p.totalValue, 0),
-      dpReceived: poProjects.filter(p => p.dpPaid).reduce((s, p) => s + (p.totalValue * 0.3), 0),
-      arOutstanding: poProjects.reduce((s, p) => s + p.totalValue - (p.dpPaid ? p.totalValue * 0.3 : 0) - (p.finalPaid ? p.totalValue * 0.7 : 0), 0),
-      apOutstanding: poProjects.filter(p => p.dpPaid).reduce((s, p) => s + (p.totalValue * 0.6), 0),
-    };
-  }, [data]);
-  const { poProjects, totalPOValue, dpReceived, arOutstanding, apOutstanding } = stats;
+  const [expandedPo, setExpandedPo] = useState(null);
+  const [paymentForm, setPaymentForm] = useState({ open: false, sphId: null, amount: '', type: 'installment', date: '', note: '' });
+  const [confirmDeletePayment, setConfirmDeletePayment] = useState(null);
+  const [editingNote, setEditingNote] = useState({ sphId: null, note: '' });
+  const [schemeFilter, setSchemeFilter] = useState('all');
 
-  const togglePayment = (id, field) => {
-    if (!canEdit) return;
-    setData(prev => prev.map(s => s.id === id ? { ...s, [field]: !s[field] } : s));
+  const poProjects = useMemo(() => data.filter(s => s.poStatus === 'issued'), [data]);
+  const filteredPoProjects = useMemo(() =>
+    schemeFilter === 'all' ? poProjects : poProjects.filter(p => effectiveScheme(p) === schemeFilter),
+  [poProjects, schemeFilter]);
+
+  const stats = useMemo(() => {
+    let totalPOValue = 0, dpReceived = 0, totalReceivedAll = 0, totalOutstanding = 0;
+    poProjects.forEach(p => {
+      totalPOValue += Number(p.totalValue) || 0;
+      const sum = getPaymentSummary(p);
+      totalReceivedAll += sum.totalPaid;
+      totalOutstanding += sum.outstanding;
+      // DP portion: from history, OR from legacy dpPaid flag (data lama tanpa paymentHistory)
+      const history = Array.isArray(p.paymentHistory) ? p.paymentHistory : [];
+      const dpFromHistory = history.filter(h => h.type === 'dp' || h.type === 'deposit').reduce((s, h) => s + (Number(h.amount) || 0), 0);
+      // Bridge for legacy data: if no history but dpPaid=true, assume DP 30% was paid (or scheme dpPercent)
+      const sch = effectiveScheme(p);
+      const legacyDpPercent = (typeof p.dpPercent === 'number' ? p.dpPercent : (sch === 'dp_installment' ? 30 : sch === 'kso' ? 10 : 0));
+      const dpFromLegacy = (history.length === 0 && p.dpPaid) ? (Number(p.totalValue) || 0) * (legacyDpPercent / 100) : 0;
+      dpReceived += dpFromHistory + dpFromLegacy;
+    });
+    return {
+      totalPOValue, dpReceived, totalReceivedAll, totalOutstanding,
+      countDPInst: poProjects.filter(p => effectiveScheme(p) === 'dp_installment').length,
+      countAfterBast: poProjects.filter(p => effectiveScheme(p) === 'after_bast').length,
+      countKSO: poProjects.filter(p => effectiveScheme(p) === 'kso').length,
+    };
+  }, [poProjects]);
+  const { totalPOValue, dpReceived, totalReceivedAll, totalOutstanding, countDPInst, countAfterBast, countKSO } = stats;
+
+  // CRUD payment
+  const recordPayment = () => {
+    if (!canEdit || !paymentForm.amount) return;
+    const amt = parseFloat(paymentForm.amount);
+    if (!amt || amt <= 0) return;
+    const payment = {
+      id: 'pay_' + Date.now(),
+      date: paymentForm.date || new Date().toISOString().split('T')[0],
+      amount: amt,
+      type: paymentForm.type,
+      note: paymentForm.note || '',
+      recordedAt: new Date().toISOString(),
+    };
+    setData(prev => prev.map(s => s.id === paymentForm.sphId ? { ...s, paymentHistory: [...(s.paymentHistory || []), payment] } : s));
+    setPaymentForm({ open: false, sphId: null, amount: '', type: 'installment', date: '', note: '' });
+  };
+  const deletePayment = () => {
+    if (!confirmDeletePayment) return;
+    const { sphId, paymentId } = confirmDeletePayment;
+    setData(prev => prev.map(s => s.id === sphId ? { ...s, paymentHistory: (s.paymentHistory || []).filter(h => h.id !== paymentId) } : s));
+    setConfirmDeletePayment(null);
+  };
+  const savePaymentNote = () => {
+    setData(prev => prev.map(s => s.id === editingNote.sphId ? { ...s, paymentNote: editingNote.note } : s));
+    setEditingNote({ sphId: null, note: '' });
+  };
+
+  // CSV export for AR ledger
+  const exportCSV = () => {
+    const header = [
+      lang === 'id' ? 'No SPH' : 'SPH No', lang === 'id' ? 'Pelanggan' : 'Customer',
+      lang === 'id' ? 'Tipe' : 'Type', lang === 'id' ? 'Skema Bayar' : 'Payment Scheme',
+      lang === 'id' ? 'Nilai PO' : 'PO Value',
+      'DP%', lang === 'id' ? 'Cicilan (bulan)' : 'Installments (months)',
+      lang === 'id' ? 'Total Diterima' : 'Total Received',
+      lang === 'id' ? 'Outstanding' : 'Outstanding',
+      '% Lunas / Paid %',
+      lang === 'id' ? 'Tanggal PO' : 'PO Date',
+      lang === 'id' ? 'Keterangan' : 'Notes',
+    ];
+    const rows = [header];
+    filteredPoProjects.forEach(p => {
+      const sum = getPaymentSummary(p);
+      rows.push([
+        p.sphNo, p.customer, p.customerType, effectiveScheme(p),
+        p.totalValue, p.dpPercent || 0, p.installmentMonths || 0,
+        sum.totalPaid, sum.outstanding, sum.pctPaid,
+        p.issuedDate, p.paymentNote || '',
+      ]);
+    });
+    const ts = new Date().toISOString().split('T')[0];
+    downloadCSV(`HNTI_AR_Ledger_${ts}.csv`, rows);
+  };
+  const exportPaymentHistoryCSV = () => {
+    const header = [
+      lang === 'id' ? 'No SPH' : 'SPH No', lang === 'id' ? 'Pelanggan' : 'Customer',
+      lang === 'id' ? 'Tanggal Bayar' : 'Payment Date',
+      lang === 'id' ? 'Jenis' : 'Type', lang === 'id' ? 'Jumlah' : 'Amount',
+      lang === 'id' ? 'Keterangan' : 'Note',
+    ];
+    const rows = [header];
+    filteredPoProjects.forEach(p => {
+      (p.paymentHistory || []).forEach(h => {
+        rows.push([p.sphNo, p.customer, h.date, h.type, h.amount, h.note || '']);
+      });
+    });
+    const ts = new Date().toISOString().split('T')[0];
+    downloadCSV(`HNTI_Payment_History_${ts}.csv`, rows);
+  };
+
+  const schemeColor = (s) => s === 'kso' ? '#7b3fb5' : s === 'after_bast' ? '#1a4d8a' : '#c8a96a';
+  const schemeLabel = (s) => {
+    if (s === 'kso') return lang === 'id' ? 'KSO (Deposit + Bagi Hasil)' : 'KSO (Deposit + Revenue Share)';
+    if (s === 'after_bast') return lang === 'id' ? 'Lunas Setelah BAST (No DP)' : 'Full After BAST (No DP)';
+    return lang === 'id' ? 'DP + Cicilan (Swasta)' : 'DP + Installment (Private)';
+  };
+  const paymentTypeLabel = (type) => {
+    const map = {
+      dp: lang === 'id' ? 'DP' : 'DP',
+      deposit: lang === 'id' ? 'Deposit' : 'Deposit',
+      installment: lang === 'id' ? 'Cicilan' : 'Installment',
+      revenue_share: lang === 'id' ? 'Bagi Hasil' : 'Revenue Share',
+      full_after_bast: lang === 'id' ? 'Pelunasan setelah BAST' : 'Full payment after BAST',
+      other: lang === 'id' ? 'Lainnya' : 'Other',
+    };
+    return map[type] || type;
   };
 
   return (
@@ -7371,8 +7626,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
           const active = tab === tb.id;
           return (
             <button key={tb.id} onClick={() => setTab(tb.id)} style={{background: 'transparent', border: 'none', padding: '10px 18px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 500, color: active ? '#1a2942' : '#8a7d5c', borderBottom: active ? '2px solid #1a2942' : '2px solid transparent', marginBottom: '-1px', display: 'flex', alignItems: 'center', gap: '7px', letterSpacing: '0.03em'}}>
-              <Icon size={14} strokeWidth={1.5} />
-              {tb.label}
+              <Icon size={14} strokeWidth={1.5} />{tb.label}
             </button>
           );
         })}
@@ -7384,44 +7638,225 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
       <>
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '24px', border: '1px solid #d4cdb8'}}>
         <KPICard label={t.po_value} value={fmt(totalPOValue)} sublabel={`${poProjects.length} PO`} trend={18.5} />
-        <KPICard label={t.cash_collected} value={fmt(dpReceived)} sublabel={t.dp_paid} trend={22.1} />
-        <KPICard label={t.ar_outstanding} value={fmt(arOutstanding)} sublabel={t.awaiting_payment} trend={-5.3} />
-        <KPICard label={t.ap_outstanding} value={fmt(apOutstanding)} sublabel="China & Korea" trend={12.0} />
+        <KPICard label={t.cash_collected} value={fmt(totalReceivedAll)} sublabel={lang === 'id' ? 'Total diterima' : 'Total received'} trend={22.1} />
+        <KPICard label={t.ar_outstanding} value={fmt(totalOutstanding)} sublabel={lang === 'id' ? 'Belum diterima' : 'Not yet received'} trend={-5.3} />
+        <KPICard label={t.dp_paid} value={fmt(dpReceived)} sublabel="DP / Deposit" trend={12.0} />
+      </div>
+
+      {/* Scheme summary + export buttons */}
+      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '14px'}}>
+        <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center'}}>
+          <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{lang === 'id' ? 'Filter Skema' : 'Scheme Filter'}:</span>
+          {[
+            { id: 'all', label: lang === 'id' ? `Semua (${poProjects.length})` : `All (${poProjects.length})` },
+            { id: 'dp_installment', label: `DP+Cicilan (${countDPInst})` },
+            { id: 'after_bast', label: `${lang === 'id' ? 'Setelah BAST' : 'After BAST'} (${countAfterBast})` },
+            { id: 'kso', label: `KSO (${countKSO})` },
+          ].map(opt => (
+            <button key={opt.id} onClick={() => setSchemeFilter(opt.id)} style={{background: schemeFilter === opt.id ? '#1a2942' : 'transparent', border: `1px solid ${schemeFilter === opt.id ? '#1a2942' : '#d4cdb8'}`, color: schemeFilter === opt.id ? '#fff' : '#8a7d5c', padding: '5px 11px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 500}}>{opt.label}</button>
+          ))}
+        </div>
+        <div style={{display: 'flex', gap: '8px'}}>
+          <button onClick={exportCSV} style={{background: '#3a6b3a', border: 'none', color: '#fff', padding: '7px 14px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px'}} title={lang === 'id' ? 'Export ringkasan AR ke CSV (buka di Excel)' : 'Export AR summary to CSV (opens in Excel)'}>
+            <FileText size={13} />{lang === 'id' ? 'Export AR (CSV)' : 'Export AR (CSV)'}
+          </button>
+          <button onClick={exportPaymentHistoryCSV} style={{background: 'transparent', border: '1px solid #3a6b3a', color: '#3a6b3a', padding: '7px 14px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px'}} title={lang === 'id' ? 'Export riwayat pembayaran ke CSV' : 'Export payment history to CSV'}>
+            <FileText size={13} />{lang === 'id' ? 'Export Riwayat Bayar' : 'Export Payment History'}
+          </button>
+        </div>
       </div>
 
       <div style={{background: '#fefcf7', border: '1px solid #e8e1cc', overflowX: 'auto'}}>
-        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px', minWidth: '800px'}}>
+        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px', minWidth: '1000px'}}>
           <thead>
             <tr style={{background: '#f0ebe0'}}>
-              <Th>{t.sph_number}</Th><Th>{t.customer}</Th><Th align="right">{t.value}</Th>
-              <Th align="center">{t.dp_paid}</Th><Th align="center">{t.final_paid}</Th>
+              <Th></Th><Th>{t.sph_number}</Th><Th>{t.customer}</Th>
+              <Th>{lang === 'id' ? 'Skema' : 'Scheme'}</Th>
+              <Th align="right">{t.value}</Th>
+              <Th align="right">{lang === 'id' ? 'Diterima' : 'Received'}</Th>
+              <Th align="right">{lang === 'id' ? 'Outstanding' : 'Outstanding'}</Th>
+              <Th align="center">{lang === 'id' ? 'Progress' : 'Progress'}</Th>
+              {canEdit && <Th align="center">{lang === 'id' ? 'Aksi' : 'Action'}</Th>}
             </tr>
           </thead>
           <tbody>
-            {poProjects.map(p => (
-              <tr key={p.id} className="hover-row" style={{borderTop: '1px solid #e8e1cc'}}>
-                <Td><span className="mono" style={{fontSize: '11px'}}>{p.sphNo}</span></Td>
-                <Td>
-                  <div style={{fontWeight: 500}}>{p.customer}</div>
-                  <div style={{fontSize: '10px', color: '#8a7d5c'}}>{p.subModality}</div>
-                </Td>
-                <Td align="right"><span className="mono" style={{fontWeight: 500}}>{fmt(p.totalValue)}</span></Td>
-                <Td align="center">
-                  <button onClick={() => togglePayment(p.id, 'dpPaid')} disabled={!canEdit} style={{background: p.dpPaid ? '#3a6b3a' : 'transparent', border: `1px solid ${p.dpPaid ? '#3a6b3a' : '#d4cdb8'}`, color: p.dpPaid ? '#fff' : '#8a7d5c', padding: '4px 10px', fontSize: '11px', cursor: canEdit ? 'pointer' : 'default', fontWeight: 500}}>
-                    {p.dpPaid ? '✓ ' + fmt(p.totalValue * 0.3) : '—'}
-                  </button>
-                </Td>
-                <Td align="center">
-                  <button onClick={() => togglePayment(p.id, 'finalPaid')} disabled={!canEdit} style={{background: p.finalPaid ? '#3a6b3a' : 'transparent', border: `1px solid ${p.finalPaid ? '#3a6b3a' : '#d4cdb8'}`, color: p.finalPaid ? '#fff' : '#8a7d5c', padding: '4px 10px', fontSize: '11px', cursor: canEdit ? 'pointer' : 'default', fontWeight: 500}}>
-                    {p.finalPaid ? '✓ ' + fmt(p.totalValue * 0.7) : '—'}
-                  </button>
-                </Td>
-              </tr>
-            ))}
+            {filteredPoProjects.map(p => {
+              const sum = getPaymentSummary(p);
+              const isExpanded = expandedPo === p.id;
+              const sch = effectiveScheme(p);
+              return (
+                <React.Fragment key={p.id}>
+                  <tr className="hover-row" style={{borderTop: '1px solid #e8e1cc'}}>
+                    <Td>
+                      <button onClick={() => setExpandedPo(isExpanded ? null : p.id)} style={{background: 'transparent', border: 'none', cursor: 'pointer', color: '#8a7d5c', padding: '2px'}}>
+                        <ChevronDown size={14} style={{transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s'}} />
+                      </button>
+                    </Td>
+                    <Td><span className="mono" style={{fontSize: '11px'}}>{p.sphNo}</span></Td>
+                    <Td>
+                      <div style={{fontWeight: 500}}>{p.customer}</div>
+                      <div style={{fontSize: '10px', color: '#8a7d5c'}}>{p.subModality} · {t[`type_${p.customerType}`]}</div>
+                    </Td>
+                    <Td><span style={{display: 'inline-block', padding: '3px 8px', fontSize: '10px', background: schemeColor(sch) + '25', color: schemeColor(sch), fontWeight: 600, borderRadius: '3px'}}>{schemeLabel(sch)}</span></Td>
+                    <Td align="right"><span className="mono" style={{fontWeight: 500}}>{fmt(p.totalValue)}</span></Td>
+                    <Td align="right"><span className="mono" style={{color: '#3a6b3a', fontWeight: 500}}>{fmt(sum.totalPaid)}</span></Td>
+                    <Td align="right"><span className="mono" style={{color: sum.outstanding > 0 ? '#c03030' : '#8a7d5c', fontWeight: 500}}>{fmt(sum.outstanding)}</span></Td>
+                    <Td align="center">
+                      <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px'}}>
+                        <div style={{width: '80px', height: '6px', background: '#e8e1cc', overflow: 'hidden'}}>
+                          <div style={{height: '100%', width: `${sum.pctPaid}%`, background: sum.pctPaid >= 100 ? '#3a6b3a' : '#c8a96a'}} />
+                        </div>
+                        <div style={{fontSize: '10px', color: '#8a7d5c'}}>{sum.pctPaid}%{sum.installmentsExpected > 0 && ` · ${sum.installmentsPaid}/${sum.installmentsExpected}`}</div>
+                      </div>
+                    </Td>
+                    {canEdit && (
+                      <Td align="center">
+                        <button onClick={() => setPaymentForm({ open: true, sphId: p.id, amount: '', type: sch === 'kso' ? 'revenue_share' : sch === 'after_bast' ? 'full_after_bast' : 'installment', date: new Date().toISOString().split('T')[0], note: '' })} style={{background: '#1a2942', border: 'none', color: '#fff', padding: '4px 9px', fontSize: '10px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500}} title={lang === 'id' ? 'Catat Pembayaran' : 'Record Payment'}>+ {lang === 'id' ? 'Bayar' : 'Pay'}</button>
+                      </Td>
+                    )}
+                  </tr>
+
+                  {/* Expanded payment schedule + history */}
+                  {isExpanded && (
+                    <tr>
+                      <Td></Td>
+                      <td colSpan={canEdit ? 8 : 7} style={{padding: '14px 18px', background: '#f8f5ef', borderTop: '1px solid #e8e1cc'}}>
+                        {/* Customer note */}
+                        <div style={{marginBottom: '14px', padding: '10px 12px', background: '#fefcf7', border: '1px solid #e8e1cc'}}>
+                          <div style={{fontSize: '9px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '5px'}}>{lang === 'id' ? 'Keterangan Status Pembayaran' : 'Payment Status Note'}</div>
+                          {editingNote.sphId === p.id ? (
+                            <div style={{display: 'flex', gap: '6px'}}>
+                              <textarea value={editingNote.note} onChange={e => setEditingNote({ ...editingNote, note: e.target.value })} rows={2} style={{flex: 1, fontSize: '11px', padding: '5px 8px'}} />
+                              <button onClick={savePaymentNote} style={{background: '#3a6b3a', color: '#fff', border: 'none', padding: '4px 10px', fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit'}}>{lang === 'id' ? 'Simpan' : 'Save'}</button>
+                              <button onClick={() => setEditingNote({ sphId: null, note: '' })} style={{background: 'transparent', color: '#8a7d5c', border: '1px solid #d4cdb8', padding: '4px 10px', fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit'}}>{lang === 'id' ? 'Batal' : 'Cancel'}</button>
+                            </div>
+                          ) : (
+                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px'}}>
+                              <div style={{fontSize: '12px', color: '#1a2942', fontStyle: p.paymentNote ? 'normal' : 'italic', flex: 1}}>{p.paymentNote || (lang === 'id' ? 'Belum ada keterangan' : 'No note yet')}</div>
+                              {canEdit && <button onClick={() => setEditingNote({ sphId: p.id, note: p.paymentNote || '' })} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '3px 9px', fontSize: '10px', cursor: 'pointer', color: '#1a2942', fontFamily: 'inherit'}}><Edit2 size={10} /> {lang === 'id' ? 'Edit' : 'Edit'}</button>}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Payment schedule */}
+                        <div style={{marginBottom: '14px'}}>
+                          <div style={{fontSize: '9px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '8px'}}>{lang === 'id' ? 'Jadwal Pembayaran' : 'Payment Schedule'} ({sum.schedule.length} {lang === 'id' ? 'termin' : 'terms'})</div>
+                          <div style={{maxHeight: '220px', overflowY: 'auto', background: '#fefcf7', border: '1px solid #e8e1cc'}}>
+                            <table style={{width: '100%', fontSize: '11px', borderCollapse: 'collapse'}}>
+                              <thead style={{position: 'sticky', top: 0, background: '#f0ebe0'}}>
+                                <tr>
+                                  <Th>#</Th>
+                                  <Th>{lang === 'id' ? 'Termin' : 'Term'}</Th>
+                                  <Th>{lang === 'id' ? 'Jatuh Tempo' : 'Due Date'}</Th>
+                                  <Th align="right">{lang === 'id' ? 'Jumlah' : 'Amount'}</Th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {sum.schedule.slice(0, 15).map(s => (
+                                  <tr key={s.seq} style={{borderTop: '1px solid #e8e1cc'}}>
+                                    <Td>{s.seq}</Td>
+                                    <Td>{s.label}</Td>
+                                    <Td><span className="mono" style={{fontSize: '10.5px'}}>{s.dueDate}</span></Td>
+                                    <Td align="right"><span className="mono">{fmt(s.amount)}</span></Td>
+                                  </tr>
+                                ))}
+                                {sum.schedule.length > 15 && (
+                                  <tr><Td colSpan={4}><div style={{textAlign: 'center', fontSize: '10px', color: '#8a7d5c', padding: '6px', fontStyle: 'italic'}}>+ {sum.schedule.length - 15} {lang === 'id' ? 'termin berikutnya' : 'more terms'}</div></Td></tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                        {/* Payment history */}
+                        <div>
+                          <div style={{fontSize: '9px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '8px'}}>{lang === 'id' ? 'Riwayat Pembayaran' : 'Payment History'} ({(p.paymentHistory || []).length})</div>
+                          {(p.paymentHistory || []).length === 0 ? (
+                            <div style={{fontSize: '11px', color: '#8a7d5c', fontStyle: 'italic', padding: '10px'}}>{lang === 'id' ? 'Belum ada pembayaran tercatat' : 'No payments recorded yet'}</div>
+                          ) : (
+                            <div style={{background: '#fefcf7', border: '1px solid #e8e1cc'}}>
+                              <table style={{width: '100%', fontSize: '11px', borderCollapse: 'collapse'}}>
+                                <thead style={{background: '#f0ebe0'}}>
+                                  <tr>
+                                    <Th>{lang === 'id' ? 'Tanggal' : 'Date'}</Th>
+                                    <Th>{lang === 'id' ? 'Jenis' : 'Type'}</Th>
+                                    <Th align="right">{lang === 'id' ? 'Jumlah' : 'Amount'}</Th>
+                                    <Th>{lang === 'id' ? 'Keterangan' : 'Note'}</Th>
+                                    {canEdit && <Th align="center">{lang === 'id' ? 'Aksi' : 'Action'}</Th>}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {p.paymentHistory.map(h => (
+                                    <tr key={h.id} style={{borderTop: '1px solid #e8e1cc'}}>
+                                      <Td><span className="mono">{h.date}</span></Td>
+                                      <Td><span style={{padding: '2px 6px', fontSize: '10px', background: '#1a4d8a25', color: '#1a4d8a', fontWeight: 600}}>{paymentTypeLabel(h.type)}</span></Td>
+                                      <Td align="right"><span className="mono" style={{color: '#3a6b3a', fontWeight: 500}}>{fmt(h.amount)}</span></Td>
+                                      <Td><span style={{fontSize: '11px', color: '#1a2942'}}>{h.note || '—'}</span></Td>
+                                      {canEdit && (
+                                        <Td align="center">
+                                          <button onClick={() => setConfirmDeletePayment({ sphId: p.id, paymentId: h.id })} style={{background: 'transparent', border: '1px solid #c03030', padding: '3px 7px', fontSize: '10px', cursor: 'pointer', color: '#c03030', fontFamily: 'inherit'}} title={lang === 'id' ? 'Hapus catatan ini' : 'Delete this record'}><Trash2 size={10} /></button>
+                                        </Td>
+                                      )}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              );
+            })}
           </tbody>
         </table>
-        {poProjects.length === 0 && <div className="empty-state">{t.no_data}</div>}
+        {filteredPoProjects.length === 0 && <div className="empty-state">{t.no_data}</div>}
       </div>
+
+      {/* Record Payment Modal */}
+      {paymentForm.open && (
+        <div className="modal-overlay" onClick={() => setPaymentForm({ ...paymentForm, open: false })}>
+          <div onClick={e => e.stopPropagation()} style={{background: '#fefcf7', maxWidth: '460px', width: '90%', border: '1px solid #d4cdb8', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'}}>
+            <div style={{padding: '18px 22px', borderBottom: '1px solid #e8e1cc', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <h3 className="serif" style={{margin: 0, fontSize: '18px', fontWeight: 500}}>{lang === 'id' ? 'Catat Pembayaran' : 'Record Payment'}</h3>
+              <button onClick={() => setPaymentForm({ ...paymentForm, open: false })} style={{background: 'transparent', border: 'none', cursor: 'pointer'}}><X size={18} /></button>
+            </div>
+            <div style={{padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '12px'}}>
+              <div>
+                <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '4px'}}>{lang === 'id' ? 'Tanggal Pembayaran' : 'Payment Date'}</label>
+                <input type="date" value={paymentForm.date} onChange={e => setPaymentForm({ ...paymentForm, date: e.target.value })} style={{width: '100%'}} />
+              </div>
+              <div>
+                <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '4px'}}>{lang === 'id' ? 'Jenis Pembayaran' : 'Payment Type'}</label>
+                <select value={paymentForm.type} onChange={e => setPaymentForm({ ...paymentForm, type: e.target.value })} style={{width: '100%'}}>
+                  <option value="dp">DP</option>
+                  <option value="deposit">Deposit (KSO)</option>
+                  <option value="installment">{lang === 'id' ? 'Cicilan' : 'Installment'}</option>
+                  <option value="revenue_share">{lang === 'id' ? 'Bagi Hasil (KSO)' : 'Revenue Share (KSO)'}</option>
+                  <option value="full_after_bast">{lang === 'id' ? 'Pelunasan setelah BAST' : 'Full payment after BAST'}</option>
+                  <option value="other">{lang === 'id' ? 'Lainnya' : 'Other'}</option>
+                </select>
+              </div>
+              <div>
+                <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '4px'}}>{lang === 'id' ? 'Jumlah (Rp)' : 'Amount (Rp)'}</label>
+                <input type="number" value={paymentForm.amount} onChange={e => setPaymentForm({ ...paymentForm, amount: e.target.value })} placeholder="0" style={{width: '100%'}} />
+              </div>
+              <div>
+                <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '4px'}}>{lang === 'id' ? 'Keterangan' : 'Note'}</label>
+                <textarea value={paymentForm.note} onChange={e => setPaymentForm({ ...paymentForm, note: e.target.value })} rows={2} placeholder={lang === 'id' ? 'Contoh: Transfer BCA 6011***, no. ref XYZ' : 'E.g.: BCA transfer 6011***, ref no XYZ'} style={{width: '100%'}} />
+              </div>
+            </div>
+            <div style={{padding: '14px 22px', borderTop: '1px solid #e8e1cc', background: '#f8f5ef', display: 'flex', justifyContent: 'flex-end', gap: '10px'}}>
+              <button onClick={() => setPaymentForm({ ...paymentForm, open: false })} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '8px 16px', fontSize: '12px', cursor: 'pointer', color: '#8a7d5c', fontFamily: 'inherit'}}>{lang === 'id' ? 'Batal' : 'Cancel'}</button>
+              <button onClick={recordPayment} style={{background: '#1a2942', border: 'none', padding: '8px 16px', fontSize: '12px', cursor: 'pointer', color: '#fff', fontFamily: 'inherit', fontWeight: 600}}>{lang === 'id' ? 'Simpan' : 'Save'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialog open={!!confirmDeletePayment} title={lang === 'id' ? 'Hapus Catatan Pembayaran?' : 'Delete Payment Record?'} message={lang === 'id' ? 'Catatan pembayaran ini akan dihapus permanen.' : 'This payment record will be permanently deleted.'} confirmText={lang === 'id' ? 'Ya, Hapus' : 'Yes, Delete'} onConfirm={deletePayment} onCancel={() => setConfirmDeletePayment(null)} danger lang={lang} />
       </>
       )}
     </div>
@@ -7591,7 +8026,9 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
     poInShipping: poProjects.length,
     totalManifests: manifests.length,
     inTransit: manifests.filter(m => m.status === 'in_transit').length,
-    pendingDocs: customsDocs.filter(d => d.status === 'submitted' || d.status === 'received').length,
+    // "Dokumen Pending" = dokumen yang menunggu tindakan (submitted ke Bea Cukai, menunggu SPPB approval)
+    // bukan dokumen yang sudah diterima dari principal (status='received')
+    pendingDocs: customsDocs.filter(d => d.status === 'submitted' || d.status === 'pending').length,
   }), [poProjects, manifests, customsDocs]);
   const { poInShipping, totalManifests, inTransit, pendingDocs } = opsStats;
 
@@ -7622,6 +8059,7 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
         <div className="card-pad">
           <div className="lbl-tag">{t.ops_pending_docs}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#c03030'}}>{pendingDocs}</div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{lang === 'id' ? 'Disubmit, menunggu SPPB Bea Cukai' : 'Submitted, awaiting customs SPPB'}</div>
         </div>
       </div>
 
@@ -8884,7 +9322,7 @@ const Footer = React.memo(function Footer({ t }) {
           <IMSLogo size="sm" />
           <span style={{fontSize: '11px', color: '#8a7d5c'}}>· {t.company}</span>
         </div>
-        <div className="lbl-tag">Phase 27 · © 2026</div>
+        <div className="lbl-tag">Phase 29 · © 2026</div>
       </div>
     </footer>
   );

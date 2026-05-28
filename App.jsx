@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { TrendingUp, FileText, Briefcase, Plus, Search, Edit2, Trash2, X, ArrowUpRight, ArrowDownRight, Activity, DollarSign, Users, Clock, Globe, LogOut, Shield, Wrench, Truck, Wallet, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, FileCheck, Menu, ChevronDown, ClipboardList, Star, Settings, ShieldCheck, CalendarDays, AlertTriangle, FileSearch } from 'lucide-react';
+import { TrendingUp, FileText, Briefcase, Plus, Search, Edit2, Trash2, X, ArrowUpRight, ArrowDownRight, Activity, DollarSign, Users, Clock, Globe, LogOut, Shield, Wrench, Truck, Wallet, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, FileCheck, Menu, ChevronDown, ClipboardList, Star, Settings, ShieldCheck, CalendarDays, AlertTriangle, FileSearch, UserPlus, UserCheck, UserX, Plane, Receipt, Hotel } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Area, ComposedChart } from 'recharts';
 
 const DEFAULT_USD_IDR = 17500;
@@ -9,16 +9,18 @@ const translations = {
   id: {
     system_name: 'IMS HNTI', system_full: 'Integrated Monitoring System',
     company: 'PT Harmoni Nasional Teknologi Indonesia',
-    motto: 'Transparent · Accountable · Real-time',
+    motto: 'Transparent · Accountable · Real-time · Business Information Management Reviews',
     login_title: 'Masuk ke Sistem', login_subtitle: 'Akses terbatas untuk personel berwenang',
     username: 'Nama Pengguna', password: 'Kata Sandi', login_btn: 'Masuk',
     demo_credentials: 'Kredensial Demo', login_error: 'Nama pengguna atau kata sandi salah',
     logout: 'Keluar', welcome: 'Selamat datang',
     role_super_admin: 'Super Admin (CEO)', role_admin: 'Admin', role_technician: 'Teknisi',
     role_operations: 'Operasional', role_finance: 'Finance', role_sales: 'Sales', role_regulatory: 'Regulatory',
+    role_gm: 'General Manager', role_manager_ops: 'Manager Operasional',
     nav_dashboard: 'Dasbor', nav_sph: 'Manajemen SPH', nav_pipeline: 'Pipeline',
     nav_sales: 'Tim Sales', nav_sales_report: 'Laporan Lapangan', nav_finance: 'Finance',
     nav_operations: 'Operasional', nav_installation: 'Instalasi', nav_valuation: 'Valuasi',
+    nav_employees: 'Manajemen Karyawan', nav_business_trip: 'Perjalanan Dinas',
     pipeline_value: 'Nilai Pipeline', weighted_pipeline: 'Pipeline Tertimbang',
     revenue_ytd: 'Pendapatan YTD', win_rate: 'Win Rate',
     active_projects: 'Proyek Aktif', avg_deal_size: 'Rata-rata Deal',
@@ -475,6 +477,181 @@ const translations = {
     sr_confirm_delete: 'Yakin ingin menghapus laporan ini?',
     sr_updated_success: '✓ Laporan berhasil diupdate',
     sr_back_to_history: 'Kembali ke Riwayat',
+    // Employee Management
+    emp_title: 'Manajemen Karyawan',
+    emp_subtitle: 'Master data karyawan HNTI, posisi, dan allowance perjalanan dinas',
+    emp_total: 'Total Karyawan',
+    emp_active: 'Aktif',
+    emp_inactive: 'Non-aktif',
+    emp_by_position: 'Per Posisi',
+    emp_username: 'Username',
+    emp_name: 'Nama Lengkap',
+    emp_position: 'Posisi',
+    emp_role: 'Role / Akses',
+    emp_allowance: 'Allowance/Hari',
+    emp_territory: 'Wilayah Kerja',
+    emp_supervised_by: 'Bawah Komando',
+    emp_status_active: 'Aktif',
+    emp_status_inactive: 'Non-aktif',
+    emp_add_btn: 'Tambah Karyawan',
+    emp_modal_add: 'Tambah Karyawan Baru',
+    emp_modal_edit: 'Edit Data Karyawan',
+    emp_deactivate: 'Non-aktifkan',
+    emp_activate: 'Aktifkan',
+    emp_restricted: 'Hanya CEO, General Manager, dan Manager Operasional yang dapat mengakses modul ini.',
+    emp_pos_staff: 'Staff', emp_pos_supervisor: 'Supervisor', emp_pos_manager: 'Manager',
+    emp_pos_manager_ops: 'Manager Operasional', emp_pos_gm: 'General Manager', emp_pos_direksi: 'Direksi',
+    emp_field_username_help: 'ID login (huruf kecil, tanpa spasi). Tidak bisa diubah setelah disimpan.',
+    emp_field_position_help: 'Allowance otomatis menyesuaikan posisi.',
+    emp_confirm_deactivate: 'Karyawan yang dinon-aktifkan tidak bisa login. Lanjutkan?',
+    emp_confirm_activate: 'Aktifkan karyawan ini sehingga bisa login lagi?',
+    emp_duplicate_username: 'Username sudah dipakai. Mohon pilih username lain.',
+    emp_password_note: 'Password default: hnti2026 (dapat diubah oleh karyawan setelah login)',
+    // Business Trip / Perjalanan Dinas
+    bt_title: 'Perjalanan Dinas',
+    bt_subtitle: 'Cash Advance, Realisasi, dan Analytics perjalanan dinas karyawan',
+    bt_tab_dashboard: 'Dashboard',
+    bt_tab_cash_advance: 'Cash Advance',
+    bt_tab_realization: 'Realisasi',
+    bt_add_btn: 'Ajukan Perjalanan',
+    bt_modal_add: 'Pengajuan Perjalanan Dinas Baru',
+    bt_modal_edit: 'Edit Pengajuan',
+    bt_modal_review: 'Review Pengajuan',
+    bt_modal_detail: 'Detail Pengajuan',
+    // Form fields
+    bt_traveler: 'Nama Karyawan',
+    bt_position: 'Posisi',
+    bt_destination: 'Tujuan',
+    bt_destination_city: 'Kota Tujuan',
+    bt_purpose: 'Tujuan/Keperluan',
+    bt_date_start: 'Tanggal Berangkat',
+    bt_date_end: 'Tanggal Kembali',
+    bt_duration: 'Durasi (hari)',
+    // Cost components
+    bt_cost_taxi_home: 'Taksi Rumah → Bandara JKT',
+    bt_cost_taxi_arrival: 'Taksi Bandara Tujuan → Hotel',
+    bt_cost_taxi_rs: 'Taksi Hotel ↔ RS (PP)',
+    bt_cost_local_transport: 'Transport Dalam Kota',
+    bt_cost_meals: 'Makan & Entertainment',
+    bt_cost_other: 'Lain-lain',
+    bt_cost_other_notes: 'Detail Lain-lain',
+    bt_allowance_daily: 'Allowance/Hari',
+    bt_allowance_total: 'Total Allowance',
+    bt_total_advance: 'Total Cash Advance',
+    // Office-booked items
+    bt_office_booked: 'Dipesan Kantor (info saja)',
+    bt_office_ticket: 'Tiket Pesawat (kantor pesan)',
+    bt_office_hotel: 'Hotel (kantor pesan)',
+    bt_office_other: 'Item Kantor Lainnya',
+    // Bank
+    bt_bank_account: 'Rekening Tujuan Transfer',
+    bt_bank_name: 'Nama Bank',
+    bt_bank_no: 'No. Rekening',
+    bt_bank_holder: 'Nama Pemilik Rekening',
+    // Status
+    bt_status_draft: 'Draft',
+    bt_status_pending_finance: 'Menunggu Review Finance',
+    bt_status_pending_mops: 'Menunggu Review Manager Operasional',
+    bt_status_pending_gm: 'Menunggu Review General Manager',
+    bt_status_approved: 'Disetujui',
+    bt_status_rejected: 'Ditolak',
+    bt_status_clarification: 'Perlu Klarifikasi',
+    bt_status_paid: 'Dana Telah Cair',
+    bt_status_in_progress: 'Sedang Berlangsung',
+    bt_status_completed: 'Selesai',
+    bt_status_postponed: 'Ditunda',
+    bt_status_cancelled: 'Dibatalkan',
+    // Trip status
+    bt_trip_status: 'Status Perjalanan',
+    bt_trip_planned: 'Direncanakan',
+    bt_trip_ongoing: 'Berlangsung',
+    bt_trip_completed: 'Selesai',
+    bt_trip_postponed: 'Ditunda',
+    bt_trip_cancelled: 'Dibatalkan',
+    // Payment
+    bt_payment_status: 'Status Pencairan Dana',
+    bt_payment_pending: 'Belum Cair',
+    bt_payment_paid: 'Sudah Cair',
+    bt_paid_date: 'Tgl. Cair',
+    bt_paid_amount: 'Nominal Transfer',
+    bt_paid_proof: 'Bukti Transfer (URL)',
+    // Workflow actions
+    bt_action_approve: 'Setujui',
+    bt_action_reject: 'Tolak',
+    bt_action_clarify: 'Perlu Klarifikasi',
+    bt_action_mark_paid: 'Tandai Sudah Cair',
+    bt_review_finance: 'Review Finance',
+    bt_review_mops: 'Review Manager Operasional',
+    bt_review_gm: 'Review General Manager',
+    bt_reviewed_by: 'Direview oleh',
+    bt_reviewed_at: 'Tgl. Review',
+    bt_review_notes: 'Catatan Review',
+    bt_clarification_note: 'Catatan Klarifikasi',
+    bt_rejection_note: 'Alasan Penolakan',
+    // Confirm dialog texts
+    bt_confirm_approve: 'Yakin ingin menyetujui pengajuan ini? Pengajuan akan diteruskan ke level berikutnya.',
+    bt_confirm_reject: 'Yakin ingin menolak pengajuan ini? Karyawan akan diberitahu.',
+    bt_confirm_clarify: 'Yakin ingin meminta klarifikasi? Pengajuan dikembalikan ke karyawan.',
+    bt_confirm_mark_paid: 'Yakin dana sudah ditransfer ke rekening karyawan?',
+    bt_confirm_submit: 'Yakin ingin mengirim pengajuan ini ke Finance untuk direview?',
+    // Misc
+    bt_no_data: 'Belum ada pengajuan perjalanan dinas',
+    bt_approval_history: 'Riwayat Approval',
+    bt_amount: 'Nominal',
+    bt_my_trips: 'Pengajuan Saya',
+    bt_all_trips: 'Semua Pengajuan',
+    bt_pending_review: 'Menunggu Review Saya',
+    bt_my_pending: 'Pengajuan saya pending',
+    bt_total_advance_label: 'Total Cash Advance',
+    // Business Trip Realization (BTR)
+    btr_title: 'Realisasi Perjalanan Dinas',
+    btr_add_btn: 'Buat Laporan Realisasi',
+    btr_modal_add: 'Laporan Realisasi Perjalanan Dinas',
+    btr_modal_edit: 'Edit Realisasi',
+    btr_modal_detail: 'Detail Realisasi',
+    btr_select_trip: 'Pilih Perjalanan',
+    btr_actual_days: 'Hari Aktual',
+    btr_actual_days_help: 'Hari dinas yang sebenarnya dijalani (bisa lebih cepat dari rencana)',
+    btr_cash_advance_received: 'Cash Advance Diterima',
+    btr_actual_cost: 'Realisasi Biaya Aktual',
+    btr_actual_taxi_home: 'Taksi Rumah → Bandara JKT (Aktual)',
+    btr_actual_taxi_arrival: 'Taksi Bandara → Hotel (Aktual)',
+    btr_actual_taxi_rs: 'Taksi Hotel ↔ RS PP (Aktual)',
+    btr_actual_local_transport: 'Transport Dalam Kota (Aktual)',
+    btr_actual_meals: 'Makan & Entertainment (Aktual)',
+    btr_actual_other: 'Lain-lain (Aktual)',
+    btr_proof: 'Bukti (URL)',
+    btr_proof_help: 'Upload struk/bill ke Google Drive, lalu paste URL share-nya',
+    btr_no_proof_allowance: 'Allowance tidak perlu bukti (hak karyawan)',
+    btr_actual_allowance: 'Allowance Aktual',
+    btr_actual_allowance_help: 'Otomatis = hari aktual × tarif harian (di-prorate jika pulang lebih cepat)',
+    btr_total_actual: 'Total Realisasi',
+    btr_difference: 'Selisih',
+    btr_difference_return: 'Kelebihan (karyawan kembalikan)',
+    btr_difference_reimburse: 'Kekurangan (kantor ganti)',
+    btr_difference_zero: 'Pas (tidak ada selisih)',
+    btr_realization_notes: 'Catatan Realisasi',
+    btr_action_submit: 'Kirim Realisasi',
+    btr_confirm_submit: 'Yakin ingin mengirim laporan realisasi ini ke Finance untuk diverifikasi?',
+    btr_no_realization: 'Belum ada laporan realisasi',
+    btr_settlement_pending: 'Pending Settlement',
+    btr_settlement_done: 'Selesai Settlement',
+    btr_settlement_status: 'Status Settlement',
+    btr_settle_now: 'Tandai Settled',
+    btr_confirm_settle: 'Konfirmasi selisih dana sudah diselesaikan?',
+    btr_eligible_trips: 'Perjalanan siap dilaporkan',
+    btr_no_eligible_trips: 'Belum ada perjalanan yang siap dilaporkan. Tunggu trip berlangsung & dana sudah cair.',
+    btr_trip_info: 'Info Perjalanan',
+    btr_comparison: 'Perbandingan Cash Advance vs Realisasi',
+    btr_column_planned: 'Rencana (CA)',
+    btr_column_actual: 'Realisasi',
+    btr_column_diff: 'Selisih',
+    btr_status_draft: 'Draft',
+    btr_status_pending_finance: 'Menunggu Review Finance',
+    btr_status_pending_mops: 'Menunggu Review Manager Ops',
+    btr_status_pending_gm: 'Menunggu Review GM',
+    btr_status_approved: 'Disetujui',
+    btr_status_clarification: 'Perlu Klarifikasi',
     // Common labels needed by modals (only ones not already defined)
     date: 'Tanggal',
     priority: 'Prioritas',
@@ -483,16 +660,18 @@ const translations = {
   en: {
     system_name: 'IMS HNTI', system_full: 'Integrated Monitoring System',
     company: 'PT Harmoni Nasional Teknologi Indonesia',
-    motto: 'Transparent · Accountable · Real-time',
+    motto: 'Transparent · Accountable · Real-time · Business Information Management Reviews',
     login_title: 'Sign In to System', login_subtitle: 'Restricted access for authorized personnel only',
     username: 'Username', password: 'Password', login_btn: 'Sign In',
     demo_credentials: 'Demo Credentials', login_error: 'Invalid username or password',
     logout: 'Sign Out', welcome: 'Welcome',
     role_super_admin: 'Super Admin (CEO)', role_admin: 'Admin', role_technician: 'Technician',
     role_operations: 'Operations', role_finance: 'Finance', role_sales: 'Sales', role_regulatory: 'Regulatory',
+    role_gm: 'General Manager', role_manager_ops: 'Operations Manager',
     nav_dashboard: 'Dashboard', nav_sph: 'Quotation Mgmt', nav_pipeline: 'Pipeline',
     nav_sales: 'Sales Team', nav_sales_report: 'Field Reports', nav_finance: 'Finance',
     nav_operations: 'Operations', nav_installation: 'Installation', nav_valuation: 'Valuation',
+    nav_employees: 'Employee Management', nav_business_trip: 'Business Trip',
     pipeline_value: 'Pipeline Value', weighted_pipeline: 'Weighted Pipeline',
     revenue_ytd: 'Revenue YTD', win_rate: 'Win Rate',
     active_projects: 'Active Projects', avg_deal_size: 'Avg Deal Size',
@@ -560,9 +739,9 @@ const translations = {
     sr_visits: 'Hospital Visit Log',
     sr_pipe_summary: 'Pipeline Update',
     sr_pipe_count: 'Active Pipeline RS',
-    sr_pipe_val: 'Est. Value (M IDR)',
+    sr_pipe_val: 'Est. Value (USD)',
     sr_closest: 'Closest to Closing',
-    sr_cost: 'Total Cost This Week (Rp)',
+    sr_cost: 'Total Cost This Week (USD)',
     sr_reflection: 'Reflection',
     sr_win: 'Win / Achievement',
     sr_block: 'Biggest Blocker',
@@ -944,6 +1123,171 @@ const translations = {
     sr_confirm_delete: 'Are you sure you want to delete this report?',
     sr_updated_success: '✓ Report updated successfully',
     sr_back_to_history: 'Back to History',
+    // Employee Management
+    emp_title: 'Employee Management',
+    emp_subtitle: 'HNTI employee master data, positions, and business trip allowances',
+    emp_total: 'Total Employees',
+    emp_active: 'Active',
+    emp_inactive: 'Inactive',
+    emp_by_position: 'By Position',
+    emp_username: 'Username',
+    emp_name: 'Full Name',
+    emp_position: 'Position',
+    emp_role: 'Role / Access',
+    emp_allowance: 'Allowance/Day',
+    emp_territory: 'Work Territory',
+    emp_supervised_by: 'Supervised By',
+    emp_status_active: 'Active',
+    emp_status_inactive: 'Inactive',
+    emp_add_btn: 'Add Employee',
+    emp_modal_add: 'Add New Employee',
+    emp_modal_edit: 'Edit Employee Data',
+    emp_deactivate: 'Deactivate',
+    emp_activate: 'Activate',
+    emp_restricted: 'Only CEO, General Manager, and Operations Manager can access this module.',
+    emp_pos_staff: 'Staff', emp_pos_supervisor: 'Supervisor', emp_pos_manager: 'Manager',
+    emp_pos_manager_ops: 'Operations Manager', emp_pos_gm: 'General Manager', emp_pos_direksi: 'Direksi',
+    emp_field_username_help: 'Login ID (lowercase, no spaces). Cannot be changed after saving.',
+    emp_field_position_help: 'Allowance auto-adjusts based on position.',
+    emp_confirm_deactivate: 'Deactivated employees cannot log in. Continue?',
+    emp_confirm_activate: 'Activate this employee so they can log in again?',
+    emp_duplicate_username: 'Username is already taken. Please choose another.',
+    emp_password_note: 'Default password: hnti2026 (can be changed by employee after login)',
+    // Business Trip
+    bt_title: 'Business Trip',
+    bt_subtitle: 'Cash Advance, Realization, and Business Trip Analytics',
+    bt_tab_dashboard: 'Dashboard',
+    bt_tab_cash_advance: 'Cash Advance',
+    bt_tab_realization: 'Realization',
+    bt_add_btn: 'Submit Trip Request',
+    bt_modal_add: 'New Business Trip Request',
+    bt_modal_edit: 'Edit Request',
+    bt_modal_review: 'Review Request',
+    bt_modal_detail: 'Request Detail',
+    bt_traveler: 'Employee Name',
+    bt_position: 'Position',
+    bt_destination: 'Destination',
+    bt_destination_city: 'Destination City',
+    bt_purpose: 'Purpose',
+    bt_date_start: 'Start Date',
+    bt_date_end: 'End Date',
+    bt_duration: 'Duration (days)',
+    bt_cost_taxi_home: 'Taxi Home → JKT Airport',
+    bt_cost_taxi_arrival: 'Taxi Arrival Airport → Hotel',
+    bt_cost_taxi_rs: 'Taxi Hotel ↔ Hospital (RT)',
+    bt_cost_local_transport: 'Local Transport',
+    bt_cost_meals: 'Meals & Entertainment',
+    bt_cost_other: 'Other',
+    bt_cost_other_notes: 'Other Details',
+    bt_allowance_daily: 'Allowance/Day',
+    bt_allowance_total: 'Total Allowance',
+    bt_total_advance: 'Total Cash Advance',
+    bt_office_booked: 'Office-Booked (info only)',
+    bt_office_ticket: 'Flight Ticket (office booked)',
+    bt_office_hotel: 'Hotel (office booked)',
+    bt_office_other: 'Other Office Items',
+    bt_bank_account: 'Bank Account for Transfer',
+    bt_bank_name: 'Bank Name',
+    bt_bank_no: 'Account No.',
+    bt_bank_holder: 'Account Holder Name',
+    bt_status_draft: 'Draft',
+    bt_status_pending_finance: 'Pending Finance Review',
+    bt_status_pending_mops: 'Pending Operations Manager Review',
+    bt_status_pending_gm: 'Pending General Manager Review',
+    bt_status_approved: 'Approved',
+    bt_status_rejected: 'Rejected',
+    bt_status_clarification: 'Needs Clarification',
+    bt_status_paid: 'Funds Disbursed',
+    bt_status_in_progress: 'In Progress',
+    bt_status_completed: 'Completed',
+    bt_status_postponed: 'Postponed',
+    bt_status_cancelled: 'Cancelled',
+    bt_trip_status: 'Trip Status',
+    bt_trip_planned: 'Planned',
+    bt_trip_ongoing: 'Ongoing',
+    bt_trip_completed: 'Completed',
+    bt_trip_postponed: 'Postponed',
+    bt_trip_cancelled: 'Cancelled',
+    bt_payment_status: 'Disbursement Status',
+    bt_payment_pending: 'Not Disbursed',
+    bt_payment_paid: 'Disbursed',
+    bt_paid_date: 'Disbursement Date',
+    bt_paid_amount: 'Transfer Amount',
+    bt_paid_proof: 'Transfer Proof (URL)',
+    bt_action_approve: 'Approve',
+    bt_action_reject: 'Reject',
+    bt_action_clarify: 'Need Clarification',
+    bt_action_mark_paid: 'Mark as Disbursed',
+    bt_review_finance: 'Finance Review',
+    bt_review_mops: 'Operations Manager Review',
+    bt_review_gm: 'General Manager Review',
+    bt_reviewed_by: 'Reviewed by',
+    bt_reviewed_at: 'Review Date',
+    bt_review_notes: 'Review Notes',
+    bt_clarification_note: 'Clarification Note',
+    bt_rejection_note: 'Rejection Reason',
+    bt_confirm_approve: 'Are you sure you want to approve this request? It will be forwarded to the next reviewer.',
+    bt_confirm_reject: 'Are you sure you want to reject this request? The employee will be notified.',
+    bt_confirm_clarify: 'Are you sure you want to request clarification? It will be returned to the employee.',
+    bt_confirm_mark_paid: 'Confirm that funds have been transferred to the employee account?',
+    bt_confirm_submit: 'Submit this request to Finance for review?',
+    bt_no_data: 'No business trip requests yet',
+    bt_approval_history: 'Approval History',
+    bt_amount: 'Amount',
+    bt_my_trips: 'My Requests',
+    bt_all_trips: 'All Requests',
+    bt_pending_review: 'Pending My Review',
+    bt_my_pending: 'My pending requests',
+    bt_total_advance_label: 'Total Cash Advance',
+    // Business Trip Realization (BTR)
+    btr_title: 'Business Trip Realization',
+    btr_add_btn: 'Create Realization Report',
+    btr_modal_add: 'Business Trip Realization Report',
+    btr_modal_edit: 'Edit Realization',
+    btr_modal_detail: 'Realization Detail',
+    btr_select_trip: 'Select Trip',
+    btr_actual_days: 'Actual Days',
+    btr_actual_days_help: 'Actual days spent on trip (can be shorter than planned)',
+    btr_cash_advance_received: 'Cash Advance Received',
+    btr_actual_cost: 'Actual Cost Realization',
+    btr_actual_taxi_home: 'Taxi Home → JKT Airport (Actual)',
+    btr_actual_taxi_arrival: 'Taxi Airport → Hotel (Actual)',
+    btr_actual_taxi_rs: 'Taxi Hotel ↔ Hospital RT (Actual)',
+    btr_actual_local_transport: 'Local Transport (Actual)',
+    btr_actual_meals: 'Meals & Entertainment (Actual)',
+    btr_actual_other: 'Other (Actual)',
+    btr_proof: 'Proof (URL)',
+    btr_proof_help: 'Upload receipt to Google Drive, then paste share URL',
+    btr_no_proof_allowance: 'Allowance does not need proof (employee right)',
+    btr_actual_allowance: 'Actual Allowance',
+    btr_actual_allowance_help: 'Auto = actual days × daily rate (pro-rated if returning early)',
+    btr_total_actual: 'Total Actual',
+    btr_difference: 'Difference',
+    btr_difference_return: 'Excess (employee to return)',
+    btr_difference_reimburse: 'Shortfall (office to reimburse)',
+    btr_difference_zero: 'Exact match (no difference)',
+    btr_realization_notes: 'Realization Notes',
+    btr_action_submit: 'Submit Realization',
+    btr_confirm_submit: 'Submit this realization report to Finance for verification?',
+    btr_no_realization: 'No realization reports yet',
+    btr_settlement_pending: 'Pending Settlement',
+    btr_settlement_done: 'Settled',
+    btr_settlement_status: 'Settlement Status',
+    btr_settle_now: 'Mark as Settled',
+    btr_confirm_settle: 'Confirm that the difference has been settled?',
+    btr_eligible_trips: 'Trips ready for realization',
+    btr_no_eligible_trips: 'No trips ready for realization yet. Wait for trip to be in-progress and funds disbursed.',
+    btr_trip_info: 'Trip Info',
+    btr_comparison: 'Cash Advance vs Realization Comparison',
+    btr_column_planned: 'Planned (CA)',
+    btr_column_actual: 'Actual',
+    btr_column_diff: 'Diff',
+    btr_status_draft: 'Draft',
+    btr_status_pending_finance: 'Pending Finance Review',
+    btr_status_pending_mops: 'Pending Operations Manager Review',
+    btr_status_pending_gm: 'Pending GM Review',
+    btr_status_approved: 'Approved',
+    btr_status_clarification: 'Needs Clarification',
     // Common labels needed by modals (only ones not already defined)
     date: 'Date',
     priority: 'Priority',
@@ -958,45 +1302,63 @@ const SALES_TEAM = [
   { id: 'dwi', name: 'Dwi Wahyudianto', initial: 'DW', territory: 'Jabodetabek + Jabar', territoryEn: 'Jabodetabek + West Java', accent: '#c03030' },
   { id: 'tri', name: 'Tri Sutjahjono', initial: 'TS', territory: 'Jatim 1', territoryEn: 'East Java 1', accent: '#12855a' },
   { id: 'bagus', name: 'Bagus Iswahyudi', initial: 'BI', territory: 'Jatim 2', territoryEn: 'East Java 2', accent: '#7b3fb5' },
+  { id: 'icha', name: 'Ika Apriani (Icha)', initial: 'IA', territory: 'Jabodetabek + Jabar (bawah Dwi)', territoryEn: 'Jabodetabek + West Java (under Dwi)', accent: '#d4a8c8', supervisedBy: 'dwi' },
   { id: 'office', name: 'HNT Indonesia (Office)', initial: 'HO', territory: 'Nasional', territoryEn: 'Nationwide', accent: '#1a2942', isOffice: true },
 ];
 
-// Sales IDs to include in bulk generator (include office)
+// Sales IDs to include in bulk generator (include office and icha)
 const SALES_IDS_WITH_OFFICE = ['lukman', 'hatim', 'dwi', 'tri', 'bagus', 'office'];
 
+// ============== Allowance per Position (Business Trip) ==============
+const POSITION_ALLOWANCE = {
+  'Staff': 130000,
+  'Supervisor': 150000,
+  'Manager': 175000,
+  'Manager Operasional': 175000,
+  'General Manager': 175000,
+  'Direksi': 500000,
+};
+
 const USERS = {
-  'ceo': { password: 'hnti2026', role: 'super_admin', name: 'Fajrin', initial: 'F' },
-  'admin': { password: 'hnti2026', role: 'admin', name: 'Siti Rahayu', initial: 'SR' },
-  'teknisi': { password: 'hnti2026', role: 'technician', name: 'Budi Hartono', initial: 'BH' },
-  'ops': { password: 'hnti2026', role: 'operations', name: 'Andi Pratama', initial: 'AP' },
-  'finance': { password: 'hnti2026', role: 'finance', name: 'Maya Sari', initial: 'MS' },
-  'regulatory': { password: 'hnti2026', role: 'regulatory', name: 'Rini Wahyuni', initial: 'RW' },
-  'lukman': { password: 'hnti2026', role: 'sales', name: 'Lukman', initial: 'LK', salesId: 'lukman' },
-  'hatim': { password: 'hnti2026', role: 'sales', name: 'Hatim', initial: 'HT', salesId: 'hatim' },
-  'dwi': { password: 'hnti2026', role: 'sales', name: 'Dwi Wahyudianto', initial: 'DW', salesId: 'dwi' },
-  'tri': { password: 'hnti2026', role: 'sales', name: 'Tri Sutjahjono', initial: 'TS', salesId: 'tri' },
-  'bagus': { password: 'hnti2026', role: 'sales', name: 'Bagus Iswahyudi', initial: 'BI', salesId: 'bagus' },
-  'office': { password: 'hnti2026', role: 'sales', name: 'HNT Indonesia (Office)', initial: 'HO', salesId: 'office', isOffice: true },
+  'ceo': { password: 'hnti2026', role: 'super_admin', name: 'Fajrin', initial: 'F', position: 'Direksi', allowancePerDay: 500000, active: true },
+  'gm': { password: 'hnti2026', role: 'gm', name: 'Endah Purwitasari', initial: 'EP', position: 'General Manager', allowancePerDay: 175000, active: true },
+  'manager_ops': { password: 'hnti2026', role: 'manager_ops', name: 'Novan Restu', initial: 'NR', position: 'Manager Operasional', allowancePerDay: 175000, active: true },
+  'admin': { password: 'hnti2026', role: 'admin', name: 'Siti Rahayu', initial: 'SR', position: 'Manager', allowancePerDay: 175000, active: true },
+  'teknisi': { password: 'hnti2026', role: 'technician', name: 'Budi Hartono', initial: 'BH', position: 'Supervisor', allowancePerDay: 150000, active: true },
+  'ops': { password: 'hnti2026', role: 'operations', name: 'Andi Pratama', initial: 'AP', position: 'Supervisor', allowancePerDay: 150000, active: true },
+  'finance': { password: 'hnti2026', role: 'finance', name: 'Maya Sari', initial: 'MS', position: 'Manager', allowancePerDay: 175000, active: true },
+  'regulatory': { password: 'hnti2026', role: 'regulatory', name: 'Rini Wahyuni', initial: 'RW', position: 'Supervisor', allowancePerDay: 150000, active: true },
+  'lukman': { password: 'hnti2026', role: 'sales', name: 'Lukman', initial: 'LK', salesId: 'lukman', position: 'Staff', allowancePerDay: 130000, active: true },
+  'hatim': { password: 'hnti2026', role: 'sales', name: 'Hatim', initial: 'HT', salesId: 'hatim', position: 'Staff', allowancePerDay: 130000, active: true },
+  'dwi': { password: 'hnti2026', role: 'sales', name: 'Dwi Wahyudianto', initial: 'DW', salesId: 'dwi', position: 'Manager', allowancePerDay: 175000, active: true },
+  'tri': { password: 'hnti2026', role: 'sales', name: 'Tri Sutjahjono', initial: 'TS', salesId: 'tri', position: 'Manager', allowancePerDay: 175000, active: true },
+  'bagus': { password: 'hnti2026', role: 'sales', name: 'Bagus Iswahyudi', initial: 'BI', salesId: 'bagus', position: 'Manager', allowancePerDay: 175000, active: true },
+  'icha': { password: 'hnti2026', role: 'sales', name: 'Ika Apriani (Icha)', initial: 'IA', salesId: 'icha', position: 'Staff', allowancePerDay: 130000, active: true },
+  'office': { password: 'hnti2026', role: 'sales', name: 'HNT Indonesia (Office)', initial: 'HO', salesId: 'office', isOffice: true, position: '-', allowancePerDay: 0, active: true },
 };
 
 const PERMISSIONS = {
-  super_admin: { dashboard: 'full', sph: 'full', pipeline: 'full', sales: 'full', sales_report: 'full', finance: 'full', operations: 'full', installation: 'full', maintenance: 'full', regulatory: 'full', valuation: 'full', incentive: 'full' },
-  admin:       { dashboard: 'read', sph: 'full', pipeline: 'write', sales: 'read', sales_report: 'read', finance: 'read', operations: 'read', installation: 'write', maintenance: 'read', regulatory: 'read', valuation: 'none', incentive: 'none' },
-  technician:  { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'none', sales_report: 'none', finance: 'none', operations: 'read', installation: 'full', maintenance: 'full', regulatory: 'read', valuation: 'none', incentive: 'none' },
-  operations:  { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'none', sales_report: 'none', finance: 'read', operations: 'full', installation: 'read', maintenance: 'read', regulatory: 'none', valuation: 'none', incentive: 'none' },
-  finance:     { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'read', sales_report: 'read', finance: 'full', operations: 'read', installation: 'read', maintenance: 'none', regulatory: 'none', valuation: 'none', incentive: 'full' },
-  regulatory:  { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'none', sales_report: 'none', finance: 'none', operations: 'read', installation: 'read', maintenance: 'read', regulatory: 'full', valuation: 'none', incentive: 'none' },
-  sales:       { dashboard: 'read', sph: 'write', pipeline: 'write', sales: 'read', sales_report: 'full', finance: 'none', operations: 'none', installation: 'none', maintenance: 'none', regulatory: 'none', valuation: 'none', incentive: 'self' },
+  super_admin:  { dashboard: 'full', sph: 'full', pipeline: 'full', sales: 'full', sales_report: 'full', finance: 'full', operations: 'full', installation: 'full', maintenance: 'full', regulatory: 'full', valuation: 'full', incentive: 'full', employees: 'full', business_trip: 'full' },
+  gm:           { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'read', sales_report: 'read', finance: 'read', operations: 'read', installation: 'read', maintenance: 'read', regulatory: 'read', valuation: 'read', incentive: 'read', employees: 'full', business_trip: 'full' },
+  manager_ops:  { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'read', sales_report: 'read', finance: 'read', operations: 'full', installation: 'read', maintenance: 'read', regulatory: 'read', valuation: 'none', incentive: 'none', employees: 'full', business_trip: 'full' },
+  admin:        { dashboard: 'read', sph: 'full', pipeline: 'write', sales: 'read', sales_report: 'read', finance: 'read', operations: 'read', installation: 'write', maintenance: 'read', regulatory: 'read', valuation: 'none', incentive: 'none', employees: 'none', business_trip: 'self' },
+  technician:   { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'none', sales_report: 'none', finance: 'none', operations: 'read', installation: 'full', maintenance: 'full', regulatory: 'read', valuation: 'none', incentive: 'none', employees: 'none', business_trip: 'self' },
+  operations:   { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'none', sales_report: 'none', finance: 'read', operations: 'full', installation: 'read', maintenance: 'read', regulatory: 'none', valuation: 'none', incentive: 'none', employees: 'none', business_trip: 'self' },
+  finance:      { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'read', sales_report: 'read', finance: 'full', operations: 'read', installation: 'read', maintenance: 'none', regulatory: 'none', valuation: 'none', incentive: 'full', employees: 'none', business_trip: 'full' },
+  regulatory:   { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'none', sales_report: 'none', finance: 'none', operations: 'read', installation: 'read', maintenance: 'read', regulatory: 'full', valuation: 'none', incentive: 'none', employees: 'none', business_trip: 'self' },
+  sales:        { dashboard: 'read', sph: 'write', pipeline: 'write', sales: 'read', sales_report: 'full', finance: 'none', operations: 'none', installation: 'none', maintenance: 'none', regulatory: 'none', valuation: 'none', incentive: 'self', employees: 'none', business_trip: 'self' },
 };
 
 const NAV_BY_ROLE = {
-  super_admin: ['dashboard', 'sph', 'pipeline', 'sales', 'incentive', 'sales_report', 'finance', 'operations', 'installation', 'maintenance', 'regulatory', 'valuation'],
-  admin:       ['dashboard', 'sph', 'pipeline', 'sales', 'sales_report', 'installation', 'maintenance', 'regulatory'],
-  technician:  ['dashboard', 'pipeline', 'installation', 'maintenance'],
-  operations:  ['dashboard', 'pipeline', 'operations', 'maintenance'],
-  finance:     ['dashboard', 'pipeline', 'sales_report', 'incentive', 'finance'],
-  regulatory:  ['dashboard', 'pipeline', 'installation', 'regulatory'],
-  sales:       ['sales_report', 'sph', 'pipeline', 'incentive', 'dashboard'],
+  super_admin:  ['dashboard', 'sph', 'pipeline', 'sales', 'incentive', 'sales_report', 'business_trip', 'finance', 'operations', 'installation', 'maintenance', 'regulatory', 'valuation', 'employees'],
+  gm:           ['dashboard', 'sph', 'pipeline', 'sales', 'incentive', 'sales_report', 'business_trip', 'finance', 'operations', 'installation', 'maintenance', 'regulatory', 'valuation', 'employees'],
+  manager_ops:  ['dashboard', 'sph', 'pipeline', 'sales', 'sales_report', 'business_trip', 'finance', 'operations', 'installation', 'maintenance', 'regulatory', 'employees'],
+  admin:        ['dashboard', 'sph', 'pipeline', 'sales', 'sales_report', 'business_trip', 'installation', 'maintenance', 'regulatory'],
+  technician:   ['dashboard', 'pipeline', 'business_trip', 'installation', 'maintenance'],
+  operations:   ['dashboard', 'pipeline', 'business_trip', 'operations', 'maintenance'],
+  finance:      ['dashboard', 'pipeline', 'sales_report', 'business_trip', 'incentive', 'finance'],
+  regulatory:   ['dashboard', 'pipeline', 'business_trip', 'installation', 'regulatory'],
+  sales:        ['sales_report', 'sph', 'pipeline', 'business_trip', 'incentive', 'dashboard'],
 };
 
 // Translation key for new regulatory role
@@ -1545,7 +1907,78 @@ const HNTI_OFFICE_SPH = [
     paymentTerm: 'dp_6', paymentReceivedPct: 0 },
 ];
 
-const ALL_SPH = [...SEED_SPH, ...BULK_SPH, ...HNTI_OFFICE_SPH];
+// ============== Icha (Ika Apriani) SPH — Sales Staff baru bawah Dwi, Apr-Mei 2026 ==============
+// Belum ada PO menang. Semua status: 'active'. Sesuai konsep: masih dalam proses penjualan.
+const ICHA_SPH = [
+  { id: 'icha_2026_001', sphNo: 'SPH/2026/IC-01',
+    customer: 'RS Hermina Jatinegara', customerType: 'hospital', projectType: 'private',
+    modality: 'X-Ray', subModality: 'X-Ray Stationary Jumong General', partner: 'JPI Healthcare',
+    qty: 1, unitPrice: 2850000000, totalValue: 2850000000,
+    issuedDate: '2026-04-15', salesOwner: 'icha', region: 'Jabodetabek',
+    status: 'active', stage: 'negotiation', probability: 70,
+    notes: 'Pendamping Dwi untuk Jabodetabek. Final neg phase, target PO Juni 2026.',
+    nextAction: 'Close deal sebelum 30 Mei 2026', lastUpdate: '2026-05-16',
+    poStatus: null, dpPaid: false, finalPaid: false,
+    shippingStatus: null, customsStatus: null, installationStatus: null,
+    paymentTerm: 'dp_6', paymentReceivedPct: 0 },
+  { id: 'icha_2026_002', sphNo: 'SPH/2026/IC-02',
+    customer: 'RS Eka Hospital Cimanggis', customerType: 'hospital', projectType: 'private',
+    modality: 'CT Scan', subModality: 'CT 64 Slice Anatom Clarity', partner: 'ANKE',
+    qty: 1, unitPrice: 10500000000, totalValue: 10500000000,
+    issuedDate: '2026-04-30', salesOwner: 'icha', region: 'Jabodetabek',
+    status: 'active', stage: 'presentation_done', probability: 50,
+    notes: 'Eka Hospital ekspansi cabang Cimanggis. Sudah present, menunggu evaluasi direksi.',
+    nextAction: 'Follow up direksi Eka Group minggu ke-4 Mei', lastUpdate: '2026-05-12',
+    poStatus: null, dpPaid: false, finalPaid: false,
+    shippingStatus: null, customsStatus: null, installationStatus: null,
+    paymentTerm: 'dp_12', paymentReceivedPct: 0 },
+  { id: 'icha_2026_003', sphNo: 'SPH/2026/IC-03',
+    customer: 'RSUD Pasar Minggu', customerType: 'hospital', projectType: 'government',
+    modality: 'X-Ray', subModality: 'X-Ray Stationary Jumong General', partner: 'JPI Healthcare',
+    qty: 2, unitPrice: 2900000000, totalValue: 5800000000,
+    issuedDate: '2026-04-30', salesOwner: 'icha', region: 'Jabodetabek',
+    status: 'active', stage: 'presentation_scheduled', probability: 35,
+    notes: 'RSUD baru renovasi, butuh 2 unit X-Ray DR. Presentasi dijadwalkan akhir Mei.',
+    nextAction: 'Presentasi 28 Mei 2026', lastUpdate: '2026-05-10',
+    poStatus: null, dpPaid: false, finalPaid: false,
+    shippingStatus: null, customsStatus: null, installationStatus: null,
+    paymentTerm: 'dp_3', paymentReceivedPct: 0 },
+  { id: 'icha_2026_004', sphNo: 'SPH/2026/IC-04',
+    customer: 'RS Awal Bros Tangerang', customerType: 'hospital', projectType: 'private',
+    modality: 'X-Ray', subModality: 'X-Ray Stationary Jumong General', partner: 'JPI Healthcare',
+    qty: 1, unitPrice: 2750000000, totalValue: 2750000000,
+    issuedDate: '2026-05-10', salesOwner: 'icha', region: 'Jabodetabek',
+    status: 'active', stage: 'presentation_done', probability: 50,
+    notes: 'Awal Bros Group, sudah demo X-Ray DR sukses. Negotiation harga.',
+    nextAction: 'Final price proposal 25 Mei', lastUpdate: '2026-05-15',
+    poStatus: null, dpPaid: false, finalPaid: false,
+    shippingStatus: null, customsStatus: null, installationStatus: null,
+    paymentTerm: 'dp_6', paymentReceivedPct: 0 },
+  { id: 'icha_2026_005', sphNo: 'SPH/2026/IC-05',
+    customer: 'RSUD Pasar Rebo', customerType: 'hospital', projectType: 'government',
+    modality: 'CT Scan', subModality: 'CT 64 Slice Anatom Clarity', partner: 'ANKE',
+    qty: 1, unitPrice: 9800000000, totalValue: 9800000000,
+    issuedDate: '2026-04-20', salesOwner: 'icha', region: 'Jabodetabek',
+    status: 'active', stage: 'sph_sent', probability: 20,
+    notes: 'RSUD Pasar Rebo, kunjungan awal pendamping Dwi. Anggaran 2026 masih diajukan.',
+    nextAction: 'Follow up 27 Mei 2026', lastUpdate: '2026-05-08',
+    poStatus: null, dpPaid: false, finalPaid: false,
+    shippingStatus: null, customsStatus: null, installationStatus: null,
+    paymentTerm: 'dp_3', paymentReceivedPct: 0 },
+  { id: 'icha_2026_006', sphNo: 'SPH/2026/IC-06',
+    customer: 'RS Hermina Bogor', customerType: 'hospital', projectType: 'private',
+    modality: 'X-Ray', subModality: 'X-Ray Stationary Jumong General', partner: 'JPI Healthcare',
+    qty: 1, unitPrice: 2850000000, totalValue: 2850000000,
+    issuedDate: '2026-05-15', salesOwner: 'icha', region: 'Jabodetabek',
+    status: 'active', stage: 'sph_sent', probability: 20,
+    notes: 'Hermina Group ekspansi Bogor, SPH baru dikirim.',
+    nextAction: 'Follow up 28 Mei 2026', lastUpdate: '2026-05-16',
+    poStatus: null, dpPaid: false, finalPaid: false,
+    shippingStatus: null, customsStatus: null, installationStatus: null,
+    paymentTerm: 'dp_6', paymentReceivedPct: 0 },
+];
+
+const ALL_SPH = [...SEED_SPH, ...BULK_SPH, ...HNTI_OFFICE_SPH, ...ICHA_SPH];
 
 // ============== Seed Field Reports (Laporan Lapangan untuk semua Sales) ==============
 // Detail naratif yang realistis untuk demo go-live, periode Jan-Mei 2026 (~20 minggu)
@@ -2122,6 +2555,73 @@ const SEED_FIELD_REPORTS = [
     win: 'RS Mayapada Kuningan confirm budget, lock-in price approved',
     next: 'Close PO RS Mayapada Kuningan CT 64 sebelum 20 Mei',
     fatigue: 1, createdAt: '2026-05-07T17:30:00.000Z' },
+
+  // ============= ICHA (Ika Apriani) — Sales Staff baru bawah Dwi, mulai April 2026 ==============
+  { id: 'rpt_icha_w1', salesId: 'icha', date: '2026-04-04', week: 'Minggu 1',
+    days: 4, nights: 0, area: 'Jakarta Pusat + Tangerang (training & onboarding)',
+    visits: [
+      { name: 'Kantor HNTI Jakarta', city: 'Jakarta Pusat', visit: 'first', product: '-', pipeline: 'cold', contact: 'Dwi Wahyudianto (Manager)', note: 'Onboarding & product training minggu pertama, mempelajari portfolio HNTI' },
+      { name: 'RS Mitra Keluarga Kalideres', city: 'Jakarta Barat', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Bu Wati (Logistik)', note: 'Kunjungan pendamping Dwi, perkenalan awal sebagai sales baru' },
+    ],
+    pipeN: 1, pipeVal: 0, closest: '-',
+    totalCost: 580000, block: 'Masih dalam proses onboarding, belum mandiri kunjungan',
+    win: 'Berhasil dikenalkan ke 1 customer baru sebagai backup Dwi',
+    next: 'Lanjut training product CT Scan & MRI minggu depan',
+    fatigue: 1, createdAt: '2026-04-05T18:00:00.000Z' },
+
+  { id: 'rpt_icha_w2', salesId: 'icha', date: '2026-04-11', week: 'Minggu 2',
+    days: 5, nights: 0, area: 'Jakarta Timur + Bekasi (didampingi Dwi)',
+    visits: [
+      { name: 'RS Hermina Jatinegara', city: 'Jakarta Timur', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'dr. Anto, Sp.Rad', note: 'Pendampingan dengan Dwi, presentasi X-Ray DR Jumong' },
+      { name: 'RSUD Pasar Rebo', city: 'Jakarta Timur', visit: 'first', product: 'CT Scan', pipeline: 'cold', contact: 'Bu Tantri (Bagian Pengadaan)', note: 'Survey kebutuhan radiologi RSUD Pasar Rebo' },
+      { name: 'RS Mitra Keluarga Bekasi Timur', city: 'Bekasi', visit: 'first', product: 'C-Arm', pipeline: 'cold', contact: 'dr. Setiawan', note: 'Pertemuan awal, belum ada anggaran 2026' },
+    ],
+    pipeN: 2, pipeVal: 8500000000, closest: '-',
+    totalCost: 720000, block: '-',
+    win: 'Berhasil menjadwalkan 2 follow-up presentasi minggu depan',
+    next: 'Follow up RS Hermina Jatinegara & RSUD Pasar Rebo dengan proposal detail',
+    fatigue: 2, createdAt: '2026-04-12T19:00:00.000Z' },
+
+  { id: 'rpt_icha_w3', salesId: 'icha', date: '2026-04-25', week: 'Minggu 4',
+    days: 5, nights: 0, area: 'Jakarta Selatan + Depok',
+    visits: [
+      { name: 'RS Hermina Jatinegara', city: 'Jakarta Timur', visit: 'followup', product: 'X-Ray', pipeline: 'warm', contact: 'dr. Anto, Sp.Rad', note: 'Lanjutan presentasi, dokter tertarik tapi anggaran masih dievaluasi direksi' },
+      { name: 'RS Eka Hospital Cimanggis', city: 'Depok', visit: 'first', product: 'CT Scan', pipeline: 'cold', contact: 'Bu Putri', note: 'Eka Hospital ekspansi cabang, survey kebutuhan CT 64' },
+      { name: 'RSUD Pasar Minggu', city: 'Jakarta Selatan', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Pak Hendro', note: 'RSUD baru renovasi, butuh full equipment radiologi' },
+      { name: 'RS Hermina Depok', city: 'Depok', visit: 'first', product: 'Mammography', pipeline: 'cold', contact: 'dr. Wulan', note: 'Diskusi awal women health center' },
+    ],
+    pipeN: 3, pipeVal: 15500000000, closest: 'RS Hermina Jatinegara',
+    totalCost: 850000, block: '-',
+    win: 'RS Hermina Jatinegara confirm budget review, target keputusan Mei',
+    next: 'Prepare proposal X-Ray RS Hermina Jatinegara untuk presentasi ke board',
+    fatigue: 2, createdAt: '2026-04-26T19:30:00.000Z' },
+
+  { id: 'rpt_icha_w4', salesId: 'icha', date: '2026-05-08', week: 'Minggu 2',
+    days: 4, nights: 0, area: 'Tangerang + Tangerang Selatan',
+    visits: [
+      { name: 'RS Awal Bros Tangerang', city: 'Tangerang', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Bu Maria', note: 'Pertemuan awal Direktur, RS sudah punya X-Ray lama, butuh upgrade DR' },
+      { name: 'RS Hermina Tangerang', city: 'Tangerang', visit: 'first', product: 'CT Scan', pipeline: 'cold', contact: 'dr. Reza', note: 'Hermina Group, perlu approval pusat untuk anggaran CT baru' },
+      { name: 'RSUD Tangerang Selatan', city: 'Tangerang Selatan', visit: 'first', product: 'C-Arm', pipeline: 'cold', contact: 'Pak Hendra', note: 'Survey kebutuhan OK Center, anggaran 2026 belum ACC' },
+    ],
+    pipeN: 2, pipeVal: 12000000000, closest: '-',
+    totalCost: 680000, block: 'Beberapa pertemuan tertunda karena jadwal dokter Sp.Rad penuh',
+    win: 'RS Awal Bros confirm interest upgrade X-Ray DR, schedule demo Mei',
+    next: 'Schedule demo X-Ray DR RS Awal Bros Tangerang dengan tim ANKE',
+    fatigue: 2, createdAt: '2026-05-09T18:30:00.000Z' },
+
+  { id: 'rpt_icha_w5', salesId: 'icha', date: '2026-05-15', week: 'Minggu 3',
+    days: 5, nights: 0, area: 'Jakarta Selatan + Bogor',
+    visits: [
+      { name: 'RS Hermina Jatinegara', city: 'Jakarta Timur', visit: 'followup', product: 'X-Ray', pipeline: 'hot', contact: 'dr. Anto, Sp.Rad', note: 'Direksi approve anggaran, masuk tahap negotiation final' },
+      { name: 'RS Awal Bros Tangerang', city: 'Tangerang', visit: 'followup', product: 'X-Ray', pipeline: 'warm', contact: 'Bu Maria', note: 'Demo X-Ray DR sukses, tinggal finalisasi harga' },
+      { name: 'RS Hermina Bogor', city: 'Bogor', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'dr. Yanti', note: 'Survey awal, Hermina Group ekspansi Bogor' },
+      { name: 'RSUD Bogor', city: 'Bogor', visit: 'first', product: 'CT Scan', pipeline: 'cold', contact: 'Pak Tri (Pengadaan)', note: 'Anggaran APBD 2026 sedang direvisi, perlu wait & see' },
+    ],
+    pipeN: 3, pipeVal: 18000000000, closest: 'RS Hermina Jatinegara',
+    totalCost: 920000, block: '-',
+    win: 'RS Hermina Jatinegara masuk fase negotiation final, target PO Juni 2026',
+    next: 'Close RS Hermina Jatinegara, follow up demo RS Awal Bros',
+    fatigue: 1, createdAt: '2026-05-16T19:00:00.000Z' },
 ];
 
 // ============== Installed Units 2025 (for Maintenance & Regulatory) ==============
@@ -2476,6 +2976,509 @@ const SEED_TRAINING_RECORDS = [
     status: 'pending', certUrl: '', notes: 'Training akan dijadwalkan setelah instalasi selesai' },
 ];
 
+// ============== Business Trip Seed Data ==============
+// Initial seed (representative samples — full 2025+2026 historical data akan ditambahkan di Prompt 4)
+// Status workflow: draft → pending_finance → pending_mops → pending_gm → approved → paid → in_progress → completed
+// Reject di level mana saja: status = 'rejected'
+// Klarifikasi: status = 'clarification' (kembali ke employee untuk revise)
+const SEED_BUSINESS_TRIPS = [
+  // 1. Tri (Manager Sales Jatim) — APPROVED & PAID, sedang berlangsung
+  { id: 'bt_2026_001', requestNo: 'BT-2026-001',
+    travelerUsername: 'tri', travelerName: 'Tri Sutjahjono', position: 'Manager', allowancePerDay: 175000,
+    destination: 'Surabaya + Gresik', destinationCity: 'Surabaya',
+    purpose: 'Closing PO RS Premier Surabaya & koordinasi KSO RSUD Ibnu Sina Gresik',
+    dateStart: '2026-05-08', dateEnd: '2026-05-12', duration: 5,
+    costs: {
+      taxiHome: 150000, taxiArrival: 120000, taxiRs: 250000,
+      localTransport: 400000, meals: 800000, other: 0, otherNotes: '',
+      allowanceTotal: 5 * 175000, // 875000
+    },
+    officeBooked: { ticketPP: 2400000, hotelTotal: 2800000, ticketNote: 'Tiket Garuda PNR ABC123', hotelNote: 'Hotel Sheraton Surabaya 4 malam' },
+    totalAdvance: 150000 + 120000 + 250000 + 400000 + 800000 + 875000, // 2595000
+    bankAccount: { bankName: 'BCA', accountNo: '5210345678', holderName: 'Tri Sutjahjono' },
+    status: 'in_progress', tripStatus: 'ongoing', paymentStatus: 'paid',
+    paidDate: '2026-05-06', paidAmount: 2595000, paidProof: 'https://drive.google.com/file/d/example001',
+    approvalHistory: [
+      { level: 'submit', by: 'tri', byName: 'Tri Sutjahjono', date: '2026-05-02', action: 'submitted', note: '' },
+      { level: 'finance', by: 'finance', byName: 'Maya Sari', date: '2026-05-03', action: 'approved', note: 'Estimasi biaya wajar untuk Surabaya 5 hari' },
+      { level: 'manager_ops', by: 'manager_ops', byName: 'Novan Restu', date: '2026-05-04', action: 'approved', note: 'Closing PO Premier Surabaya prioritas tinggi' },
+      { level: 'gm', by: 'gm', byName: 'Endah Purwitasari', date: '2026-05-05', action: 'approved', note: 'Disetujui, proses transfer' },
+      { level: 'finance', by: 'finance', byName: 'Maya Sari', date: '2026-05-06', action: 'paid', note: 'Transfer BCA Rp 2.595.000' },
+    ],
+    submittedAt: '2026-05-02', updatedAt: '2026-05-06',
+    realizationId: 'btr_2026_002',
+  },
+
+  // 2. Lukman (Staff Sales Jateng) — PENDING REVIEW MANAGER OPS
+  { id: 'bt_2026_002', requestNo: 'BT-2026-002',
+    travelerUsername: 'lukman', travelerName: 'Lukman', position: 'Staff', allowancePerDay: 130000,
+    destination: 'Solo + Karanganyar + Klaten', destinationCity: 'Solo',
+    purpose: 'Follow up RS PKU Muhammadiyah Solo (CT 128) & visit baru RSUD Karanganyar',
+    dateStart: '2026-05-20', dateEnd: '2026-05-24', duration: 5,
+    costs: {
+      taxiHome: 100000, taxiArrival: 0, taxiRs: 200000,
+      localTransport: 600000, meals: 500000, other: 150000, otherNotes: 'Parkir, retribusi RS',
+      allowanceTotal: 5 * 130000, // 650000
+    },
+    officeBooked: { ticketPP: 0, hotelTotal: 1800000, ticketNote: '-', hotelNote: 'Hotel Lokananta Solo 4 malam (kantor pesan)' },
+    totalAdvance: 100000 + 0 + 200000 + 600000 + 500000 + 150000 + 650000, // 2200000
+    bankAccount: { bankName: 'Mandiri', accountNo: '1370098765432', holderName: 'Lukman' },
+    status: 'pending_mops', tripStatus: 'planned', paymentStatus: 'pending',
+    paidDate: null, paidAmount: 0, paidProof: '',
+    approvalHistory: [
+      { level: 'submit', by: 'lukman', byName: 'Lukman', date: '2026-05-15', action: 'submitted', note: '' },
+      { level: 'finance', by: 'finance', byName: 'Maya Sari', date: '2026-05-16', action: 'approved', note: 'Allowance & estimasi taxi sesuai standar Solo' },
+    ],
+    submittedAt: '2026-05-15', updatedAt: '2026-05-16',
+    realizationId: null,
+  },
+
+  // 3. Bagus (Manager Sales Jatim 2) — PENDING REVIEW FINANCE (newest)
+  { id: 'bt_2026_003', requestNo: 'BT-2026-003',
+    travelerUsername: 'bagus', travelerName: 'Bagus Iswahyudi', position: 'Manager', allowancePerDay: 175000,
+    destination: 'Bali + Lombok', destinationCity: 'Denpasar',
+    purpose: 'Follow up RS BaliMed Denpasar (instalasi C-Arm) & visit baru RSUD Mataram',
+    dateStart: '2026-05-22', dateEnd: '2026-05-27', duration: 6,
+    costs: {
+      taxiHome: 150000, taxiArrival: 200000, taxiRs: 350000,
+      localTransport: 900000, meals: 1200000, other: 250000, otherNotes: 'Ferry Bali-Lombok PP, parkir',
+      allowanceTotal: 6 * 175000, // 1050000
+    },
+    officeBooked: { ticketPP: 4500000, hotelTotal: 3600000, ticketNote: 'Tiket Garuda CGK-DPS PP + Wings DPS-LOP', hotelNote: 'Hotel Maya Sanur 5 malam' },
+    totalAdvance: 150000 + 200000 + 350000 + 900000 + 1200000 + 250000 + 1050000, // 4100000
+    bankAccount: { bankName: 'BNI', accountNo: '0123456789', holderName: 'Bagus Iswahyudi' },
+    status: 'pending_finance', tripStatus: 'planned', paymentStatus: 'pending',
+    paidDate: null, paidAmount: 0, paidProof: '',
+    approvalHistory: [
+      { level: 'submit', by: 'bagus', byName: 'Bagus Iswahyudi', date: '2026-05-17', action: 'submitted', note: '' },
+    ],
+    submittedAt: '2026-05-17', updatedAt: '2026-05-17',
+    realizationId: null,
+  },
+
+  // 4. Budi (Teknisi) — PENDING REVIEW GM (sudah approve finance & manager_ops)
+  { id: 'bt_2026_004', requestNo: 'BT-2026-004',
+    travelerUsername: 'teknisi', travelerName: 'Budi Hartono', position: 'Supervisor', allowancePerDay: 150000,
+    destination: 'Banyumas + Cilacap', destinationCity: 'Purwokerto',
+    purpose: 'Instalasi X-Ray RSUD Banyumas (lanjutan) + PM CT Scan RSUD Cilacap',
+    dateStart: '2026-05-26', dateEnd: '2026-05-30', duration: 5,
+    costs: {
+      taxiHome: 100000, taxiArrival: 0, taxiRs: 300000,
+      localTransport: 700000, meals: 600000, other: 200000, otherNotes: 'Pembelian alat tambahan instalasi',
+      allowanceTotal: 5 * 150000, // 750000
+    },
+    officeBooked: { ticketPP: 0, hotelTotal: 1600000, ticketNote: '-', hotelNote: 'Hotel Java Heritage Purwokerto 4 malam' },
+    totalAdvance: 100000 + 0 + 300000 + 700000 + 600000 + 200000 + 750000, // 2650000
+    bankAccount: { bankName: 'BRI', accountNo: '003901123456', holderName: 'Budi Hartono' },
+    status: 'pending_gm', tripStatus: 'planned', paymentStatus: 'pending',
+    paidDate: null, paidAmount: 0, paidProof: '',
+    approvalHistory: [
+      { level: 'submit', by: 'teknisi', byName: 'Budi Hartono', date: '2026-05-15', action: 'submitted', note: '' },
+      { level: 'finance', by: 'finance', byName: 'Maya Sari', date: '2026-05-16', action: 'approved', note: 'Estimasi biaya wajar untuk teknisi field 5 hari' },
+      { level: 'manager_ops', by: 'manager_ops', byName: 'Novan Restu', date: '2026-05-17', action: 'approved', note: 'Instalasi RSUD Banyumas urgent harus selesai' },
+    ],
+    submittedAt: '2026-05-15', updatedAt: '2026-05-17',
+    realizationId: null,
+  },
+
+  // 5. Dwi (Manager Sales Jabodetabek) — APPROVED & PAID, completed (siap untuk realisasi)
+  { id: 'bt_2026_005', requestNo: 'BT-2026-005',
+    travelerUsername: 'dwi', travelerName: 'Dwi Wahyudianto', position: 'Manager', allowancePerDay: 175000,
+    destination: 'Bandung + Cimahi', destinationCity: 'Bandung',
+    purpose: 'Closing RS Borromeus Bandung (MRI) & follow up RS Hasan Sadikin',
+    dateStart: '2026-05-05', dateEnd: '2026-05-08', duration: 4,
+    costs: {
+      taxiHome: 150000, taxiArrival: 0, taxiRs: 200000,
+      localTransport: 500000, meals: 700000, other: 100000, otherNotes: 'Tol & parkir',
+      allowanceTotal: 4 * 175000, // 700000
+    },
+    officeBooked: { ticketPP: 0, hotelTotal: 2200000, ticketNote: '-', hotelNote: 'Hotel Aston Bandung 3 malam' },
+    totalAdvance: 150000 + 0 + 200000 + 500000 + 700000 + 100000 + 700000, // 2350000
+    bankAccount: { bankName: 'BCA', accountNo: '5210456789', holderName: 'Dwi Wahyudianto' },
+    status: 'completed', tripStatus: 'completed', paymentStatus: 'paid',
+    paidDate: '2026-05-04', paidAmount: 2350000, paidProof: 'https://drive.google.com/file/d/example005',
+    approvalHistory: [
+      { level: 'submit', by: 'dwi', byName: 'Dwi Wahyudianto', date: '2026-04-28', action: 'submitted', note: '' },
+      { level: 'finance', by: 'finance', byName: 'Maya Sari', date: '2026-04-29', action: 'approved', note: 'OK' },
+      { level: 'manager_ops', by: 'manager_ops', byName: 'Novan Restu', date: '2026-04-30', action: 'approved', note: 'Closing Borromeus prioritas' },
+      { level: 'gm', by: 'gm', byName: 'Endah Purwitasari', date: '2026-05-02', action: 'approved', note: 'Approved' },
+      { level: 'finance', by: 'finance', byName: 'Maya Sari', date: '2026-05-04', action: 'paid', note: 'Transfer BCA' },
+    ],
+    submittedAt: '2026-04-28', updatedAt: '2026-05-08',
+    realizationId: 'btr_2026_001',
+  },
+
+  // 6. Hatim — REJECTED by Finance (alasan dummy: budget belum tersedia)
+  { id: 'bt_2026_006', requestNo: 'BT-2026-006',
+    travelerUsername: 'hatim', travelerName: 'Hatim', position: 'Staff', allowancePerDay: 130000,
+    destination: 'Kudus + Pati + Jepara', destinationCity: 'Kudus',
+    purpose: 'Visit baru RSUD Jepara + follow up RS Mardi Rahayu Kudus',
+    dateStart: '2026-05-22', dateEnd: '2026-05-27', duration: 6,
+    costs: {
+      taxiHome: 100000, taxiArrival: 0, taxiRs: 250000,
+      localTransport: 750000, meals: 500000, other: 0, otherNotes: '',
+      allowanceTotal: 6 * 130000, // 780000
+    },
+    officeBooked: { ticketPP: 0, hotelTotal: 1500000, ticketNote: '-', hotelNote: 'Hotel @HOM Kudus 5 malam' },
+    totalAdvance: 100000 + 0 + 250000 + 750000 + 500000 + 0 + 780000, // 2380000
+    bankAccount: { bankName: 'Mandiri', accountNo: '1370012345678', holderName: 'Hatim' },
+    status: 'rejected', tripStatus: 'cancelled', paymentStatus: 'pending',
+    paidDate: null, paidAmount: 0, paidProof: '',
+    approvalHistory: [
+      { level: 'submit', by: 'hatim', byName: 'Hatim', date: '2026-05-14', action: 'submitted', note: '' },
+      { level: 'finance', by: 'finance', byName: 'Maya Sari', date: '2026-05-15', action: 'rejected', note: 'Durasi terlalu panjang untuk territory Jateng A. Mohon dipersingkat menjadi maks 4 hari dan submit ulang.' },
+    ],
+    submittedAt: '2026-05-14', updatedAt: '2026-05-15',
+    realizationId: null,
+  },
+
+  // 7. Icha (Sales baru) — NEEDS CLARIFICATION dari Manager Ops
+  { id: 'bt_2026_007', requestNo: 'BT-2026-007',
+    travelerUsername: 'icha', travelerName: 'Ika Apriani (Icha)', position: 'Staff', allowancePerDay: 130000,
+    destination: 'Tangerang + Bekasi', destinationCity: 'Tangerang',
+    purpose: 'Demo X-Ray DR ke RS Awal Bros Tangerang & follow up RS Hermina Bekasi',
+    dateStart: '2026-05-25', dateEnd: '2026-05-27', duration: 3,
+    costs: {
+      taxiHome: 100000, taxiArrival: 0, taxiRs: 200000,
+      localTransport: 400000, meals: 250000, other: 0, otherNotes: '',
+      allowanceTotal: 3 * 130000, // 390000
+    },
+    officeBooked: { ticketPP: 0, hotelTotal: 0, ticketNote: '-', hotelNote: 'PP harian, tidak menginap' },
+    totalAdvance: 100000 + 0 + 200000 + 400000 + 250000 + 0 + 390000, // 1340000
+    bankAccount: { bankName: 'BCA', accountNo: '5210999888', holderName: 'Ika Apriani' },
+    status: 'clarification', tripStatus: 'planned', paymentStatus: 'pending',
+    paidDate: null, paidAmount: 0, paidProof: '',
+    approvalHistory: [
+      { level: 'submit', by: 'icha', byName: 'Ika Apriani (Icha)', date: '2026-05-15', action: 'submitted', note: '' },
+      { level: 'finance', by: 'finance', byName: 'Maya Sari', date: '2026-05-16', action: 'approved', note: 'OK' },
+      { level: 'manager_ops', by: 'manager_ops', byName: 'Novan Restu', date: '2026-05-17', action: 'clarification', note: 'Mohon konfirmasi: apakah perlu didampingi Dwi (Manager) untuk demo X-Ray? Jika ya, ajukan terpisah. Jika tidak, please update purpose dan submit ulang.' },
+    ],
+    submittedAt: '2026-05-15', updatedAt: '2026-05-17',
+    realizationId: null,
+  },
+];
+
+// ============== Business Trip Realizations Seed ==============
+// Hanya trip dengan status in_progress / completed yang sudah paid yang dapat dilaporkan realisasinya
+// Workflow: draft → pending_finance → pending_mops → pending_gm → approved
+// Hanya tombol Setujui + Klarifikasi (TIDAK ada Tolak, sesuai instruksi Bapak Fajrin)
+const SEED_BT_REALIZATIONS = [
+  // 1. Dwi (BT-2026-005) - Completed trip, realisasi sudah APPROVED, ada SELISIH LEBIH (kantor reimburse)
+  // Cash Advance Rp 2.350.000, actual Rp 2.530.000 → kantor ganti Rp 180.000
+  { id: 'btr_2026_001', realizationNo: 'BTR-2026-001',
+    businessTripId: 'bt_2026_005', businessTripNo: 'BT-2026-005',
+    travelerUsername: 'dwi', travelerName: 'Dwi Wahyudianto', position: 'Manager', allowancePerDay: 175000,
+    destination: 'Bandung + Cimahi', destinationCity: 'Bandung',
+    dateStart: '2026-05-05', dateEnd: '2026-05-08',
+    plannedDays: 4, actualDays: 4,
+    totalAdvanceReceived: 2350000,
+    actualCosts: {
+      taxiHome: 180000, taxiArrival: 0, taxiRs: 220000,
+      localTransport: 550000, meals: 780000, other: 100000, otherNotes: 'Tol & parkir',
+    },
+    actualAllowance: 4 * 175000, // 700000
+    totalActual: 180000 + 0 + 220000 + 550000 + 780000 + 100000 + 700000, // 2530000
+    difference: 2350000 - (180000 + 0 + 220000 + 550000 + 780000 + 100000 + 700000), // -180000 (kantor ganti)
+    proofs: {
+      taxiHome: 'https://drive.google.com/file/d/example_taxi_home_dwi',
+      taxiRs: 'https://drive.google.com/file/d/example_taxi_rs_dwi',
+      localTransport: 'https://drive.google.com/file/d/example_local_transport_dwi',
+      meals: 'https://drive.google.com/file/d/example_meals_dwi',
+      other: 'https://drive.google.com/file/d/example_other_dwi',
+    },
+    notes: 'Trip closing RS Borromeus berhasil. Meal cost lebih tinggi karena dinner client. Tol & parkir lebih besar dari estimasi karena macet Jakarta-Bandung.',
+    status: 'approved',
+    approvalHistory: [
+      { level: 'submit', by: 'dwi', byName: 'Dwi Wahyudianto', date: '2026-05-09', action: 'submitted', note: '' },
+      { level: 'finance', by: 'finance', byName: 'Maya Sari', date: '2026-05-10', action: 'approved', note: 'Semua bukti verified. Selisih kekurangan Rp 180.000 akan ditransfer.' },
+      { level: 'manager_ops', by: 'manager_ops', byName: 'Novan Restu', date: '2026-05-11', action: 'approved', note: 'OK, biaya wajar untuk closing Borromeus' },
+      { level: 'gm', by: 'gm', byName: 'Endah Purwitasari', date: '2026-05-12', action: 'approved', note: 'Approved, proses settlement' },
+    ],
+    submittedAt: '2026-05-09', updatedAt: '2026-05-12',
+    settlementStatus: 'settled',
+    settlementDate: '2026-05-13',
+    settlementAmount: 180000,
+    settlementNote: 'Transfer reimburse selisih Rp 180.000 ke rekening Dwi (BCA 5210456789)',
+  },
+
+  // 2. Tri (BT-2026-001) - In progress, draft realisasi (belum disubmit)
+  // Hari aktual 5 hari, biaya lebih hemat dari rencana
+  { id: 'btr_2026_002', realizationNo: 'BTR-2026-002',
+    businessTripId: 'bt_2026_001', businessTripNo: 'BT-2026-001',
+    travelerUsername: 'tri', travelerName: 'Tri Sutjahjono', position: 'Manager', allowancePerDay: 175000,
+    destination: 'Surabaya + Gresik', destinationCity: 'Surabaya',
+    dateStart: '2026-05-08', dateEnd: '2026-05-12',
+    plannedDays: 5, actualDays: 5,
+    totalAdvanceReceived: 2595000,
+    actualCosts: {
+      taxiHome: 140000, taxiArrival: 110000, taxiRs: 230000,
+      localTransport: 350000, meals: 700000, other: 0, otherNotes: '',
+    },
+    actualAllowance: 5 * 175000, // 875000
+    totalActual: 140000 + 110000 + 230000 + 350000 + 700000 + 0 + 875000, // 2405000
+    difference: 2595000 - (140000 + 110000 + 230000 + 350000 + 700000 + 0 + 875000), // 190000 (lebih, karyawan kembalikan)
+    proofs: {
+      taxiHome: 'https://drive.google.com/file/d/example_taxi_home_tri',
+      taxiArrival: 'https://drive.google.com/file/d/example_taxi_arrival_tri',
+      taxiRs: 'https://drive.google.com/file/d/example_taxi_rs_tri',
+      localTransport: '',
+      meals: 'https://drive.google.com/file/d/example_meals_tri',
+      other: '',
+    },
+    notes: 'Draft realisasi. Closing PO Premier Surabaya sukses, masih input belum lengkap upload bukti.',
+    status: 'draft',
+    approvalHistory: [],
+    submittedAt: '', updatedAt: '2026-05-13',
+    settlementStatus: 'pending',
+    settlementDate: null,
+    settlementAmount: 0,
+    settlementNote: '',
+  },
+];
+
+// ============== Historical Business Trip Seed Generator ==============
+// Generates realistic 2025 (12 months) + 2026 (Jan-May) trips for all employees
+// Pattern based on role: Sales travels most, Teknisi for installs/PM, CEO for closing visits
+function generateHistoricalBusinessTrips() {
+  const trips = [];
+  const realizations = [];
+  let counter = 0;
+
+  // Travel pattern per employee: { username, position, allowance, freq (trips/month), destinations[], purposes[] }
+  const patterns = [
+    // Sales Manager - Dwi Jabodetabek + Jabar
+    { un: 'dwi', name: 'Dwi Wahyudianto', pos: 'Manager', allow: 175000, freq: 2.5,
+      dests: [
+        { city: 'Bandung', area: 'Bandung + Cimahi', flight: 0, hotel: [1800000, 2200000] },
+        { city: 'Bogor', area: 'Bogor + Sukabumi', flight: 0, hotel: [1200000, 1600000] },
+        { city: 'Cirebon', area: 'Cirebon + Indramayu', flight: 0, hotel: [1400000, 1800000] },
+        { city: 'Karawang', area: 'Karawang + Purwakarta', flight: 0, hotel: [1100000, 1500000] },
+      ],
+      purposes: ['Closing PO RS Hasan Sadikin', 'Follow up RS Borromeus', 'Visit baru RS Hermina Bekasi', 'Negotiation RS Mitra Keluarga Bogor', 'Demo CT 64 RS Eka Hospital'] },
+    // Sales Manager - Tri Jatim 1
+    { un: 'tri', name: 'Tri Sutjahjono', pos: 'Manager', allow: 175000, freq: 2.5,
+      dests: [
+        { city: 'Surabaya', area: 'Surabaya + Gresik', flight: [2200000, 2600000], hotel: [2400000, 2900000] },
+        { city: 'Malang', area: 'Malang + Batu', flight: [2400000, 2800000], hotel: [1800000, 2200000] },
+        { city: 'Madiun', area: 'Madiun + Magetan', flight: 0, hotel: [1400000, 1800000] },
+        { city: 'Kediri', area: 'Kediri + Tulungagung', flight: 0, hotel: [1500000, 1900000] },
+      ],
+      purposes: ['Closing PO RS Premier Surabaya', 'Visit RSUD Dr. Soetomo', 'Follow up RS Lavalette Malang', 'Negotiation RSUD Iskak Tulungagung'] },
+    // Sales Manager - Bagus Jatim 2 + Bali
+    { un: 'bagus', name: 'Bagus Iswahyudi', pos: 'Manager', allow: 175000, freq: 2.4,
+      dests: [
+        { city: 'Denpasar', area: 'Bali', flight: [3000000, 4500000], hotel: [3000000, 4000000] },
+        { city: 'Banyuwangi', area: 'Banyuwangi + Jember', flight: 0, hotel: [1500000, 2000000] },
+        { city: 'Gresik', area: 'Gresik + Lamongan', flight: [2200000, 2600000], hotel: [1600000, 2100000] },
+        { city: 'Mataram', area: 'Lombok', flight: [3500000, 4500000], hotel: [2500000, 3500000] },
+      ],
+      purposes: ['Closing RSUD Wahidin Mojokerto', 'Visit RSUD Ibnu Sina Gresik', 'Demo C-Arm RS BaliMed', 'Negotiation RSUD Mataram'] },
+    // Sales Staff - Lukman Jateng + DIY
+    { un: 'lukman', name: 'Lukman', pos: 'Staff', allow: 130000, freq: 2.8,
+      dests: [
+        { city: 'Solo', area: 'Solo + Karanganyar + Klaten', flight: 0, hotel: [1500000, 2000000] },
+        { city: 'Yogyakarta', area: 'DIY + Sleman + Bantul', flight: 0, hotel: [1600000, 2100000] },
+        { city: 'Magelang', area: 'Magelang + Temanggung', flight: 0, hotel: [1100000, 1400000] },
+        { city: 'Cilacap', area: 'Cilacap + Banyumas', flight: 0, hotel: [1300000, 1700000] },
+      ],
+      purposes: ['Visit RSUD Sardjito', 'Follow up RS PKU Muhammadiyah Solo', 'Demo X-Ray RSUD Banyumas', 'Closing RSUD Magelang'] },
+    // Sales Staff - Hatim Jateng A
+    { un: 'hatim', name: 'Hatim', pos: 'Staff', allow: 130000, freq: 2.3,
+      dests: [
+        { city: 'Semarang', area: 'Semarang + Demak', flight: 0, hotel: [1700000, 2200000] },
+        { city: 'Kudus', area: 'Kudus + Pati + Jepara', flight: 0, hotel: [1300000, 1700000] },
+        { city: 'Pekalongan', area: 'Pekalongan + Batang', flight: 0, hotel: [1100000, 1500000] },
+        { city: 'Tegal', area: 'Tegal + Brebes', flight: 0, hotel: [1100000, 1400000] },
+      ],
+      purposes: ['Visit RSUD Tugurejo Semarang', 'Follow up RS Mardi Rahayu Kudus', 'Demo C-Arm RSUD Pekalongan'] },
+    // Teknisi - Budi (banyak trip untuk install + PM)
+    { un: 'teknisi', name: 'Budi Hartono', pos: 'Supervisor', allow: 150000, freq: 4.2,
+      dests: [
+        { city: 'Surabaya', area: 'Jatim instalasi', flight: [2200000, 2600000], hotel: [2000000, 2500000] },
+        { city: 'Solo', area: 'Jateng PM', flight: 0, hotel: [1400000, 1800000] },
+        { city: 'Bandung', area: 'Jabar instalasi', flight: 0, hotel: [1800000, 2200000] },
+        { city: 'Yogyakarta', area: 'DIY PM', flight: 0, hotel: [1500000, 2000000] },
+        { city: 'Semarang', area: 'Jateng instalasi', flight: 0, hotel: [1700000, 2100000] },
+      ],
+      purposes: ['Instalasi X-Ray DR', 'PM CT Scan rutin', 'Repair C-Arm', 'Commissioning MRI', 'Training operator'] },
+    // CEO - Fajrin (occasional, high-value closing)
+    { un: 'ceo', name: 'Fajrin', pos: 'Direksi', allow: 500000, freq: 1.2,
+      dests: [
+        { city: 'Surabaya', area: 'Jatim group closing', flight: [2400000, 2800000], hotel: [3000000, 4000000] },
+        { city: 'Denpasar', area: 'Bali strategic visit', flight: [3500000, 4500000], hotel: [3500000, 4500000] },
+        { city: 'Medan', area: 'Sumut expansion', flight: [3000000, 4000000], hotel: [2500000, 3500000] },
+        { city: 'Makassar', area: 'Sulawesi expansion', flight: [3500000, 4500000], hotel: [2800000, 3800000] },
+      ],
+      purposes: ['Closing strategis RS Premier Group', 'Investor meeting Orion Medical', 'Ekspansi distributor Sumatera', 'Closing kontrak Bali Hospital Group'] },
+    // Manager Ops - Novan (1x/bln untuk koordinasi region)
+    { un: 'manager_ops', name: 'Novan Restu', pos: 'Manager Operasional', allow: 175000, freq: 0.8,
+      dests: [
+        { city: 'Surabaya', area: 'Jatim ops review', flight: [2200000, 2600000], hotel: [2000000, 2500000] },
+        { city: 'Bandung', area: 'Jabar ops review', flight: 0, hotel: [1800000, 2200000] },
+      ],
+      purposes: ['Audit operasional cabang', 'Review proses instalasi'] },
+  ];
+
+  const months = [
+    // 2025: 12 months
+    { year: 2025, month: 1, days: 31 }, { year: 2025, month: 2, days: 28 }, { year: 2025, month: 3, days: 31 },
+    { year: 2025, month: 4, days: 30 }, { year: 2025, month: 5, days: 31 }, { year: 2025, month: 6, days: 30 },
+    { year: 2025, month: 7, days: 31 }, { year: 2025, month: 8, days: 31 }, { year: 2025, month: 9, days: 30 },
+    { year: 2025, month: 10, days: 31 }, { year: 2025, month: 11, days: 30 }, { year: 2025, month: 12, days: 31 },
+    // 2026: Jan-Apr (May trips already exist as current data)
+    { year: 2026, month: 1, days: 31 }, { year: 2026, month: 2, days: 28 },
+    { year: 2026, month: 3, days: 31 }, { year: 2026, month: 4, days: 30 },
+  ];
+
+  // Deterministic pseudo-random based on seed (for stable data across reloads)
+  let rngState = 42;
+  const rng = () => { rngState = (rngState * 1103515245 + 12345) & 0x7fffffff; return rngState / 0x7fffffff; };
+  const randInt = (min, max) => Math.floor(rng() * (max - min + 1)) + min;
+  const randChoice = (arr) => arr[Math.floor(rng() * arr.length)];
+
+  months.forEach(({ year, month, days }) => {
+    patterns.forEach(p => {
+      // Number of trips this month for this person
+      const tripCount = Math.max(0, Math.round(p.freq + (rng() - 0.5) * 1.2));
+      for (let t = 0; t < tripCount; t++) {
+        const dest = randChoice(p.dests);
+        const startDay = randInt(2, Math.max(2, days - 6));
+        const duration = p.pos === 'Direksi' ? randInt(2, 4) : p.pos === 'Supervisor' ? randInt(3, 6) : randInt(3, 5);
+        const endDay = Math.min(days, startDay + duration - 1);
+        const actualDuration = endDay - startDay + 1;
+        const mm = String(month).padStart(2, '0');
+        const dStart = `${year}-${mm}-${String(startDay).padStart(2, '0')}`;
+        const dEnd = `${year}-${mm}-${String(endDay).padStart(2, '0')}`;
+
+        // Cost estimation
+        const taxiHome = p.un === 'ceo' ? randInt(180000, 250000) : randInt(80000, 150000);
+        const flight = Array.isArray(dest.flight) ? randInt(dest.flight[0], dest.flight[1]) : 0;
+        const taxiArrival = flight > 0 ? randInt(100000, 200000) : 0;
+        const taxiRs = randInt(180000, 400000);
+        const localTransport = randInt(300000, 800000) + (actualDuration - 3) * 80000;
+        const meals = randInt(400000, 900000) + (p.pos === 'Direksi' ? 400000 : 0);
+        const other = rng() > 0.65 ? randInt(50000, 200000) : 0;
+        const allowanceTotal = actualDuration * p.allow;
+        const totalAdvance = taxiHome + taxiArrival + taxiRs + localTransport + meals + other + allowanceTotal;
+        const hotelTotal = Array.isArray(dest.hotel) ? randInt(dest.hotel[0], dest.hotel[1]) : 0;
+
+        counter++;
+        const tripId = `bt_hist_${year}_${mm}_${counter}`;
+        const requestNo = `BT-${year}-${String(counter).padStart(4, '0')}`;
+        const paidDay = Math.max(1, startDay - 2);
+        const paidDate = `${year}-${mm}-${String(paidDay).padStart(2, '0')}`;
+
+        const trip = {
+          id: tripId, requestNo,
+          travelerUsername: p.un, travelerName: p.name, position: p.pos, allowancePerDay: p.allow,
+          destination: dest.area, destinationCity: dest.city,
+          purpose: randChoice(p.purposes),
+          dateStart: dStart, dateEnd: dEnd, duration: actualDuration,
+          costs: {
+            taxiHome, taxiArrival, taxiRs,
+            localTransport, meals, other,
+            otherNotes: other > 0 ? 'Tol & parkir' : '',
+            allowanceTotal,
+          },
+          officeBooked: {
+            ticketPP: flight,
+            hotelTotal,
+            ticketNote: flight > 0 ? `Tiket pesawat PP ${dest.city}` : '-',
+            hotelNote: hotelTotal > 0 ? `Hotel ${dest.city} ${actualDuration - 1} malam` : 'PP harian',
+          },
+          totalAdvance,
+          bankAccount: { bankName: 'BCA', accountNo: '521' + String(counter * 13).padStart(7, '0').slice(0, 7), holderName: p.name },
+          status: 'completed', tripStatus: 'completed', paymentStatus: 'paid',
+          paidDate, paidAmount: totalAdvance, paidProof: `https://drive.google.com/file/d/historical_${tripId}`,
+          approvalHistory: [
+            { level: 'submit', by: p.un, byName: p.name, date: paidDate, action: 'submitted', note: '' },
+            { level: 'finance', by: 'finance', byName: 'Maya Sari', date: paidDate, action: 'approved', note: 'OK' },
+            { level: 'manager_ops', by: 'manager_ops', byName: 'Novan Restu', date: paidDate, action: 'approved', note: 'OK' },
+            { level: 'gm', by: 'gm', byName: 'Endah Purwitasari', date: paidDate, action: 'approved', note: 'Approved' },
+            { level: 'finance', by: 'finance', byName: 'Maya Sari', date: paidDate, action: 'paid', note: `Transfer Rp ${totalAdvance.toLocaleString('id-ID')}` },
+          ],
+          submittedAt: paidDate, updatedAt: dEnd,
+          realizationId: `btr_hist_${year}_${mm}_${counter}`,
+        };
+        trips.push(trip);
+
+        // Generate matching realization (varies: ~50% match exact, ~30% under, ~20% over)
+        const varianceRoll = rng();
+        let actualMultiplier = 1.0;
+        if (varianceRoll < 0.3) actualMultiplier = 0.85 + rng() * 0.1; // Save (under planned)
+        else if (varianceRoll < 0.5) actualMultiplier = 1.0; // Exact
+        else if (varianceRoll < 0.75) actualMultiplier = 1.0 + rng() * 0.1; // Slightly over
+        else actualMultiplier = 1.05 + rng() * 0.15; // Notably over
+
+        // Sometimes actual days are less than planned
+        const actualDaysFactor = rng() < 0.15 ? Math.max(1, actualDuration - 1) : actualDuration;
+        const actualAllowance = actualDaysFactor * p.allow;
+        const actualNonAllowance = (taxiHome + taxiArrival + taxiRs + localTransport + meals + other) * actualMultiplier;
+        const actualCosts = {
+          taxiHome: Math.round(taxiHome * actualMultiplier),
+          taxiArrival: Math.round(taxiArrival * actualMultiplier),
+          taxiRs: Math.round(taxiRs * actualMultiplier),
+          localTransport: Math.round(localTransport * actualMultiplier),
+          meals: Math.round(meals * actualMultiplier),
+          other: Math.round(other * actualMultiplier),
+          otherNotes: other > 0 ? 'Tol & parkir' : '',
+        };
+        const totalActual = actualCosts.taxiHome + actualCosts.taxiArrival + actualCosts.taxiRs +
+          actualCosts.localTransport + actualCosts.meals + actualCosts.other + actualAllowance;
+        const difference = totalAdvance - totalActual;
+
+        const settlementDay = Math.min(days, endDay + 2);
+        const settlementDate = `${year}-${mm}-${String(settlementDay).padStart(2, '0')}`;
+
+        realizations.push({
+          id: `btr_hist_${year}_${mm}_${counter}`,
+          realizationNo: `BTR-${year}-${String(counter).padStart(4, '0')}`,
+          businessTripId: tripId, businessTripNo: requestNo,
+          travelerUsername: p.un, travelerName: p.name, position: p.pos, allowancePerDay: p.allow,
+          destination: dest.area, destinationCity: dest.city,
+          dateStart: dStart, dateEnd: dEnd,
+          plannedDays: actualDuration, actualDays: actualDaysFactor,
+          totalAdvanceReceived: totalAdvance,
+          actualCosts, actualAllowance,
+          totalActual, difference,
+          proofs: {
+            taxiHome: `https://drive.google.com/file/d/h_${tripId}_a`,
+            taxiArrival: actualCosts.taxiArrival > 0 ? `https://drive.google.com/file/d/h_${tripId}_b` : '',
+            taxiRs: `https://drive.google.com/file/d/h_${tripId}_c`,
+            localTransport: `https://drive.google.com/file/d/h_${tripId}_d`,
+            meals: `https://drive.google.com/file/d/h_${tripId}_e`,
+            other: actualCosts.other > 0 ? `https://drive.google.com/file/d/h_${tripId}_f` : '',
+          },
+          notes: 'Historical realization data (auto-generated).',
+          status: 'approved',
+          approvalHistory: [
+            { level: 'submit', by: p.un, byName: p.name, date: dEnd, action: 'submitted', note: '' },
+            { level: 'finance', by: 'finance', byName: 'Maya Sari', date: settlementDate, action: 'approved', note: 'Verified' },
+            { level: 'manager_ops', by: 'manager_ops', byName: 'Novan Restu', date: settlementDate, action: 'approved', note: 'OK' },
+            { level: 'gm', by: 'gm', byName: 'Endah Purwitasari', date: settlementDate, action: 'approved', note: 'Approved' },
+          ],
+          submittedAt: dEnd, updatedAt: settlementDate,
+          settlementStatus: difference !== 0 ? 'settled' : 'pending',
+          settlementDate: difference !== 0 ? settlementDate : null,
+          settlementAmount: Math.abs(difference),
+          settlementNote: difference > 0 ? `Karyawan kembalikan kelebihan Rp ${Math.abs(difference).toLocaleString('id-ID')}` :
+            difference < 0 ? `Kantor reimburse kekurangan Rp ${Math.abs(difference).toLocaleString('id-ID')}` : '',
+        });
+      }
+    });
+  });
+
+  return { trips, realizations };
+}
+
+const _historical = generateHistoricalBusinessTrips();
+const HISTORICAL_BT = _historical.trips;
+const HISTORICAL_BTR = _historical.realizations;
+
+// Combine seed + historical
+const ALL_BUSINESS_TRIPS = [...SEED_BUSINESS_TRIPS, ...HISTORICAL_BT];
+const ALL_BT_REALIZATIONS = [...SEED_BT_REALIZATIONS, ...HISTORICAL_BTR];
+
 // ============== Regulatory Records (BAPETEN permits) ==============
 // For installed units, generate regulatory tracking
 function generateRegulatoryRecords(units) {
@@ -2531,18 +3534,28 @@ const TENDER_SUBSTAGES = ['aanwijzing', 'presentation', 'bid_opening', 'announce
 
 // Helpers
 const formatCurrency = (n, lang, rate) => {
+  const isNeg = n < 0;
+  const abs = Math.abs(n);
+  const sign = isNeg ? '-' : '';
   if (lang === 'en') {
-    const usd = n / rate;
-    if (usd >= 1e6) return `$${(usd / 1e6).toFixed(2)}M`;
-    if (usd >= 1e3) return `$${(usd / 1e3).toFixed(1)}K`;
-    return `$${usd.toFixed(0)}`;
+    const usd = abs / rate;
+    if (usd >= 1e6) return `${sign}$${(usd / 1e6).toFixed(2)}M`;
+    if (usd >= 1e3) return `${sign}$${(usd / 1e3).toFixed(1)}K`;
+    return `${sign}$${usd.toFixed(0)}`;
   }
-  if (n >= 1e12) return `Rp ${(n / 1e12).toFixed(2)}T`;
-  if (n >= 1e9) return `Rp ${(n / 1e9).toFixed(2)}M`;
-  if (n >= 1e6) return `Rp ${(n / 1e6).toFixed(1)}Jt`;
-  return `Rp ${n.toLocaleString('id-ID')}`;
+  if (abs >= 1e12) return `${sign}Rp ${(abs / 1e12).toFixed(2)}T`;
+  if (abs >= 1e9) return `${sign}Rp ${(abs / 1e9).toFixed(2)}M`;
+  if (abs >= 1e6) return `${sign}Rp ${(abs / 1e6).toFixed(1)}Jt`;
+  return `${sign}Rp ${abs.toLocaleString('id-ID')}`;
 };
-const formatCurrencyFull = (n, lang, rate) => lang === 'en' ? `$${(n / rate).toLocaleString('en-US', { maximumFractionDigits: 0 })}` : `Rp ${n.toLocaleString('id-ID')}`;
+const formatCurrencyFull = (n, lang, rate) => {
+  const isNeg = n < 0;
+  const abs = Math.abs(n);
+  const sign = isNeg ? '-' : '';
+  return lang === 'en'
+    ? `${sign}$${(abs / rate).toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+    : `${sign}Rp ${abs.toLocaleString('id-ID')}`;
+};
 const formatDate = (dateStr, lang) => new Date(dateStr).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' });
 
 // Storage
@@ -2645,46 +3658,122 @@ const PAYMENT_TERMS = {
 };
 
 // ============== Refined Logo (3-layer diamond) ==============
-function IMSLogo({ size = 'md', inverted = false, showTagline = false }) {
+// React.memo wrapped - logo is pure presentational, no state, no parent re-render needed
+const IMSLogo = React.memo(function IMSLogo({ size = 'md', inverted = false, showTagline = false }) {
   const sizes = {
-    sm: { layer: 22, txt: 24, tag: 8, gap: 4 },
-    md: { layer: 32, txt: 34, tag: 10, gap: 5 },
-    lg: { layer: 56, txt: 64, tag: 16, gap: 8 },
-    xl: { layer: 84, txt: 96, tag: 22, gap: 12 },
+    sm: { layer: 24, txt: 22, tag: 8, gap: 4, sub: 10 },
+    md: { layer: 36, txt: 32, tag: 10, gap: 5, sub: 12 },
+    lg: { layer: 64, txt: 56, tag: 14, gap: 8, sub: 18 },
+    xl: { layer: 96, txt: 84, tag: 20, gap: 12, sub: 28 },
   };
   const s = sizes[size] || sizes.md;
   const txtColor = inverted ? '#f8f5ef' : '#1a2942';
-  const borderColor = inverted ? 'rgba(248,245,239,0.3)' : 'rgba(26,41,66,0.25)';
+  const subColor = inverted ? '#f0e6c8' : '#1a2942';
+  const goldColor = '#c8a96a';
+  const goldLight = '#e8c98a';
+  const goldDark = '#a88a4a';
+  const silverColor = '#b8bcc4';
+  const silverLight = '#d8dce4';
+  const silverDark = '#8a8e96';
+  const blueColor = '#1e5aa8';
+  const blueLight = '#4a8ad8';
+  const blueDark = '#0a3a78';
+  const navyDark = '#0a1a35';
+
+  // Layer SVG size: width = 1.5x layer height; viewBox 90x80 for stacked chevrons
+  const svgW = s.layer * 1.15;
+  const svgH = s.layer * 1.05;
 
   return (
     <div style={{display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1}}>
-      <div style={{display: 'flex', alignItems: 'center', gap: `${s.gap + 2}px`}}>
-        <svg width={s.layer * 1.45} height={s.layer * 1.1} viewBox="0 0 87 66" style={{flexShrink: 0}}>
-          {/* Top diamond - dark grey/blue */}
-          <polygon points="43.5,2 82,20 43.5,38 5,20" fill="#3a4754" stroke="#2a3744" strokeWidth="0.5" />
-          <polygon points="43.5,2 82,20 43.5,20 5,20" fill="#5a6878" />
-          {/* Middle diamond - green */}
-          <polygon points="43.5,22 82,38 43.5,52 5,38" fill="#4a9540" stroke="#3a7530" strokeWidth="0.5" />
-          <polygon points="43.5,22 82,38 43.5,38 5,38" fill="#6ab058" />
-          {/* Bottom diamond - blue */}
-          <polygon points="43.5,32 82,46 43.5,62 5,46" fill="#2a7ec0" stroke="#1a6ea8" strokeWidth="0.5" />
-          <polygon points="43.5,32 82,46 43.5,46 5,46" fill="#4a98d8" />
+      <div style={{display: 'flex', alignItems: 'center', gap: `${s.gap + 3}px`}}>
+        {/* 3-layer stacked chevron logo: silver pyramid + gold chevron + blue chevron */}
+        <svg width={svgW} height={svgH} viewBox="0 0 90 80" style={{flexShrink: 0}}>
+          <defs>
+            {/* Silver gradient - top layer (pyramid/diamond) */}
+            <linearGradient id="ims-silver" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={silverLight} />
+              <stop offset="50%" stopColor={silverColor} />
+              <stop offset="100%" stopColor={silverDark} />
+            </linearGradient>
+            {/* Gold gradient - middle layer */}
+            <linearGradient id="ims-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={goldLight} />
+              <stop offset="50%" stopColor={goldColor} />
+              <stop offset="100%" stopColor={goldDark} />
+            </linearGradient>
+            {/* Blue gradient - bottom layer */}
+            <linearGradient id="ims-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={blueLight} />
+              <stop offset="50%" stopColor={blueColor} />
+              <stop offset="100%" stopColor={blueDark} />
+            </linearGradient>
+            {/* Inner face shading (darker side of chevron) */}
+            <linearGradient id="ims-silver-dark" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={silverColor} />
+              <stop offset="100%" stopColor={silverDark} />
+            </linearGradient>
+            <linearGradient id="ims-gold-dark" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={goldColor} />
+              <stop offset="100%" stopColor={goldDark} />
+            </linearGradient>
+            <linearGradient id="ims-blue-dark" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={blueColor} />
+              <stop offset="100%" stopColor={blueDark} />
+            </linearGradient>
+          </defs>
+
+          {/* Top: Silver pyramid/diamond (solid) */}
+          <polygon points="45,3 80,22 45,28 10,22" fill="url(#ims-silver)" stroke={silverDark} strokeWidth="0.5" />
+          {/* Silver face shading (right side darker) */}
+          <polygon points="45,3 80,22 45,28" fill="url(#ims-silver-dark)" opacity="0.35" />
+
+          {/* Middle: Gold chevron (pointing down) */}
+          <polygon points="10,30 45,49 80,30 80,38 45,57 10,38" fill="url(#ims-gold)" stroke={goldDark} strokeWidth="0.5" />
+          <polygon points="45,49 80,30 80,38 45,57" fill="url(#ims-gold-dark)" opacity="0.3" />
+
+          {/* Bottom: Blue chevron (pointing down) */}
+          <polygon points="10,46 45,65 80,46 80,55 45,75 10,55" fill="url(#ims-blue)" stroke={blueDark} strokeWidth="0.5" />
+          <polygon points="45,65 80,46 80,55 45,75" fill="url(#ims-blue-dark)" opacity="0.3" />
         </svg>
-        <div style={{display: 'flex', alignItems: 'baseline', fontFamily: 'Inter, sans-serif'}}>
-          <span style={{fontSize: `${s.txt}px`, fontWeight: 700, color: txtColor, letterSpacing: '-0.05em', fontStyle: 'italic', lineHeight: 0.85}}>i</span>
-          <span style={{fontSize: `${s.txt}px`, fontWeight: 900, color: txtColor, letterSpacing: '-0.04em', lineHeight: 0.85}}>MS</span>
+
+        {/* iMS text - navy with gold outline */}
+        <div style={{display: 'flex', alignItems: 'baseline', fontFamily: 'Inter, sans-serif', position: 'relative'}}>
+          <span style={{
+            fontSize: `${s.txt}px`,
+            fontWeight: 800,
+            color: txtColor,
+            letterSpacing: '-0.04em',
+            lineHeight: 0.9,
+            WebkitTextStroke: size === 'xl' || size === 'lg' ? `1px ${goldColor}` : `0.5px ${goldColor}`,
+            textShadow: inverted ? 'none' : `1px 1px 0 ${goldColor}40`,
+          }}>
+            <span style={{fontStyle: 'normal'}}>i</span>MS
+          </span>
         </div>
       </div>
+
       {showTagline && (
-        <div style={{marginTop: `${s.gap * 1.5}px`, paddingTop: `${s.gap}px`, borderTop: `1px solid ${borderColor}`, width: '100%'}}>
-          <div style={{fontFamily: 'Inter, sans-serif', fontSize: `${s.tag}px`, fontWeight: 500, color: txtColor, letterSpacing: '0.08em', opacity: 0.85}}>
+        <div style={{marginTop: `${s.gap * 1.2}px`, width: '100%'}}>
+          {/* Gold underline */}
+          <div style={{height: '2px', background: `linear-gradient(90deg, ${goldDark}, ${goldLight}, ${goldDark})`, marginBottom: `${s.gap}px`}} />
+          {/* Main subtitle */}
+          <div style={{
+            fontFamily: 'Inter, sans-serif',
+            fontSize: `${s.sub}px`,
+            fontWeight: 700,
+            color: subColor,
+            letterSpacing: '0.02em',
+            textTransform: 'uppercase',
+            WebkitTextStroke: (size === 'xl' || size === 'lg') ? `0.3px ${goldColor}` : 'none',
+          }}>
             Integrated Monitoring System
           </div>
         </div>
       )}
     </div>
   );
-}
+});
 
 // Global styles
 const GlobalStyles = () => (
@@ -2694,6 +3783,12 @@ const GlobalStyles = () => (
     body { margin: 0; }
     .serif { font-family: 'Cormorant Garamond', Georgia, serif; }
     .mono { font-family: 'JetBrains Mono', monospace; }
+    /* Common label styles (replaces 38+ duplicated inline styles) */
+    .lbl-tag { font-size: 10px; letter-spacing: 0.2em; color: #8a7d5c; text-transform: uppercase; }
+    .lbl-tag-sm { font-size: 9px; letter-spacing: 0.15em; color: #8a7d5c; text-transform: uppercase; font-weight: 600; }
+    .lbl-tag-md { font-size: 11px; letter-spacing: 0.15em; color: #8a7d5c; text-transform: uppercase; font-weight: 600; }
+    .card-pad { padding: 18px 20px; background: #fefcf7; }
+    .empty-state { padding: 40px; text-align: center; color: #8a7d5c; }
     .hover-row:hover { background: #f5f1e8 !important; }
     .card-hover { transition: all 0.2s ease; }
     .card-hover:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(26,41,66,0.07); }
@@ -2743,12 +3838,15 @@ export default function App() {
   const [importRecords, setImportRecords] = useState(SEED_IMPORT_RECORDS);
   const [pengalihanRecords, setPengalihanRecords] = useState(SEED_PENGALIHAN_RECORDS);
   const [piRecords, setPiRecords] = useState(SEED_PI_RECORDS);
+  const [employees, setEmployees] = useState(USERS);
+  const [businessTrips, setBusinessTrips] = useState(ALL_BUSINESS_TRIPS);
+  const [realizations, setRealizations] = useState(ALL_BT_REALIZATIONS);
   const [exchangeRate, setExchangeRate] = useState(DEFAULT_USD_IDR);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
-      const [d, l, s, r, rep, iss, reg, akl, imp, pgl, pi, pm, mfst, cdoc, inst, bast, train] = await Promise.all([
+      const [d, l, s, r, rep, iss, reg, akl, imp, pgl, pi, pm, mfst, cdoc, inst, bast, train, emp, bt] = await Promise.all([
         storeGet(STORAGE_KEY), storeGet(LANG_KEY), storeGet(SESSION_KEY),
         storeGet(RATE_KEY), storeGet(REPORTS_KEY),
         storeGet('ims_hnti:issues_v15'), storeGet('ims_hnti:reg_v15'),
@@ -2756,7 +3854,9 @@ export default function App() {
         storeGet('ims_hnti:imp_v15'), storeGet('ims_hnti:pgl_v15'), storeGet('ims_hnti:pi_v15'),
         storeGet('ims_hnti:pm_v15'),
         storeGet('ims_hnti:mfst_v15'), storeGet('ims_hnti:cdoc_v15'),
-        storeGet('ims_hnti:inst_v15'), storeGet('ims_hnti:bast_v15'), storeGet('ims_hnti:train_v15')
+        storeGet('ims_hnti:inst_v15'), storeGet('ims_hnti:bast_v15'), storeGet('ims_hnti:train_v15'),
+        storeGet('ims_hnti:emp_v18'),
+        storeGet('ims_hnti:bt_v19')
       ]);
       if (d) try { setData(JSON.parse(d)); } catch {}
       if (l) setLang(l);
@@ -2774,6 +3874,10 @@ export default function App() {
       if (inst) try { setInstallRecords(JSON.parse(inst)); } catch {}
       if (bast) try { setBastRecords(JSON.parse(bast)); } catch {}
       if (train) try { setTrainingRecords(JSON.parse(train)); } catch {}
+      if (emp) try { setEmployees(JSON.parse(emp)); } catch {}
+      if (bt) try { setBusinessTrips(JSON.parse(bt)); } catch {}
+      const btrStored = await storeGet('ims_hnti:btr_v20');
+      if (btrStored) try { setRealizations(JSON.parse(btrStored)); } catch {}
       // Generate reg records on first load from current data
       if (reg) {
         try { setRegRecords(JSON.parse(reg)); } catch {}
@@ -2799,6 +3903,9 @@ export default function App() {
   useEffect(() => { if (!loading) storeSet('ims_hnti:inst_v15', JSON.stringify(installRecords)); }, [installRecords, loading]);
   useEffect(() => { if (!loading) storeSet('ims_hnti:bast_v15', JSON.stringify(bastRecords)); }, [bastRecords, loading]);
   useEffect(() => { if (!loading) storeSet('ims_hnti:train_v15', JSON.stringify(trainingRecords)); }, [trainingRecords, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:emp_v18', JSON.stringify(employees)); }, [employees, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:bt_v19', JSON.stringify(businessTrips)); }, [businessTrips, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:btr_v20', JSON.stringify(realizations)); }, [realizations, loading]);
   useEffect(() => { if (!loading) storeSet(LANG_KEY, lang); }, [lang, loading]);
   useEffect(() => { if (!loading) { session ? storeSet(SESSION_KEY, JSON.stringify(session)) : storeDel(SESSION_KEY); } }, [session, loading]);
   useEffect(() => { if (!loading) storeSet(RATE_KEY, String(exchangeRate)); }, [exchangeRate, loading]);
@@ -2811,11 +3918,11 @@ export default function App() {
   const fmtFull = (n) => formatCurrencyFull(n, lang, exchangeRate);
 
   if (loading) return <div style={{minHeight: '100vh', background: '#f8f5ef', display: 'flex', alignItems: 'center', justifyContent: 'center'}}><GlobalStyles /><IMSLogo size="lg" showTagline /></div>;
-  if (!session) return <LoginScreen t={t} lang={lang} setLang={setLang} onLogin={setSession} />;
-  return <AuthApp session={session} setSession={setSession} lang={lang} setLang={setLang} t={t} data={data} setData={setData} reports={reports} setReports={setReports} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} regRecords={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} installedUnits={installedUnits} fmt={fmt} fmtFull={fmtFull} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} />;
+  if (!session) return <><LoginScreen t={t} lang={lang} setLang={setLang} onLogin={setSession} employees={employees} /><ToastContainer /></>;
+  return <><AuthApp session={session} setSession={setSession} lang={lang} setLang={setLang} t={t} data={data} setData={setData} reports={reports} setReports={setReports} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} regRecords={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} employees={employees} setEmployees={setEmployees} businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} installedUnits={installedUnits} fmt={fmt} fmtFull={fmtFull} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} /><ToastContainer /></>;
 }
 
-function LoginScreen({ t, lang, setLang, onLogin }) {
+function LoginScreen({ t, lang, setLang, onLogin, employees }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
@@ -2823,9 +3930,15 @@ function LoginScreen({ t, lang, setLang, onLogin }) {
 
   const handleLogin = () => {
     const u = username.toLowerCase().trim();
-    const user = USERS[u];
-    if (user && user.password === password) {
-      onLogin({ username: u, role: user.role, name: user.name, initial: user.initial, salesId: user.salesId });
+    const userDb = employees || USERS;
+    const user = userDb[u];
+    if (!user) { setError(t.login_error); return; }
+    if (user.active === false) {
+      setError(lang === 'id' ? 'Akun Anda telah dinon-aktifkan. Hubungi admin.' : 'Your account has been deactivated. Contact admin.');
+      return;
+    }
+    if (user.password === password) {
+      onLogin({ username: u, role: user.role, name: user.name, initial: user.initial, salesId: user.salesId, position: user.position, allowancePerDay: user.allowancePerDay });
       setError('');
     } else setError(t.login_error);
   };
@@ -2838,7 +3951,7 @@ function LoginScreen({ t, lang, setLang, onLogin }) {
         <div style={{position: 'absolute', bottom: '-150px', left: '-150px', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(74,149,64,0.08) 0%, transparent 70%)'}} />
         <div style={{position: 'relative', zIndex: 1}}><IMSLogo size="xl" inverted showTagline /></div>
         <div style={{position: 'relative', zIndex: 1}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.4em', color: '#c8a96a', textTransform: 'uppercase', marginBottom: '16px', fontWeight: 500}}>{t.motto}</div>
+          <div style={{fontSize: '10px', letterSpacing: '0.25em', color: '#c8a96a', textTransform: 'uppercase', marginBottom: '16px', fontWeight: 500, lineHeight: 1.6}}>{t.motto}</div>
           <h1 className="serif" style={{fontSize: '42px', fontWeight: 400, lineHeight: 1.15, margin: 0, letterSpacing: '-0.02em'}}>
             {lang === 'id' ? 'Sistem terpadu untuk monitoring operasional perusahaan' : 'Integrated platform for enterprise operations monitoring'}
           </h1>
@@ -2888,7 +4001,7 @@ function LoginScreen({ t, lang, setLang, onLogin }) {
   );
 }
 
-function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports, setReports, issues, setIssues, pmSchedule, setPmSchedule, manifests, setManifests, customsDocs, setCustomsDocs, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, regRecords, setRegRecords, aklRecords, setAklRecords, importRecords, setImportRecords, pengalihanRecords, setPengalihanRecords, piRecords, setPiRecords, installedUnits, fmt, fmtFull, exchangeRate, setExchangeRate }) {
+function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports, setReports, issues, setIssues, pmSchedule, setPmSchedule, manifests, setManifests, customsDocs, setCustomsDocs, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, regRecords, setRegRecords, aklRecords, setAklRecords, importRecords, setImportRecords, pengalihanRecords, setPengalihanRecords, piRecords, setPiRecords, employees, setEmployees, businessTrips, setBusinessTrips, realizations, setRealizations, installedUnits, fmt, fmtFull, exchangeRate, setExchangeRate }) {
   const [view, setView] = useState(session.role === 'sales' ? 'sales_report' : session.role === 'regulatory' ? 'regulatory' : 'dashboard');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSph, setEditingSph] = useState(null);
@@ -2919,14 +4032,14 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
   return (
     <div style={{minHeight: '100vh', background: '#f8f5ef', fontFamily: 'Inter, sans-serif', color: '#1a2942'}}>
       <GlobalStyles />
-      <Header session={session} setSession={setSession} lang={lang} setLang={setLang} view={view} setView={setView} allowedNav={allowedNav} t={t} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} />
+      <Header session={session} setSession={setSession} lang={lang} setLang={setLang} view={view} setView={setView} allowedNav={allowedNav} t={t} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} businessTrips={businessTrips} realizations={realizations} />
 
       <main className="main-content fade-in" style={{maxWidth: '1440px', margin: '0 auto', padding: '32px 48px 60px'}}>
         {view === 'dashboard' && <Dashboard data={filteredData} reports={reports} t={t} lang={lang} session={session} fmt={fmt} />}
         {view === 'sph' && canRead('sph') && <SPHManagement data={filteredData} t={t} lang={lang} canEdit={canEdit('sph')} fmt={fmt} onAdd={() => { setEditingSph(null); setModalOpen(true); }} onEdit={(s) => { setEditingSph(s); setModalOpen(true); }} onDelete={handleDelete} />}
         {view === 'pipeline' && canRead('pipeline') && <PipelineBoard data={filteredData} t={t} lang={lang} canEdit={canEdit('pipeline')} fmt={fmt} onEdit={(s) => { setEditingSph(s); setModalOpen(true); }} />}
         {view === 'sales' && canRead('sales') && <SalesModule data={data} reports={reports} t={t} lang={lang} fmt={fmt} />}
-        {view === 'sales_report' && canRead('sales_report') && <SalesReport reports={reports} setReports={setReports} t={t} lang={lang} session={session} />}
+        {view === 'sales_report' && canRead('sales_report') && <SalesReport reports={reports} setReports={setReports} t={t} lang={lang} session={session} fmt={fmt} />}
         {view === 'finance' && canRead('finance') && <FinanceModule data={data} setData={setData} t={t} lang={lang} canEdit={canEdit('finance')} fmt={fmt} />}
         {view === 'operations' && canRead('operations') && <OperationsModule data={data} setData={setData} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} t={t} lang={lang} canEdit={canEdit('operations')} fmt={fmt} />}
         {view === 'installation' && canRead('installation') && <InstallationModule data={data} setData={setData} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} t={t} lang={lang} canEdit={canEdit('installation')} fmt={fmt} />}
@@ -2934,6 +4047,8 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
         {view === 'regulatory' && canRead('regulatory') && <RegulatoryModule records={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} units={installedUnits} t={t} lang={lang} canEdit={canEdit('regulatory')} />}
         {view === 'incentive' && canRead('incentive') && <IncentiveModule data={data} setData={setData} t={t} lang={lang} session={session} fmt={fmt} fmtFull={fmtFull} canEdit={canEdit('incentive')} />}
         {view === 'valuation' && canRead('valuation') && <Valuation data={data} t={t} lang={lang} fmt={fmt} />}
+        {view === 'employees' && canRead('employees') && <EmployeesModule employees={employees} setEmployees={setEmployees} t={t} lang={lang} session={session} fmt={fmt} />}
+        {view === 'business_trip' && canRead('business_trip') && <BusinessTripModule businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} employees={employees} t={t} lang={lang} session={session} fmt={fmt} />}
       </main>
 
       {modalOpen && <SPHModal sph={editingSph} t={t} lang={lang} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingSph(null); }} fmtFull={fmtFull} />}
@@ -2943,11 +4058,34 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
   );
 }
 
-function Header({ session, setSession, lang, setLang, view, setView, allowedNav, t, mobileMenuOpen, setMobileMenuOpen, exchangeRate, setExchangeRate }) {
-  const navIcons = { dashboard: Activity, sph: FileText, pipeline: Briefcase, sales: Users, sales_report: ClipboardList, incentive: DollarSign, finance: Wallet, operations: Truck, installation: Wrench, maintenance: Settings, regulatory: ShieldCheck, valuation: TrendingUp };
+function Header({ session, setSession, lang, setLang, view, setView, allowedNav, t, mobileMenuOpen, setMobileMenuOpen, exchangeRate, setExchangeRate, businessTrips, realizations }) {
+  const navIcons = { dashboard: Activity, sph: FileText, pipeline: Briefcase, sales: Users, sales_report: ClipboardList, incentive: DollarSign, finance: Wallet, operations: Truck, installation: Wrench, maintenance: Settings, regulatory: ShieldCheck, valuation: TrendingUp, employees: UserPlus, business_trip: Plane };
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [rateMenuOpen, setRateMenuOpen] = useState(false);
   const [tempRate, setTempRate] = useState(exchangeRate);
+
+  // Notification counts for business_trip
+  const btNotifCount = useMemo(() => {
+    if (!businessTrips || !realizations) return 0;
+    let count = 0;
+    if (session.role === 'finance') {
+      count = businessTrips.filter(t => t.status === 'pending_finance').length +
+              realizations.filter(r => r.status === 'pending_finance').length +
+              businessTrips.filter(t => t.status === 'approved' && t.paymentStatus !== 'paid').length +
+              realizations.filter(r => r.status === 'approved' && r.settlementStatus === 'pending' && r.difference !== 0).length;
+    } else if (session.role === 'manager_ops') {
+      count = businessTrips.filter(t => t.status === 'pending_mops').length +
+              realizations.filter(r => r.status === 'pending_mops').length;
+    } else if (session.role === 'gm') {
+      count = businessTrips.filter(t => t.status === 'pending_gm').length +
+              realizations.filter(r => r.status === 'pending_gm').length;
+    } else if (['sales', 'technician', 'operations', 'admin', 'regulatory'].includes(session.role)) {
+      // Karyawan: notify saat status berubah (clarification or rejected)
+      count = businessTrips.filter(t => t.travelerUsername === session.username && ['clarification', 'rejected'].includes(t.status)).length +
+              realizations.filter(r => r.travelerUsername === session.username && r.status === 'clarification').length;
+    }
+    return count;
+  }, [businessTrips, realizations, session.role, session.username]);
 
   return (
     <header style={{borderBottom: '1px solid #d4cdb8', background: '#f8f5ef', position: 'sticky', top: 0, zIndex: 50}}>
@@ -2961,9 +4099,11 @@ function Header({ session, setSession, lang, setLang, view, setView, allowedNav,
           {allowedNav.map(item => {
             const Icon = navIcons[item];
             const active = view === item;
+            const badge = item === 'business_trip' ? btNotifCount : 0;
             return (
-              <button key={item} onClick={() => setView(item)} style={{background: active ? '#1a2942' : 'transparent', color: active ? '#f8f5ef' : '#1a2942', border: 'none', padding: '8px 12px', fontFamily: 'inherit', fontSize: '11.5px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s', letterSpacing: '0.02em', whiteSpace: 'nowrap'}}>
+              <button key={item} onClick={() => setView(item)} style={{background: active ? '#1a2942' : 'transparent', color: active ? '#f8f5ef' : '#1a2942', border: 'none', padding: '8px 12px', fontFamily: 'inherit', fontSize: '11.5px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s', letterSpacing: '0.02em', whiteSpace: 'nowrap', position: 'relative'}}>
                 <Icon size={13} strokeWidth={1.5} />{t[`nav_${item}`]}
+                {badge > 0 && <span style={{background: '#c03030', color: '#fff', borderRadius: '10px', padding: '1px 6px', fontSize: '9px', fontWeight: 700, minWidth: '14px', textAlign: 'center', lineHeight: 1.3}}>{badge}</span>}
               </button>
             );
           })}
@@ -3018,9 +4158,12 @@ function Header({ session, setSession, lang, setLang, view, setView, allowedNav,
           {allowedNav.map(item => {
             const Icon = navIcons[item];
             const active = view === item;
+            const badge = item === 'business_trip' ? btNotifCount : 0;
             return (
               <button key={item} onClick={() => { setView(item); setMobileMenuOpen(false); }} style={{width: '100%', background: active ? '#1a2942' : 'transparent', color: active ? '#f8f5ef' : '#1a2942', border: 'none', padding: '12px 16px', fontFamily: 'inherit', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px', textAlign: 'left'}}>
-                <Icon size={15} strokeWidth={1.5} />{t[`nav_${item}`]}
+                <Icon size={15} strokeWidth={1.5} />
+                <span style={{flex: 1}}>{t[`nav_${item}`]}</span>
+                {badge > 0 && <span style={{background: '#c03030', color: '#fff', borderRadius: '10px', padding: '1px 7px', fontSize: '10px', fontWeight: 700}}>{badge}</span>}
               </button>
             );
           })}
@@ -3046,35 +4189,42 @@ const ChartTooltip = ({ active, payload, label, fmt }) => {
 };
 
 function Dashboard({ data, reports, t, lang, session, fmt }) {
-  const activeData = data.filter(s => s.status === 'active');
-  const wonData = data.filter(s => s.status === 'won');
-  const lostData = data.filter(s => s.status === 'lost');
+  // PERFORMANCE FIX: All filters/maps wrapped in useMemo to avoid recomputing on every render
+  // (was causing scroll lag with 613 SPH records)
+  const stats = useMemo(() => {
+    const activeData = data.filter(s => s.status === 'active');
+    const wonData = data.filter(s => s.status === 'won');
+    const lostData = data.filter(s => s.status === 'lost');
+    return {
+      activeData, wonData, lostData,
+      totalPipeline: activeData.reduce((sum, s) => sum + s.totalValue, 0),
+      weightedPipeline: activeData.reduce((sum, s) => sum + (s.totalValue * s.probability / 100), 0),
+      revenueYTD: wonData.reduce((sum, s) => sum + s.totalValue, 0),
+      winRate: (wonData.length + lostData.length) > 0 ? (wonData.length / (wonData.length + lostData.length)) * 100 : 0,
+    };
+  }, [data]);
+  const { activeData, wonData, lostData, totalPipeline, weightedPipeline, revenueYTD, winRate } = stats;
 
-  const totalPipeline = activeData.reduce((sum, s) => sum + s.totalValue, 0);
-  const weightedPipeline = activeData.reduce((sum, s) => sum + (s.totalValue * s.probability / 100), 0);
-  const revenueYTD = wonData.reduce((sum, s) => sum + s.totalValue, 0);
-  const winRate = (wonData.length + lostData.length) > 0 ? (wonData.length / (wonData.length + lostData.length)) * 100 : 0;
-
-  const funnelData = STAGES.filter(s => s.id !== 'lost').map(stage => {
+  const funnelData = useMemo(() => STAGES.filter(s => s.id !== 'lost').map(stage => {
     const projects = activeData.filter(p => p.stage === stage.id);
     return { name: t[`stage_${stage.id}`], value: projects.reduce((sum, p) => sum + p.totalValue, 0), count: projects.length, color: stage.color };
-  }).filter(f => f.count > 0);
+  }).filter(f => f.count > 0), [activeData, t]);
 
-  const projectTypePieData = PROJECT_TYPES.map(pt => {
+  const projectTypePieData = useMemo(() => PROJECT_TYPES.map(pt => {
     const projects = activeData.filter(s => s.projectType === pt.id);
     return { name: t[`ptype_${pt.id}`], value: projects.reduce((s, p) => s + p.totalValue, 0), count: projects.length, color: pt.color };
-  }).filter(d => d.value > 0);
+  }).filter(d => d.value > 0), [activeData, t]);
 
-  const modalityPieData = Object.keys(MODALITY_COLORS).map(mod => {
+  const modalityPieData = useMemo(() => Object.keys(MODALITY_COLORS).map(mod => {
     const projects = activeData.filter(s => s.modality === mod);
     return { name: mod, value: projects.reduce((s, p) => s + p.totalValue, 0), count: projects.length, color: MODALITY_COLORS[mod] };
-  }).filter(d => d.value > 0);
+  }).filter(d => d.value > 0), [activeData]);
 
-  const customerTypePieData = [
+  const customerTypePieData = useMemo(() => [
     { name: t.type_hospital, value: activeData.filter(s => s.customerType === 'hospital').reduce((s, p) => s + p.totalValue, 0), color: '#1a4d8a' },
     { name: t.type_clinic, value: activeData.filter(s => s.customerType === 'clinic').reduce((s, p) => s + p.totalValue, 0), color: '#c8a96a' },
     { name: t.type_subdistributor, value: activeData.filter(s => s.customerType === 'subdistributor').reduce((s, p) => s + p.totalValue, 0), color: '#5a8a5a' },
-  ].filter(d => d.value > 0);
+  ].filter(d => d.value > 0), [activeData, t]);
 
   const monthlyTrend = useMemo(() => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May'];
@@ -3084,13 +4234,16 @@ function Dashboard({ data, reports, t, lang, session, fmt }) {
     });
   }, [data]);
 
-  const salesPerformance = SALES_TEAM.map(sales => {
+  const salesPerformance = useMemo(() => SALES_TEAM.map(sales => {
     const sd = data.filter(s => s.salesOwner === sales.id);
     return { name: sales.name.split(' ')[0], pipeline: sd.filter(s => s.status === 'active').reduce((s, p) => s + p.totalValue, 0), won: sd.filter(s => s.status === 'won').reduce((s, p) => s + p.totalValue, 0) };
-  }).sort((a, b) => (b.pipeline + b.won) - (a.pipeline + a.won));
+  }).sort((a, b) => (b.pipeline + b.won) - (a.pipeline + a.won)), [data]);
 
-  const totalVisits = reports.reduce((s, r) => s + (r.visits?.length || 0), 0);
-  const totalFieldDays = reports.reduce((s, r) => s + (r.days || 0), 0);
+  const fieldStats = useMemo(() => ({
+    totalVisits: reports.reduce((s, r) => s + (r.visits?.length || 0), 0),
+    totalFieldDays: reports.reduce((s, r) => s + (r.days || 0), 0),
+  }), [reports]);
+  const { totalVisits, totalFieldDays } = fieldStats;
 
   return (
     <div>
@@ -3168,9 +4321,9 @@ function Dashboard({ data, reports, t, lang, session, fmt }) {
         <div className="card" style={{marginBottom: '20px'}}>
           <div className="card-title">{lang === 'id' ? 'Aktivitas Lapangan dari Laporan Sales' : 'Sales Field Activity'}</div>
           <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px'}}>
-            <div><div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.sr_visits_count}</div><div className="serif" style={{fontSize: '28px', fontWeight: 500, marginTop: '4px'}}>{totalVisits}</div></div>
-            <div><div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.sr_field_days_total}</div><div className="serif" style={{fontSize: '28px', fontWeight: 500, marginTop: '4px'}}>{totalFieldDays}</div></div>
-            <div><div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.sr_total_reports}</div><div className="serif" style={{fontSize: '28px', fontWeight: 500, marginTop: '4px'}}>{reports.length}</div></div>
+            <div><div className="lbl-tag">{t.sr_visits_count}</div><div className="serif" style={{fontSize: '28px', fontWeight: 500, marginTop: '4px'}}>{totalVisits}</div></div>
+            <div><div className="lbl-tag">{t.sr_field_days_total}</div><div className="serif" style={{fontSize: '28px', fontWeight: 500, marginTop: '4px'}}>{totalFieldDays}</div></div>
+            <div><div className="lbl-tag">{t.sr_total_reports}</div><div className="serif" style={{fontSize: '28px', fontWeight: 500, marginTop: '4px'}}>{reports.length}</div></div>
           </div>
         </div>
       )}
@@ -3294,7 +4447,8 @@ function PieCard({ title, data, fmt }) {
   );
 }
 
-function KPICard({ label, value, sublabel, trend, info }) {
+// React.memo - KPICard renders many times in dashboards, props rarely change per render
+const KPICard = React.memo(function KPICard({ label, value, sublabel, trend, info }) {
   const positive = trend >= 0;
   const [showInfo, setShowInfo] = useState(false);
   return (
@@ -3319,20 +4473,71 @@ function KPICard({ label, value, sublabel, trend, info }) {
       </div>
     </div>
   );
-}
+});
 
 function ReadOnlyBanner({ t }) {
   return <div style={{padding: '10px 14px', background: 'rgba(200,169,106,0.12)', borderLeft: '3px solid #c8a96a', marginBottom: '16px', fontSize: '12px', color: '#1a2942', display: 'flex', alignItems: 'center', gap: '8px'}}><Eye size={14} />{t.view_only_notice}</div>;
 }
 
-function Field({ label, full, children }) {
+// ============== Toast System (replaces native alert() which is blocked in artifact iframe) ==============
+// Global toast state — implemented via custom event for cross-component access
+const TOAST_EVENT = '__hnti_toast_event';
+function showToast(message, type) {
+  // type: 'info' | 'success' | 'warning' | 'error'
+  try {
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function' && typeof window.CustomEvent === 'function') {
+      window.dispatchEvent(new CustomEvent(TOAST_EVENT, { detail: { message, type: type || 'info' } }));
+    }
+  } catch (_) {}
+}
+
+function ToastContainer() {
+  const [toasts, setToasts] = useState([]);
+  useEffect(() => {
+    const handler = (e) => {
+      const id = Date.now() + Math.random();
+      setToasts(prev => [...prev, { id, message: e.detail.message, type: e.detail.type }]);
+      setTimeout(() => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+      }, 4500);
+    };
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener(TOAST_EVENT, handler);
+      return () => { try { window.removeEventListener(TOAST_EVENT, handler); } catch (_) {} };
+    }
+    return undefined;
+  }, []);
+  if (!toasts.length) return null;
+  const colors = {
+    info: { bg: '#1a2942', border: '#5b87b8', icon: 'ℹ' },
+    success: { bg: '#1a4d2a', border: '#3a6b3a', icon: '✓' },
+    warning: { bg: '#8b6914', border: '#c8a96a', icon: '⚠' },
+    error: { bg: '#8b1a1a', border: '#c03030', icon: '✗' },
+  };
+  return (
+    <div style={{position: 'fixed', top: '20px', right: '20px', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 10000, maxWidth: '380px'}}>
+      {toasts.map(t => {
+        const c = colors[t.type] || colors.info;
+        return (
+          <div key={t.id} onClick={() => setToasts(prev => prev.filter(x => x.id !== t.id))} style={{padding: '12px 16px', background: c.bg, color: '#fff', borderLeft: `3px solid ${c.border}`, fontSize: '13px', fontFamily: 'Inter, sans-serif', boxShadow: '0 6px 24px rgba(0,0,0,0.25)', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: '10px', lineHeight: 1.5}}>
+            <span style={{fontSize: '15px', flexShrink: 0}}>{c.icon}</span>
+            <span style={{flex: 1}}>{t.message}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// React.memo - Field is used 100+ times in forms
+const Field = React.memo(function Field({ label, full, children }) {
   return (
     <div style={{gridColumn: full ? '1 / -1' : 'auto'}}>
       <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '6px'}}>{label}</label>
       {children}
     </div>
   );
-}
+});
 
 // ============== Confirm Dialog (replaces native confirm() which is blocked in artifact iframe) ==============
 function ConfirmDialog({ open, title, message, confirmText, cancelText, onConfirm, onCancel, danger, lang }) {
@@ -3355,7 +4560,7 @@ function ConfirmDialog({ open, title, message, confirmText, cancelText, onConfir
 }
 
 // ============== LinkAttachment (clickable hyperlink with icon + truncated filename) ==============
-function LinkAttachment({ url, label, lang }) {
+const LinkAttachment = React.memo(function LinkAttachment({ url, label, lang }) {
   if (!url || !url.trim()) return null;
   // Truncate long URLs, extract filename or domain
   let displayName = label || (() => {
@@ -3371,10 +4576,10 @@ function LinkAttachment({ url, label, lang }) {
       <span style={{maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{displayName}</span>
     </a>
   );
-}
+});
 
 // ============== Sort Toggle Component ==============
-function SortToggle({ value, onChange, options, lang }) {
+const SortToggle = React.memo(function SortToggle({ value, onChange, options, lang }) {
   return (
     <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
       <span style={{fontSize: '10px', letterSpacing: '0.1em', color: '#8a7d5c', textTransform: 'uppercase'}}>{lang === 'id' ? 'Urutkan' : 'Sort'}:</span>
@@ -3383,28 +4588,50 @@ function SortToggle({ value, onChange, options, lang }) {
       </select>
     </div>
   );
-}
+});
 
-function Th({ children, align = 'left' }) { return <th style={{padding: '12px 14px', textAlign: align, fontSize: '9px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, borderBottom: '1px solid #d4cdb8', whiteSpace: 'nowrap'}}>{children}</th>; }
-function Td({ children, align = 'left' }) { return <td style={{padding: '12px 14px', textAlign: align, verticalAlign: 'middle'}}>{children}</td>; }
+// React.memo - Th and Td are used 500+ times in tables across modules
+const Th = React.memo(function Th({ children, align = 'left' }) { return <th style={{padding: '12px 14px', textAlign: align, fontSize: '9px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, borderBottom: '1px solid #d4cdb8', whiteSpace: 'nowrap'}}>{children}</th>; });
+const Td = React.memo(function Td({ children, align = 'left' }) { return <td style={{padding: '12px 14px', textAlign: align, verticalAlign: 'middle'}}>{children}</td>; });
 
 function SPHManagement({ data, t, lang, canEdit, fmt, onAdd, onEdit, onDelete }) {
   const [search, setSearch] = useState('');
   const [filterPType, setFilterPType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterYear, setFilterYear] = useState('all');
+  const [pageSize, setPageSize] = useState(50);  // Pagination: 50 rows initial, "Load more" button
+  const [visibleCount, setVisibleCount] = useState(50);
+
+  // PERFORMANCE: Build lookup Maps once (O(1) lookup vs O(n) .find() per row)
+  const lookupMaps = useMemo(() => ({
+    stageMap: new Map(STAGES.map(s => [s.id, s])),
+    projectTypeMap: new Map(PROJECT_TYPES.map(p => [p.id, p])),
+    salesMap: new Map(SALES_TEAM.map(sa => [sa.id, sa])),
+  }), []);
+  const { stageMap, projectTypeMap, salesMap } = lookupMaps;
 
   const availableYears = useMemo(() => {
     const years = new Set(data.map(s => s.issuedDate?.substring(0, 4)).filter(Boolean));
     return Array.from(years).sort().reverse();
   }, [data]);
 
-  const filtered = data.filter(s => {
-    const matchSearch = !search || s.sphNo.toLowerCase().includes(search.toLowerCase()) || s.customer.toLowerCase().includes(search.toLowerCase()) || s.subModality.toLowerCase().includes(search.toLowerCase());
-    const matchYear = filterYear === 'all' || s.issuedDate?.startsWith(filterYear);
-    return matchSearch && matchYear && (filterPType === 'all' || s.projectType === filterPType) && (filterStatus === 'all' || s.status === filterStatus);
-  });
-  const totalValue = filtered.reduce((sum, s) => sum + s.totalValue, 0);
+  const filteredStats = useMemo(() => {
+    const filtered = data.filter(s => {
+      const matchSearch = !search || s.sphNo.toLowerCase().includes(search.toLowerCase()) || s.customer.toLowerCase().includes(search.toLowerCase()) || s.subModality.toLowerCase().includes(search.toLowerCase());
+      const matchYear = filterYear === 'all' || s.issuedDate?.startsWith(filterYear);
+      return matchSearch && matchYear && (filterPType === 'all' || s.projectType === filterPType) && (filterStatus === 'all' || s.status === filterStatus);
+    });
+    const totalValue = filtered.reduce((sum, s) => sum + s.totalValue, 0);
+    const activeCount = filtered.filter(s => s.status === 'active').length;
+    const wonCount = filtered.filter(s => s.status === 'won').length;
+    return { filtered, totalValue, activeCount, wonCount };
+  }, [data, search, filterPType, filterStatus, filterYear]);
+  const { filtered, totalValue, activeCount, wonCount } = filteredStats;
+
+  // Reset pagination when filter changes
+  useEffect(() => { setVisibleCount(pageSize); }, [search, filterPType, filterStatus, filterYear, pageSize]);
+
+  const visibleRows = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
 
   return (
     <div>
@@ -3420,10 +4647,10 @@ function SPHManagement({ data, t, lang, canEdit, fmt, onAdd, onEdit, onDelete })
       {!canEdit && <ReadOnlyBanner t={t} />}
 
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '18px', border: '1px solid #d4cdb8'}}>
-        <div style={{padding: '16px 20px', background: '#fefcf7'}}><div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{lang === 'id' ? 'Total SPH' : 'Total Quotations'}</div><div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px'}}>{filtered.length}</div></div>
-        <div style={{padding: '16px 20px', background: '#fefcf7'}}><div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.total_value}</div><div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px'}}>{fmt(totalValue)}</div></div>
-        <div style={{padding: '16px 20px', background: '#fefcf7'}}><div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.status_active}</div><div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px'}}>{filtered.filter(s => s.status === 'active').length}</div></div>
-        <div style={{padding: '16px 20px', background: '#fefcf7'}}><div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.status_won}</div><div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px'}}>{filtered.filter(s => s.status === 'won').length}</div></div>
+        <div style={{padding: '16px 20px', background: '#fefcf7'}}><div className="lbl-tag">{lang === 'id' ? 'Total SPH' : 'Total Quotations'}</div><div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px'}}>{filtered.length}</div></div>
+        <div style={{padding: '16px 20px', background: '#fefcf7'}}><div className="lbl-tag">{t.total_value}</div><div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px'}}>{fmt(totalValue)}</div></div>
+        <div style={{padding: '16px 20px', background: '#fefcf7'}}><div className="lbl-tag">{t.status_active}</div><div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px'}}>{activeCount}</div></div>
+        <div style={{padding: '16px 20px', background: '#fefcf7'}}><div className="lbl-tag">{t.status_won}</div><div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px'}}>{wonCount}</div></div>
       </div>
 
       <div style={{display: 'flex', gap: '10px', marginBottom: '14px', alignItems: 'center', flexWrap: 'wrap'}}>
@@ -3456,10 +4683,10 @@ function SPHManagement({ data, t, lang, canEdit, fmt, onAdd, onEdit, onDelete })
             </tr>
           </thead>
           <tbody>
-            {filtered.map(s => {
-              const stage = STAGES.find(st => st.id === s.stage);
-              const pt = PROJECT_TYPES.find(p => p.id === s.projectType);
-              const sales = SALES_TEAM.find(sa => sa.id === s.salesOwner);
+            {visibleRows.map(s => {
+              const stage = stageMap.get(s.stage);
+              const pt = projectTypeMap.get(s.projectType);
+              const sales = salesMap.get(s.salesOwner);
               return (
                 <tr key={s.id} className="hover-row" style={{borderTop: '1px solid #e8e1cc'}}>
                   <Td><span className="mono" style={{fontSize: '11px'}}>{s.sphNo}</span></Td>
@@ -3471,7 +4698,7 @@ function SPHManagement({ data, t, lang, canEdit, fmt, onAdd, onEdit, onDelete })
                   <Td>{s.subModality}</Td>
                   <Td align="right">{s.qty}</Td>
                   <Td align="right"><span className="mono" style={{fontWeight: 500}}>{fmt(s.totalValue)}</span></Td>
-                  <Td><span style={{display: 'inline-block', padding: '3px 7px', fontSize: '10px', background: stage.color + '25', color: stage.color, fontWeight: 600}}>{t[`stage_${s.stage}`]}</span></Td>
+                  <Td>{stage && <span style={{display: 'inline-block', padding: '3px 7px', fontSize: '10px', background: stage.color + '25', color: stage.color, fontWeight: 600}}>{t[`stage_${s.stage}`]}</span>}</Td>
                   <Td>{sales ? sales.name : s.salesOwner}</Td>
                   {canEdit && (
                     <Td align="right">
@@ -3485,24 +4712,54 @@ function SPHManagement({ data, t, lang, canEdit, fmt, onAdd, onEdit, onDelete })
           </tbody>
         </table>
         {filtered.length === 0 && <div style={{padding: '50px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
+        {filtered.length > visibleCount && (
+          <div style={{padding: '20px', textAlign: 'center', borderTop: '1px solid #e8e1cc', background: '#fefcf7'}}>
+            <div style={{fontSize: '12px', color: '#8a7d5c', marginBottom: '10px'}}>
+              {lang === 'id' ? 'Menampilkan' : 'Showing'} <strong style={{color: '#1a2942'}}>{visibleCount}</strong> {lang === 'id' ? 'dari' : 'of'} <strong style={{color: '#1a2942'}}>{filtered.length}</strong> {lang === 'id' ? 'SPH' : 'SPH records'}
+            </div>
+            <div style={{display: 'flex', gap: '8px', justifyContent: 'center'}}>
+              <button onClick={() => setVisibleCount(c => Math.min(c + 50, filtered.length))} className="btn-ghost" style={{fontSize: '11px'}}>
+                {lang === 'id' ? 'Muat 50 Lagi' : 'Load 50 More'}
+              </button>
+              <button onClick={() => setVisibleCount(filtered.length)} className="btn-ghost" style={{fontSize: '11px'}}>
+                {lang === 'id' ? 'Tampilkan Semua' : 'Show All'} ({filtered.length})
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 function PipelineBoard({ data, t, lang, canEdit, fmt, onEdit }) {
-  // Include ALL stages: active + won (PO Issued) + lost - full journey statistics
-  const pipelineData = data.filter(s => s.status === 'active' || s.status === 'won' || s.status === 'lost');
+  // PERFORMANCE: All pipeline calcs memoized
+  const pipelineStats = useMemo(() => {
+    const pipelineData = data.filter(s => s.status === 'active' || s.status === 'won' || s.status === 'lost');
+    const totalDeals = pipelineData.length;
+    const totalValue = pipelineData.reduce((s, p) => s + p.totalValue, 0);
+    const wonCount = pipelineData.filter(p => p.status === 'won').length;
+    const lostCount = pipelineData.filter(p => p.status === 'lost').length;
+    const activeCount = pipelineData.filter(p => p.status === 'active').length;
+    const winRate = (wonCount + lostCount) > 0 ? (wonCount / (wonCount + lostCount)) * 100 : 0;
+    return { pipelineData, totalDeals, totalValue, wonCount, lostCount, activeCount, winRate };
+  }, [data]);
+  const { pipelineData, totalDeals, totalValue, wonCount, lostCount, activeCount, winRate } = pipelineStats;
 
   // Stage definitions including lost - show statistical view of full journey
-  const ALL_STAGES_WITH_LOST = [...STAGES];
+  const ALL_STAGES_WITH_LOST = STAGES;
 
-  const totalDeals = pipelineData.length;
-  const totalValue = pipelineData.reduce((s, p) => s + p.totalValue, 0);
-  const wonCount = pipelineData.filter(p => p.status === 'won').length;
-  const lostCount = pipelineData.filter(p => p.status === 'lost').length;
-  const activeCount = pipelineData.filter(p => p.status === 'active').length;
-  const winRate = (wonCount + lostCount) > 0 ? (wonCount / (wonCount + lostCount)) * 100 : 0;
+  // PERFORMANCE: Group projects by stage ONCE + build project type lookup map
+  const projectTypeMap = useMemo(() => new Map(PROJECT_TYPES.map(p => [p.id, p])), []);
+  const stageGroups = useMemo(() => {
+    const groups = new Map();
+    ALL_STAGES_WITH_LOST.forEach(stage => groups.set(stage.id, { projects: [], stageValue: 0 }));
+    pipelineData.forEach(p => {
+      const g = groups.get(p.stage);
+      if (g) { g.projects.push(p); g.stageValue += p.totalValue; }
+    });
+    return groups;
+  }, [pipelineData]);
 
   return (
     <div>
@@ -3552,8 +4809,9 @@ function PipelineBoard({ data, t, lang, canEdit, fmt, onEdit }) {
 
       <div style={{display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '20px'}}>
         {ALL_STAGES_WITH_LOST.map(stage => {
-          const projects = pipelineData.filter(p => p.stage === stage.id);
-          const stageValue = projects.reduce((sum, p) => sum + p.totalValue, 0);
+          const group = stageGroups.get(stage.id) || { projects: [], stageValue: 0 };
+          const projects = group.projects;
+          const stageValue = group.stageValue;
           const isLostCol = stage.id === 'lost';
           const isWonCol = stage.id === 'po_issued';
           return (
@@ -3572,7 +4830,7 @@ function PipelineBoard({ data, t, lang, canEdit, fmt, onEdit }) {
               </div>
               <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
                 {projects.map(p => {
-                  const pt = PROJECT_TYPES.find(x => x.id === p.projectType);
+                  const pt = projectTypeMap.get(p.projectType);
                   return (
                     <div key={p.id} className="card-hover" onClick={() => canEdit && onEdit(p)} style={{padding: '13px', background: '#fefcf7', border: '1px solid #e8e1cc', cursor: canEdit ? 'pointer' : 'default', opacity: isLostCol ? 0.75 : 1}}>
                       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', gap: '8px'}}>
@@ -3597,7 +4855,7 @@ function PipelineBoard({ data, t, lang, canEdit, fmt, onEdit }) {
 }
 
 function SalesModule({ data, reports, t, lang, fmt }) {
-  const stats = SALES_TEAM.map(sales => {
+  const stats = useMemo(() => SALES_TEAM.map(sales => {
     const sd = data.filter(s => s.salesOwner === sales.id);
     const sr = reports.filter(r => r.salesId === sales.id);
     const active = sd.filter(s => s.status === 'active');
@@ -3611,9 +4869,9 @@ function SalesModule({ data, reports, t, lang, fmt }) {
       winRate: (won.length + lost.length) > 0 ? (won.length / (won.length + lost.length)) * 100 : 0,
       visitsCount: sr.reduce((s, r) => s + (r.visits?.length || 0), 0),
     };
-  }).sort((a, b) => (b.pipelineValue + b.wonValue) - (a.pipelineValue + a.wonValue));
+  }).sort((a, b) => (b.pipelineValue + b.wonValue) - (a.pipelineValue + a.wonValue)), [data, reports]);
 
-  const totalAll = stats.reduce((s, x) => s + x.pipelineValue + x.wonValue, 0);
+  const totalAll = useMemo(() => stats.reduce((s, x) => s + x.pipelineValue + x.wonValue, 0), [stats]);
 
   return (
     <div>
@@ -3681,14 +4939,15 @@ function SalesModule({ data, reports, t, lang, fmt }) {
 }
 
 // =================== SALES REPORTING MODULE ===================
-function SalesReport({ reports, setReports, t, lang, session }) {
+function SalesReport({ reports, setReports, t, lang, session, fmt }) {
   const [tab, setTab] = useState('dashboard');
   const [filterSales, setFilterSales] = useState('all');
   const [editingReport, setEditingReport] = useState(null);
 
-  const visibleReports = session.role === 'sales'
+  const visibleReports = useMemo(() => session.role === 'sales'
     ? reports.filter(r => r.salesId === session.salesId)
-    : (filterSales === 'all' ? reports : reports.filter(r => r.salesId === filterSales));
+    : (filterSales === 'all' ? reports : reports.filter(r => r.salesId === filterSales))
+  , [reports, session.role, session.salesId, filterSales]);
 
   const tabs = session.role === 'sales' ? ['dashboard', 'new', 'history'] : ['dashboard', 'history'];
   const tabLabels = { dashboard: t.sr_dashboard, new: editingReport ? t.sr_edit_report : t.sr_new, history: t.sr_history };
@@ -3738,13 +4997,29 @@ function SalesReport({ reports, setReports, t, lang, session }) {
 
       {tab === 'dashboard' && <SRDashboard reports={visibleReports} t={t} lang={lang} />}
       {tab === 'new' && session.role === 'sales' && <SRForm reports={reports} setReports={setReports} t={t} lang={lang} session={session} editingReport={editingReport} onSaved={handleSaved} onCancel={() => { setEditingReport(null); setTab('history'); }} />}
-      {tab === 'history' && <SRHistory reports={visibleReports} t={t} lang={lang} canEdit={session.role === 'sales'} onEdit={handleEdit} onDelete={handleDelete} session={session} />}
+      {tab === 'history' && <SRHistory reports={visibleReports} t={t} lang={lang} fmt={fmt} canEdit={session.role === 'sales'} onEdit={handleEdit} onDelete={handleDelete} session={session} />}
       <ConfirmDialog open={!!deleteReportId} title={lang === 'id' ? 'Hapus Laporan?' : 'Delete Report?'} message={t.sr_confirm_delete || (lang === 'id' ? 'Yakin ingin menghapus laporan ini?' : 'Are you sure you want to delete this report?')} onConfirm={confirmDeleteReport} onCancel={() => setDeleteReportId(null)} danger lang={lang} />
     </div>
   );
 }
 
 function SRDashboard({ reports, t, lang }) {
+  // PERFORMANCE: All stats memoized (hook must come before any early return)
+  const stats = useMemo(() => {
+    const totalVisits = reports.reduce((s, r) => s + (r.visits?.length || 0), 0);
+    const totalDays = reports.reduce((s, r) => s + (r.days || 0), 0);
+    const totalDeals = reports.reduce((s, r) => s + (r.visits?.filter(v => v.visit === 'closed').length || 0), 0);
+    const totalPipeRS = reports.reduce((s, r) => s + (r.pipeN || 0), 0);
+    const totalCost = reports.reduce((s, r) => s + (r.totalCost || 0), 0);
+    const bySales = {};
+    reports.forEach(r => {
+      if (!bySales[r.salesId]) bySales[r.salesId] = { count: 0, cost: 0 };
+      bySales[r.salesId].count += r.visits?.length || 0;
+      bySales[r.salesId].cost += r.totalCost || 0;
+    });
+    return { totalVisits, totalDays, totalDeals, totalPipeRS, totalCost, bySales };
+  }, [reports]);
+
   if (!reports.length) return (
     <div style={{padding: '60px 30px', textAlign: 'center', background: '#fefcf7', border: '1px solid #e8e1cc'}}>
       <ClipboardList size={36} strokeWidth={1.2} style={{color: '#8a7d5c', marginBottom: '12px'}} />
@@ -3752,18 +5027,7 @@ function SRDashboard({ reports, t, lang }) {
     </div>
   );
 
-  const totalVisits = reports.reduce((s, r) => s + (r.visits?.length || 0), 0);
-  const totalDays = reports.reduce((s, r) => s + (r.days || 0), 0);
-  const totalDeals = reports.reduce((s, r) => s + (r.visits?.filter(v => v.visit === 'closed').length || 0), 0);
-  const totalPipeRS = reports.reduce((s, r) => s + (r.pipeN || 0), 0);
-  const totalCost = reports.reduce((s, r) => s + (r.totalCost || 0), 0);
-
-  const bySales = {};
-  reports.forEach(r => {
-    if (!bySales[r.salesId]) bySales[r.salesId] = { count: 0, cost: 0 };
-    bySales[r.salesId].count += r.visits?.length || 0;
-    bySales[r.salesId].cost += r.totalCost || 0;
-  });
+  const { totalVisits, totalDays, totalDeals, totalPipeRS, totalCost, bySales } = stats;
 
   return (
     <div>
@@ -3794,30 +5058,6 @@ function SRDashboard({ reports, t, lang }) {
                 </div>
               );
             })}
-          </div>
-
-          <div className="card">
-            <div className="card-title">{lang === 'id' ? 'Biaya per Sales' : 'Cost per Sales'}</div>
-            {Object.entries(bySales).map(([id, st]) => {
-              const sales = SALES_TEAM.find(s => s.id === id);
-              if (!sales) return null;
-              const pct = Math.min(st.cost / 5000000 * 100, 100);
-              return (
-                <div key={id} style={{marginBottom: '12px'}}>
-                  <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px'}}>
-                    <span style={{fontWeight: 500}}>{sales.name.split(' ')[0]}</span>
-                    <span className="mono" style={{color: '#8a7d5c', fontSize: '11px'}}>Rp {(st.cost / 1000).toFixed(0)}rb</span>
-                  </div>
-                  <div style={{height: '6px', background: '#f0ebe0', overflow: 'hidden'}}>
-                    <div style={{height: '100%', width: `${pct}%`, background: sales.accent}} />
-                  </div>
-                </div>
-              );
-            })}
-            <div style={{marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #e8e1cc', display: 'flex', justifyContent: 'space-between', fontSize: '11px'}}>
-              <span style={{letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8a7d5c'}}>{lang === 'id' ? 'Total' : 'Total'}</span>
-              <span className="mono" style={{color: '#1a2942', fontWeight: 600}}>Rp {totalCost.toLocaleString('id-ID')}</span>
-            </div>
           </div>
         </div>
       )}
@@ -3853,10 +5093,10 @@ function SRForm({ reports, setReports, t, lang, session, editingReport, onSaved,
     };
     if (isEdit) {
       setReports(prev => prev.map(r => r.id === report.id ? report : r));
-      alert(t.sr_updated_success);
+      showToast(t.sr_updated_success, 'success');
     } else {
       setReports(prev => [report, ...prev]);
-      alert(lang === 'id' ? '✓ Laporan berhasil disimpan' : '✓ Report saved successfully');
+      showToast(lang === 'id' ? 'Laporan berhasil disimpan' : 'Report saved successfully', 'success');
     }
     onSaved && onSaved();
   };
@@ -3983,7 +5223,7 @@ function SRForm({ reports, setReports, t, lang, session, editingReport, onSaved,
   );
 }
 
-function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, session }) {
+function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, session, fmt }) {
   const [expanded, setExpanded] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc');
 
@@ -4031,7 +5271,7 @@ function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, session }) {
                 <div style={{display: 'flex', gap: '14px', fontSize: '11px', color: '#8a7d5c', flexWrap: 'wrap'}} className="mono">
                   <span><b style={{color: '#1a2942'}}>{r.visits?.length || 0}</b> RS</span>
                   <span><b style={{color: '#1a2942'}}>{r.days}</b> {t.days}</span>
-                  <span>Rp <b style={{color: '#1a2942'}}>{((r.totalCost || 0) / 1000).toFixed(0)}rb</b></span>
+                  <span><b style={{color: '#1a2942'}}>{fmt(r.totalCost || 0)}</b></span>
                 </div>
                 <ChevronDown size={16} style={{transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', color: '#8a7d5c'}} />
               </div>
@@ -4067,14 +5307,1905 @@ function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, session }) {
   );
 }
 
+// ============== Employees Module (Master Data Karyawan) ==============
+// Akses: hanya CEO (super_admin), General Manager (gm), dan Manager Operasional (manager_ops)
+function EmployeesModule({ employees, setEmployees, t, lang, session, fmt }) {
+  const canManage = ['super_admin', 'gm', 'manager_ops'].includes(session.role);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingEmp, setEditingEmp] = useState(null);
+  const [confirmDeactivateUser, setConfirmDeactivateUser] = useState(null);
+  const [confirmActivateUser, setConfirmActivateUser] = useState(null);
+  const [filter, setFilter] = useState('all');
+
+  // PERFORMANCE: Memoize transformation + filter
+  const employeeArr = useMemo(() => Object.entries(employees).map(([username, data]) => ({ username, ...data })), [employees]);
+
+  const filtered = useMemo(() => filter === 'active' ? employeeArr.filter(e => e.active !== false)
+    : filter === 'inactive' ? employeeArr.filter(e => e.active === false)
+    : employeeArr, [employeeArr, filter]);
+
+  const sortedEmps = useMemo(() => {
+    // Sort: active first, then by position rank
+    const posOrder = { 'Direksi': 0, 'General Manager': 1, 'Manager Operasional': 2, 'Manager': 3, 'Supervisor': 4, 'Staff': 5, '-': 99 };
+    return [...filtered].sort((a, b) => {
+      if ((a.active !== false) !== (b.active !== false)) return (a.active !== false) ? -1 : 1;
+      return (posOrder[a.position] ?? 99) - (posOrder[b.position] ?? 99);
+    });
+  }, [filtered]);
+
+  const handleSave = (emp) => {
+    setEmployees(prev => ({ ...prev, [emp.username]: emp }));
+    setModalOpen(false); setEditingEmp(null);
+  };
+
+  const handleDeactivate = (username) => {
+    setEmployees(prev => ({ ...prev, [username]: { ...prev[username], active: false } }));
+    setConfirmDeactivateUser(null);
+  };
+  const handleActivate = (username) => {
+    setEmployees(prev => ({ ...prev, [username]: { ...prev[username], active: true } }));
+    setConfirmActivateUser(null);
+  };
+
+  // KPI stats
+  const totalEmps = employeeArr.length;
+  const activeEmps = employeeArr.filter(e => e.active !== false).length;
+  const inactiveEmps = employeeArr.filter(e => e.active === false).length;
+  const byPosition = {};
+  employeeArr.forEach(e => {
+    if (e.active === false) return;
+    byPosition[e.position] = (byPosition[e.position] || 0) + 1;
+  });
+
+  if (!canManage) {
+    return (
+      <div>
+        <div style={{marginBottom: '22px'}}>
+          <div style={{fontSize: '11px', letterSpacing: '0.3em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '6px'}}>{t.nav_employees}</div>
+          <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{t.emp_title}</h1>
+        </div>
+        <div style={{padding: '24px', background: '#fef9e7', border: '1px solid #c8a96a', borderLeft: '3px solid #c8a96a'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+            <Lock size={20} color="#8a6a2a" />
+            <div style={{fontSize: '13px', color: '#5a4a1a'}}>{t.emp_restricted}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{marginBottom: '22px'}}>
+        <div style={{fontSize: '11px', letterSpacing: '0.3em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '6px'}}>{t.nav_employees}</div>
+        <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{t.emp_title}</h1>
+        <div style={{fontSize: '13px', color: '#8a7d5c', marginTop: '6px'}}>{t.emp_subtitle}</div>
+      </div>
+
+      {/* KPI Strip */}
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1px', background: '#d4cdb8', marginBottom: '22px', border: '1px solid #d4cdb8'}}>
+        <div style={{padding: '16px 18px', background: '#fefcf7'}}>
+          <div className="lbl-tag">{t.emp_total}</div>
+          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px'}}>{totalEmps}</div>
+        </div>
+        <div style={{padding: '16px 18px', background: '#fefcf7'}}>
+          <div className="lbl-tag">{t.emp_active}</div>
+          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px', color: '#3a6b3a'}}>{activeEmps}</div>
+        </div>
+        <div style={{padding: '16px 18px', background: '#fefcf7'}}>
+          <div className="lbl-tag">{t.emp_inactive}</div>
+          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px', color: '#8a7d5c'}}>{inactiveEmps}</div>
+        </div>
+        <div style={{padding: '16px 18px', background: '#1a2942', color: '#f8f5ef'}}>
+          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#c8a96a', textTransform: 'uppercase'}}>{t.emp_by_position}</div>
+          <div style={{fontSize: '11px', marginTop: '4px', lineHeight: 1.6}}>
+            {Object.entries(byPosition).map(([pos, n]) => <div key={pos}><span style={{opacity: 0.7}}>{pos}:</span> <strong>{n}</strong></div>)}
+          </div>
+        </div>
+      </div>
+
+      {/* List + Add */}
+      <div style={{background: '#fefcf7', border: '1px solid #e8e1cc'}}>
+        <div style={{padding: '14px 18px', borderBottom: '1px solid #e8e1cc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+            <div className="serif" style={{fontSize: '17px', fontWeight: 500}}>{lang === 'id' ? 'Daftar Karyawan' : 'Employee List'}</div>
+            <div style={{display: 'flex', gap: '4px'}}>
+              {[
+                { id: 'all', label: lang === 'id' ? 'Semua' : 'All' },
+                { id: 'active', label: t.emp_active },
+                { id: 'inactive', label: t.emp_inactive },
+              ].map(f => (
+                <button key={f.id} onClick={() => setFilter(f.id)} style={{padding: '4px 10px', fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', background: filter === f.id ? '#1a2942' : 'transparent', color: filter === f.id ? '#c8a96a' : '#8a7d5c', border: '1px solid ' + (filter === f.id ? '#1a2942' : '#d4cdb8'), cursor: 'pointer', fontFamily: 'inherit'}}>{f.label}</button>
+              ))}
+            </div>
+          </div>
+          <button className="btn-primary" onClick={() => { setEditingEmp(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><UserPlus size={12} />{t.emp_add_btn}</button>
+        </div>
+
+        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+          <thead>
+            <tr style={{background: '#f8f5ef'}}>
+              <Th>{t.emp_username}</Th>
+              <Th>{t.emp_name}</Th>
+              <Th>{t.emp_position}</Th>
+              <Th>{t.emp_role}</Th>
+              <Th align="right">{t.emp_allowance}</Th>
+              <Th align="center">Status</Th>
+              <Th align="center">{t.actions}</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedEmps.map(emp => {
+              const isInactive = emp.active === false;
+              const posColors = { 'Direksi': '#7b3fb5', 'General Manager': '#1a4d8a', 'Manager Operasional': '#0f7a5a', 'Manager': '#c8a96a', 'Supervisor': '#5b87b8', 'Staff': '#94a3b8' };
+              const posColor = posColors[emp.position] || '#8a7d5c';
+              return (
+                <tr key={emp.username} style={{borderTop: '1px solid #e8e1cc', opacity: isInactive ? 0.55 : 1}}>
+                  <Td><span className="mono" style={{fontWeight: 600, color: '#1a2942'}}>{emp.username}</span></Td>
+                  <Td>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                      <div style={{width: '26px', height: '26px', borderRadius: '50%', background: posColor, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 600, flexShrink: 0}}>{emp.initial}</div>
+                      <div>
+                        <div style={{fontWeight: 500}}>{emp.name}</div>
+                        {emp.salesId && <div style={{fontSize: '10px', color: '#8a7d5c'}}>Sales ID: {emp.salesId}</div>}
+                      </div>
+                    </div>
+                  </Td>
+                  <Td><span style={{padding: '2px 8px', fontSize: '10px', background: posColor + '25', color: posColor, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{emp.position}</span></Td>
+                  <Td><span style={{fontSize: '11px', color: '#1a2942'}}>{t[`role_${emp.role}`] || emp.role}</span></Td>
+                  <Td align="right"><span className="mono" style={{fontSize: '11px', color: '#1a2942', fontWeight: 500}}>{emp.allowancePerDay > 0 ? fmt(emp.allowancePerDay) : '-'}</span></Td>
+                  <Td align="center">
+                    {isInactive
+                      ? <span style={{padding: '2px 8px', fontSize: '10px', background: '#8a7d5c25', color: '#8a7d5c', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{t.emp_status_inactive}</span>
+                      : <span style={{padding: '2px 8px', fontSize: '10px', background: '#3a6b3a25', color: '#3a6b3a', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{t.emp_status_active}</span>}
+                  </Td>
+                  <Td align="center">
+                    <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
+                      <button onClick={() => { setEditingEmp(emp); setModalOpen(true); }} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: '#1a2942', fontFamily: 'inherit'}} title={t.crud_edit}><Edit2 size={11} /></button>
+                      {isInactive
+                        ? <button onClick={() => setConfirmActivateUser(emp.username)} style={{background: 'transparent', border: '1px solid #3a6b3a', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: '#3a6b3a', fontFamily: 'inherit'}} title={t.emp_activate}><UserCheck size={11} /></button>
+                        : (emp.username !== session.username && <button onClick={() => setConfirmDeactivateUser(emp.username)} style={{background: 'transparent', border: '1px solid #c8a96a', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: '#c8a96a', fontFamily: 'inherit'}} title={t.emp_deactivate}><UserX size={11} /></button>)}
+                    </div>
+                  </Td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {sortedEmps.length === 0 && <div className="empty-state">{t.no_data}</div>}
+      </div>
+
+      {modalOpen && <EmployeeModal emp={editingEmp} employees={employees} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingEmp(null); }} t={t} lang={lang} />}
+      <ConfirmDialog open={!!confirmDeactivateUser} title={lang === 'id' ? 'Non-aktifkan Karyawan?' : 'Deactivate Employee?'} message={t.emp_confirm_deactivate} confirmText={lang === 'id' ? 'Ya, Non-aktifkan' : 'Yes, Deactivate'} onConfirm={() => handleDeactivate(confirmDeactivateUser)} onCancel={() => setConfirmDeactivateUser(null)} danger lang={lang} />
+      <ConfirmDialog open={!!confirmActivateUser} title={lang === 'id' ? 'Aktifkan Karyawan?' : 'Activate Employee?'} message={t.emp_confirm_activate} confirmText={lang === 'id' ? 'Ya, Aktifkan' : 'Yes, Activate'} onConfirm={() => handleActivate(confirmActivateUser)} onCancel={() => setConfirmActivateUser(null)} lang={lang} />
+    </div>
+  );
+}
+
+// ============== Employee Add/Edit Modal ==============
+function EmployeeModal({ emp, employees, onSave, onClose, t, lang }) {
+  const isEdit = !!emp;
+  const [form, setForm] = useState(emp || {
+    username: '', name: '', initial: '',
+    position: 'Staff', role: 'sales', allowancePerDay: 130000,
+    password: 'hnti2026', active: true, salesId: '',
+  });
+  const [error, setError] = useState('');
+  const update = (k, v) => { setError(''); setForm(prev => ({ ...prev, [k]: v })); };
+
+  const updatePosition = (pos) => {
+    setForm(prev => ({ ...prev, position: pos, allowancePerDay: POSITION_ALLOWANCE[pos] ?? prev.allowancePerDay }));
+  };
+
+  // Derive initial from name automatically
+  const autoInitial = (name) => {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  };
+
+  const handleSubmit = () => {
+    if (!form.username || !form.name) {
+      setError(lang === 'id' ? 'Username dan Nama wajib diisi.' : 'Username and Name are required.');
+      return;
+    }
+    if (!isEdit && employees[form.username]) {
+      setError(t.emp_duplicate_username);
+      return;
+    }
+    const finalForm = { ...form, initial: form.initial || autoInitial(form.name) };
+    onSave(finalForm);
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={e => e.stopPropagation()}>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px'}}>
+          <h2 className="serif" style={{fontSize: '22px', margin: 0, fontWeight: 500}}>{isEdit ? t.emp_modal_edit : t.emp_modal_add}</h2>
+          <button onClick={onClose} style={{background: 'transparent', border: 'none', cursor: 'pointer', color: '#8a7d5c'}}><X size={20} /></button>
+        </div>
+        {error && <div style={{padding: '10px 14px', background: '#c0303015', borderLeft: '3px solid #c03030', color: '#c03030', fontSize: '12px', marginBottom: '14px'}}>{error}</div>}
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px'}}>
+          <Field label={t.emp_username}>
+            <input value={form.username} onChange={e => update('username', e.target.value.toLowerCase().replace(/\s+/g, ''))} disabled={isEdit} placeholder="contoh: budi" />
+            <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px', fontStyle: 'italic'}}>{t.emp_field_username_help}</div>
+          </Field>
+          <Field label={t.emp_name}>
+            <input value={form.name} onChange={e => update('name', e.target.value)} placeholder="contoh: Budi Hartono" />
+          </Field>
+          <Field label={t.emp_position}>
+            <select value={form.position} onChange={e => updatePosition(e.target.value)}>
+              <option value="Staff">Staff (Rp 130.000)</option>
+              <option value="Supervisor">Supervisor (Rp 150.000)</option>
+              <option value="Manager">Manager (Rp 175.000)</option>
+              <option value="Manager Operasional">Manager Operasional (Rp 175.000)</option>
+              <option value="General Manager">General Manager (Rp 175.000)</option>
+              <option value="Direksi">Direksi (Rp 500.000)</option>
+            </select>
+            <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px', fontStyle: 'italic'}}>{t.emp_field_position_help}</div>
+          </Field>
+          <Field label={t.emp_role}>
+            <select value={form.role} onChange={e => update('role', e.target.value)}>
+              <option value="super_admin">Super Admin (CEO)</option>
+              <option value="gm">General Manager</option>
+              <option value="manager_ops">Manager Operasional</option>
+              <option value="admin">Admin</option>
+              <option value="finance">Finance</option>
+              <option value="operations">Operations</option>
+              <option value="technician">Technician</option>
+              <option value="regulatory">Regulatory</option>
+              <option value="sales">Sales</option>
+            </select>
+          </Field>
+          <Field label={t.emp_allowance}>
+            <input type="number" value={form.allowancePerDay} onChange={e => update('allowancePerDay', parseInt(e.target.value) || 0)} />
+          </Field>
+          {form.role === 'sales' && (
+            <Field label="Sales ID (untuk performance tracking)">
+              <input value={form.salesId || ''} onChange={e => update('salesId', e.target.value.toLowerCase())} placeholder="otomatis = username" />
+            </Field>
+          )}
+        </div>
+        <div style={{marginTop: '14px', padding: '10px 14px', background: '#fef9e7', borderLeft: '3px solid #c8a96a', fontSize: '11px', color: '#5a4a1a'}}>{t.emp_password_note}</div>
+        <div style={{display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px'}}>
+          <button className="btn-ghost" onClick={onClose}>{t.crud_cancel}</button>
+          <button className="btn-primary" onClick={handleSubmit}>{t.crud_save}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============== Business Trip Module ==============
+// Workflow approval 3-level: Karyawan → Finance → Manager Ops → GM → Paid → In Progress → Completed
+function BusinessTripModule({ businessTrips, setBusinessTrips, realizations, setRealizations, employees, t, lang, session, fmt }) {
+  const [tab, setTab] = useState('cash_advance');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingTrip, setEditingTrip] = useState(null);
+  const [detailTrip, setDetailTrip] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null); // {action, trip, note}
+  const [deleteTripId, setDeleteTripId] = useState(null);
+  const [filterView, setFilterView] = useState('all'); // all | my | pending
+
+  // Realization state
+  const [realizationFormOpen, setRealizationFormOpen] = useState(false);
+  const [editingRealization, setEditingRealization] = useState(null);
+  const [selectedTripForRealization, setSelectedTripForRealization] = useState(null);
+  const [detailRealization, setDetailRealization] = useState(null);
+  const [confirmRealizationAction, setConfirmRealizationAction] = useState(null); // {action, realization, note}
+  const [deleteRealizationId, setDeleteRealizationId] = useState(null);
+  const [confirmSettleId, setConfirmSettleId] = useState(null);
+
+  // Determine what user can see
+  const canManageAll = ['super_admin', 'gm', 'manager_ops', 'finance'].includes(session.role);
+  const isReviewer = ['finance', 'manager_ops', 'gm', 'super_admin'].includes(session.role);
+
+  // Filter trips based on user
+  const visibleTrips = useMemo(() => {
+    let arr = [...businessTrips];
+    if (!canManageAll) {
+      // Regular employees only see their own
+      arr = arr.filter(t => t.travelerUsername === session.username);
+    } else if (filterView === 'my') {
+      arr = arr.filter(t => t.travelerUsername === session.username);
+    } else if (filterView === 'pending') {
+      // Pending review by current user's role
+      if (session.role === 'finance') arr = arr.filter(t => t.status === 'pending_finance');
+      else if (session.role === 'manager_ops') arr = arr.filter(t => t.status === 'pending_mops');
+      else if (session.role === 'gm') arr = arr.filter(t => t.status === 'pending_gm');
+      else arr = arr.filter(t => ['pending_finance', 'pending_mops', 'pending_gm'].includes(t.status));
+    }
+    // Sort: newest first
+    return arr.sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''));
+  }, [businessTrips, session, filterView, canManageAll]);
+
+  // Stats
+  const totalTrips = businessTrips.length;
+  const myTrips = businessTrips.filter(t => t.travelerUsername === session.username).length;
+  let pendingForMe = 0;
+  if (session.role === 'finance') pendingForMe = businessTrips.filter(t => t.status === 'pending_finance').length;
+  else if (session.role === 'manager_ops') pendingForMe = businessTrips.filter(t => t.status === 'pending_mops').length;
+  else if (session.role === 'gm') pendingForMe = businessTrips.filter(t => t.status === 'pending_gm').length;
+
+  const totalAdvance = businessTrips
+    .filter(t => ['approved', 'paid', 'in_progress', 'completed'].includes(t.status))
+    .reduce((sum, t) => sum + (t.totalAdvance || 0), 0);
+
+  // ============== Handlers ==============
+  const handleSubmit = (trip) => {
+    // From draft → pending_finance
+    const updated = {
+      ...trip,
+      status: 'pending_finance',
+      submittedAt: trip.submittedAt || new Date().toISOString().split('T')[0],
+      updatedAt: new Date().toISOString().split('T')[0],
+      approvalHistory: [...(trip.approvalHistory || []), {
+        level: 'submit', by: session.username, byName: session.name,
+        date: new Date().toISOString().split('T')[0], action: 'submitted', note: ''
+      }]
+    };
+    setBusinessTrips(prev => {
+      const exists = prev.find(x => x.id === trip.id);
+      return exists ? prev.map(x => x.id === trip.id ? updated : x) : [...prev, updated];
+    });
+    setModalOpen(false); setEditingTrip(null);
+  };
+
+  const handleSaveDraft = (trip) => {
+    // Save as draft (no status change to pending)
+    const updated = { ...trip, updatedAt: new Date().toISOString().split('T')[0] };
+    setBusinessTrips(prev => {
+      const exists = prev.find(x => x.id === trip.id);
+      return exists ? prev.map(x => x.id === trip.id ? updated : x) : [...prev, updated];
+    });
+    setModalOpen(false); setEditingTrip(null);
+  };
+
+  const handleApprove = (trip, note) => {
+    // Determine next status based on current
+    let nextStatus = trip.status;
+    let level = '';
+    if (trip.status === 'pending_finance') { nextStatus = 'pending_mops'; level = 'finance'; }
+    else if (trip.status === 'pending_mops') { nextStatus = 'pending_gm'; level = 'manager_ops'; }
+    else if (trip.status === 'pending_gm') { nextStatus = 'approved'; level = 'gm'; }
+
+    const updated = {
+      ...trip, status: nextStatus,
+      updatedAt: new Date().toISOString().split('T')[0],
+      approvalHistory: [...(trip.approvalHistory || []), {
+        level, by: session.username, byName: session.name,
+        date: new Date().toISOString().split('T')[0], action: 'approved', note: note || ''
+      }]
+    };
+    setBusinessTrips(prev => prev.map(x => x.id === trip.id ? updated : x));
+    setConfirmAction(null); setDetailTrip(updated);
+  };
+
+  const handleReject = (trip, note) => {
+    let level = '';
+    if (trip.status === 'pending_finance') level = 'finance';
+    else if (trip.status === 'pending_mops') level = 'manager_ops';
+    else if (trip.status === 'pending_gm') level = 'gm';
+
+    const updated = {
+      ...trip, status: 'rejected', tripStatus: 'cancelled',
+      updatedAt: new Date().toISOString().split('T')[0],
+      approvalHistory: [...(trip.approvalHistory || []), {
+        level, by: session.username, byName: session.name,
+        date: new Date().toISOString().split('T')[0], action: 'rejected', note: note || ''
+      }]
+    };
+    setBusinessTrips(prev => prev.map(x => x.id === trip.id ? updated : x));
+    setConfirmAction(null); setDetailTrip(updated);
+  };
+
+  const handleClarify = (trip, note) => {
+    let level = '';
+    if (trip.status === 'pending_finance') level = 'finance';
+    else if (trip.status === 'pending_mops') level = 'manager_ops';
+    else if (trip.status === 'pending_gm') level = 'gm';
+
+    const updated = {
+      ...trip, status: 'clarification',
+      updatedAt: new Date().toISOString().split('T')[0],
+      approvalHistory: [...(trip.approvalHistory || []), {
+        level, by: session.username, byName: session.name,
+        date: new Date().toISOString().split('T')[0], action: 'clarification', note: note || ''
+      }]
+    };
+    setBusinessTrips(prev => prev.map(x => x.id === trip.id ? updated : x));
+    setConfirmAction(null); setDetailTrip(updated);
+  };
+
+  const handleMarkPaid = (trip, note) => {
+    const today = new Date().toISOString().split('T')[0];
+    const updated = {
+      ...trip, status: 'in_progress', tripStatus: 'planned', paymentStatus: 'paid',
+      paidDate: today, paidAmount: trip.totalAdvance,
+      updatedAt: today,
+      approvalHistory: [...(trip.approvalHistory || []), {
+        level: 'finance', by: session.username, byName: session.name,
+        date: today, action: 'paid', note: note || `Transfer Rp ${trip.totalAdvance.toLocaleString('id-ID')}`
+      }]
+    };
+    setBusinessTrips(prev => prev.map(x => x.id === trip.id ? updated : x));
+    setConfirmAction(null); setDetailTrip(updated);
+  };
+
+  const handleDelete = () => {
+    setBusinessTrips(prev => prev.filter(x => x.id !== deleteTripId));
+    setDeleteTripId(null);
+  };
+
+  // ============== REALIZATION HANDLERS ==============
+  // Trip yang eligible untuk dilaporkan: status in_progress atau completed yang sudah paid, dan belum punya realisasi
+  const eligibleTripsForRealization = useMemo(() => {
+    return businessTrips.filter(t =>
+      ['in_progress', 'completed'].includes(t.status) &&
+      t.paymentStatus === 'paid' &&
+      t.travelerUsername === session.username
+    );
+  }, [businessTrips, session.username]);
+
+  // Visible realizations based on user role
+  const visibleRealizations = useMemo(() => {
+    let arr = [...realizations];
+    if (!canManageAll) {
+      arr = arr.filter(r => r.travelerUsername === session.username);
+    } else if (filterView === 'my') {
+      arr = arr.filter(r => r.travelerUsername === session.username);
+    } else if (filterView === 'pending') {
+      if (session.role === 'finance') arr = arr.filter(r => r.status === 'pending_finance');
+      else if (session.role === 'manager_ops') arr = arr.filter(r => r.status === 'pending_mops');
+      else if (session.role === 'gm') arr = arr.filter(r => r.status === 'pending_gm');
+      else arr = arr.filter(r => ['pending_finance', 'pending_mops', 'pending_gm'].includes(r.status));
+    }
+    return arr.sort((a, b) => (b.submittedAt || b.updatedAt || '').localeCompare(a.submittedAt || a.updatedAt || ''));
+  }, [realizations, session, filterView, canManageAll]);
+
+  // Stats for realization tab
+  const pendingRealizationsForMe = useMemo(() => {
+    if (session.role === 'finance') return realizations.filter(r => r.status === 'pending_finance').length;
+    if (session.role === 'manager_ops') return realizations.filter(r => r.status === 'pending_mops').length;
+    if (session.role === 'gm') return realizations.filter(r => r.status === 'pending_gm').length;
+    return 0;
+  }, [realizations, session.role]);
+
+  const handleSubmitRealization = (realization) => {
+    // From draft → pending_finance
+    const updated = {
+      ...realization,
+      status: 'pending_finance',
+      submittedAt: realization.submittedAt || new Date().toISOString().split('T')[0],
+      updatedAt: new Date().toISOString().split('T')[0],
+      approvalHistory: [...(realization.approvalHistory || []), {
+        level: 'submit', by: session.username, byName: session.name,
+        date: new Date().toISOString().split('T')[0], action: 'submitted', note: ''
+      }]
+    };
+    setRealizations(prev => {
+      const exists = prev.find(x => x.id === realization.id);
+      return exists ? prev.map(x => x.id === realization.id ? updated : x) : [...prev, updated];
+    });
+    // Link realization to trip
+    setBusinessTrips(prev => prev.map(t =>
+      t.id === realization.businessTripId ? { ...t, realizationId: realization.id } : t
+    ));
+    setRealizationFormOpen(false);
+    setEditingRealization(null);
+    setSelectedTripForRealization(null);
+  };
+
+  const handleSaveRealizationDraft = (realization) => {
+    const updated = { ...realization, updatedAt: new Date().toISOString().split('T')[0] };
+    setRealizations(prev => {
+      const exists = prev.find(x => x.id === realization.id);
+      return exists ? prev.map(x => x.id === realization.id ? updated : x) : [...prev, updated];
+    });
+    setBusinessTrips(prev => prev.map(t =>
+      t.id === realization.businessTripId ? { ...t, realizationId: realization.id } : t
+    ));
+    setRealizationFormOpen(false);
+    setEditingRealization(null);
+    setSelectedTripForRealization(null);
+  };
+
+  const handleApproveRealization = (realization, note) => {
+    // Realization workflow sama dengan Cash Advance: pending_finance → pending_mops → pending_gm → approved
+    let nextStatus = realization.status;
+    let level = '';
+    if (realization.status === 'pending_finance') { nextStatus = 'pending_mops'; level = 'finance'; }
+    else if (realization.status === 'pending_mops') { nextStatus = 'pending_gm'; level = 'manager_ops'; }
+    else if (realization.status === 'pending_gm') { nextStatus = 'approved'; level = 'gm'; }
+
+    const updated = {
+      ...realization, status: nextStatus,
+      updatedAt: new Date().toISOString().split('T')[0],
+      approvalHistory: [...(realization.approvalHistory || []), {
+        level, by: session.username, byName: session.name,
+        date: new Date().toISOString().split('T')[0], action: 'approved', note: note || ''
+      }]
+    };
+    setRealizations(prev => prev.map(x => x.id === realization.id ? updated : x));
+    setConfirmRealizationAction(null);
+    setDetailRealization(updated);
+  };
+
+  const handleClarifyRealization = (realization, note) => {
+    let level = '';
+    if (realization.status === 'pending_finance') level = 'finance';
+    else if (realization.status === 'pending_mops') level = 'manager_ops';
+    else if (realization.status === 'pending_gm') level = 'gm';
+
+    const updated = {
+      ...realization, status: 'clarification',
+      updatedAt: new Date().toISOString().split('T')[0],
+      approvalHistory: [...(realization.approvalHistory || []), {
+        level, by: session.username, byName: session.name,
+        date: new Date().toISOString().split('T')[0], action: 'clarification', note: note || ''
+      }]
+    };
+    setRealizations(prev => prev.map(x => x.id === realization.id ? updated : x));
+    setConfirmRealizationAction(null);
+    setDetailRealization(updated);
+  };
+
+  const handleSettle = (realizationId) => {
+    const today = new Date().toISOString().split('T')[0];
+    setRealizations(prev => prev.map(r => {
+      if (r.id !== realizationId) return r;
+      return {
+        ...r,
+        settlementStatus: 'settled',
+        settlementDate: today,
+        settlementAmount: Math.abs(r.difference),
+        settlementNote: r.difference > 0
+          ? `Karyawan kembalikan kelebihan Rp ${Math.abs(r.difference).toLocaleString('id-ID')}`
+          : (r.difference < 0 ? `Kantor reimburse kekurangan Rp ${Math.abs(r.difference).toLocaleString('id-ID')}` : 'Tidak ada selisih'),
+      };
+    }));
+    setConfirmSettleId(null);
+  };
+
+  const handleDeleteRealization = () => {
+    setRealizations(prev => prev.filter(x => x.id !== deleteRealizationId));
+    setDeleteRealizationId(null);
+  };
+
+  return (
+    <div>
+      <div style={{marginBottom: '22px'}}>
+        <div style={{fontSize: '11px', letterSpacing: '0.3em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '6px'}}>{t.nav_business_trip}</div>
+        <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{t.bt_title}</h1>
+        <div style={{fontSize: '13px', color: '#8a7d5c', marginTop: '6px'}}>{t.bt_subtitle}</div>
+      </div>
+
+      {/* KPI Strip */}
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1px', background: '#d4cdb8', marginBottom: '22px', border: '1px solid #d4cdb8'}}>
+        <div style={{padding: '14px 16px', background: '#fefcf7'}}>
+          <div style={{fontSize: '9px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{canManageAll ? t.bt_all_trips : t.bt_my_trips}</div>
+          <div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '3px'}}>{canManageAll ? totalTrips : myTrips}</div>
+        </div>
+        {isReviewer && (
+          <div style={{padding: '14px 16px', background: pendingForMe > 0 ? '#fef9e7' : '#fefcf7', borderLeft: pendingForMe > 0 ? '3px solid #c8a96a' : 'none'}}>
+            <div style={{fontSize: '9px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.bt_pending_review}</div>
+            <div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '3px', color: pendingForMe > 0 ? '#c8a96a' : '#1a2942'}}>{pendingForMe}</div>
+            <div style={{fontSize: '9px', color: '#8a7d5c', marginTop: '2px'}}>{lang === 'id' ? 'butuh review Anda' : 'awaiting your review'}</div>
+          </div>
+        )}
+        {canManageAll && (
+          <div style={{padding: '14px 16px', background: '#1a2942', color: '#f8f5ef'}}>
+            <div style={{fontSize: '9px', letterSpacing: '0.2em', color: '#c8a96a', textTransform: 'uppercase'}}>{t.bt_total_advance_label}</div>
+            <div className="serif mono" style={{fontSize: '18px', fontWeight: 500, marginTop: '3px', color: '#fff'}}>{fmt(totalAdvance)}</div>
+            <div style={{fontSize: '9px', color: 'rgba(255,255,255,0.6)', marginTop: '2px'}}>{lang === 'id' ? 'approved & paid' : 'approved & paid'}</div>
+          </div>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <div style={{display: 'flex', gap: '2px', marginBottom: '20px', borderBottom: '1px solid #d4cdb8', flexWrap: 'wrap'}}>
+        {[
+          { id: 'cash_advance', label: t.bt_tab_cash_advance, icon: Receipt },
+          { id: 'realization', label: t.bt_tab_realization, icon: FileCheck },
+          { id: 'dashboard', label: t.bt_tab_dashboard, icon: Activity },
+        ].map(tb => {
+          const Icon = tb.icon;
+          const active = tab === tb.id;
+          return (
+            <button key={tb.id} onClick={() => setTab(tb.id)} style={{background: 'transparent', border: 'none', padding: '10px 16px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 500, color: active ? '#1a2942' : '#8a7d5c', borderBottom: active ? '2px solid #1a2942' : '2px solid transparent', marginBottom: '-1px', display: 'flex', alignItems: 'center', gap: '7px', letterSpacing: '0.03em'}}>
+              <Icon size={14} strokeWidth={1.5} />{tb.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* CASH ADVANCE TAB */}
+      {tab === 'cash_advance' && (
+        <div>
+          {/* Filter + Add buttons */}
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '14px'}}>
+            {canManageAll && (
+              <div style={{display: 'flex', gap: '4px'}}>
+                {[
+                  { id: 'all', label: t.bt_all_trips },
+                  { id: 'my', label: t.bt_my_trips },
+                  { id: 'pending', label: t.bt_pending_review },
+                ].map(f => (
+                  <button key={f.id} onClick={() => setFilterView(f.id)} style={{padding: '5px 11px', fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', background: filterView === f.id ? '#1a2942' : 'transparent', color: filterView === f.id ? '#c8a96a' : '#8a7d5c', border: '1px solid ' + (filterView === f.id ? '#1a2942' : '#d4cdb8'), cursor: 'pointer', fontFamily: 'inherit'}}>{f.label}</button>
+                ))}
+              </div>
+            )}
+            <div style={{flex: canManageAll ? 'none' : 1}}></div>
+            <button className="btn-primary" onClick={() => { setEditingTrip(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.bt_add_btn}</button>
+          </div>
+
+          {/* Trips list */}
+          <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+            {visibleTrips.map(trip => <BusinessTripCard key={trip.id} trip={trip} t={t} lang={lang} session={session} fmt={fmt} onDetail={() => setDetailTrip(trip)} onEdit={() => { setEditingTrip(trip); setModalOpen(true); }} onDelete={() => setDeleteTripId(trip.id)} />)}
+            {visibleTrips.length === 0 && <div style={{padding: '40px', textAlign: 'center', background: '#fefcf7', border: '1px solid #e8e1cc', color: '#8a7d5c'}}>{t.bt_no_data}</div>}
+          </div>
+        </div>
+      )}
+
+      {/* REALIZATION TAB */}
+      {tab === 'realization' && (
+        <div>
+          {/* Filter + Add */}
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '14px'}}>
+            {canManageAll && (
+              <div style={{display: 'flex', gap: '4px'}}>
+                {[
+                  { id: 'all', label: t.bt_all_trips },
+                  { id: 'my', label: t.bt_my_trips },
+                  { id: 'pending', label: t.bt_pending_review + (pendingRealizationsForMe > 0 ? ` (${pendingRealizationsForMe})` : '') },
+                ].map(f => (
+                  <button key={f.id} onClick={() => setFilterView(f.id)} style={{padding: '5px 11px', fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', background: filterView === f.id ? '#1a2942' : 'transparent', color: filterView === f.id ? '#c8a96a' : '#8a7d5c', border: '1px solid ' + (filterView === f.id ? '#1a2942' : '#d4cdb8'), cursor: 'pointer', fontFamily: 'inherit'}}>{f.label}</button>
+                ))}
+              </div>
+            )}
+            <div style={{flex: canManageAll ? 'none' : 1}}></div>
+            {eligibleTripsForRealization.length > 0 && (
+              <button className="btn-primary" onClick={() => { setEditingRealization(null); setSelectedTripForRealization(null); setRealizationFormOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.btr_add_btn}</button>
+            )}
+          </div>
+
+          {/* Eligible trips banner (for current user only) */}
+          {!canManageAll && eligibleTripsForRealization.length > 0 && (
+            <div style={{padding: '12px 16px', background: '#fef9e7', borderLeft: '3px solid #c8a96a', marginBottom: '14px', fontSize: '12px'}}>
+              <strong>{t.btr_eligible_trips}:</strong> {eligibleTripsForRealization.length} {lang === 'id' ? 'trip yang siap dilaporkan realisasinya' : 'trip(s) ready for realization'}.
+            </div>
+          )}
+          {!canManageAll && eligibleTripsForRealization.length === 0 && visibleRealizations.length === 0 && (
+            <div style={{padding: '40px', textAlign: 'center', background: '#fefcf7', border: '1px solid #e8e1cc', color: '#8a7d5c', fontSize: '13px'}}>
+              <FileCheck size={36} strokeWidth={1.2} style={{color: '#8a7d5c', marginBottom: '12px'}} />
+              <div style={{fontStyle: 'italic'}}>{t.btr_no_eligible_trips}</div>
+            </div>
+          )}
+
+          {/* Realizations list */}
+          <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+            {visibleRealizations.map(r => <BusinessTripRealizationCard key={r.id} realization={r} t={t} lang={lang} session={session} fmt={fmt} onDetail={() => setDetailRealization(r)} onEdit={() => { setEditingRealization(r); setSelectedTripForRealization(businessTrips.find(bt => bt.id === r.businessTripId)); setRealizationFormOpen(true); }} onDelete={() => setDeleteRealizationId(r.id)} />)}
+            {visibleRealizations.length === 0 && canManageAll && <div style={{padding: '40px', textAlign: 'center', background: '#fefcf7', border: '1px solid #e8e1cc', color: '#8a7d5c'}}>{t.btr_no_realization}</div>}
+          </div>
+        </div>
+      )}
+
+      {/* DASHBOARD TAB - Analytics */}
+      {tab === 'dashboard' && <BusinessTripDashboard businessTrips={businessTrips} realizations={realizations} employees={employees} t={t} lang={lang} session={session} canManageAll={canManageAll} fmt={fmt} />}
+
+      {/* Modals */}
+      {modalOpen && <BusinessTripForm trip={editingTrip} employees={employees} session={session} fmt={fmt} onSubmit={handleSubmit} onSaveDraft={handleSaveDraft} onClose={() => { setModalOpen(false); setEditingTrip(null); }} t={t} lang={lang} />}
+      {detailTrip && <BusinessTripDetail trip={detailTrip} session={session} t={t} lang={lang} fmt={fmt} onClose={() => setDetailTrip(null)} onAction={(action, note) => setConfirmAction({ action, trip: detailTrip, note })} />}
+
+      {/* Confirm dialogs */}
+      <ConfirmDialog open={!!confirmAction && confirmAction.action === 'approve'} title={lang === 'id' ? 'Setujui Pengajuan?' : 'Approve Request?'} message={t.bt_confirm_approve + (confirmAction?.note ? '\n\nCatatan: ' + confirmAction.note : '')} confirmText={t.bt_action_approve} onConfirm={() => handleApprove(confirmAction.trip, confirmAction.note)} onCancel={() => setConfirmAction(null)} lang={lang} />
+      <ConfirmDialog open={!!confirmAction && confirmAction.action === 'reject'} title={lang === 'id' ? 'Tolak Pengajuan?' : 'Reject Request?'} message={t.bt_confirm_reject + (confirmAction?.note ? '\n\nAlasan: ' + confirmAction.note : '')} confirmText={t.bt_action_reject} onConfirm={() => handleReject(confirmAction.trip, confirmAction.note)} onCancel={() => setConfirmAction(null)} danger lang={lang} />
+      <ConfirmDialog open={!!confirmAction && confirmAction.action === 'clarify'} title={lang === 'id' ? 'Minta Klarifikasi?' : 'Request Clarification?'} message={t.bt_confirm_clarify + (confirmAction?.note ? '\n\nCatatan: ' + confirmAction.note : '')} confirmText={t.bt_action_clarify} onConfirm={() => handleClarify(confirmAction.trip, confirmAction.note)} onCancel={() => setConfirmAction(null)} lang={lang} />
+      <ConfirmDialog open={!!confirmAction && confirmAction.action === 'mark_paid'} title={lang === 'id' ? 'Konfirmasi Pencairan?' : 'Confirm Disbursement?'} message={t.bt_confirm_mark_paid} confirmText={t.bt_action_mark_paid} onConfirm={() => handleMarkPaid(confirmAction.trip, confirmAction.note)} onCancel={() => setConfirmAction(null)} lang={lang} />
+      <ConfirmDialog open={!!deleteTripId} title={lang === 'id' ? 'Hapus Pengajuan?' : 'Delete Request?'} message={lang === 'id' ? 'Yakin ingin menghapus pengajuan ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this request? This action cannot be undone.'} onConfirm={handleDelete} onCancel={() => setDeleteTripId(null)} danger lang={lang} />
+
+      {/* Realization Modals */}
+      {realizationFormOpen && <BusinessTripRealizationForm fmt={fmt} realization={editingRealization} preSelectedTrip={selectedTripForRealization} eligibleTrips={eligibleTripsForRealization} existingRealizations={realizations} session={session} onSubmit={handleSubmitRealization} onSaveDraft={handleSaveRealizationDraft} onClose={() => { setRealizationFormOpen(false); setEditingRealization(null); setSelectedTripForRealization(null); }} t={t} lang={lang} />}
+      {detailRealization && <BusinessTripRealizationDetail fmt={fmt} realization={detailRealization} businessTrip={businessTrips.find(t => t.id === detailRealization.businessTripId)} session={session} t={t} lang={lang} onClose={() => setDetailRealization(null)} onAction={(action, note) => setConfirmRealizationAction({ action, realization: detailRealization, note })} onSettle={() => setConfirmSettleId(detailRealization.id)} />}
+
+      <ConfirmDialog open={!!confirmRealizationAction && confirmRealizationAction.action === 'approve'} title={lang === 'id' ? 'Setujui Realisasi?' : 'Approve Realization?'} message={t.btr_confirm_approve_realization || (lang === 'id' ? 'Yakin ingin menyetujui laporan realisasi ini? Akan diteruskan ke reviewer berikutnya.' : 'Approve this realization? It will be forwarded to next reviewer.')} confirmText={t.bt_action_approve} onConfirm={() => handleApproveRealization(confirmRealizationAction.realization, confirmRealizationAction.note)} onCancel={() => setConfirmRealizationAction(null)} lang={lang} />
+      <ConfirmDialog open={!!confirmRealizationAction && confirmRealizationAction.action === 'clarify'} title={lang === 'id' ? 'Minta Klarifikasi?' : 'Request Clarification?'} message={t.btr_confirm_clarify_realization || (lang === 'id' ? 'Yakin ingin meminta klarifikasi? Realisasi dikembalikan ke karyawan untuk direvisi.' : 'Request clarification? Will be returned to employee.')} confirmText={t.bt_action_clarify} onConfirm={() => handleClarifyRealization(confirmRealizationAction.realization, confirmRealizationAction.note)} onCancel={() => setConfirmRealizationAction(null)} lang={lang} />
+      <ConfirmDialog open={!!confirmSettleId} title={lang === 'id' ? 'Konfirmasi Settlement?' : 'Confirm Settlement?'} message={t.btr_confirm_settle} confirmText={t.btr_settle_now} onConfirm={() => handleSettle(confirmSettleId)} onCancel={() => setConfirmSettleId(null)} lang={lang} />
+      <ConfirmDialog open={!!deleteRealizationId} title={lang === 'id' ? 'Hapus Realisasi?' : 'Delete Realization?'} message={lang === 'id' ? 'Yakin ingin menghapus laporan realisasi ini?' : 'Delete this realization report?'} onConfirm={handleDeleteRealization} onCancel={() => setDeleteRealizationId(null)} danger lang={lang} />
+    </div>
+  );
+}
+
+// ============== Business Trip Card (List item) ==============
+// React.memo wrapped for performance — re-renders only when trip props change
+const BusinessTripCard = React.memo(function BusinessTripCard({ trip, t, lang, session, fmt, onDetail, onEdit, onDelete }) {
+  const statusColors = {
+    draft: '#94a3b8', pending_finance: '#c8a96a', pending_mops: '#c8a96a', pending_gm: '#c8a96a',
+    approved: '#5b87b8', paid: '#3a6b3a', in_progress: '#5b87b8', completed: '#3a6b3a',
+    rejected: '#8b3a3a', clarification: '#b8935a', postponed: '#94a3b8', cancelled: '#8b3a3a'
+  };
+  const statusColor = statusColors[trip.status] || '#8a7d5c';
+  const isOwner = trip.travelerUsername === session.username;
+  const canEdit = isOwner && ['draft', 'clarification', 'rejected'].includes(trip.status);
+  const canDelete = isOwner && trip.status === 'draft';
+
+  return (
+    <div style={{background: '#fefcf7', border: '1px solid #e8e1cc', borderLeft: `3px solid ${statusColor}`, padding: '14px 18px', cursor: 'pointer'}} onClick={onDetail}>
+      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '10px'}}>
+        <div style={{flex: '1 1 320px'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap'}}>
+            <span className="mono" style={{fontSize: '12px', fontWeight: 700, color: '#1a2942'}}>{trip.requestNo}</span>
+            <span style={{padding: '2px 8px', fontSize: '9px', background: statusColor + '25', color: statusColor, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{t['bt_status_' + trip.status]}</span>
+            {trip.paymentStatus === 'paid' && <span style={{padding: '2px 8px', fontSize: '9px', background: '#3a6b3a25', color: '#3a6b3a', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>✓ {t.bt_payment_paid}</span>}
+          </div>
+          <div style={{fontSize: '13px', fontWeight: 600, marginTop: '2px'}}>{trip.travelerName} <span style={{fontSize: '10px', color: '#8a7d5c', fontWeight: 400}}>· {trip.position}</span></div>
+          <div style={{fontSize: '11px', color: '#8a7d5c', marginTop: '4px'}}>🎯 <strong>{trip.destination}</strong> · <span className="mono">{trip.dateStart} → {trip.dateEnd}</span> ({trip.duration} {t.days})</div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px', fontStyle: 'italic'}}>{trip.purpose}</div>
+        </div>
+        <div style={{textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px'}}>
+          <div className="mono" style={{fontSize: '15px', fontWeight: 600, color: '#1a2942'}}>{fmt(trip.totalAdvance)}</div>
+          <div style={{fontSize: '9px', color: '#8a7d5c', letterSpacing: '0.05em', textTransform: 'uppercase'}}>{t.bt_total_advance}</div>
+          <div style={{display: 'flex', gap: '4px', marginTop: '4px'}}>
+            {canEdit && <button onClick={(e) => { e.stopPropagation(); onEdit(); }} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: '#1a2942', fontFamily: 'inherit'}} title={t.crud_edit}><Edit2 size={11} /></button>}
+            {canDelete && <button onClick={(e) => { e.stopPropagation(); onDelete(); }} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: '#c03030', fontFamily: 'inherit'}} title={t.crud_delete}><Trash2 size={11} /></button>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// ============== Business Trip Form (Add/Edit) ==============
+function BusinessTripForm({ trip, employees, session, onSubmit, onSaveDraft, onClose, t, lang, fmt }) {
+  const isEdit = !!trip;
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  // Use current user as traveler (unless admin/manager editing for someone else - for now, self only)
+  const traveler = employees[session.username] || { name: session.name, position: session.position, allowancePerDay: session.allowancePerDay };
+
+  const [form, setForm] = useState(trip || {
+    id: 'bt_' + Date.now(),
+    requestNo: 'BT-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-5),
+    travelerUsername: session.username, travelerName: session.name,
+    position: traveler.position || 'Staff',
+    allowancePerDay: traveler.allowancePerDay || POSITION_ALLOWANCE['Staff'],
+    destination: '', destinationCity: '', purpose: '',
+    dateStart: todayStr, dateEnd: todayStr, duration: 1,
+    costs: { taxiHome: 0, taxiArrival: 0, taxiRs: 0, localTransport: 0, meals: 0, other: 0, otherNotes: '', allowanceTotal: traveler.allowancePerDay || 130000 },
+    officeBooked: { ticketPP: 0, hotelTotal: 0, ticketNote: '', hotelNote: '' },
+    bankAccount: { bankName: '', accountNo: '', holderName: traveler.name || session.name },
+    status: 'draft', tripStatus: 'planned', paymentStatus: 'pending',
+    paidDate: null, paidAmount: 0, paidProof: '',
+    approvalHistory: [], submittedAt: '', updatedAt: '', realizationId: null,
+  });
+
+  const update = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
+  const updateCost = (k, v) => setForm(prev => ({ ...prev, costs: { ...prev.costs, [k]: v } }));
+  const updateOffice = (k, v) => setForm(prev => ({ ...prev, officeBooked: { ...prev.officeBooked, [k]: v } }));
+  const updateBank = (k, v) => setForm(prev => ({ ...prev, bankAccount: { ...prev.bankAccount, [k]: v } }));
+
+  // Auto-calc duration
+  useEffect(() => {
+    if (form.dateStart && form.dateEnd) {
+      const d1 = new Date(form.dateStart);
+      const d2 = new Date(form.dateEnd);
+      const diff = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1);
+      setForm(prev => {
+        const allowanceTotal = diff * (prev.allowancePerDay || 130000);
+        return { ...prev, duration: diff, costs: { ...prev.costs, allowanceTotal } };
+      });
+    }
+  }, [form.dateStart, form.dateEnd, form.allowancePerDay]);
+
+  // Calc total cash advance
+  const totalCash = (form.costs.taxiHome || 0) + (form.costs.taxiArrival || 0) + (form.costs.taxiRs || 0) +
+    (form.costs.localTransport || 0) + (form.costs.meals || 0) + (form.costs.other || 0) +
+    (form.costs.allowanceTotal || 0);
+
+  const [confirmSubmit, setConfirmSubmit] = useState(false);
+
+  const handleSubmitClick = () => {
+    if (!form.destination || !form.purpose || !form.bankAccount.accountNo) {
+      showToast(lang === 'id' ? 'Mohon lengkapi Tujuan, Keperluan, dan No. Rekening Bank.' : 'Please complete Destination, Purpose, and Bank Account Number.', 'warning');
+      return;
+    }
+    setConfirmSubmit(true);
+  };
+
+  const handleConfirmSubmit = () => {
+    const finalForm = { ...form, totalAdvance: totalCash };
+    onSubmit(finalForm);
+  };
+
+  const handleDraftClick = () => {
+    const finalForm = { ...form, totalAdvance: totalCash };
+    onSaveDraft(finalForm);
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '900px', maxHeight: '90vh', overflow: 'auto'}}>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', position: 'sticky', top: 0, background: '#fefcf7', paddingBottom: '12px', borderBottom: '1px solid #e8e1cc', zIndex: 1}}>
+          <h2 className="serif" style={{fontSize: '22px', margin: 0, fontWeight: 500}}>{isEdit ? t.bt_modal_edit : t.bt_modal_add}</h2>
+          <button onClick={onClose} style={{background: 'transparent', border: 'none', cursor: 'pointer', color: '#8a7d5c'}}><X size={20} /></button>
+        </div>
+
+        {/* Traveler info (read-only) */}
+        <div style={{padding: '10px 14px', background: '#f8f5ef', border: '1px solid #e8e1cc', marginBottom: '14px', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', fontSize: '12px'}}>
+          <div><strong>{t.bt_traveler}:</strong> {form.travelerName}</div>
+          <div><strong>{t.bt_position}:</strong> {form.position}</div>
+          <div><strong>{t.bt_allowance_daily}:</strong> <span className="mono">{fmt((form.allowancePerDay || 0))}</span></div>
+        </div>
+
+        {/* Section 1: Trip Detail */}
+        <div style={{fontSize: '11px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase', fontWeight: 600, marginBottom: '8px'}}>1. {lang === 'id' ? 'Detail Perjalanan' : 'Trip Detail'}</div>
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '16px'}}>
+          <Field label={t.bt_destination}><input value={form.destination} onChange={e => update('destination', e.target.value)} placeholder="RS / Kota tujuan" /></Field>
+          <Field label={t.bt_destination_city}><input value={form.destinationCity} onChange={e => update('destinationCity', e.target.value)} placeholder="Solo, Surabaya, dst" /></Field>
+          <Field label={t.bt_purpose} full><textarea rows={2} value={form.purpose} onChange={e => update('purpose', e.target.value)} placeholder="Tujuan perjalanan secara detail" /></Field>
+          <Field label={t.bt_date_start}><input type="date" value={form.dateStart} onChange={e => update('dateStart', e.target.value)} /></Field>
+          <Field label={t.bt_date_end}><input type="date" value={form.dateEnd} onChange={e => update('dateEnd', e.target.value)} /></Field>
+          <Field label={t.bt_duration}>
+            <input type="number" value={form.duration} readOnly style={{background: '#f0ebe0'}} />
+            <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px', fontStyle: 'italic'}}>{lang === 'id' ? 'Otomatis dari tanggal mulai/akhir' : 'Auto from start/end date'}</div>
+          </Field>
+          <Field label={t.bt_allowance_total}>
+            <input type="number" value={form.costs.allowanceTotal} readOnly style={{background: '#f0ebe0'}} />
+            <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px', fontStyle: 'italic'}}>{form.duration} × {fmt((form.allowancePerDay || 0))}</div>
+          </Field>
+        </div>
+
+        {/* Section 2: Cost Components */}
+        <div style={{fontSize: '11px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase', fontWeight: 600, marginBottom: '8px'}}>2. {lang === 'id' ? 'Komponen Biaya (Cash Advance)' : 'Cost Components (Cash Advance)'}</div>
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '12px'}}>
+          <Field label={t.bt_cost_taxi_home}><input type="number" value={form.costs.taxiHome} onChange={e => updateCost('taxiHome', parseInt(e.target.value) || 0)} /></Field>
+          <Field label={t.bt_cost_taxi_arrival}><input type="number" value={form.costs.taxiArrival} onChange={e => updateCost('taxiArrival', parseInt(e.target.value) || 0)} /></Field>
+          <Field label={t.bt_cost_taxi_rs}><input type="number" value={form.costs.taxiRs} onChange={e => updateCost('taxiRs', parseInt(e.target.value) || 0)} /></Field>
+          <Field label={t.bt_cost_local_transport}><input type="number" value={form.costs.localTransport} onChange={e => updateCost('localTransport', parseInt(e.target.value) || 0)} /></Field>
+          <Field label={t.bt_cost_meals}><input type="number" value={form.costs.meals} onChange={e => updateCost('meals', parseInt(e.target.value) || 0)} /></Field>
+          <Field label={t.bt_cost_other}><input type="number" value={form.costs.other} onChange={e => updateCost('other', parseInt(e.target.value) || 0)} /></Field>
+          <Field label={t.bt_cost_other_notes} full><input value={form.costs.otherNotes} onChange={e => updateCost('otherNotes', e.target.value)} placeholder="Detail item Lain-lain (parkir, retribusi, dll)" /></Field>
+        </div>
+        <div style={{padding: '12px 16px', background: '#1a2942', color: '#fff', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap'}}>
+          <div style={{fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#c8a96a'}}>{t.bt_total_advance}</div>
+          <div className="mono" style={{fontSize: '22px', fontWeight: 600}}>{fmt(totalCash)}</div>
+        </div>
+
+        {/* Section 3: Office-booked (info only) */}
+        <div style={{fontSize: '11px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase', fontWeight: 600, marginBottom: '8px'}}>3. {t.bt_office_booked}</div>
+        <div style={{padding: '10px 14px', background: '#fef9e7', borderLeft: '3px solid #c8a96a', fontSize: '11px', color: '#5a4a1a', marginBottom: '12px'}}>{lang === 'id' ? 'Tiket pesawat & hotel umumnya dipesankan oleh kantor. Nilai di bawah hanya untuk informasi, TIDAK ditransfer ke karyawan.' : 'Flight tickets & hotels are usually booked by office. Values below are FOR INFO ONLY, not transferred to employee.'}</div>
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '20px'}}>
+          <Field label={t.bt_office_ticket + ' (Rp)'}><input type="number" value={form.officeBooked.ticketPP} onChange={e => updateOffice('ticketPP', parseInt(e.target.value) || 0)} /></Field>
+          <Field label={t.bt_office_hotel + ' (Rp)'}><input type="number" value={form.officeBooked.hotelTotal} onChange={e => updateOffice('hotelTotal', parseInt(e.target.value) || 0)} /></Field>
+          <Field label={lang === 'id' ? 'Detail Tiket' : 'Ticket Detail'}><input value={form.officeBooked.ticketNote} onChange={e => updateOffice('ticketNote', e.target.value)} placeholder="PNR / maskapai / rute" /></Field>
+          <Field label={lang === 'id' ? 'Detail Hotel' : 'Hotel Detail'}><input value={form.officeBooked.hotelNote} onChange={e => updateOffice('hotelNote', e.target.value)} placeholder="Nama hotel / jumlah malam" /></Field>
+        </div>
+
+        {/* Section 4: Bank Account */}
+        <div style={{fontSize: '11px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase', fontWeight: 600, marginBottom: '8px'}}>4. {t.bt_bank_account}</div>
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px'}}>
+          <Field label={t.bt_bank_name}><input value={form.bankAccount.bankName} onChange={e => updateBank('bankName', e.target.value)} placeholder="BCA / Mandiri / BNI / BRI" /></Field>
+          <Field label={t.bt_bank_no}><input value={form.bankAccount.accountNo} onChange={e => updateBank('accountNo', e.target.value)} placeholder="No. rekening" /></Field>
+          <Field label={t.bt_bank_holder}><input value={form.bankAccount.holderName} onChange={e => updateBank('holderName', e.target.value)} /></Field>
+        </div>
+
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', borderTop: '1px solid #e8e1cc', paddingTop: '14px'}}>
+          <div style={{fontSize: '10px', color: '#8a7d5c', fontStyle: 'italic'}}>{lang === 'id' ? '"Simpan Draft" untuk simpan tanpa kirim ke Finance. "Kirim ke Finance" untuk mulai workflow approval.' : '"Save Draft" stores without submitting. "Submit to Finance" starts approval workflow.'}</div>
+          <div style={{display: 'flex', gap: '10px'}}>
+            <button className="btn-ghost" onClick={onClose}>{t.crud_cancel}</button>
+            <button className="btn-ghost" onClick={handleDraftClick}>{lang === 'id' ? 'Simpan Draft' : 'Save Draft'}</button>
+            <button className="btn-primary" onClick={handleSubmitClick}>{lang === 'id' ? 'Kirim ke Finance →' : 'Submit to Finance →'}</button>
+          </div>
+        </div>
+      </div>
+      <ConfirmDialog open={confirmSubmit} title={lang === 'id' ? 'Kirim ke Finance?' : 'Submit to Finance?'} message={t.bt_confirm_submit} confirmText={lang === 'id' ? 'Ya, Kirim' : 'Yes, Submit'} onConfirm={() => { setConfirmSubmit(false); handleConfirmSubmit(); }} onCancel={() => setConfirmSubmit(false)} lang={lang} />
+    </div>
+  );
+}
+
+// ============== Business Trip Detail (Review Modal) ==============
+function BusinessTripDetail({ trip, session, t, lang, fmt, onClose, onAction }) {
+  const [reviewNote, setReviewNote] = useState('');
+
+  // Determine what actions current user can take
+  const canReviewFinance = session.role === 'finance' && trip.status === 'pending_finance';
+  const canReviewMops = ['manager_ops', 'super_admin'].includes(session.role) && trip.status === 'pending_mops';
+  const canReviewGm = ['gm', 'super_admin'].includes(session.role) && trip.status === 'pending_gm';
+  const canMarkPaid = session.role === 'finance' && trip.status === 'approved';
+
+  const canReview = canReviewFinance || canReviewMops || canReviewGm;
+
+  const statusColors = {
+    draft: '#94a3b8', pending_finance: '#c8a96a', pending_mops: '#c8a96a', pending_gm: '#c8a96a',
+    approved: '#5b87b8', paid: '#3a6b3a', in_progress: '#5b87b8', completed: '#3a6b3a',
+    rejected: '#8b3a3a', clarification: '#b8935a',
+  };
+  const statusColor = statusColors[trip.status] || '#8a7d5c';
+
+  // PERFORMANCE: Memoize workflow data (only recompute when lang or history changes)
+  const { workflowSteps, completedSteps } = useMemo(() => {
+    const steps = [
+      { id: 'submit', label: lang === 'id' ? 'Diajukan' : 'Submitted' },
+      { id: 'finance', label: 'Finance' },
+      { id: 'manager_ops', label: 'Manager Ops' },
+      { id: 'gm', label: 'GM' },
+      { id: 'paid', label: lang === 'id' ? 'Cair' : 'Disbursed' },
+    ];
+    const done = new Set();
+    (trip.approvalHistory || []).forEach(h => {
+      if (h.action === 'submitted') done.add('submit');
+      else if (h.action === 'approved') done.add(h.level);
+      else if (h.action === 'paid') done.add('paid');
+    });
+    return { workflowSteps: steps, completedSteps: done };
+  }, [lang, trip.approvalHistory]);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '900px', maxHeight: '90vh', overflow: 'auto'}}>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', position: 'sticky', top: 0, background: '#fefcf7', paddingBottom: '12px', borderBottom: '1px solid #e8e1cc', zIndex: 1}}>
+          <div>
+            <h2 className="serif" style={{fontSize: '22px', margin: 0, fontWeight: 500}}>{t.bt_modal_detail}</h2>
+            <div style={{fontSize: '11px', color: '#8a7d5c', marginTop: '4px'}} className="mono">{trip.requestNo}</div>
+          </div>
+          <button onClick={onClose} style={{background: 'transparent', border: 'none', cursor: 'pointer', color: '#8a7d5c'}}><X size={20} /></button>
+        </div>
+
+        {/* Status banner */}
+        <div style={{padding: '14px 18px', background: statusColor + '15', borderLeft: '3px solid ' + statusColor, marginBottom: '16px'}}>
+          <div style={{fontSize: '10px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '4px'}}>Status</div>
+          <div style={{fontSize: '15px', fontWeight: 600, color: statusColor}}>{t['bt_status_' + trip.status]}</div>
+        </div>
+
+        {/* Workflow steps visualization */}
+        <div style={{display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '20px', overflowX: 'auto', padding: '8px 0'}}>
+          {workflowSteps.map((step, i) => {
+            const done = completedSteps.has(step.id);
+            const isRejected = trip.status === 'rejected';
+            return (
+              <React.Fragment key={step.id}>
+                <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: '0 0 auto'}}>
+                  <div style={{width: '32px', height: '32px', borderRadius: '50%', background: done && !isRejected ? '#3a6b3a' : (isRejected ? '#c03030' : '#d4cdb8'), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 600}}>{done ? '✓' : (i + 1)}</div>
+                  <div style={{fontSize: '9px', letterSpacing: '0.05em', textTransform: 'uppercase', color: done ? '#1a2942' : '#8a7d5c', fontWeight: done ? 600 : 400, whiteSpace: 'nowrap'}}>{step.label}</div>
+                </div>
+                {i < workflowSteps.length - 1 && <div style={{height: '2px', flex: 1, background: done ? '#3a6b3a' : '#d4cdb8', minWidth: '20px'}} />}
+              </React.Fragment>
+            );
+          })}
+        </div>
+
+        {/* Traveler info */}
+        <div style={{padding: '12px 16px', background: '#f8f5ef', border: '1px solid #e8e1cc', marginBottom: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', fontSize: '12px'}}>
+          <div><strong>{t.bt_traveler}:</strong> {trip.travelerName}</div>
+          <div><strong>{t.bt_position}:</strong> {trip.position}</div>
+          <div><strong>{t.bt_allowance_daily}:</strong> <span className="mono">{fmt(trip.allowancePerDay)}</span></div>
+        </div>
+
+        {/* Trip details */}
+        <div style={{fontSize: '11px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase', fontWeight: 600, marginBottom: '8px'}}>{lang === 'id' ? 'Detail Perjalanan' : 'Trip Detail'}</div>
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '16px', fontSize: '12px', padding: '14px', background: '#fefcf7', border: '1px solid #e8e1cc'}}>
+          <div><strong>{t.bt_destination}:</strong> {trip.destination}</div>
+          <div><strong>{t.bt_destination_city}:</strong> {trip.destinationCity}</div>
+          <div><strong>{t.bt_date_start}:</strong> <span className="mono">{trip.dateStart}</span></div>
+          <div><strong>{t.bt_date_end}:</strong> <span className="mono">{trip.dateEnd}</span></div>
+          <div><strong>{t.bt_duration}:</strong> {trip.duration} {t.days}</div>
+          <div></div>
+          <div style={{gridColumn: '1 / -1'}}><strong>{t.bt_purpose}:</strong> {trip.purpose}</div>
+        </div>
+
+        {/* Cost breakdown */}
+        <div style={{fontSize: '11px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase', fontWeight: 600, marginBottom: '8px'}}>{lang === 'id' ? 'Breakdown Biaya' : 'Cost Breakdown'}</div>
+        <table style={{width: '100%', borderCollapse: 'collapse', marginBottom: '16px', fontSize: '12px', background: '#fefcf7', border: '1px solid #e8e1cc'}}>
+          <tbody>
+            <tr style={{borderBottom: '1px solid #e8e1cc'}}><td style={{padding: '8px 14px'}}>{t.bt_cost_taxi_home}</td><td style={{padding: '8px 14px', textAlign: 'right'}} className="mono">{fmt(trip.costs.taxiHome)}</td></tr>
+            <tr style={{borderBottom: '1px solid #e8e1cc'}}><td style={{padding: '8px 14px'}}>{t.bt_cost_taxi_arrival}</td><td style={{padding: '8px 14px', textAlign: 'right'}} className="mono">{fmt(trip.costs.taxiArrival)}</td></tr>
+            <tr style={{borderBottom: '1px solid #e8e1cc'}}><td style={{padding: '8px 14px'}}>{t.bt_cost_taxi_rs}</td><td style={{padding: '8px 14px', textAlign: 'right'}} className="mono">{fmt(trip.costs.taxiRs)}</td></tr>
+            <tr style={{borderBottom: '1px solid #e8e1cc'}}><td style={{padding: '8px 14px'}}>{t.bt_cost_local_transport}</td><td style={{padding: '8px 14px', textAlign: 'right'}} className="mono">{fmt(trip.costs.localTransport)}</td></tr>
+            <tr style={{borderBottom: '1px solid #e8e1cc'}}><td style={{padding: '8px 14px'}}>{t.bt_cost_meals}</td><td style={{padding: '8px 14px', textAlign: 'right'}} className="mono">{fmt(trip.costs.meals)}</td></tr>
+            <tr style={{borderBottom: '1px solid #e8e1cc'}}><td style={{padding: '8px 14px'}}>{t.bt_cost_other} {trip.costs.otherNotes && <span style={{fontSize: '10px', color: '#8a7d5c', fontStyle: 'italic'}}>({trip.costs.otherNotes})</span>}</td><td style={{padding: '8px 14px', textAlign: 'right'}} className="mono">{fmt(trip.costs.other)}</td></tr>
+            <tr style={{borderBottom: '1px solid #e8e1cc', background: '#f8f5ef'}}><td style={{padding: '8px 14px', fontWeight: 600}}>{t.bt_allowance_total} ({trip.duration} hari × {fmt(trip.allowancePerDay)})</td><td style={{padding: '8px 14px', textAlign: 'right', fontWeight: 600}} className="mono">{fmt(trip.costs.allowanceTotal)}</td></tr>
+            <tr style={{background: '#1a2942', color: '#fff'}}><td style={{padding: '10px 14px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', fontSize: '11px'}}>{t.bt_total_advance}</td><td style={{padding: '10px 14px', textAlign: 'right', fontWeight: 700, fontSize: '14px'}} className="mono">{fmt(trip.totalAdvance)}</td></tr>
+          </tbody>
+        </table>
+
+        {/* Office-booked */}
+        {(trip.officeBooked.ticketPP > 0 || trip.officeBooked.hotelTotal > 0) && (
+          <>
+            <div style={{fontSize: '11px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase', fontWeight: 600, marginBottom: '8px'}}>{t.bt_office_booked}</div>
+            <div style={{padding: '10px 14px', background: '#fef9e7', borderLeft: '3px solid #c8a96a', marginBottom: '16px', fontSize: '12px'}}>
+              {trip.officeBooked.ticketPP > 0 && <div><strong>✈ {t.bt_office_ticket}:</strong> <span className="mono">{fmt(trip.officeBooked.ticketPP)}</span> {trip.officeBooked.ticketNote && <span style={{color: '#8a7d5c', fontStyle: 'italic'}}>({trip.officeBooked.ticketNote})</span>}</div>}
+              {trip.officeBooked.hotelTotal > 0 && <div style={{marginTop: '4px'}}><strong>🏨 {t.bt_office_hotel}:</strong> <span className="mono">{fmt(trip.officeBooked.hotelTotal)}</span> {trip.officeBooked.hotelNote && <span style={{color: '#8a7d5c', fontStyle: 'italic'}}>({trip.officeBooked.hotelNote})</span>}</div>}
+            </div>
+          </>
+        )}
+
+        {/* Bank account */}
+        <div style={{fontSize: '11px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase', fontWeight: 600, marginBottom: '8px'}}>{t.bt_bank_account}</div>
+        <div style={{padding: '12px 14px', background: '#fefcf7', border: '1px solid #e8e1cc', marginBottom: '16px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', fontSize: '12px'}}>
+          <div><strong>{t.bt_bank_name}:</strong> {trip.bankAccount.bankName || '-'}</div>
+          <div><strong>{t.bt_bank_no}:</strong> <span className="mono">{trip.bankAccount.accountNo || '-'}</span></div>
+          <div><strong>{t.bt_bank_holder}:</strong> {trip.bankAccount.holderName || '-'}</div>
+        </div>
+
+        {/* Payment info */}
+        {trip.paymentStatus === 'paid' && (
+          <>
+            <div style={{fontSize: '11px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase', fontWeight: 600, marginBottom: '8px'}}>{t.bt_payment_status}</div>
+            <div style={{padding: '12px 14px', background: '#3a6b3a15', borderLeft: '3px solid #3a6b3a', marginBottom: '16px', fontSize: '12px'}}>
+              <div><strong>✓ {t.bt_payment_paid}</strong></div>
+              <div style={{marginTop: '4px'}}><strong>{t.bt_paid_date}:</strong> <span className="mono">{trip.paidDate}</span> · <strong>{t.bt_paid_amount}:</strong> <span className="mono">{fmt(trip.paidAmount)}</span></div>
+              {trip.paidProof && <div style={{marginTop: '6px'}}><LinkAttachment url={trip.paidProof} lang={lang} /></div>}
+            </div>
+          </>
+        )}
+
+        {/* Approval history */}
+        <div style={{fontSize: '11px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase', fontWeight: 600, marginBottom: '8px'}}>{t.bt_approval_history}</div>
+        <div style={{padding: '12px 14px', background: '#fefcf7', border: '1px solid #e8e1cc', marginBottom: '20px'}}>
+          {(trip.approvalHistory || []).map((h, i) => {
+            const actionColors = { submitted: '#5b87b8', approved: '#3a6b3a', rejected: '#c03030', clarification: '#b8935a', paid: '#3a6b3a' };
+            const actionLabels = { 
+              submitted: lang === 'id' ? 'Diajukan' : 'Submitted',
+              approved: lang === 'id' ? 'Disetujui' : 'Approved',
+              rejected: lang === 'id' ? 'Ditolak' : 'Rejected',
+              clarification: lang === 'id' ? 'Minta Klarifikasi' : 'Requested Clarification',
+              paid: lang === 'id' ? 'Dana Dicairkan' : 'Funds Disbursed',
+            };
+            const levelLabels = {
+              submit: lang === 'id' ? 'Pengajuan' : 'Submission',
+              finance: 'Finance',
+              manager_ops: 'Manager Operasional',
+              gm: 'General Manager',
+            };
+            return (
+              <div key={i} style={{padding: '8px 0', borderBottom: i < trip.approvalHistory.length - 1 ? '1px dashed #e8e1cc' : 'none', display: 'flex', gap: '12px', alignItems: 'flex-start'}}>
+                <div style={{width: '6px', height: '6px', borderRadius: '50%', background: actionColors[h.action] || '#8a7d5c', marginTop: '6px', flexShrink: 0}} />
+                <div style={{flex: 1, fontSize: '12px'}}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px'}}>
+                    <span><strong style={{color: actionColors[h.action]}}>{actionLabels[h.action]}</strong> · {levelLabels[h.level]} oleh <strong>{h.byName}</strong></span>
+                    <span className="mono" style={{fontSize: '10px', color: '#8a7d5c'}}>{h.date}</span>
+                  </div>
+                  {h.note && <div style={{fontSize: '11px', color: '#1a2942', marginTop: '4px', fontStyle: 'italic', padding: '6px 10px', background: '#f0ebe0'}}>"{h.note}"</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Review actions */}
+        {canReview && (
+          <div style={{padding: '14px', background: '#fef9e7', border: '1px solid #c8a96a', borderLeft: '3px solid #c8a96a', marginBottom: '12px'}}>
+            <div style={{fontSize: '11px', letterSpacing: '0.15em', color: '#5a4a1a', textTransform: 'uppercase', fontWeight: 600, marginBottom: '8px'}}>{canReviewFinance ? t.bt_review_finance : canReviewMops ? t.bt_review_mops : t.bt_review_gm}</div>
+            <Field label={t.bt_review_notes} full><textarea rows={2} value={reviewNote} onChange={e => setReviewNote(e.target.value)} placeholder={lang === 'id' ? 'Catatan review (opsional untuk approve, wajib untuk reject/klarifikasi)' : 'Review notes (optional for approve, required for reject/clarification)'} /></Field>
+            <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px'}}>
+              <button onClick={() => onAction('approve', reviewNote)} style={{background: '#3a6b3a', color: '#fff', border: 'none', padding: '8px 16px', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, letterSpacing: '0.05em'}}>✓ {t.bt_action_approve}</button>
+              <button onClick={() => { if (!reviewNote.trim()) { showToast(lang === 'id' ? 'Mohon isi catatan klarifikasi.' : 'Please provide clarification note.', 'warning'); return; } onAction('clarify', reviewNote); }} style={{background: '#b8935a', color: '#fff', border: 'none', padding: '8px 16px', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, letterSpacing: '0.05em'}}>⚠ {t.bt_action_clarify}</button>
+              <button onClick={() => { if (!reviewNote.trim()) { showToast(lang === 'id' ? 'Mohon isi alasan penolakan.' : 'Please provide rejection reason.', 'warning'); return; } onAction('reject', reviewNote); }} style={{background: '#c03030', color: '#fff', border: 'none', padding: '8px 16px', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, letterSpacing: '0.05em'}}>✗ {t.bt_action_reject}</button>
+            </div>
+          </div>
+        )}
+
+        {/* Mark as paid action (Finance only, after approved) */}
+        {canMarkPaid && (
+          <div style={{padding: '14px', background: '#3a6b3a15', border: '1px solid #3a6b3a', borderLeft: '3px solid #3a6b3a', marginBottom: '12px'}}>
+            <div style={{fontSize: '12px', color: '#1a4d2a', marginBottom: '8px'}}>{lang === 'id' ? 'Pengajuan telah disetujui. Setelah dana ditransfer ke rekening karyawan, klik tombol di bawah.' : 'Request approved. After transferring funds to employee account, click button below.'}</div>
+            <button onClick={() => onAction('mark_paid', '')} style={{background: '#3a6b3a', color: '#fff', border: 'none', padding: '8px 16px', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, letterSpacing: '0.05em'}}>💸 {t.bt_action_mark_paid}</button>
+          </div>
+        )}
+
+        <div style={{display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '14px', borderTop: '1px solid #e8e1cc', paddingTop: '14px'}}>
+          <button className="btn-ghost" onClick={onClose}>{lang === 'id' ? 'Tutup' : 'Close'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============== Business Trip Realization Card ==============
+// React.memo wrapped for performance — re-renders only when realization props change
+const BusinessTripRealizationCard = React.memo(function BusinessTripRealizationCard({ realization, t, lang, session, fmt, onDetail, onEdit, onDelete }) {
+  const statusColors = {
+    draft: '#94a3b8', pending_finance: '#c8a96a', pending_mops: '#c8a96a', pending_gm: '#c8a96a',
+    approved: '#3a6b3a', clarification: '#b8935a',
+  };
+  const statusColor = statusColors[realization.status] || '#8a7d5c';
+  const isOwner = realization.travelerUsername === session.username;
+  const canEdit = isOwner && ['draft', 'clarification'].includes(realization.status);
+  const canDelete = isOwner && realization.status === 'draft';
+
+  // Difference color
+  const diffColor = realization.difference > 0 ? '#b8935a' : (realization.difference < 0 ? '#5b87b8' : '#3a6b3a');
+  const diffLabel = realization.difference > 0 ? t.btr_difference_return : (realization.difference < 0 ? t.btr_difference_reimburse : t.btr_difference_zero);
+
+  return (
+    <div style={{background: '#fefcf7', border: '1px solid #e8e1cc', borderLeft: `3px solid ${statusColor}`, padding: '14px 18px', cursor: 'pointer'}} onClick={onDetail}>
+      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '10px'}}>
+        <div style={{flex: '1 1 320px'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap'}}>
+            <span className="mono" style={{fontSize: '12px', fontWeight: 700, color: '#1a2942'}}>{realization.realizationNo}</span>
+            <span style={{padding: '2px 8px', fontSize: '9px', background: statusColor + '25', color: statusColor, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{t['btr_status_' + realization.status] || realization.status}</span>
+            {realization.status === 'approved' && realization.settlementStatus === 'pending' && realization.difference !== 0 && <span style={{padding: '2px 8px', fontSize: '9px', background: '#b8935a25', color: '#b8935a', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>⏳ {t.btr_settlement_pending}</span>}
+            {realization.settlementStatus === 'settled' && <span style={{padding: '2px 8px', fontSize: '9px', background: '#3a6b3a25', color: '#3a6b3a', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>✓ {t.btr_settlement_done}</span>}
+          </div>
+          <div style={{fontSize: '13px', fontWeight: 600, marginTop: '2px'}}>{realization.travelerName} <span style={{fontSize: '10px', color: '#8a7d5c', fontWeight: 400}}>· {realization.position}</span></div>
+          <div style={{fontSize: '11px', color: '#8a7d5c', marginTop: '4px'}}>🎯 <strong>{realization.destination}</strong> · <span className="mono">{realization.dateStart} → {realization.dateEnd}</span> · {realization.actualDays} {t.days} aktual</div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px'}}>{lang === 'id' ? 'Link ke' : 'Linked to'}: <span className="mono">{realization.businessTripNo}</span></div>
+        </div>
+        <div style={{textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px'}}>
+          <div style={{fontSize: '9px', color: '#8a7d5c', letterSpacing: '0.05em', textTransform: 'uppercase'}}>{t.btr_total_actual}</div>
+          <div className="mono" style={{fontSize: '14px', fontWeight: 600, color: '#1a2942'}}>{fmt(realization.totalActual)}</div>
+          <div style={{fontSize: '9px', color: '#8a7d5c', letterSpacing: '0.05em', textTransform: 'uppercase', marginTop: '4px'}}>{t.btr_difference}</div>
+          <div className="mono" style={{fontSize: '13px', fontWeight: 600, color: diffColor}}>{realization.difference > 0 ? '+' : ''}{fmt(realization.difference)}</div>
+          <div style={{fontSize: '9px', color: diffColor, fontStyle: 'italic'}}>{diffLabel}</div>
+          <div style={{display: 'flex', gap: '4px', marginTop: '6px'}}>
+            {canEdit && <button onClick={(e) => { e.stopPropagation(); onEdit(); }} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: '#1a2942', fontFamily: 'inherit'}} title={t.crud_edit}><Edit2 size={11} /></button>}
+            {canDelete && <button onClick={(e) => { e.stopPropagation(); onDelete(); }} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: '#c03030', fontFamily: 'inherit'}} title={t.crud_delete}><Trash2 size={11} /></button>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// ============== Business Trip Realization Form ==============
+function BusinessTripRealizationForm({ realization, preSelectedTrip, eligibleTrips, existingRealizations, session, onSubmit, onSaveDraft, onClose, t, lang, fmt }) {
+  const isEdit = !!realization;
+  const [confirmSubmit, setConfirmSubmit] = useState(false);
+
+  // Trip selection: edit mode uses pre-selected, new mode requires picking from eligible
+  // Filter out trips that already have a non-draft realization linked
+  const availableTrips = useMemo(() => {
+    if (isEdit) return eligibleTrips;
+    const usedTripIds = new Set(existingRealizations.filter(r => r.status !== 'draft').map(r => r.businessTripId));
+    return eligibleTrips.filter(t => !usedTripIds.has(t.id));
+  }, [eligibleTrips, existingRealizations, isEdit]);
+
+  const [selectedTripId, setSelectedTripId] = useState(realization?.businessTripId || preSelectedTrip?.id || (availableTrips[0]?.id || ''));
+  const selectedTrip = useMemo(() => {
+    if (realization) return eligibleTrips.find(t => t.id === realization.businessTripId) || preSelectedTrip;
+    return availableTrips.find(t => t.id === selectedTripId) || availableTrips[0];
+  }, [selectedTripId, availableTrips, realization, preSelectedTrip, eligibleTrips]);
+
+  // Initialize form
+  const initialForm = useMemo(() => {
+    if (realization) return realization;
+    if (!selectedTrip) return null;
+    return {
+      id: 'btr_' + Date.now(),
+      realizationNo: 'BTR-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-5),
+      businessTripId: selectedTrip.id,
+      businessTripNo: selectedTrip.requestNo,
+      travelerUsername: selectedTrip.travelerUsername,
+      travelerName: selectedTrip.travelerName,
+      position: selectedTrip.position,
+      allowancePerDay: selectedTrip.allowancePerDay,
+      destination: selectedTrip.destination,
+      destinationCity: selectedTrip.destinationCity,
+      dateStart: selectedTrip.dateStart,
+      dateEnd: selectedTrip.dateEnd,
+      plannedDays: selectedTrip.duration,
+      actualDays: selectedTrip.duration,
+      totalAdvanceReceived: selectedTrip.totalAdvance,
+      // Pre-fill actual with planned amounts (user akan edit)
+      actualCosts: {
+        taxiHome: selectedTrip.costs.taxiHome,
+        taxiArrival: selectedTrip.costs.taxiArrival,
+        taxiRs: selectedTrip.costs.taxiRs,
+        localTransport: selectedTrip.costs.localTransport,
+        meals: selectedTrip.costs.meals,
+        other: selectedTrip.costs.other,
+        otherNotes: selectedTrip.costs.otherNotes,
+      },
+      actualAllowance: selectedTrip.duration * selectedTrip.allowancePerDay,
+      totalActual: selectedTrip.totalAdvance,
+      difference: 0,
+      proofs: { taxiHome: '', taxiArrival: '', taxiRs: '', localTransport: '', meals: '', other: '' },
+      notes: '',
+      status: 'draft',
+      approvalHistory: [],
+      submittedAt: '', updatedAt: '',
+      settlementStatus: 'pending', settlementDate: null, settlementAmount: 0, settlementNote: '',
+    };
+  }, [realization, selectedTrip]);
+
+  const [form, setForm] = useState(initialForm);
+
+  // Re-init when trip changes (for new realization)
+  useEffect(() => {
+    if (!isEdit && initialForm) setForm(initialForm);
+  }, [selectedTripId]);
+
+  if (!selectedTrip || !form) {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <h3 className="serif" style={{margin: 0, marginBottom: '14px'}}>{t.btr_modal_add}</h3>
+          <div style={{padding: '20px', background: '#fef9e7', borderLeft: '3px solid #c8a96a', color: '#5a4a1a', fontSize: '13px'}}>{t.btr_no_eligible_trips}</div>
+          <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: '14px'}}><button className="btn-ghost" onClick={onClose}>{lang === 'id' ? 'Tutup' : 'Close'}</button></div>
+        </div>
+      </div>
+    );
+  }
+
+  const updateCost = (k, v) => setForm(prev => ({ ...prev, actualCosts: { ...prev.actualCosts, [k]: v } }));
+  const updateProof = (k, v) => setForm(prev => ({ ...prev, proofs: { ...prev.proofs, [k]: v } }));
+
+  // PERFORMANCE: Compute totals via useMemo instead of useEffect→setForm (no extra render cycle)
+  const computedTotals = useMemo(() => {
+    const actualAllowance = (form.actualDays || 0) * (form.allowancePerDay || 0);
+    const ac = form.actualCosts || {};
+    const totalActual = (ac.taxiHome || 0) + (ac.taxiArrival || 0) + (ac.taxiRs || 0) +
+      (ac.localTransport || 0) + (ac.meals || 0) + (ac.other || 0) + actualAllowance;
+    const difference = (form.totalAdvanceReceived || 0) - totalActual;
+    return { actualAllowance, totalActual, difference };
+  }, [form.actualDays, form.allowancePerDay, form.actualCosts, form.totalAdvanceReceived]);
+
+  // Keep form in sync for submit (only writes when computed differs - prevents loop)
+  useEffect(() => {
+    if (form.actualAllowance !== computedTotals.actualAllowance ||
+        form.totalActual !== computedTotals.totalActual ||
+        form.difference !== computedTotals.difference) {
+      setForm(prev => ({ ...prev, ...computedTotals }));
+    }
+  }, [computedTotals, form.actualAllowance, form.totalActual, form.difference]);
+
+  // Use computed for immediate display (so UI feels instant)
+  const displayAllowance = computedTotals.actualAllowance;
+  const displayTotalActual = computedTotals.totalActual;
+  const displayDifference = computedTotals.difference;
+
+  const diffColor = displayDifference > 0 ? '#b8935a' : (displayDifference < 0 ? '#5b87b8' : '#3a6b3a');
+  const diffLabel = displayDifference > 0 ? t.btr_difference_return : (displayDifference < 0 ? t.btr_difference_reimburse : t.btr_difference_zero);
+
+  const handleSubmitClick = () => { setConfirmSubmit(true); };
+  const handleConfirmSubmit = () => onSubmit(form);
+  const handleDraftClick = () => onSaveDraft(form);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '950px', maxHeight: '90vh', overflow: 'auto'}}>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', position: 'sticky', top: 0, background: '#fefcf7', paddingBottom: '12px', borderBottom: '1px solid #e8e1cc', zIndex: 1}}>
+          <h2 className="serif" style={{fontSize: '22px', margin: 0, fontWeight: 500}}>{isEdit ? t.btr_modal_edit : t.btr_modal_add}</h2>
+          <button onClick={onClose} style={{background: 'transparent', border: 'none', cursor: 'pointer', color: '#8a7d5c'}}><X size={20} /></button>
+        </div>
+
+        {/* Trip selector (new mode only) */}
+        {!isEdit && (
+          <div style={{marginBottom: '14px'}}>
+            <Field label={t.btr_select_trip}>
+              <select value={selectedTripId} onChange={e => setSelectedTripId(e.target.value)}>
+                {availableTrips.map(trip => <option key={trip.id} value={trip.id}>{trip.requestNo} — {trip.destination} ({trip.dateStart} → {trip.dateEnd}) · {fmt(trip.totalAdvance)}</option>)}
+              </select>
+            </Field>
+          </div>
+        )}
+
+        {/* Trip info banner */}
+        <div style={{padding: '12px 16px', background: '#f8f5ef', border: '1px solid #e8e1cc', marginBottom: '14px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '8px', fontSize: '12px'}}>
+          <div><strong>{t.bt_traveler}:</strong> {form.travelerName}</div>
+          <div><strong>{t.bt_position}:</strong> {form.position}</div>
+          <div><strong>{t.bt_allowance_daily}:</strong> <span className="mono">{fmt(form.allowancePerDay)}</span></div>
+          <div><strong>{t.bt_destination}:</strong> {form.destination}</div>
+          <div><strong>{lang === 'id' ? 'Rencana' : 'Planned'}:</strong> {form.plannedDays} {t.days}</div>
+          <div><strong>{t.btr_cash_advance_received}:</strong> <span className="mono">{fmt(form.totalAdvanceReceived)}</span></div>
+        </div>
+
+        {/* Section: Actual Days */}
+        <div style={{fontSize: '11px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase', fontWeight: 600, marginBottom: '8px'}}>1. {t.btr_actual_days}</div>
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '16px'}}>
+          <Field label={t.btr_actual_days}>
+            <input type="number" min="1" max={form.plannedDays * 2} value={form.actualDays} onChange={e => setForm(prev => ({ ...prev, actualDays: parseInt(e.target.value) || 1 }))} />
+            <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px', fontStyle: 'italic'}}>{t.btr_actual_days_help}</div>
+          </Field>
+          <Field label={t.btr_actual_allowance}>
+            <input type="number" value={displayAllowance} readOnly style={{background: '#f0ebe0'}} />
+            <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px', fontStyle: 'italic'}}>{form.actualDays} × {fmt(form.allowancePerDay)} · {t.btr_no_proof_allowance}</div>
+          </Field>
+        </div>
+
+        {/* Section: Actual Costs + Proofs */}
+        <div style={{fontSize: '11px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase', fontWeight: 600, marginBottom: '8px'}}>2. {t.btr_actual_cost}</div>
+        <div style={{padding: '10px 14px', background: '#fef9e7', borderLeft: '3px solid #c8a96a', fontSize: '11px', color: '#5a4a1a', marginBottom: '12px'}}>{lang === 'id' ? 'Upload bukti struk/bill ke Google Drive, lalu paste URL share-nya untuk setiap item NON-allowance.' : 'Upload receipts to Google Drive then paste share URL for each NON-allowance item.'}</div>
+        {[
+          { key: 'taxiHome', label: t.btr_actual_taxi_home, planned: selectedTrip.costs.taxiHome },
+          { key: 'taxiArrival', label: t.btr_actual_taxi_arrival, planned: selectedTrip.costs.taxiArrival },
+          { key: 'taxiRs', label: t.btr_actual_taxi_rs, planned: selectedTrip.costs.taxiRs },
+          { key: 'localTransport', label: t.btr_actual_local_transport, planned: selectedTrip.costs.localTransport },
+          { key: 'meals', label: t.btr_actual_meals, planned: selectedTrip.costs.meals },
+          { key: 'other', label: t.btr_actual_other, planned: selectedTrip.costs.other },
+        ].map(item => (
+          <div key={item.key} style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px', padding: '10px', background: '#fefcf7', border: '1px solid #e8e1cc'}}>
+            <Field label={item.label}>
+              <input type="number" value={form.actualCosts[item.key] || 0} onChange={e => updateCost(item.key, parseInt(e.target.value) || 0)} />
+              <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px'}}>{t.btr_column_planned}: <span className="mono">{fmt(item.planned)}</span></div>
+            </Field>
+            <Field label={t.btr_proof}>
+              <input value={form.proofs[item.key] || ''} onChange={e => updateProof(item.key, e.target.value)} placeholder="https://drive.google.com/..." />
+              <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px', fontStyle: 'italic'}}>{t.btr_proof_help}</div>
+            </Field>
+          </div>
+        ))}
+
+        {/* Total + Difference */}
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '20px', border: '1px solid #d4cdb8'}}>
+          <div style={{padding: '14px 16px', background: '#fefcf7'}}>
+            <div style={{fontSize: '9px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.btr_cash_advance_received}</div>
+            <div className="mono serif" style={{fontSize: '18px', fontWeight: 500, marginTop: '4px'}}>{fmt(form.totalAdvanceReceived)}</div>
+          </div>
+          <div style={{padding: '14px 16px', background: '#fefcf7'}}>
+            <div style={{fontSize: '9px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.btr_total_actual}</div>
+            <div className="mono serif" style={{fontSize: '18px', fontWeight: 500, marginTop: '4px'}}>{fmt(displayTotalActual)}</div>
+          </div>
+          <div style={{padding: '14px 16px', background: diffColor + '15', borderLeft: '3px solid ' + diffColor}}>
+            <div style={{fontSize: '9px', letterSpacing: '0.2em', color: diffColor, textTransform: 'uppercase', fontWeight: 600}}>{t.btr_difference}</div>
+            <div className="mono serif" style={{fontSize: '18px', fontWeight: 500, marginTop: '4px', color: diffColor}}>{displayDifference > 0 ? '+' : ''}{fmt(displayDifference)}</div>
+            <div style={{fontSize: '10px', color: diffColor, fontStyle: 'italic', marginTop: '2px'}}>{diffLabel}</div>
+          </div>
+        </div>
+
+        {/* Notes */}
+        <Field label={t.btr_realization_notes} full><textarea rows={3} value={form.notes} onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))} placeholder={lang === 'id' ? 'Catatan tambahan tentang perjalanan & realisasi biaya' : 'Additional notes about the trip & cost realization'} /></Field>
+
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', borderTop: '1px solid #e8e1cc', paddingTop: '14px', marginTop: '14px'}}>
+          <div style={{fontSize: '10px', color: '#8a7d5c', fontStyle: 'italic'}}>{lang === 'id' ? '"Simpan Draft" untuk lanjut input. "Kirim" untuk diverifikasi Finance → Manager Ops → GM.' : '"Save Draft" to continue. "Submit" for Finance → Manager Ops → GM verification.'}</div>
+          <div style={{display: 'flex', gap: '10px'}}>
+            <button className="btn-ghost" onClick={onClose}>{t.crud_cancel}</button>
+            <button className="btn-ghost" onClick={handleDraftClick}>{lang === 'id' ? 'Simpan Draft' : 'Save Draft'}</button>
+            <button className="btn-primary" onClick={handleSubmitClick}>{t.btr_action_submit} →</button>
+          </div>
+        </div>
+      </div>
+      <ConfirmDialog open={confirmSubmit} title={lang === 'id' ? 'Kirim Realisasi?' : 'Submit Realization?'} message={t.btr_confirm_submit} confirmText={lang === 'id' ? 'Ya, Kirim' : 'Yes, Submit'} onConfirm={() => { setConfirmSubmit(false); handleConfirmSubmit(); }} onCancel={() => setConfirmSubmit(false)} lang={lang} />
+    </div>
+  );
+}
+
+// ============== Business Trip Realization Detail (Review Modal) ==============
+function BusinessTripRealizationDetail({ realization, businessTrip, session, t, lang, fmt, onClose, onAction, onSettle }) {
+  const [reviewNote, setReviewNote] = useState('');
+
+  const canReviewFinance = session.role === 'finance' && realization.status === 'pending_finance';
+  const canReviewMops = ['manager_ops', 'super_admin'].includes(session.role) && realization.status === 'pending_mops';
+  const canReviewGm = ['gm', 'super_admin'].includes(session.role) && realization.status === 'pending_gm';
+  const canSettle = session.role === 'finance' && realization.status === 'approved' && realization.settlementStatus === 'pending' && realization.difference !== 0;
+  const canReview = canReviewFinance || canReviewMops || canReviewGm;
+
+  const statusColors = {
+    draft: '#94a3b8', pending_finance: '#c8a96a', pending_mops: '#c8a96a', pending_gm: '#c8a96a',
+    approved: '#3a6b3a', clarification: '#b8935a',
+  };
+  const statusColor = statusColors[realization.status] || '#8a7d5c';
+  const diffColor = realization.difference > 0 ? '#b8935a' : (realization.difference < 0 ? '#5b87b8' : '#3a6b3a');
+
+  // Comparison rows
+  // PERFORMANCE: Memoize comparison row config
+  const compRows = useMemo(() => [
+    { key: 'taxiHome', label: t.bt_cost_taxi_home, plannedKey: 'taxiHome' },
+    { key: 'taxiArrival', label: t.bt_cost_taxi_arrival, plannedKey: 'taxiArrival' },
+    { key: 'taxiRs', label: t.bt_cost_taxi_rs, plannedKey: 'taxiRs' },
+    { key: 'localTransport', label: t.bt_cost_local_transport, plannedKey: 'localTransport' },
+    { key: 'meals', label: t.bt_cost_meals, plannedKey: 'meals' },
+    { key: 'other', label: t.bt_cost_other, plannedKey: 'other' },
+  ], [t]);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '950px', maxHeight: '90vh', overflow: 'auto'}}>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', position: 'sticky', top: 0, background: '#fefcf7', paddingBottom: '12px', borderBottom: '1px solid #e8e1cc', zIndex: 1}}>
+          <div>
+            <h2 className="serif" style={{fontSize: '22px', margin: 0, fontWeight: 500}}>{t.btr_modal_detail}</h2>
+            <div style={{fontSize: '11px', color: '#8a7d5c', marginTop: '4px'}} className="mono">{realization.realizationNo} · {lang === 'id' ? 'Link' : 'Linked to'} {realization.businessTripNo}</div>
+          </div>
+          <button onClick={onClose} style={{background: 'transparent', border: 'none', cursor: 'pointer', color: '#8a7d5c'}}><X size={20} /></button>
+        </div>
+
+        {/* Status banner */}
+        <div style={{padding: '14px 18px', background: statusColor + '15', borderLeft: '3px solid ' + statusColor, marginBottom: '16px', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px'}}>
+          <div>
+            <div style={{fontSize: '10px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '4px'}}>Status</div>
+            <div style={{fontSize: '15px', fontWeight: 600, color: statusColor}}>{t['btr_status_' + realization.status] || realization.status}</div>
+          </div>
+          {realization.settlementStatus === 'settled' && (
+            <div style={{textAlign: 'right'}}>
+              <div style={{fontSize: '10px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '4px'}}>{t.btr_settlement_status}</div>
+              <div style={{fontSize: '13px', fontWeight: 600, color: '#3a6b3a'}}>✓ {t.btr_settlement_done}</div>
+              {realization.settlementDate && <div className="mono" style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{realization.settlementDate}</div>}
+            </div>
+          )}
+        </div>
+
+        {/* Trip info */}
+        <div style={{fontSize: '11px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase', fontWeight: 600, marginBottom: '8px'}}>{t.btr_trip_info}</div>
+        <div style={{padding: '12px 16px', background: '#f8f5ef', border: '1px solid #e8e1cc', marginBottom: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '8px', fontSize: '12px'}}>
+          <div><strong>{t.bt_traveler}:</strong> {realization.travelerName}</div>
+          <div><strong>{t.bt_position}:</strong> {realization.position}</div>
+          <div><strong>{t.bt_destination}:</strong> {realization.destination}</div>
+          <div><strong>{lang === 'id' ? 'Rencana' : 'Planned'}:</strong> {realization.plannedDays} {t.days}</div>
+          <div><strong>{t.btr_actual_days}:</strong> <span style={{color: realization.actualDays < realization.plannedDays ? '#5b87b8' : '#1a2942', fontWeight: 600}}>{realization.actualDays} {t.days}</span></div>
+          <div><strong>{t.bt_allowance_daily}:</strong> <span className="mono">{fmt(realization.allowancePerDay)}</span></div>
+        </div>
+
+        {/* Comparison table */}
+        <div style={{fontSize: '11px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase', fontWeight: 600, marginBottom: '8px'}}>{t.btr_comparison}</div>
+        <table style={{width: '100%', borderCollapse: 'collapse', marginBottom: '16px', fontSize: '12px', background: '#fefcf7', border: '1px solid #e8e1cc'}}>
+          <thead>
+            <tr style={{background: '#f8f5ef'}}>
+              <Th>{lang === 'id' ? 'Komponen' : 'Component'}</Th>
+              <Th align="right">{t.btr_column_planned}</Th>
+              <Th align="right">{t.btr_column_actual}</Th>
+              <Th align="right">{t.btr_column_diff}</Th>
+              <Th align="center">{t.btr_proof}</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {compRows.map(row => {
+              const planned = businessTrip ? businessTrip.costs[row.plannedKey] : 0;
+              const actual = realization.actualCosts[row.key] || 0;
+              const diff = planned - actual;
+              const dColor = diff > 0 ? '#b8935a' : (diff < 0 ? '#5b87b8' : '#8a7d5c');
+              return (
+                <tr key={row.key} style={{borderTop: '1px solid #e8e1cc'}}>
+                  <Td>{row.label}{realization.actualCosts.otherNotes && row.key === 'other' ? <span style={{fontSize: '10px', color: '#8a7d5c', fontStyle: 'italic'}}> ({realization.actualCosts.otherNotes})</span> : ''}</Td>
+                  <Td align="right"><span className="mono">{fmt(planned)}</span></Td>
+                  <Td align="right"><span className="mono" style={{fontWeight: actual !== planned ? 600 : 400}}>{fmt(actual)}</span></Td>
+                  <Td align="right"><span className="mono" style={{color: dColor, fontWeight: diff !== 0 ? 600 : 400}}>{diff > 0 ? '+' : ''}{fmt(diff)}</span></Td>
+                  <Td align="center">{realization.proofs[row.key] ? <LinkAttachment url={realization.proofs[row.key]} lang={lang} /> : <span style={{fontSize: '10px', color: '#8a7d5c'}}>-</span>}</Td>
+                </tr>
+              );
+            })}
+            <tr style={{borderTop: '1px solid #e8e1cc', background: '#f0ebe0'}}>
+              <Td><strong>{t.btr_actual_allowance}</strong> <span style={{fontSize: '10px', color: '#8a7d5c', fontStyle: 'italic'}}>({realization.actualDays} × {fmt(realization.allowancePerDay)})</span></Td>
+              <Td align="right"><span className="mono">{fmt((businessTrip ? businessTrip.costs.allowanceTotal : 0))}</span></Td>
+              <Td align="right"><span className="mono" style={{fontWeight: 600}}>{fmt(realization.actualAllowance)}</span></Td>
+              <Td align="right"><span className="mono" style={{fontWeight: 600}}>{fmt((businessTrip ? businessTrip.costs.allowanceTotal : 0) - realization.actualAllowance)}</span></Td>
+              <Td align="center"><span style={{fontSize: '10px', color: '#8a7d5c', fontStyle: 'italic'}}>{lang === 'id' ? 'hak karyawan' : 'employee right'}</span></Td>
+            </tr>
+            <tr style={{background: '#1a2942', color: '#fff'}}>
+              <td style={{padding: '10px 14px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', fontSize: '11px'}}>TOTAL</td>
+              <td style={{padding: '10px 14px', textAlign: 'right', fontWeight: 600}} className="mono">{fmt(realization.totalAdvanceReceived)}</td>
+              <td style={{padding: '10px 14px', textAlign: 'right', fontWeight: 700}} className="mono">{fmt(realization.totalActual)}</td>
+              <td style={{padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: '#c8a96a'}} className="mono">{realization.difference > 0 ? '+' : ''}{fmt(realization.difference)}</td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* Difference summary */}
+        <div style={{padding: '14px 18px', background: diffColor + '15', borderLeft: '3px solid ' + diffColor, marginBottom: '16px'}}>
+          <div style={{fontSize: '10px', letterSpacing: '0.15em', color: diffColor, textTransform: 'uppercase', fontWeight: 600, marginBottom: '4px'}}>{t.btr_difference}</div>
+          <div className="mono" style={{fontSize: '20px', fontWeight: 600, color: diffColor}}>{realization.difference > 0 ? '+' : ''}{fmt(realization.difference)}</div>
+          <div style={{fontSize: '12px', color: diffColor, marginTop: '4px', fontStyle: 'italic'}}>
+            {realization.difference > 0 ? `${t.btr_difference_return} — ${lang === 'id' ? 'karyawan kembalikan kelebihan' : 'employee returns'} ${fmt(Math.abs(realization.difference))}` :
+             realization.difference < 0 ? `${t.btr_difference_reimburse} — ${lang === 'id' ? 'kantor reimburse kekurangan' : 'office reimburses'} ${fmt(Math.abs(realization.difference))}` :
+             t.btr_difference_zero}
+          </div>
+        </div>
+
+        {/* Settlement info if settled */}
+        {realization.settlementStatus === 'settled' && realization.settlementNote && (
+          <div style={{padding: '12px 14px', background: '#3a6b3a15', borderLeft: '3px solid #3a6b3a', marginBottom: '16px', fontSize: '12px'}}>
+            <strong>✓ Settlement Selesai:</strong> {realization.settlementNote}
+            {realization.settlementDate && <span className="mono" style={{marginLeft: '8px', color: '#8a7d5c'}}>· {realization.settlementDate}</span>}
+          </div>
+        )}
+
+        {/* Notes */}
+        {realization.notes && (
+          <>
+            <div style={{fontSize: '11px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase', fontWeight: 600, marginBottom: '8px'}}>{t.btr_realization_notes}</div>
+            <div style={{padding: '12px 14px', background: '#fefcf7', border: '1px solid #e8e1cc', marginBottom: '16px', fontSize: '12px', fontStyle: 'italic'}}>{realization.notes}</div>
+          </>
+        )}
+
+        {/* Approval history */}
+        {realization.approvalHistory && realization.approvalHistory.length > 0 && (
+          <>
+            <div style={{fontSize: '11px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase', fontWeight: 600, marginBottom: '8px'}}>{t.bt_approval_history}</div>
+            <div style={{padding: '12px 14px', background: '#fefcf7', border: '1px solid #e8e1cc', marginBottom: '20px'}}>
+              {realization.approvalHistory.map((h, i) => {
+                const actionColors = { submitted: '#5b87b8', approved: '#3a6b3a', clarification: '#b8935a' };
+                const actionLabels = {
+                  submitted: lang === 'id' ? 'Diajukan' : 'Submitted',
+                  approved: lang === 'id' ? 'Disetujui' : 'Approved',
+                  clarification: lang === 'id' ? 'Minta Klarifikasi' : 'Requested Clarification',
+                };
+                const levelLabels = { submit: lang === 'id' ? 'Pengajuan' : 'Submission', finance: 'Finance', manager_ops: 'Manager Operasional', gm: 'General Manager' };
+                return (
+                  <div key={i} style={{padding: '8px 0', borderBottom: i < realization.approvalHistory.length - 1 ? '1px dashed #e8e1cc' : 'none', display: 'flex', gap: '12px', alignItems: 'flex-start'}}>
+                    <div style={{width: '6px', height: '6px', borderRadius: '50%', background: actionColors[h.action] || '#8a7d5c', marginTop: '6px', flexShrink: 0}} />
+                    <div style={{flex: 1, fontSize: '12px'}}>
+                      <div style={{display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px'}}>
+                        <span><strong style={{color: actionColors[h.action]}}>{actionLabels[h.action]}</strong> · {levelLabels[h.level]} oleh <strong>{h.byName}</strong></span>
+                        <span className="mono" style={{fontSize: '10px', color: '#8a7d5c'}}>{h.date}</span>
+                      </div>
+                      {h.note && <div style={{fontSize: '11px', color: '#1a2942', marginTop: '4px', fontStyle: 'italic', padding: '6px 10px', background: '#f0ebe0'}}>"{h.note}"</div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* Review actions (only Setujui & Klarifikasi - NO Tolak per Bapak instructions) */}
+        {canReview && (
+          <div style={{padding: '14px', background: '#fef9e7', border: '1px solid #c8a96a', borderLeft: '3px solid #c8a96a', marginBottom: '12px'}}>
+            <div style={{fontSize: '11px', letterSpacing: '0.15em', color: '#5a4a1a', textTransform: 'uppercase', fontWeight: 600, marginBottom: '8px'}}>{canReviewFinance ? t.bt_review_finance : canReviewMops ? t.bt_review_mops : t.bt_review_gm}</div>
+            <Field label={t.bt_review_notes} full><textarea rows={2} value={reviewNote} onChange={e => setReviewNote(e.target.value)} placeholder={lang === 'id' ? 'Catatan review (opsional untuk approve, wajib untuk klarifikasi)' : 'Review notes (optional for approve, required for clarification)'} /></Field>
+            <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px'}}>
+              <button onClick={() => onAction('approve', reviewNote)} style={{background: '#3a6b3a', color: '#fff', border: 'none', padding: '8px 16px', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, letterSpacing: '0.05em'}}>✓ {t.bt_action_approve}</button>
+              <button onClick={() => { if (!reviewNote.trim()) { showToast(lang === 'id' ? 'Mohon isi catatan klarifikasi.' : 'Please provide clarification note.', 'warning'); return; } onAction('clarify', reviewNote); }} style={{background: '#b8935a', color: '#fff', border: 'none', padding: '8px 16px', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, letterSpacing: '0.05em'}}>⚠ {t.bt_action_clarify}</button>
+            </div>
+          </div>
+        )}
+
+        {/* Settle action (Finance only, when approved & has difference) */}
+        {canSettle && (
+          <div style={{padding: '14px', background: '#3a6b3a15', border: '1px solid #3a6b3a', borderLeft: '3px solid #3a6b3a', marginBottom: '12px'}}>
+            <div style={{fontSize: '12px', color: '#1a4d2a', marginBottom: '8px'}}>{realization.difference > 0
+              ? (lang === 'id' ? `Realisasi disetujui. Karyawan harus kembalikan kelebihan ${fmt(Math.abs(realization.difference))}.` : `Realization approved. Employee must return excess of ${fmt(Math.abs(realization.difference))}.`)
+              : (lang === 'id' ? `Realisasi disetujui. Kantor reimburse kekurangan ${fmt(Math.abs(realization.difference))}.` : `Realization approved. Office to reimburse ${fmt(Math.abs(realization.difference))}.`)}</div>
+            <button onClick={onSettle} style={{background: '#3a6b3a', color: '#fff', border: 'none', padding: '8px 16px', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, letterSpacing: '0.05em'}}>💸 {t.btr_settle_now}</button>
+          </div>
+        )}
+
+        <div style={{display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '14px', borderTop: '1px solid #e8e1cc', paddingTop: '14px'}}>
+          <button className="btn-ghost" onClick={onClose}>{lang === 'id' ? 'Tutup' : 'Close'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============== Business Trip Dashboard Analytics ==============
+function BusinessTripDashboard({ businessTrips, realizations, employees, t, lang, session, canManageAll, fmt }) {
+  const [yearFilter, setYearFilter] = useState('2026');
+  const [travelerFilter, setTravelerFilter] = useState('all');
+
+  // Filter trips by user permission
+  const visibleTrips = useMemo(() => {
+    let arr = businessTrips;
+    if (!canManageAll) arr = arr.filter(t => t.travelerUsername === session.username);
+    return arr;
+  }, [businessTrips, canManageAll, session.username]);
+
+  // Years available
+  const years = useMemo(() => {
+    const yrs = new Set();
+    visibleTrips.forEach(t => { if (t.dateStart) yrs.add(t.dateStart.substring(0, 4)); });
+    return ['all', ...Array.from(yrs).sort()];
+  }, [visibleTrips]);
+
+  // Travelers list
+  const travelers = useMemo(() => {
+    const arr = [...new Set(visibleTrips.map(t => t.travelerUsername))];
+    return arr.map(un => ({ un, name: employees[un]?.name || un }));
+  }, [visibleTrips, employees]);
+
+  // Apply filters
+  const filtered = useMemo(() => {
+    return visibleTrips.filter(t => {
+      if (yearFilter !== 'all' && !t.dateStart.startsWith(yearFilter)) return false;
+      if (travelerFilter !== 'all' && t.travelerUsername !== travelerFilter) return false;
+      // Only count approved/paid/completed (no rejected, no draft)
+      return ['approved', 'in_progress', 'completed', 'paid'].includes(t.status) ||
+        (t.paymentStatus === 'paid');
+    });
+  }, [visibleTrips, yearFilter, travelerFilter]);
+
+  // ============== KPIs ==============
+  const stats = useMemo(() => {
+    const total = filtered.reduce((s, t) => s + (t.totalAdvance || 0), 0);
+    const totalOffice = filtered.reduce((s, t) => s + (t.officeBooked?.ticketPP || 0) + (t.officeBooked?.hotelTotal || 0), 0);
+    const grandTotal = total + totalOffice;
+    const tripCount = filtered.length;
+    const avgPerTrip = tripCount > 0 ? grandTotal / tripCount : 0;
+    return { total, totalOffice, grandTotal, tripCount, avgPerTrip };
+  }, [filtered]);
+
+  // ============== Monthly Trend (line chart) ==============
+  const monthlyTrend = useMemo(() => {
+    const monthMap = {};
+    filtered.forEach(t => {
+      const ym = t.dateStart.substring(0, 7);
+      if (!monthMap[ym]) monthMap[ym] = { month: ym, cashAdvance: 0, officeBooked: 0, total: 0, count: 0 };
+      const office = (t.officeBooked?.ticketPP || 0) + (t.officeBooked?.hotelTotal || 0);
+      monthMap[ym].cashAdvance += t.totalAdvance || 0;
+      monthMap[ym].officeBooked += office;
+      monthMap[ym].total += (t.totalAdvance || 0) + office;
+      monthMap[ym].count++;
+    });
+    return Object.values(monthMap).sort((a, b) => a.month.localeCompare(b.month)).map(m => ({
+      ...m,
+      label: m.month.substring(5) + '/' + m.month.substring(2, 4),
+    }));
+  }, [filtered]);
+
+  // ============== YoY Comparison (2025 vs 2026) ==============
+  const yoyData = useMemo(() => {
+    if (yearFilter !== 'all') return null;
+    const yearMap = {};
+    filtered.forEach(t => {
+      const y = t.dateStart.substring(0, 4);
+      const m = parseInt(t.dateStart.substring(5, 7));
+      if (!yearMap[y]) yearMap[y] = Array(12).fill(0);
+      yearMap[y][m - 1] += (t.totalAdvance || 0) + (t.officeBooked?.ticketPP || 0) + (t.officeBooked?.hotelTotal || 0);
+    });
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months.map((m, i) => ({
+      month: m,
+      '2025': yearMap['2025']?.[i] || 0,
+      '2026': yearMap['2026']?.[i] || 0,
+    }));
+  }, [filtered, yearFilter]);
+
+  // ============== By Traveler (bar chart) ==============
+  const byTraveler = useMemo(() => {
+    const map = {};
+    filtered.forEach(t => {
+      if (!map[t.travelerUsername]) {
+        map[t.travelerUsername] = { name: t.travelerName.split(' ')[0], full: t.travelerName, position: t.position, count: 0, total: 0 };
+      }
+      map[t.travelerUsername].count++;
+      map[t.travelerUsername].total += (t.totalAdvance || 0) + (t.officeBooked?.ticketPP || 0) + (t.officeBooked?.hotelTotal || 0);
+    });
+    return Object.values(map).sort((a, b) => b.total - a.total);
+  }, [filtered]);
+
+  // ============== By Cost Component (pie chart) ==============
+  const byComponent = useMemo(() => {
+    const totals = {
+      taxiHome: 0, taxiArrival: 0, taxiRs: 0, localTransport: 0,
+      meals: 0, other: 0, allowance: 0, ticket: 0, hotel: 0,
+    };
+    filtered.forEach(t => {
+      totals.taxiHome += t.costs?.taxiHome || 0;
+      totals.taxiArrival += t.costs?.taxiArrival || 0;
+      totals.taxiRs += t.costs?.taxiRs || 0;
+      totals.localTransport += t.costs?.localTransport || 0;
+      totals.meals += t.costs?.meals || 0;
+      totals.other += t.costs?.other || 0;
+      totals.allowance += t.costs?.allowanceTotal || 0;
+      totals.ticket += t.officeBooked?.ticketPP || 0;
+      totals.hotel += t.officeBooked?.hotelTotal || 0;
+    });
+    const data = [
+      { name: lang === 'id' ? 'Allowance' : 'Allowance', value: totals.allowance, color: '#1a4d8a' },
+      { name: lang === 'id' ? 'Tiket Pesawat' : 'Flight Tickets', value: totals.ticket, color: '#5b87b8' },
+      { name: lang === 'id' ? 'Hotel' : 'Hotel', value: totals.hotel, color: '#c8a96a' },
+      { name: lang === 'id' ? 'Makan' : 'Meals', value: totals.meals, color: '#b8935a' },
+      { name: lang === 'id' ? 'Transport Lokal' : 'Local Transport', value: totals.localTransport, color: '#5a8a5a' },
+      { name: 'Taksi (RS/Hotel)', value: totals.taxiRs + totals.taxiArrival + totals.taxiHome, color: '#7d9cc5' },
+      { name: lang === 'id' ? 'Lain-lain' : 'Other', value: totals.other, color: '#94a3b8' },
+    ].filter(d => d.value > 0).sort((a, b) => b.value - a.value);
+    return data;
+  }, [filtered, lang]);
+
+  // ============== By Destination (top 10) ==============
+  const byDestination = useMemo(() => {
+    const map = {};
+    filtered.forEach(t => {
+      const city = t.destinationCity || t.destination || 'Unknown';
+      if (!map[city]) map[city] = { city, count: 0, total: 0 };
+      map[city].count++;
+      map[city].total += (t.totalAdvance || 0) + (t.officeBooked?.ticketPP || 0) + (t.officeBooked?.hotelTotal || 0);
+    });
+    return Object.values(map).sort((a, b) => b.total - a.total).slice(0, 10);
+  }, [filtered]);
+
+  // ============== Settlement summary ==============
+  const settlementStats = useMemo(() => {
+    const visibleReals = canManageAll ? realizations : realizations.filter(r => r.travelerUsername === session.username);
+    const filtered = visibleReals.filter(r => {
+      if (yearFilter !== 'all' && !r.dateStart.startsWith(yearFilter)) return false;
+      if (travelerFilter !== 'all' && r.travelerUsername !== travelerFilter) return false;
+      return r.status === 'approved';
+    });
+    const overadvance = filtered.filter(r => r.difference > 0);
+    const underadvance = filtered.filter(r => r.difference < 0);
+    return {
+      totalRealizations: filtered.length,
+      totalOveradvance: overadvance.reduce((s, r) => s + Math.abs(r.difference), 0),
+      totalUnderadvance: underadvance.reduce((s, r) => s + Math.abs(r.difference), 0),
+      overadvanceCount: overadvance.length,
+      underadvanceCount: underadvance.length,
+    };
+  }, [realizations, canManageAll, session.username, yearFilter, travelerFilter]);
+
+  // PERFORMANCE & LANG: Use parent fmt() prop which auto-converts to USD when lang='en'
+  const fmtRp = fmt;
+  const fmtRpShort = fmt;
+
+  return (
+    <div>
+      {/* Filters */}
+      <div style={{display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '20px', padding: '14px 16px', background: '#fefcf7', border: '1px solid #e8e1cc'}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+          <span style={{fontSize: '10px', letterSpacing: '0.1em', color: '#8a7d5c', textTransform: 'uppercase'}}>{lang === 'id' ? 'Tahun' : 'Year'}:</span>
+          <select value={yearFilter} onChange={e => setYearFilter(e.target.value)} style={{padding: '5px 8px', fontSize: '12px', fontFamily: 'inherit', background: '#fff', border: '1px solid #d4cdb8', color: '#1a2942', cursor: 'pointer'}}>
+            {years.map(y => <option key={y} value={y}>{y === 'all' ? (lang === 'id' ? 'Semua Tahun' : 'All Years') : y}</option>)}
+          </select>
+        </div>
+        {canManageAll && (
+          <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+            <span style={{fontSize: '10px', letterSpacing: '0.1em', color: '#8a7d5c', textTransform: 'uppercase'}}>{lang === 'id' ? 'Karyawan' : 'Employee'}:</span>
+            <select value={travelerFilter} onChange={e => setTravelerFilter(e.target.value)} style={{padding: '5px 8px', fontSize: '12px', fontFamily: 'inherit', background: '#fff', border: '1px solid #d4cdb8', color: '#1a2942', cursor: 'pointer'}}>
+              <option value="all">{lang === 'id' ? 'Semua' : 'All'}</option>
+              {travelers.map(tr => <option key={tr.un} value={tr.un}>{tr.name}</option>)}
+            </select>
+          </div>
+        )}
+      </div>
+
+      {/* KPI Strip */}
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1px', background: '#d4cdb8', marginBottom: '22px', border: '1px solid #d4cdb8'}}>
+        <div style={{padding: '16px 18px', background: '#1a2942', color: '#fff'}}>
+          <div style={{fontSize: '9px', letterSpacing: '0.2em', color: '#c8a96a', textTransform: 'uppercase'}}>{lang === 'id' ? 'Total Operasional' : 'Total Operational'}</div>
+          <div className="serif mono" style={{fontSize: '20px', fontWeight: 500, marginTop: '4px', color: '#fff'}}>{fmtRpShort(stats.grandTotal)}</div>
+          <div style={{fontSize: '9px', color: 'rgba(255,255,255,0.6)', marginTop: '2px'}}>{lang === 'id' ? 'Cash + Office' : 'Cash + Office'}</div>
+        </div>
+        <div style={{padding: '16px 18px', background: '#fefcf7'}}>
+          <div style={{fontSize: '9px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{lang === 'id' ? 'Cash Advance' : 'Cash Advance'}</div>
+          <div className="serif mono" style={{fontSize: '20px', fontWeight: 500, marginTop: '4px'}}>{fmtRpShort(stats.total)}</div>
+          <div style={{fontSize: '9px', color: '#8a7d5c', marginTop: '2px'}}>{lang === 'id' ? 'transfer ke karyawan' : 'transferred to employees'}</div>
+        </div>
+        <div style={{padding: '16px 18px', background: '#fefcf7'}}>
+          <div style={{fontSize: '9px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{lang === 'id' ? 'Tiket + Hotel' : 'Tickets + Hotels'}</div>
+          <div className="serif mono" style={{fontSize: '20px', fontWeight: 500, marginTop: '4px'}}>{fmtRpShort(stats.totalOffice)}</div>
+          <div style={{fontSize: '9px', color: '#8a7d5c', marginTop: '2px'}}>{lang === 'id' ? 'pemesanan kantor' : 'office-booked'}</div>
+        </div>
+        <div style={{padding: '16px 18px', background: '#fefcf7'}}>
+          <div style={{fontSize: '9px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{lang === 'id' ? 'Jumlah Trip' : 'Trip Count'}</div>
+          <div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px'}}>{stats.tripCount}</div>
+          <div style={{fontSize: '9px', color: '#8a7d5c', marginTop: '2px'}}>{lang === 'id' ? 'rata-rata' : 'avg'}: {fmtRpShort(stats.avgPerTrip)}</div>
+        </div>
+      </div>
+
+      {/* Monthly Trend Chart */}
+      <div style={{background: '#fefcf7', border: '1px solid #e8e1cc', padding: '18px 20px', marginBottom: '22px'}}>
+        <div className="serif" style={{fontSize: '17px', fontWeight: 500, marginBottom: '4px'}}>{lang === 'id' ? 'Tren Bulanan Biaya Perjalanan Dinas' : 'Monthly Business Trip Cost Trend'}</div>
+        <div style={{fontSize: '11px', color: '#8a7d5c', marginBottom: '14px'}}>{lang === 'id' ? 'Cash Advance + Tiket + Hotel per bulan' : 'Cash Advance + Tickets + Hotel per month'}</div>
+        {monthlyTrend.length > 0 ? (
+          <ResponsiveContainer width="100%" height={260}>
+            <ComposedChart data={monthlyTrend}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e8e1cc" />
+              <XAxis dataKey="label" stroke="#8a7d5c" style={{fontSize: 10}} />
+              <YAxis stroke="#8a7d5c" style={{fontSize: 10}} tickFormatter={v => v >= 1e9 ? `${(v/1e9).toFixed(1)}M` : v >= 1e6 ? `${(v/1e6).toFixed(0)}Jt` : v >= 1e3 ? `${(v/1e3).toFixed(0)}rb` : v} />
+              <Tooltip formatter={(v, name) => [fmtRp(v), name]} labelStyle={{color: '#1a2942', fontSize: 11}} contentStyle={{background: '#fefcf7', border: '1px solid #d4cdb8', fontSize: 11}} />
+              <Legend wrapperStyle={{fontSize: 11}} />
+              <Bar dataKey="cashAdvance" name={lang === 'id' ? 'Cash Advance' : 'Cash Advance'} fill="#1a4d8a" stackId="a" />
+              <Bar dataKey="officeBooked" name={lang === 'id' ? 'Tiket + Hotel' : 'Office-Booked'} fill="#c8a96a" stackId="a" />
+              <Area type="monotone" dataKey="total" name={lang === 'id' ? 'Total' : 'Total'} fill="transparent" stroke="#c03030" strokeWidth={2} dot={{ r: 3, fill: '#c03030' }} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        ) : (
+          <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c', fontStyle: 'italic'}}>{lang === 'id' ? 'Tidak ada data untuk filter ini.' : 'No data for this filter.'}</div>
+        )}
+      </div>
+
+      {/* YoY Comparison (only when "all years" selected) */}
+      {yearFilter === 'all' && yoyData && (
+        <div style={{background: '#fefcf7', border: '1px solid #e8e1cc', padding: '18px 20px', marginBottom: '22px'}}>
+          <div className="serif" style={{fontSize: '17px', fontWeight: 500, marginBottom: '4px'}}>{lang === 'id' ? 'Perbandingan Tahun-ke-Tahun (YoY)' : 'Year-over-Year Comparison'}</div>
+          <div style={{fontSize: '11px', color: '#8a7d5c', marginBottom: '14px'}}>{lang === 'id' ? 'Total biaya per bulan: 2025 vs 2026' : 'Monthly total: 2025 vs 2026'}</div>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={yoyData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e8e1cc" />
+              <XAxis dataKey="month" stroke="#8a7d5c" style={{fontSize: 10}} />
+              <YAxis stroke="#8a7d5c" style={{fontSize: 10}} tickFormatter={v => v >= 1e9 ? `${(v/1e9).toFixed(1)}M` : v >= 1e6 ? `${(v/1e6).toFixed(0)}Jt` : v >= 1e3 ? `${(v/1e3).toFixed(0)}rb` : v} />
+              <Tooltip formatter={(v, name) => [fmtRp(v), name]} labelStyle={{color: '#1a2942', fontSize: 11}} contentStyle={{background: '#fefcf7', border: '1px solid #d4cdb8', fontSize: 11}} />
+              <Legend wrapperStyle={{fontSize: 11}} />
+              <Bar dataKey="2025" fill="#8a7d5c" />
+              <Bar dataKey="2026" fill="#1a4d8a" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '16px', marginBottom: '22px'}}>
+        {/* By Cost Component */}
+        <div style={{background: '#fefcf7', border: '1px solid #e8e1cc', padding: '18px 20px'}}>
+          <div className="serif" style={{fontSize: '17px', fontWeight: 500, marginBottom: '4px'}}>{lang === 'id' ? 'Breakdown per Komponen Biaya' : 'Cost Component Breakdown'}</div>
+          <div style={{fontSize: '11px', color: '#8a7d5c', marginBottom: '14px'}}>{lang === 'id' ? 'Distribusi total biaya per kategori' : 'Total cost distribution by category'}</div>
+          {byComponent.length > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie data={byComponent} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({ percent }) => `${(percent * 100).toFixed(0)}%`} labelLine={false} style={{fontSize: 10}}>
+                  {byComponent.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                </Pie>
+                <Tooltip formatter={(v, name) => [fmtRp(v), name]} contentStyle={{background: '#fefcf7', border: '1px solid #d4cdb8', fontSize: 11}} />
+                <Legend wrapperStyle={{fontSize: 10}} layout="vertical" align="right" verticalAlign="middle" />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c', fontStyle: 'italic'}}>{lang === 'id' ? 'Tidak ada data.' : 'No data.'}</div>}
+        </div>
+
+        {/* By Traveler */}
+        {canManageAll && (
+          <div style={{background: '#fefcf7', border: '1px solid #e8e1cc', padding: '18px 20px'}}>
+            <div className="serif" style={{fontSize: '17px', fontWeight: 500, marginBottom: '4px'}}>{lang === 'id' ? 'Top Karyawan (per Total Biaya)' : 'Top Travelers (by Total Cost)'}</div>
+            <div style={{fontSize: '11px', color: '#8a7d5c', marginBottom: '14px'}}>{lang === 'id' ? 'Karyawan dengan biaya operasional perjalanan tertinggi' : 'Highest business trip cost employees'}</div>
+            <ResponsiveContainer width="100%" height={Math.max(200, byTraveler.length * 32)}>
+              <BarChart data={byTraveler} layout="vertical" margin={{left: 60}}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e8e1cc" />
+                <XAxis type="number" stroke="#8a7d5c" style={{fontSize: 10}} tickFormatter={v => v >= 1e9 ? `${(v/1e9).toFixed(1)}M` : v >= 1e6 ? `${(v/1e6).toFixed(0)}Jt` : v >= 1e3 ? `${(v/1e3).toFixed(0)}rb` : v} />
+                <YAxis type="category" dataKey="name" stroke="#8a7d5c" style={{fontSize: 10}} width={60} />
+                <Tooltip formatter={(v, name, item) => [fmtRp(v) + ` (${item.payload.count} trips)`, item.payload.full]} contentStyle={{background: '#fefcf7', border: '1px solid #d4cdb8', fontSize: 11}} />
+                <Bar dataKey="total" fill="#1a4d8a" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+
+      {/* By Destination */}
+      <div style={{background: '#fefcf7', border: '1px solid #e8e1cc', padding: '18px 20px', marginBottom: '22px'}}>
+        <div className="serif" style={{fontSize: '17px', fontWeight: 500, marginBottom: '4px'}}>{lang === 'id' ? 'Top 10 Tujuan Perjalanan' : 'Top 10 Travel Destinations'}</div>
+        <div style={{fontSize: '11px', color: '#8a7d5c', marginBottom: '14px'}}>{lang === 'id' ? 'Kota tujuan dengan total biaya tertinggi' : 'Destination cities by total cost'}</div>
+        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+          <thead>
+            <tr style={{background: '#f8f5ef'}}>
+              <Th>#</Th>
+              <Th>{lang === 'id' ? 'Kota' : 'City'}</Th>
+              <Th align="right">{lang === 'id' ? 'Jumlah Trip' : 'Trip Count'}</Th>
+              <Th align="right">{lang === 'id' ? 'Total Biaya' : 'Total Cost'}</Th>
+              <Th align="right">{lang === 'id' ? 'Rata-rata' : 'Average'}</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {byDestination.map((d, i) => (
+              <tr key={d.city} style={{borderTop: '1px solid #e8e1cc'}}>
+                <Td><span style={{fontSize: '10px', color: '#8a7d5c', fontWeight: 600}}>{i + 1}</span></Td>
+                <Td><strong>{d.city}</strong></Td>
+                <Td align="right">{d.count}</Td>
+                <Td align="right"><span className="mono">{fmtRp(d.total)}</span></Td>
+                <Td align="right"><span className="mono" style={{color: '#8a7d5c'}}>{fmtRp(Math.round(d.total / d.count))}</span></Td>
+              </tr>
+            ))}
+            {byDestination.length === 0 && <tr><td colSpan="5" style={{padding: '20px', textAlign: 'center', color: '#8a7d5c'}}>{lang === 'id' ? 'Tidak ada data.' : 'No data.'}</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Settlement Summary */}
+      <div style={{background: '#fefcf7', border: '1px solid #e8e1cc', padding: '18px 20px', marginBottom: '22px'}}>
+        <div className="serif" style={{fontSize: '17px', fontWeight: 500, marginBottom: '4px'}}>{lang === 'id' ? 'Rekap Selisih Realisasi' : 'Realization Settlement Summary'}</div>
+        <div style={{fontSize: '11px', color: '#8a7d5c', marginBottom: '14px'}}>{lang === 'id' ? 'Dari realisasi yang sudah disetujui' : 'From approved realizations'}</div>
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px'}}>
+          <div style={{padding: '14px', border: '1px solid #e8e1cc', borderLeft: '3px solid #5b87b8'}}>
+            <div style={{fontSize: '10px', letterSpacing: '0.15em', color: '#5b87b8', textTransform: 'uppercase', fontWeight: 600, marginBottom: '4px'}}>{lang === 'id' ? 'Total Realisasi Disetujui' : 'Approved Realizations'}</div>
+            <div className="serif" style={{fontSize: '20px', fontWeight: 500}}>{settlementStats.totalRealizations}</div>
+          </div>
+          <div style={{padding: '14px', border: '1px solid #e8e1cc', borderLeft: '3px solid #b8935a'}}>
+            <div style={{fontSize: '10px', letterSpacing: '0.15em', color: '#b8935a', textTransform: 'uppercase', fontWeight: 600, marginBottom: '4px'}}>{lang === 'id' ? 'Kelebihan (dikembalikan karyawan)' : 'Excess (returned by employee)'}</div>
+            <div className="serif mono" style={{fontSize: '18px', fontWeight: 500, color: '#b8935a'}}>{fmtRpShort(settlementStats.totalOveradvance)}</div>
+            <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{settlementStats.overadvanceCount} {lang === 'id' ? 'realisasi' : 'realizations'}</div>
+          </div>
+          <div style={{padding: '14px', border: '1px solid #e8e1cc', borderLeft: '3px solid #c03030'}}>
+            <div style={{fontSize: '10px', letterSpacing: '0.15em', color: '#c03030', textTransform: 'uppercase', fontWeight: 600, marginBottom: '4px'}}>{lang === 'id' ? 'Kekurangan (kantor reimburse)' : 'Shortfall (office reimburse)'}</div>
+            <div className="serif mono" style={{fontSize: '18px', fontWeight: 500, color: '#c03030'}}>{fmtRpShort(settlementStats.totalUnderadvance)}</div>
+            <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{settlementStats.underadvanceCount} {lang === 'id' ? 'realisasi' : 'realizations'}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ============== Finance, Operations, Installation (compact) ==============
 function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
   const [tab, setTab] = useState('finance');
-  const poProjects = data.filter(s => s.poStatus === 'issued');
-  const totalPOValue = poProjects.reduce((s, p) => s + p.totalValue, 0);
-  const dpReceived = poProjects.filter(p => p.dpPaid).reduce((s, p) => s + (p.totalValue * 0.3), 0);
-  const arOutstanding = poProjects.reduce((s, p) => s + p.totalValue - (p.dpPaid ? p.totalValue * 0.3 : 0) - (p.finalPaid ? p.totalValue * 0.7 : 0), 0);
-  const apOutstanding = poProjects.filter(p => p.dpPaid).reduce((s, p) => s + (p.totalValue * 0.6), 0);
+  const stats = useMemo(() => {
+    const poProjects = data.filter(s => s.poStatus === 'issued');
+    return {
+      poProjects,
+      totalPOValue: poProjects.reduce((s, p) => s + p.totalValue, 0),
+      dpReceived: poProjects.filter(p => p.dpPaid).reduce((s, p) => s + (p.totalValue * 0.3), 0),
+      arOutstanding: poProjects.reduce((s, p) => s + p.totalValue - (p.dpPaid ? p.totalValue * 0.3 : 0) - (p.finalPaid ? p.totalValue * 0.7 : 0), 0),
+      apOutstanding: poProjects.filter(p => p.dpPaid).reduce((s, p) => s + (p.totalValue * 0.6), 0),
+    };
+  }, [data]);
+  const { poProjects, totalPOValue, dpReceived, arOutstanding, apOutstanding } = stats;
 
   const togglePayment = (id, field) => {
     if (!canEdit) return;
@@ -4153,7 +7284,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
             ))}
           </tbody>
         </table>
-        {poProjects.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
+        {poProjects.length === 0 && <div className="empty-state">{t.no_data}</div>}
       </div>
       </>
       )}
@@ -4163,31 +7294,32 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
 
 // ============== Net Profit Analysis Sub-Component ==============
 function NetProfitAnalysis({ data, t, lang, fmt }) {
-  // Won + PO Issued deals count as revenue realized
-  const realizedDeals = data.filter(s => s.poStatus === 'issued' || s.status === 'won');
-
-  const totalRevenue = realizedDeals.reduce((sum, s) => sum + calcNetProfit(s).revenue, 0);
-  const totalProfit = realizedDeals.reduce((sum, s) => sum + calcNetProfit(s).netProfit, 0);
-  const avgMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) : 0;
-
-  // Group by modality
-  const modalitySet = [...new Set(realizedDeals.map(s => s.modality))];
-  const byModality = modalitySet.map(mod => {
-    const deals = realizedDeals.filter(s => s.modality === mod);
-    const rev = deals.reduce((sum, s) => sum + calcNetProfit(s).revenue, 0);
-    const prof = deals.reduce((sum, s) => sum + calcNetProfit(s).netProfit, 0);
-    const margin = rev > 0 ? prof / rev : 0;
-    return { modality: mod, revenue: rev, profit: prof, margin, count: deals.length, defaultMargin: NET_MARGIN_BY_MODALITY[mod] || NET_MARGIN_DEFAULT };
-  }).sort((a, b) => b.profit - a.profit);
-
-  // Monthly trend
-  const monthlyTrend = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei'].map((m, i) => {
-    const mn = String(i + 1).padStart(2, '0');
-    const monthDeals = realizedDeals.filter(s => s.issuedDate?.startsWith(`2026-${mn}`));
-    const rev = monthDeals.reduce((sum, s) => sum + calcNetProfit(s).revenue, 0);
-    const prof = monthDeals.reduce((sum, s) => sum + calcNetProfit(s).netProfit, 0);
-    return { month: m, [t.np_revenue]: rev, [t.np_profit]: prof };
-  });
+  const computed = useMemo(() => {
+    // Won + PO Issued deals count as revenue realized
+    const realizedDeals = data.filter(s => s.poStatus === 'issued' || s.status === 'won');
+    const totalRevenue = realizedDeals.reduce((sum, s) => sum + calcNetProfit(s).revenue, 0);
+    const totalProfit = realizedDeals.reduce((sum, s) => sum + calcNetProfit(s).netProfit, 0);
+    const avgMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) : 0;
+    // Group by modality
+    const modalitySet = [...new Set(realizedDeals.map(s => s.modality))];
+    const byModality = modalitySet.map(mod => {
+      const deals = realizedDeals.filter(s => s.modality === mod);
+      const rev = deals.reduce((sum, s) => sum + calcNetProfit(s).revenue, 0);
+      const prof = deals.reduce((sum, s) => sum + calcNetProfit(s).netProfit, 0);
+      const margin = rev > 0 ? prof / rev : 0;
+      return { modality: mod, revenue: rev, profit: prof, margin, count: deals.length, defaultMargin: NET_MARGIN_BY_MODALITY[mod] || NET_MARGIN_DEFAULT };
+    }).sort((a, b) => b.profit - a.profit);
+    // Monthly trend
+    const monthlyTrend = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei'].map((m, i) => {
+      const mn = String(i + 1).padStart(2, '0');
+      const monthDeals = realizedDeals.filter(s => s.issuedDate?.startsWith(`2026-${mn}`));
+      const rev = monthDeals.reduce((sum, s) => sum + calcNetProfit(s).revenue, 0);
+      const prof = monthDeals.reduce((sum, s) => sum + calcNetProfit(s).netProfit, 0);
+      return { month: m, [t.np_revenue]: rev, [t.np_profit]: prof };
+    });
+    return { realizedDeals, totalRevenue, totalProfit, avgMargin, byModality, monthlyTrend };
+  }, [data, t]);
+  const { realizedDeals, totalRevenue, totalProfit, avgMargin, byModality, monthlyTrend } = computed;
 
   return (
     <div>
@@ -4264,21 +7396,24 @@ function NetProfitAnalysis({ data, t, lang, fmt }) {
 
 function OperationsModule({ data, setData, manifests, setManifests, customsDocs, setCustomsDocs, t, lang, canEdit, fmt }) {
   const [tab, setTab] = useState('shipment');
-  const poProjects = data.filter(s => s.poStatus === 'issued');
+  const poProjects = useMemo(() => data.filter(s => s.poStatus === 'issued'), [data]);
   const updateShipping = (id, status) => { if (!canEdit) return; setData(prev => prev.map(s => s.id === id ? { ...s, shippingStatus: status } : s)); };
   const updateCustoms = (id, status) => { if (!canEdit) return; setData(prev => prev.map(s => s.id === id ? { ...s, customsStatus: status } : s)); };
 
-  const shippingSteps = [
+  const shippingSteps = useMemo(() => [
     { id: 'plan_order', label: t.plan_order_to_factory, color: '#94a3b8' },
     { id: 'ready_to_ship', label: t.ready_to_ship, color: '#7d9cc5' },
     { id: 'on_shipment', label: t.on_shipment, color: '#c8a96a' },
     { id: 'delivered', label: t.delivery_to_site, color: '#3a6b3a' },
-  ];
+  ], [t]);
 
-  const totalManifests = manifests.length;
-  const inTransit = manifests.filter(m => m.status === 'in_transit').length;
-  const arrivedCount = manifests.filter(m => m.status === 'arrived').length;
-  const pendingDocs = customsDocs.filter(d => d.status === 'submitted' || d.status === 'received').length;
+  const opsStats = useMemo(() => ({
+    totalManifests: manifests.length,
+    inTransit: manifests.filter(m => m.status === 'in_transit').length,
+    arrivedCount: manifests.filter(m => m.status === 'arrived').length,
+    pendingDocs: customsDocs.filter(d => d.status === 'submitted' || d.status === 'received').length,
+  }), [manifests, customsDocs]);
+  const { totalManifests, inTransit, arrivedCount, pendingDocs } = opsStats;
 
   return (
     <div>
@@ -4290,20 +7425,20 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
       {!canEdit && <ReadOnlyBanner t={t} />}
 
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '22px', border: '1px solid #d4cdb8'}}>
-        <div style={{padding: '18px 20px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.ops_total_manifests}</div>
+        <div className="card-pad">
+          <div className="lbl-tag">{t.ops_total_manifests}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{totalManifests}</div>
         </div>
-        <div style={{padding: '18px 20px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.ops_in_transit}</div>
+        <div className="card-pad">
+          <div className="lbl-tag">{t.ops_in_transit}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#c8a96a'}}>{inTransit}</div>
         </div>
-        <div style={{padding: '18px 20px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.ops_arrived_count}</div>
+        <div className="card-pad">
+          <div className="lbl-tag">{t.ops_arrived_count}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#5b87b8'}}>{arrivedCount}</div>
         </div>
-        <div style={{padding: '18px 20px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.ops_pending_docs}</div>
+        <div className="card-pad">
+          <div className="lbl-tag">{t.ops_pending_docs}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#c03030'}}>{pendingDocs}</div>
         </div>
       </div>
@@ -4444,7 +7579,7 @@ function ManifestList({ manifests, setManifests, t, lang, canEdit, fmt }) {
           </div>
         );
       })}
-      {manifests.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
+      {manifests.length === 0 && <div className="empty-state">{t.no_data}</div>}
       {modalOpen && <ManifestModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
       <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Manifest?' : 'Delete Manifest?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
@@ -4528,7 +7663,7 @@ function CustomsDocsList({ customsDocs, setCustomsDocs, manifests, t, lang, canE
           })}
         </tbody>
       </table>
-      {customsDocs.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
+      {customsDocs.length === 0 && <div className="empty-state">{t.no_data}</div>}
       {modalOpen && <CustomsDocModal record={editingRecord} manifests={manifests} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
       <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Dokumen?' : 'Delete Document?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
@@ -4674,23 +7809,26 @@ function CustomsDocModal({ record, manifests, onSave, onClose, t, lang }) {
 
 function InstallationModule({ data, setData, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, t, lang, canEdit, fmt }) {
   const [tab, setTab] = useState('progress');
-  const installProjects = data.filter(s => s.poStatus === 'issued' && (s.shippingStatus === 'delivered' || s.installationStatus));
+  const installProjects = useMemo(() => data.filter(s => s.poStatus === 'issued' && (s.shippingStatus === 'delivered' || s.installationStatus)), [data]);
   const toggleStep = (id, field) => { if (!canEdit) return; setData(prev => prev.map(s => s.id === id ? { ...s, [field]: !s[field] } : s)); };
 
-  const installSteps = [
+  const installSteps = useMemo(() => [
     { id: 'installation_done', label: t.installation_done, icon: Wrench },
     { id: 'functionTest', label: t.function_test, icon: CheckCircle2 },
     { id: 'exposureTest', label: t.exposure_test, icon: CheckCircle2 },
     { id: 'trainingCert', label: t.training_cert, icon: FileCheck },
     { id: 'bapetenPermit', label: t.bapeten_permit, icon: Shield },
-  ];
+  ], [t]);
 
-  // KPI calculations
-  const totalRecords = installRecords.length;
-  const inProgressCount = installRecords.filter(r => r.status === 'progress').length;
-  const completedCount = installRecords.filter(r => r.status === 'completed').length;
-  const bastSignedCount = bastRecords.filter(b => b.status === 'signed').length;
-  const trainingDoneCount = trainingRecords.filter(t => t.status === 'completed').length;
+  // PERFORMANCE: KPI calculations memoized; renamed inner `t` to `tr` to avoid shadowing translations
+  const kpis = useMemo(() => ({
+    totalRecords: installRecords.length,
+    inProgressCount: installRecords.filter(r => r.status === 'progress').length,
+    completedCount: installRecords.filter(r => r.status === 'completed').length,
+    bastSignedCount: bastRecords.filter(b => b.status === 'signed').length,
+    trainingDoneCount: trainingRecords.filter(tr => tr.status === 'completed').length,
+  }), [installRecords, bastRecords, trainingRecords]);
+  const { totalRecords, inProgressCount, completedCount, bastSignedCount, trainingDoneCount } = kpis;
 
   return (
     <div>
@@ -4704,23 +7842,23 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
       {/* KPI Cards */}
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '22px', border: '1px solid #d4cdb8'}}>
         <div style={{padding: '16px 18px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.inst_total_records}</div>
+          <div className="lbl-tag">{t.inst_total_records}</div>
           <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px'}}>{totalRecords}</div>
         </div>
         <div style={{padding: '16px 18px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.inst_in_progress}</div>
+          <div className="lbl-tag">{t.inst_in_progress}</div>
           <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px', color: '#c8a96a'}}>{inProgressCount}</div>
         </div>
         <div style={{padding: '16px 18px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.inst_completed_count}</div>
+          <div className="lbl-tag">{t.inst_completed_count}</div>
           <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px', color: '#3a6b3a'}}>{completedCount}</div>
         </div>
         <div style={{padding: '16px 18px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.inst_bast_signed}</div>
+          <div className="lbl-tag">{t.inst_bast_signed}</div>
           <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px', color: '#1a4d8a'}}>{bastSignedCount}</div>
         </div>
         <div style={{padding: '16px 18px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.inst_training_done}</div>
+          <div className="lbl-tag">{t.inst_training_done}</div>
           <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px', color: '#7b3fb5'}}>{trainingDoneCount}</div>
         </div>
       </div>
@@ -4859,7 +7997,7 @@ function InstallRecordsList({ records, setRecords, t, lang, canEdit }) {
           </div>
         );
       })}
-      {records.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
+      {records.length === 0 && <div className="empty-state">{t.no_data}</div>}
       {modalOpen && <InstallRecordModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
       <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Riwayat Instalasi?' : 'Delete Installation Record?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
@@ -4941,7 +8079,7 @@ function BASTList({ records, setRecords, t, lang, canEdit }) {
           </div>
         );
       })}
-      {records.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
+      {records.length === 0 && <div className="empty-state">{t.no_data}</div>}
       {modalOpen && <BASTModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
       <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus BAST?' : 'Delete BAST?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
@@ -5022,7 +8160,7 @@ function TrainingCertList({ records, setRecords, t, lang, canEdit }) {
           </div>
         );
       })}
-      {records.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
+      {records.length === 0 && <div className="empty-state">{t.no_data}</div>}
       {modalOpen && <TrainingCertModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
       <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Sertifikat?' : 'Delete Certificate?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
@@ -5393,7 +8531,7 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull }) {
   );
 }
 
-function Footer({ t }) {
+const Footer = React.memo(function Footer({ t }) {
   return (
     <footer style={{borderTop: '1px solid #d4cdb8', padding: '24px 48px', marginTop: '40px'}}>
       <div style={{maxWidth: '1440px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px'}}>
@@ -5401,11 +8539,11 @@ function Footer({ t }) {
           <IMSLogo size="sm" />
           <span style={{fontSize: '11px', color: '#8a7d5c'}}>· {t.company}</span>
         </div>
-        <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>Phase 17 · © 2026</div>
+        <div className="lbl-tag">Phase 25 · © 2026</div>
       </div>
     </footer>
   );
-}
+});
 
 // ============== Maintenance Module ==============
 function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule, t, lang, canEdit, session }) {
@@ -5415,28 +8553,29 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
   const [pmModalOpen, setPmModalOpen] = useState(false);
   const [editingPm, setEditingPm] = useState(null);
 
-  const today = new Date('2026-05-16');
-  const monthAhead = new Date('2026-06-16');
-
-  // Categorize units by PM status
-  const unitsByPmStatus = units.map(u => {
-    const nextPm = new Date(u.nextPmDate);
-    let pmStatus;
-    if (nextPm < today) pmStatus = 'overdue';
-    else if (nextPm < monthAhead) pmStatus = 'upcoming';
-    else pmStatus = 'scheduled';
-    const warrantyEnd = new Date(u.warrantyEnd);
-    const underWarranty = warrantyEnd >= today;
-    return { ...u, pmStatus, underWarranty };
-  });
-
-  const totalUnits = units.length;
-  const underWarranty = unitsByPmStatus.filter(u => u.underWarranty).length;
-  const pmThisMonth = unitsByPmStatus.filter(u => u.pmStatus === 'overdue' || u.pmStatus === 'upcoming').length;
-  const openIssues = issues.filter(i => i.status !== 'resolved').length;
-
-  const repairs = issues.filter(i => i.type === 'repair');
-  const complaints = issues.filter(i => i.type === 'complaint');
+  // PERFORMANCE: Categorize units + KPIs all in one useMemo block
+  const unitsAndStats = useMemo(() => {
+    const today = new Date('2026-05-16');
+    const monthAhead = new Date('2026-06-16');
+    const unitsByPmStatus = units.map(u => {
+      const nextPm = new Date(u.nextPmDate);
+      let pmStatus;
+      if (nextPm < today) pmStatus = 'overdue';
+      else if (nextPm < monthAhead) pmStatus = 'upcoming';
+      else pmStatus = 'scheduled';
+      const warrantyEnd = new Date(u.warrantyEnd);
+      const underWarranty = warrantyEnd >= today;
+      return { ...u, pmStatus, underWarranty };
+    });
+    const totalUnits = units.length;
+    const underWarranty = unitsByPmStatus.filter(u => u.underWarranty).length;
+    const pmThisMonth = unitsByPmStatus.filter(u => u.pmStatus === 'overdue' || u.pmStatus === 'upcoming').length;
+    const openIssues = issues.filter(i => i.status !== 'resolved').length;
+    const repairs = issues.filter(i => i.type === 'repair');
+    const complaints = issues.filter(i => i.type === 'complaint');
+    return { unitsByPmStatus, totalUnits, underWarranty, pmThisMonth, openIssues, repairs, complaints };
+  }, [units, issues]);
+  const { unitsByPmStatus, totalUnits, underWarranty, pmThisMonth, openIssues, repairs, complaints } = unitsAndStats;
 
   // Sort by priority (critical→high→medium→low), then by date desc
   const [repairsSortBy, setRepairsSortBy] = useState('priority');
@@ -5535,20 +8674,20 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
       {!canEdit && <ReadOnlyBanner t={t} />}
 
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '22px', border: '1px solid #d4cdb8'}}>
-        <div style={{padding: '18px 20px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.mt_total_units}</div>
+        <div className="card-pad">
+          <div className="lbl-tag">{t.mt_total_units}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{totalUnits}</div>
         </div>
-        <div style={{padding: '18px 20px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.mt_units_warranty}</div>
+        <div className="card-pad">
+          <div className="lbl-tag">{t.mt_units_warranty}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#3a6b3a'}}>{underWarranty}</div>
         </div>
-        <div style={{padding: '18px 20px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.mt_pm_this_month}</div>
+        <div className="card-pad">
+          <div className="lbl-tag">{t.mt_pm_this_month}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#c8a96a'}}>{pmThisMonth}</div>
         </div>
-        <div style={{padding: '18px 20px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.mt_open_issues}</div>
+        <div className="card-pad">
+          <div className="lbl-tag">{t.mt_open_issues}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#c03030'}}>{openIssues}</div>
         </div>
       </div>
@@ -5667,7 +8806,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
               })}
             </tbody>
           </table>
-          {units.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
+          {units.length === 0 && <div className="empty-state">{t.no_data}</div>}
           {units.length > 80 && <div style={{padding: '12px', textAlign: 'center', fontSize: '11px', color: '#8a7d5c', borderTop: '1px solid #e8e1cc'}}>{lang === 'id' ? `Menampilkan 80 dari ${units.length} unit. Filter & pagination tersedia di versi production.` : `Showing 80 of ${units.length} units. Filter & pagination available in production version.`}</div>}
           </div>
         </div>
@@ -5722,7 +8861,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
               {r.note && <div style={{marginTop: '8px', padding: '8px 10px', background: '#f0ebe0', fontSize: '11px', fontStyle: 'italic', color: '#1a2942'}}>📝 {r.note}</div>}
             </div>
           ))}
-          {repairs.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
+          {repairs.length === 0 && <div className="empty-state">{t.no_data}</div>}
         </div>
       )}
 
@@ -5775,7 +8914,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
               {c.note && <div style={{marginTop: '8px', padding: '8px 10px', background: '#f0ebe0', fontSize: '11px', fontStyle: 'italic', color: '#1a2942'}}>📝 {c.note}</div>}
             </div>
           ))}
-          {complaints.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
+          {complaints.length === 0 && <div className="empty-state">{t.no_data}</div>}
         </div>
       )}
       {issueModalOpen && <MaintenanceIssueModal record={editingIssue} onSave={handleSaveIssue} onClose={() => { setIssueModalOpen(false); setEditingIssue(null); }} t={t} lang={lang} units={units} session={session} />}
@@ -5993,8 +9132,11 @@ function RegulatoryModule({ records, setRegRecords, aklRecords, setAklRecords, i
 function ImportPipeline({ records, setImportRecords, t, lang, canEdit }) {
   const stages = IMPORT_STAGES;
   const stageColors = { preregist: '#94a3b8', docs: '#7d9cc5', submit: '#5b87b8', eval: '#c8a96a', issued: '#3a6b3a' };
-  const totalActive = records.filter(r => r.stage !== 'issued').length;
-  const totalIssued = records.filter(r => r.stage === 'issued').length;
+  const totals = useMemo(() => ({
+    totalActive: records.filter(r => r.stage !== 'issued').length,
+    totalIssued: records.filter(r => r.stage === 'issued').length,
+  }), [records]);
+  const { totalActive, totalIssued } = totals;
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc');
@@ -6045,10 +9187,10 @@ function ImportPipeline({ records, setImportRecords, t, lang, canEdit }) {
     }));
   };
 
-  const byStage = stages.map(stage => ({
+  const byStage = useMemo(() => stages.map(stage => ({
     stage, label: t[`imp_stage_${stage === 'preregist' ? 'pre' : stage}`], color: stageColors[stage],
     count: records.filter(r => r.stage === stage).length,
-  }));
+  })), [stages, records, t]);
 
   return (
     <div>
@@ -6058,12 +9200,12 @@ function ImportPipeline({ records, setImportRecords, t, lang, canEdit }) {
       </div>
 
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '22px', border: '1px solid #d4cdb8'}}>
-        <div style={{padding: '18px 20px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.imp_total_active}</div>
+        <div className="card-pad">
+          <div className="lbl-tag">{t.imp_total_active}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#c8a96a'}}>{totalActive}</div>
         </div>
-        <div style={{padding: '18px 20px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.imp_total_issued}</div>
+        <div className="card-pad">
+          <div className="lbl-tag">{t.imp_total_issued}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#3a6b3a'}}>{totalIssued}</div>
         </div>
       </div>
@@ -6140,7 +9282,7 @@ function ImportPipeline({ records, setImportRecords, t, lang, canEdit }) {
             </div>
           );
         })}
-        {records.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
+        {records.length === 0 && <div className="empty-state">{t.no_data}</div>}
       </div>
       {modalOpen && <RegulatoryRecordModal record={editingRecord} recordType="import" onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
       <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Izin Import?' : 'Delete Import Permit?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
@@ -6152,8 +9294,11 @@ function ImportPipeline({ records, setImportRecords, t, lang, canEdit }) {
 function PengalihanPipeline({ records, setRecords, t, lang, canEdit }) {
   const stages = PENGALIHAN_STAGES;
   const stageColors = { submit: '#7d9cc5', eval: '#c8a96a', issued: '#3a6b3a' };
-  const totalActive = records.filter(r => r.stage !== 'issued').length;
-  const totalIssued = records.filter(r => r.stage === 'issued').length;
+  const totals = useMemo(() => ({
+    totalActive: records.filter(r => r.stage !== 'issued').length,
+    totalIssued: records.filter(r => r.stage === 'issued').length,
+  }), [records]);
+  const { totalActive, totalIssued } = totals;
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc');
@@ -6201,20 +9346,20 @@ function PengalihanPipeline({ records, setRecords, t, lang, canEdit }) {
     }));
   };
 
-  const byStage = stages.map(stage => ({
+  const byStage = useMemo(() => stages.map(stage => ({
     stage, label: t[`pgl_stage_${stage}`], color: stageColors[stage],
     count: records.filter(r => r.stage === stage).length,
-  }));
+  })), [stages, records, t]);
 
   return (
     <div>
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '22px', border: '1px solid #d4cdb8'}}>
-        <div style={{padding: '18px 20px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.pgl_total_active}</div>
+        <div className="card-pad">
+          <div className="lbl-tag">{t.pgl_total_active}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#c8a96a'}}>{totalActive}</div>
         </div>
-        <div style={{padding: '18px 20px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.pgl_total_issued}</div>
+        <div className="card-pad">
+          <div className="lbl-tag">{t.pgl_total_issued}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#3a6b3a'}}>{totalIssued}</div>
         </div>
       </div>
@@ -6285,7 +9430,7 @@ function PengalihanPipeline({ records, setRecords, t, lang, canEdit }) {
             </div>
           );
         })}
-        {records.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
+        {records.length === 0 && <div className="empty-state">{t.no_data}</div>}
       </div>
       {modalOpen && <RegulatoryRecordModal record={editingRecord} recordType="pengalihan" onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
       <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Izin Pengalihan?' : 'Delete Transfer Permit?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
@@ -6300,13 +9445,13 @@ function PIPipeline({ records, setRecords, t, lang, canEdit }) {
   const [editingRecord, setEditingRecord] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc');
 
-  const enriched = records.map(r => {
+  const enriched = useMemo(() => records.map(r => {
     const expDate = new Date(r.expiredDate);
     const daysRemaining = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
     let status = r.status;
     if (status !== 'used' && daysRemaining < 0) status = 'expired';
     return { ...r, daysRemaining, computedStatus: status };
-  });
+  }), [records]);
 
   const sortedEnriched = useMemo(() => {
     const arr = [...enriched];
@@ -6316,9 +9461,12 @@ function PIPipeline({ records, setRecords, t, lang, canEdit }) {
     if (sortBy === 'status') return arr.sort((a, b) => (a.computedStatus || '').localeCompare(b.computedStatus || ''));
     return arr;
   }, [enriched, sortBy]);
-  const totalActive = enriched.filter(r => r.computedStatus === 'active').length;
-  const totalUsed = enriched.filter(r => r.computedStatus === 'used').length;
-  const totalExpired = enriched.filter(r => r.computedStatus === 'expired').length;
+  const piTotals = useMemo(() => ({
+    totalActive: enriched.filter(r => r.computedStatus === 'active').length,
+    totalUsed: enriched.filter(r => r.computedStatus === 'used').length,
+    totalExpired: enriched.filter(r => r.computedStatus === 'expired').length,
+  }), [enriched]);
+  const { totalActive, totalUsed, totalExpired } = piTotals;
   const statusColors = { active: '#3a6b3a', used: '#5b87b8', expired: '#c03030' };
 
   const handleSave = (rec) => {
@@ -6350,16 +9498,16 @@ function PIPipeline({ records, setRecords, t, lang, canEdit }) {
       </div>
 
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '22px', border: '1px solid #d4cdb8'}}>
-        <div style={{padding: '18px 20px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.pi_total_active}</div>
+        <div className="card-pad">
+          <div className="lbl-tag">{t.pi_total_active}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#3a6b3a'}}>{totalActive}</div>
         </div>
-        <div style={{padding: '18px 20px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.pi_total_used}</div>
+        <div className="card-pad">
+          <div className="lbl-tag">{t.pi_total_used}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#5b87b8'}}>{totalUsed}</div>
         </div>
-        <div style={{padding: '18px 20px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.pi_total_expired}</div>
+        <div className="card-pad">
+          <div className="lbl-tag">{t.pi_total_expired}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#c03030'}}>{totalExpired}</div>
         </div>
       </div>
@@ -6417,7 +9565,7 @@ function PIPipeline({ records, setRecords, t, lang, canEdit }) {
             </div>
           );
         })}
-        {records.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
+        {records.length === 0 && <div className="empty-state">{t.no_data}</div>}
       </div>
       {modalOpen && <RegulatoryRecordModal record={editingRecord} recordType="pi" onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
       <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus PI?' : 'Delete PI?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
@@ -6441,8 +9589,11 @@ function BAPETENPipeline({ records, setRegRecords, t, lang, canEdit }) {
     return arr;
   }, [records, sortBy]);
 
-  const totalPending = records.filter(r => r.stage !== 'issued').length;
-  const totalIssued = records.filter(r => r.stage === 'issued').length;
+  const totals = useMemo(() => ({
+    totalPending: records.filter(r => r.stage !== 'issued').length,
+    totalIssued: records.filter(r => r.stage === 'issued').length,
+  }), [records]);
+  const { totalPending, totalIssued } = totals;
   const avgDays = 45;
 
   const handleSave = (rec) => {
@@ -6479,24 +9630,24 @@ function BAPETENPipeline({ records, setRegRecords, t, lang, canEdit }) {
     }));
   };
 
-  const byStage = stages.map(stage => ({
+  const byStage = useMemo(() => stages.map(stage => ({
     stage, label: t[`reg_stage_${stage}`], color: stageColors[stage],
     count: records.filter(r => r.stage === stage).length,
-  }));
+  })), [stages, records, t]);
 
   return (
     <div>
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '22px', border: '1px solid #d4cdb8'}}>
-        <div style={{padding: '18px 20px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.reg_total_pending}</div>
+        <div className="card-pad">
+          <div className="lbl-tag">{t.reg_total_pending}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#c8a96a'}}>{totalPending}</div>
         </div>
-        <div style={{padding: '18px 20px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.reg_total_issued}</div>
+        <div className="card-pad">
+          <div className="lbl-tag">{t.reg_total_issued}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#3a6b3a'}}>{totalIssued}</div>
         </div>
-        <div style={{padding: '18px 20px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.reg_avg_days}</div>
+        <div className="card-pad">
+          <div className="lbl-tag">{t.reg_avg_days}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{avgDays} <span style={{fontSize: '12px', color: '#8a7d5c'}}>{t.days}</span></div>
         </div>
       </div>
@@ -6539,7 +9690,7 @@ function BAPETENPipeline({ records, setRegRecords, t, lang, canEdit }) {
                 </div>
                 <div style={{textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px'}}>
                   <span style={{padding: '4px 10px', fontSize: '10px', background: stageColor + '25', color: stageColor, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{t[`reg_stage_${r.stage}`]}</span>
-                  {r.pnbpAmount && <div style={{fontSize: '11px', color: '#8a7d5c'}}>PNBP: <span className="mono">Rp {(r.pnbpAmount / 1000000).toFixed(1)}jt</span></div>}
+                  {r.pnbpAmount && <div style={{fontSize: '11px', color: '#8a7d5c'}}>PNBP: <span className="mono">{fmt(r.pnbpAmount)}</span></div>}
                   {canEdit && (
                     <div style={{display: 'flex', gap: '4px'}}>
                       <button onClick={() => { setEditingRecord(r); setModalOpen(true); }} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: '#1a2942', fontFamily: 'inherit'}}><Edit2 size={11} /></button>
@@ -6568,7 +9719,7 @@ function BAPETENPipeline({ records, setRegRecords, t, lang, canEdit }) {
             </div>
           );
         })}
-        {records.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
+        {records.length === 0 && <div className="empty-state">{t.no_data}</div>}
       </div>
       {modalOpen && <RegulatoryRecordModal record={editingRecord} recordType="bapeten" onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
       <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Catatan?' : 'Delete Record?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
@@ -6587,12 +9738,16 @@ function AKLPipeline({ aklRecords, setAklRecords, t, lang, canEdit }) {
   const [editingRecord, setEditingRecord] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc');
 
-  const totalActive = aklRecords.filter(r => r.stage !== 'issued').length;
-  const totalIssued = aklRecords.filter(r => r.stage === 'issued').length;
-  const issuedRecords = aklRecords.filter(r => r.stage === 'issued');
-  const avgDuration = issuedRecords.length > 0
-    ? Math.round(issuedRecords.reduce((sum, r) => sum + (r.daysElapsed || 0), 0) / issuedRecords.length)
-    : 0;
+  const aklStats = useMemo(() => {
+    const totalActive = aklRecords.filter(r => r.stage !== 'issued').length;
+    const totalIssued = aklRecords.filter(r => r.stage === 'issued').length;
+    const issuedRecords = aklRecords.filter(r => r.stage === 'issued');
+    const avgDuration = issuedRecords.length > 0
+      ? Math.round(issuedRecords.reduce((sum, r) => sum + (r.daysElapsed || 0), 0) / issuedRecords.length)
+      : 0;
+    return { totalActive, totalIssued, issuedRecords, avgDuration };
+  }, [aklRecords]);
+  const { totalActive, totalIssued, issuedRecords, avgDuration } = aklStats;
 
   const sortedAklRecords = useMemo(() => {
     const arr = [...aklRecords];
@@ -6641,10 +9796,10 @@ function AKLPipeline({ aklRecords, setAklRecords, t, lang, canEdit }) {
     }));
   };
 
-  const byStage = stages.map(stage => ({
+  const byStage = useMemo(() => stages.map(stage => ({
     stage, label: t[`akl_stage_${stage}`], color: stageColors[stage],
     count: aklRecords.filter(r => r.stage === stage).length,
-  }));
+  })), [stages, aklRecords, t]);
 
   return (
     <div>
@@ -6655,16 +9810,16 @@ function AKLPipeline({ aklRecords, setAklRecords, t, lang, canEdit }) {
       </div>
 
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '22px', border: '1px solid #d4cdb8'}}>
-        <div style={{padding: '18px 20px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.akl_total_active}</div>
+        <div className="card-pad">
+          <div className="lbl-tag">{t.akl_total_active}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#c8a96a'}}>{totalActive}</div>
         </div>
-        <div style={{padding: '18px 20px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.akl_total_issued}</div>
+        <div className="card-pad">
+          <div className="lbl-tag">{t.akl_total_issued}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#3a6b3a'}}>{totalIssued}</div>
         </div>
-        <div style={{padding: '18px 20px', background: '#fefcf7'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.akl_avg_duration}</div>
+        <div className="card-pad">
+          <div className="lbl-tag">{t.akl_avg_duration}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{avgDuration} <span style={{fontSize: '12px', color: '#8a7d5c'}}>{t.days}</span></div>
         </div>
       </div>
@@ -6721,7 +9876,7 @@ function AKLPipeline({ aklRecords, setAklRecords, t, lang, canEdit }) {
                       {isOverdue ? `⚠ ${t.akl_overdue}` : `${r.workingDaysRemaining} ${t.days} ${lang === 'id' ? 'tersisa' : 'left'}`}
                     </div>
                   )}
-                  {r.pnbpAmount && <div style={{fontSize: '11px', color: '#8a7d5c'}}>PNBP: <span className="mono">Rp {(r.pnbpAmount / 1000000).toFixed(1)}jt</span></div>}
+                  {r.pnbpAmount && <div style={{fontSize: '11px', color: '#8a7d5c'}}>PNBP: <span className="mono">{fmt(r.pnbpAmount)}</span></div>}
                   {canEdit && (
                     <div style={{display: 'flex', gap: '4px'}}>
                       <button onClick={() => { setEditingRecord(r); setModalOpen(true); }} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: '#1a2942', fontFamily: 'inherit'}}><Edit2 size={11} /></button>
@@ -6759,7 +9914,7 @@ function AKLPipeline({ aklRecords, setAklRecords, t, lang, canEdit }) {
             </div>
           );
         })}
-        {aklRecords.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{t.no_data}</div>}
+        {aklRecords.length === 0 && <div className="empty-state">{t.no_data}</div>}
       </div>
       {modalOpen && <RegulatoryRecordModal record={editingRecord} recordType="akl" onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
       <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus AKL?' : 'Delete AKL?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
@@ -6858,7 +10013,7 @@ function RegulatoryRecordModal({ record, recordType, onSave, onClose, t, lang })
         <Field label="Tgl. Pengumpulan Dokumen"><input type="date" value={form.docsDate || ''} onChange={e => update('docsDate', e.target.value)} /></Field>
         <Field label="Tgl. Submit"><input type="date" value={form.submitDate || ''} onChange={e => update('submitDate', e.target.value)} /></Field>
         <Field label="Tgl. PNBP"><input type="date" value={form.pnbpDate || ''} onChange={e => update('pnbpDate', e.target.value)} /></Field>
-        <Field label="Jumlah PNBP (Rp)"><input type="number" value={form.pnbpAmount || ''} onChange={e => update('pnbpAmount', parseFloat(e.target.value) || null)} /></Field>
+        <Field label={lang === 'id' ? 'Jumlah PNBP (Rp)' : 'PNBP Amount (Rp)'}><input type="number" value={form.pnbpAmount || ''} onChange={e => update('pnbpAmount', parseFloat(e.target.value) || null)} /></Field>
         <Field label="Tgl. Evaluasi"><input type="date" value={form.evalDate || ''} onChange={e => update('evalDate', e.target.value)} /></Field>
         <Field label="Tgl. Perbaikan"><input type="date" value={form.fixDate || ''} onChange={e => update('fixDate', e.target.value)} /></Field>
         <Field label="Tgl. AKL Terbit"><input type="date" value={form.issuedDate || ''} onChange={e => update('issuedDate', e.target.value)} /></Field>
@@ -6896,7 +10051,7 @@ function RegulatoryRecordModal({ record, recordType, onSave, onClose, t, lang })
         </Field>
         <Field label="Tgl. Submit"><input type="date" value={form.submitDate || ''} onChange={e => update('submitDate', e.target.value)} /></Field>
         <Field label="Tgl. Evaluasi"><input type="date" value={form.evalDate || ''} onChange={e => update('evalDate', e.target.value)} /></Field>
-        <Field label="Jumlah PNBP (Rp)"><input type="number" value={form.pnbpAmount || ''} onChange={e => update('pnbpAmount', parseFloat(e.target.value) || null)} /></Field>
+        <Field label={lang === 'id' ? 'Jumlah PNBP (Rp)' : 'PNBP Amount (Rp)'}><input type="number" value={form.pnbpAmount || ''} onChange={e => update('pnbpAmount', parseFloat(e.target.value) || null)} /></Field>
         <Field label="Tgl. Izin Terbit"><input type="date" value={form.issuedDate || ''} onChange={e => update('issuedDate', e.target.value)} /></Field>
         <Field label={t.crud_pic}><input value={form.pic || ''} onChange={e => update('pic', e.target.value)} /></Field>
         <Field label={t.reg_note} full><textarea rows={2} value={form.note || ''} onChange={e => update('note', e.target.value)} /></Field>
@@ -6972,30 +10127,31 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
   const isSales = session.role === 'sales';
   const isOfficeAccount = session.salesId === 'office';
   // For sales role, filter to only own deals; for finance/CEO, show all
-  const visibleData = isSales ? data.filter(s => s.salesOwner === session.salesId) : data;
-  // Only PO Issued deals trigger incentive
-  const poDeals = visibleData.filter(s => s.poStatus === 'issued');
-
-  // Compute per-deal incentive
-  const dealsWithIncentive = poDeals.map(s => {
-    const calc = calcIncentive(s);
-    const stat = getIncentiveStatus(s);
-    return { ...s, _calc: calc, _stat: stat };
-  });
-
-  // Aggregate by status
-  const totalEstimated = dealsWithIncentive.filter(d => d._stat?.status === 'estimated').reduce((sum, d) => sum + d._calc.incentive, 0);
-  const totalReady = dealsWithIncentive.filter(d => d._stat?.status === 'ready').reduce((sum, d) => sum + d._calc.incentive, 0);
-  const totalPaid = dealsWithIncentive.filter(d => d._stat?.status === 'paid').reduce((sum, d) => sum + d._calc.incentive, 0);
-  const totalKsoSplit = dealsWithIncentive.filter(d => d._stat?.status === 'kso_prorata').reduce((sum, d) => sum + d._calc.incentive * (d._stat.progress || 0), 0);
-  const ytdTotal = totalEstimated + totalReady + totalPaid + totalKsoSplit;
-
-  // Leaderboard (for CEO/Finance only)
-  const leaderboard = !isSales ? SALES_TEAM.map(sales => {
-    const salesDeals = data.filter(s => s.salesOwner === sales.id && s.poStatus === 'issued');
-    const total = salesDeals.reduce((sum, s) => sum + calcIncentive(s).incentive, 0);
-    return { ...sales, total, dealsCount: salesDeals.length };
-  }).sort((a, b) => b.total - a.total) : [];
+  const incentiveStats = useMemo(() => {
+    const visibleData = isSales ? data.filter(s => s.salesOwner === session.salesId) : data;
+    // Only PO Issued deals trigger incentive
+    const poDeals = visibleData.filter(s => s.poStatus === 'issued');
+    // Compute per-deal incentive
+    const dealsWithIncentive = poDeals.map(s => {
+      const calc = calcIncentive(s);
+      const stat = getIncentiveStatus(s);
+      return { ...s, _calc: calc, _stat: stat };
+    });
+    // Aggregate by status
+    const totalEstimated = dealsWithIncentive.filter(d => d._stat?.status === 'estimated').reduce((sum, d) => sum + d._calc.incentive, 0);
+    const totalReady = dealsWithIncentive.filter(d => d._stat?.status === 'ready').reduce((sum, d) => sum + d._calc.incentive, 0);
+    const totalPaid = dealsWithIncentive.filter(d => d._stat?.status === 'paid').reduce((sum, d) => sum + d._calc.incentive, 0);
+    const totalKsoSplit = dealsWithIncentive.filter(d => d._stat?.status === 'kso_prorata').reduce((sum, d) => sum + d._calc.incentive * (d._stat.progress || 0), 0);
+    const ytdTotal = totalEstimated + totalReady + totalPaid + totalKsoSplit;
+    // Leaderboard (for CEO/Finance only)
+    const leaderboard = !isSales ? SALES_TEAM.map(sales => {
+      const salesDeals = data.filter(s => s.salesOwner === sales.id && s.poStatus === 'issued');
+      const total = salesDeals.reduce((sum, s) => sum + calcIncentive(s).incentive, 0);
+      return { ...sales, total, dealsCount: salesDeals.length };
+    }).sort((a, b) => b.total - a.total) : [];
+    return { visibleData, poDeals, dealsWithIncentive, totalEstimated, totalReady, totalPaid, totalKsoSplit, ytdTotal, leaderboard };
+  }, [data, isSales, session.salesId]);
+  const { visibleData, poDeals, dealsWithIncentive, totalEstimated, totalReady, totalPaid, totalKsoSplit, ytdTotal, leaderboard } = incentiveStats;
 
   const [selectedDeal, setSelectedDeal] = useState(null);
 
@@ -7128,7 +10284,7 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
             })}
           </tbody>
         </table>
-        {dealsWithIncentive.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c'}}>{lang === 'id' ? 'Belum ada deal PO yang terbit' : 'No PO issued yet'}</div>}
+        {dealsWithIncentive.length === 0 && <div className="empty-state">{lang === 'id' ? 'Belum ada deal PO yang terbit' : 'No PO issued yet'}</div>}
       </div>
 
       {/* Detail Modal */}
@@ -7137,7 +10293,7 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '580px'}}>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px'}}>
               <div>
-                <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.inc_breakdown}</div>
+                <div className="lbl-tag">{t.inc_breakdown}</div>
                 <h2 className="serif" style={{fontSize: '22px', margin: '4px 0 0', fontWeight: 500}}>{selectedDeal.customer}</h2>
                 <div style={{fontSize: '11px', color: '#8a7d5c', marginTop: '2px'}}>{selectedDeal.subModality}</div>
               </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { TrendingUp, FileText, Briefcase, Plus, Search, Edit2, Trash2, X, ArrowUpRight, ArrowDownRight, Activity, DollarSign, Users, Clock, Globe, LogOut, Shield, Wrench, Truck, Wallet, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, FileCheck, Menu, ChevronDown, ClipboardList, Star, Settings, ShieldCheck, CalendarDays, AlertTriangle, FileSearch, UserPlus, UserCheck, UserX, Plane, Receipt, Hotel } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Area, ComposedChart } from 'recharts';
 
-const DEFAULT_USD_IDR = 17500;
+const DEFAULT_USD_IDR = 18000;
 
 // ============== i18n ==============
 const translations = {
@@ -193,7 +193,7 @@ const translations = {
     revenue_ytd_sub: 'Sudah terealisasi (deal menang)',
     weighted_pipeline_sub: 'Proyeksi: deal aktif × probabilitas',
     pipeline_value_sub: 'Total nilai semua deal aktif',
-    win_rate_sub: 'Menang dari total deal closed',
+    win_rate_sub: 'Menang dari total deal closed (kumulatif sejak 2025)',
     revenue_period: 'Jan–Mei 2026',
     // YoY
     yoy_title: 'Pertumbuhan Tahun ke Tahun', yoy_subtitle: 'Perbandingan SPH dan PO antar tahun',
@@ -525,6 +525,7 @@ const translations = {
     emp_restricted: 'Hanya CEO, General Manager, dan Manager Operasional yang dapat mengakses modul ini.',
     emp_pos_staff: 'Staff', emp_pos_supervisor: 'Supervisor', emp_pos_manager: 'Manager',
     emp_pos_manager_ops: 'Manager Operasional', emp_pos_gm: 'General Manager', emp_pos_direksi: 'Direksi',
+    emp_pos_product_specialist: 'Product Specialist', emp_pos_security: 'Security', emp_pos_office_boy: 'Office Boy/Girl',
     emp_field_username_help: 'ID login (huruf kecil, tanpa spasi). Tidak bisa diubah setelah disimpan.',
     emp_field_position_help: 'Allowance otomatis menyesuaikan posisi.',
     emp_confirm_deactivate: 'Karyawan yang dinon-aktifkan tidak bisa login. Lanjutkan?',
@@ -865,7 +866,7 @@ const translations = {
     revenue_ytd_sub: 'Realized (won deals)',
     weighted_pipeline_sub: 'Projection: active deals × probability',
     pipeline_value_sub: 'Total value of all active deals',
-    win_rate_sub: 'Won from total closed deals',
+    win_rate_sub: 'Won from total closed deals (cumulative since 2025)',
     revenue_period: 'Jan–May 2026',
     yoy_title: 'Year-over-Year Growth', yoy_subtitle: 'SPH and PO comparison between years',
     yoy_filter_year: 'Year', yoy_filter_all: 'All',
@@ -1195,6 +1196,7 @@ const translations = {
     emp_restricted: 'Only CEO, General Manager, and Operations Manager can access this module.',
     emp_pos_staff: 'Staff', emp_pos_supervisor: 'Supervisor', emp_pos_manager: 'Manager',
     emp_pos_manager_ops: 'Operations Manager', emp_pos_gm: 'General Manager', emp_pos_direksi: 'Direksi',
+    emp_pos_product_specialist: 'Product Specialist', emp_pos_security: 'Security', emp_pos_office_boy: 'Office Boy/Girl',
     emp_field_username_help: 'Login ID (lowercase, no spaces). Cannot be changed after saving.',
     emp_field_position_help: 'Allowance auto-adjusts based on position.',
     emp_confirm_deactivate: 'Deactivated employees cannot log in. Continue?',
@@ -1360,11 +1362,14 @@ const SALES_IDS_WITH_OFFICE = ['lukman', 'hatim', 'dwi', 'tri', 'bagus', 'office
 // ============== Allowance per Position (Business Trip) ==============
 const POSITION_ALLOWANCE = {
   'Staff': 130000,
+  'Product Specialist': 150000,
   'Supervisor': 150000,
   'Manager': 175000,
   'Manager Operasional': 175000,
   'General Manager': 175000,
   'Direksi': 500000,
+  'Security': 100000,
+  'Office Boy/Girl': 100000,
 };
 
 const USERS = {
@@ -3645,7 +3650,7 @@ const STORAGE_KEY = 'ims_hnti:data_v22';
 const REPORTS_KEY = 'ims_hnti:reports_v22';
 const LANG_KEY = 'ims_hnti:lang_v22';
 const SESSION_KEY = 'ims_hnti:session_v22';
-const RATE_KEY = 'ims_hnti:rate_v22';
+const RATE_KEY = 'ims_hnti:rate_v23';
 const storeGet = async (k) => { try { const r = await window.storage.get(k); return r?.value; } catch { return null; } };
 const storeSet = async (k, v) => { try { await window.storage.set(k, v); } catch {} };
 const storeDel = async (k) => { try { await window.storage.delete(k); } catch {} };
@@ -3945,6 +3950,14 @@ export default function App() {
           try { await window.storage.delete(k); } catch {}
         }
         await storeSet(MIGRATION_MARKER, 'true');
+      }
+
+      // V23 migration: refresh exchange rate (Rp 17,500 → Rp 18,000)
+      const RATE_MIGRATION_MARKER = 'ims_hnti:rate_v23_migrated';
+      const rateMigrated = await storeGet(RATE_MIGRATION_MARKER);
+      if (!rateMigrated) {
+        try { await window.storage.delete('ims_hnti:rate_v22'); } catch {}
+        await storeSet(RATE_MIGRATION_MARKER, 'true');
       }
 
       const [d, l, s, r, rep, iss, reg, akl, imp, pgl, pi, pm, mfst, cdoc, inst, bast, train, emp, bt] = await Promise.all([
@@ -4914,6 +4927,8 @@ function SPHManagement({ data, t, lang, canEdit, fmt, onAdd, onEdit, onDelete })
 function PipelineBoard({ data, t, lang, canEdit, fmt, onEdit }) {
   // Default to current year (2026) so pipeline shows current-year deals
   const [filterYear, setFilterYear] = useState('2026');
+  // Win rate calculation mode: 'current' (filtered year only) | 'ttm' (trailing 12 months) | 'all' (cumulative)
+  const [winRateMode, setWinRateMode] = useState('ttm');
   const availableYears = useMemo(() => {
     const years = new Set(data.map(s => s.issuedDate?.substring(0, 4)).filter(Boolean));
     return Array.from(years).sort().reverse();
@@ -4928,10 +4943,38 @@ function PipelineBoard({ data, t, lang, canEdit, fmt, onEdit }) {
     const wonCount = pipelineData.filter(p => p.status === 'won').length;
     const lostCount = pipelineData.filter(p => p.status === 'lost').length;
     const activeCount = pipelineData.filter(p => p.status === 'active').length;
-    const winRate = (wonCount + lostCount) > 0 ? (wonCount / (wonCount + lostCount)) * 100 : 0;
-    return { pipelineData, totalDeals, totalValue, wonCount, lostCount, activeCount, winRate };
-  }, [data, filterYear]);
-  const { pipelineData, totalDeals, totalValue, wonCount, lostCount, activeCount, winRate } = pipelineStats;
+
+    // WIN RATE MODE — choose denominator carefully to avoid misleading numbers
+    // 'current': year-filtered closed only (can be misleading early in year due to small sample)
+    // 'ttm': trailing 12 months from today (May 2026) — most representative for ongoing business
+    // 'all': cumulative since inception
+    const today = new Date('2026-05-31');
+    const ttmStart = new Date(today); ttmStart.setMonth(ttmStart.getMonth() - 12);
+    const ttmDeals = data.filter(s => {
+      const d = s.issuedDate ? new Date(s.issuedDate) : null;
+      return d && d >= ttmStart && (s.status === 'won' || s.status === 'lost');
+    });
+    const ttmWon = ttmDeals.filter(s => s.status === 'won').length;
+    const ttmLost = ttmDeals.filter(s => s.status === 'lost').length;
+
+    const allClosed = data.filter(s => s.status === 'won' || s.status === 'lost');
+    const allWon = allClosed.filter(s => s.status === 'won').length;
+    const allLost = allClosed.filter(s => s.status === 'lost').length;
+
+    let winRateNum, winRateDen, winRateScope;
+    if (winRateMode === 'ttm') {
+      winRateNum = ttmWon; winRateDen = ttmWon + ttmLost; winRateScope = 'ttm';
+    } else if (winRateMode === 'all') {
+      winRateNum = allWon; winRateDen = allWon + allLost; winRateScope = 'all';
+    } else {
+      winRateNum = wonCount; winRateDen = wonCount + lostCount; winRateScope = 'current';
+    }
+    const winRate = winRateDen > 0 ? (winRateNum / winRateDen) * 100 : 0;
+    const smallSample = winRateDen > 0 && winRateDen < 20;
+
+    return { pipelineData, totalDeals, totalValue, wonCount, lostCount, activeCount, winRate, winRateNum, winRateDen, winRateScope, smallSample, ttmWon, ttmLost, allWon, allLost };
+  }, [data, filterYear, winRateMode]);
+  const { pipelineData, totalDeals, totalValue, wonCount, lostCount, activeCount, winRate, winRateNum, winRateDen, winRateScope, smallSample } = pipelineStats;
 
   // Stage definitions including lost - show statistical view of full journey
   const ALL_STAGES_WITH_LOST = STAGES;
@@ -4997,10 +5040,20 @@ function PipelineBoard({ data, t, lang, canEdit, fmt, onEdit }) {
           <div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '3px', color: '#8b3a3a'}}>{lostCount}</div>
           <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{lang === 'id' ? 'pembelajaran' : 'learnings'}</div>
         </div>
-        <div style={{padding: '14px 16px', background: '#1a2942', color: '#f8f5ef'}}>
-          <div style={{fontSize: '9px', letterSpacing: '0.2em', color: '#c8a96a', textTransform: 'uppercase'}}>Win Rate</div>
-          <div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '3px', color: '#fff'}}>{winRate.toFixed(1)}%</div>
-          <div style={{fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginTop: '2px'}}>{wonCount}/{wonCount + lostCount} closed</div>
+        <div style={{padding: '14px 16px', background: '#1a2942', color: '#f8f5ef', position: 'relative'}}>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px', flexWrap: 'wrap'}}>
+            <div style={{fontSize: '9px', letterSpacing: '0.2em', color: '#c8a96a', textTransform: 'uppercase'}}>Win Rate</div>
+            <select value={winRateMode} onChange={e => setWinRateMode(e.target.value)} style={{fontSize: '9px', padding: '2px 4px', background: '#0f1a30', border: '1px solid #c8a96a', color: '#c8a96a', fontFamily: 'inherit', cursor: 'pointer', width: 'auto', textTransform: 'uppercase', letterSpacing: '0.05em'}} title={lang === 'id' ? 'Pilih metode perhitungan' : 'Choose calculation method'}>
+              <option value="ttm">{lang === 'id' ? 'TTM (12 Bln)' : 'TTM (12mo)'}</option>
+              <option value="current">{filterYear === 'all' ? (lang === 'id' ? 'Semua' : 'All') : filterYear}</option>
+              <option value="all">{lang === 'id' ? 'Kumulatif' : 'Cumulative'}</option>
+            </select>
+          </div>
+          <div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '3px', color: '#fff'}}>{winRateDen > 0 ? winRate.toFixed(1) + '%' : '—'}</div>
+          <div style={{fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginTop: '2px'}}>
+            {winRateNum}/{winRateDen} closed · {winRateScope === 'ttm' ? (lang === 'id' ? '12 bln terakhir' : 'last 12 months') : winRateScope === 'all' ? (lang === 'id' ? 'kumulatif' : 'cumulative') : (lang === 'id' ? 'tahun terpilih' : 'selected year')}
+          </div>
+          {smallSample && <div style={{fontSize: '9px', color: '#fbbf24', marginTop: '4px', fontStyle: 'italic'}}>⚠ {lang === 'id' ? 'Sample kecil, kurang representatif' : 'Small sample, less reliable'}</div>}
         </div>
       </div>
 
@@ -5515,7 +5568,7 @@ function EmployeesModule({ employees, setEmployees, t, lang, session, fmt }) {
 
   const sortedEmps = useMemo(() => {
     // Sort: active first, then by position rank
-    const posOrder = { 'Direksi': 0, 'General Manager': 1, 'Manager Operasional': 2, 'Manager': 3, 'Supervisor': 4, 'Staff': 5, '-': 99 };
+    const posOrder = { 'Direksi': 0, 'General Manager': 1, 'Manager Operasional': 2, 'Manager': 3, 'Supervisor': 4, 'Product Specialist': 5, 'Staff': 6, 'Security': 7, 'Office Boy/Girl': 8, '-': 99 };
     return [...filtered].sort((a, b) => {
       if ((a.active !== false) !== (b.active !== false)) return (a.active !== false) ? -1 : 1;
       return (posOrder[a.position] ?? 99) - (posOrder[b.position] ?? 99);
@@ -5638,7 +5691,7 @@ function EmployeesModule({ employees, setEmployees, t, lang, session, fmt }) {
           <tbody>
             {sortedEmps.map(emp => {
               const isInactive = emp.active === false;
-              const posColors = { 'Direksi': '#7b3fb5', 'General Manager': '#1a4d8a', 'Manager Operasional': '#0f7a5a', 'Manager': '#c8a96a', 'Supervisor': '#5b87b8', 'Staff': '#94a3b8' };
+              const posColors = { 'Direksi': '#7b3fb5', 'General Manager': '#1a4d8a', 'Manager Operasional': '#0f7a5a', 'Manager': '#c8a96a', 'Supervisor': '#5b87b8', 'Product Specialist': '#9b5a8a', 'Staff': '#94a3b8', 'Security': '#6b7280', 'Office Boy/Girl': '#a78971' };
               const posColor = posColors[emp.position] || '#8a7d5c';
               return (
                 <tr key={emp.username} style={{borderTop: '1px solid #e8e1cc', opacity: isInactive ? 0.55 : 1}}>
@@ -5743,11 +5796,14 @@ function EmployeeModal({ emp, employees, onSave, onClose, t, lang }) {
           <Field label={t.emp_position}>
             <select value={form.position} onChange={e => updatePosition(e.target.value)}>
               <option value="Staff">Staff (Rp 130.000)</option>
+              <option value="Product Specialist">Product Specialist (Rp 150.000)</option>
               <option value="Supervisor">Supervisor (Rp 150.000)</option>
               <option value="Manager">Manager (Rp 175.000)</option>
               <option value="Manager Operasional">Manager Operasional (Rp 175.000)</option>
               <option value="General Manager">General Manager (Rp 175.000)</option>
               <option value="Direksi">Direksi (Rp 500.000)</option>
+              <option value="Security">Security (Rp 100.000)</option>
+              <option value="Office Boy/Girl">Office Boy/Girl (Rp 100.000)</option>
             </select>
             <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px', fontStyle: 'italic'}}>{t.emp_field_position_help}</div>
           </Field>
@@ -9366,7 +9422,7 @@ const Footer = React.memo(function Footer({ t }) {
           <IMSLogo size="sm" />
           <span style={{fontSize: '11px', color: '#8a7d5c'}}>· {t.company}</span>
         </div>
-        <div className="lbl-tag">Phase 30 · © 2026</div>
+        <div className="lbl-tag">Phase 31 · © 2026</div>
       </div>
     </footer>
   );

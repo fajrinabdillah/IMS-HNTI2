@@ -4428,7 +4428,7 @@ function Dashboard({ data, reports, t, lang, session, fmt }) {
 
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '24px', border: '1px solid #d4cdb8'}}>
         <KPICard label={t.pipeline_value} value={fmt(totalPipeline)} sublabel={`${activeData.length} ${t.project_count} aktif`} trend={12.4} info={t.pipeline_value_sub} />
-        <KPICard label={t.weighted_pipeline} value={fmt(weightedPipeline)} sublabel={`${totalPipeline > 0 ? ((weightedPipeline/totalPipeline)*100).toFixed(0) : 0}% ${t.of_total} · proyeksi`} trend={8.7} info={t.weighted_pipeline_sub} />
+        <KPICard label={t.weighted_pipeline} value={fmt(weightedPipeline)} sublabel={`${totalPipeline > 0 ? ((weightedPipeline/totalPipeline)*100).toFixed(0) : 0}% ${lang === 'id' ? 'dari total · proyeksi' : 'of total · projection'}`} trend={8.7} info={t.weighted_pipeline_sub} />
         <KPICard label={t.revenue_ytd} value={fmt(revenueYTD)} sublabel={`${wonData.length} deal · ${t.revenue_period}`} trend={-3.2} info={t.revenue_ytd_sub} />
         <KPICard label={t.win_rate} value={`${winRate.toFixed(0)}%`} sublabel={`${wonData.length}/${wonData.length + lostData.length} closed`} trend={5.1} info={t.win_rate_sub} />
       </div>
@@ -7428,7 +7428,7 @@ function generatePaymentSchedule(p) {
       schedule.push({ seq: i, label: `Cicilan ke-${i}`, dueDate: due.toISOString().split('T')[0], amount: monthly, type: 'installment' });
     }
   } else if (scheme === 'after_bast') {
-    schedule.push({ seq: 0, label: 'Pelunasan 100% setelah BAST', dueDate: p.issuedDate || '', amount: total, type: 'full_after_bast' });
+    schedule.push({ seq: 0, label: 'Pelunasan 100% (Project Pemerintah - Setelah BAST)', dueDate: p.issuedDate || '', amount: total, type: 'full_after_bast' });
   } else if (scheme === 'kso') {
     const depositAmt = total * (dpPercent / 100);
     const months = installmentMonths || 60;
@@ -7588,7 +7588,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
   const schemeColor = (s) => s === 'kso' ? '#7b3fb5' : s === 'after_bast' ? '#1a4d8a' : '#c8a96a';
   const schemeLabel = (s) => {
     if (s === 'kso') return lang === 'id' ? 'KSO (Deposit + Bagi Hasil)' : 'KSO (Deposit + Revenue Share)';
-    if (s === 'after_bast') return lang === 'id' ? 'Lunas Setelah BAST (No DP)' : 'Full After BAST (No DP)';
+    if (s === 'after_bast') return lang === 'id' ? 'Project Pemerintah (100% setelah BAST)' : 'Government Project (100% after BAST)';
     return lang === 'id' ? 'DP + Cicilan (Swasta)' : 'DP + Installment (Private)';
   };
   const paymentTypeLabel = (type) => {
@@ -7597,7 +7597,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
       deposit: lang === 'id' ? 'Deposit' : 'Deposit',
       installment: lang === 'id' ? 'Cicilan' : 'Installment',
       revenue_share: lang === 'id' ? 'Bagi Hasil' : 'Revenue Share',
-      full_after_bast: lang === 'id' ? 'Pelunasan setelah BAST' : 'Full payment after BAST',
+      full_after_bast: lang === 'id' ? 'Pelunasan Project Pemerintah (Setelah BAST)' : 'Government Project Payment (After BAST)',
       other: lang === 'id' ? 'Lainnya' : 'Other',
     };
     return map[type] || type;
@@ -7650,7 +7650,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
           {[
             { id: 'all', label: lang === 'id' ? `Semua (${poProjects.length})` : `All (${poProjects.length})` },
             { id: 'dp_installment', label: `DP+Cicilan (${countDPInst})` },
-            { id: 'after_bast', label: `${lang === 'id' ? 'Setelah BAST' : 'After BAST'} (${countAfterBast})` },
+            { id: 'after_bast', label: `${lang === 'id' ? 'Project Pemerintah' : 'Government'} (${countAfterBast})` },
             { id: 'kso', label: `KSO (${countKSO})` },
           ].map(opt => (
             <button key={opt.id} onClick={() => setSchemeFilter(opt.id)} style={{background: schemeFilter === opt.id ? '#1a2942' : 'transparent', border: `1px solid ${schemeFilter === opt.id ? '#1a2942' : '#d4cdb8'}`, color: schemeFilter === opt.id ? '#fff' : '#8a7d5c', padding: '5px 11px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 500}}>{opt.label}</button>
@@ -7835,7 +7835,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
                   <option value="deposit">Deposit (KSO)</option>
                   <option value="installment">{lang === 'id' ? 'Cicilan' : 'Installment'}</option>
                   <option value="revenue_share">{lang === 'id' ? 'Bagi Hasil (KSO)' : 'Revenue Share (KSO)'}</option>
-                  <option value="full_after_bast">{lang === 'id' ? 'Pelunasan setelah BAST' : 'Full payment after BAST'}</option>
+                  <option value="full_after_bast">{lang === 'id' ? 'Pelunasan Project Pemerintah (Setelah BAST)' : 'Government Project Payment (After BAST)'}</option>
                   <option value="other">{lang === 'id' ? 'Lainnya' : 'Other'}</option>
                 </select>
               </div>
@@ -8489,18 +8489,44 @@ function CustomsDocModal({ record, manifests, onSave, onClose, t, lang }) {
 
 function InstallationModule({ data, setData, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, t, lang, canEdit, fmt }) {
   const [tab, setTab] = useState('progress');
+  // Default to current year (2026) — sync with SPH module behavior
+  const [filterYear, setFilterYear] = useState('2026');
+  const [search, setSearch] = useState('');
+
+  // Available years derived from data (PO issue years OR install-record years)
+  const availableYears = useMemo(() => {
+    const years = new Set();
+    data.forEach(s => { if (s.issuedDate) years.add(s.issuedDate.substring(0, 4)); });
+    installRecords.forEach(r => { if (r.installStart) years.add(r.installStart.substring(0, 4)); });
+    return Array.from(years).sort().reverse();
+  }, [data, installRecords]);
+
   // Build lookup of install-record customers first (used to scope the progress list)
   const installRecordCustomers = useMemo(() => new Set(installRecords.map(r => r.customer)), [installRecords]);
-  // Progress tab shows PO that are in the LIVE installation pipeline:
-  // delivered-but-not-yet-installed, OR has an active installation record.
-  // Historical (already installed long ago) units are excluded to keep counts meaningful.
-  const installProjects = useMemo(() => data.filter(s =>
-    s.poStatus === 'issued' && (
-      (s.shippingStatus === 'delivered' && s.installationStatus !== 'installed') ||
-      installRecordCustomers.has(s.customer)
-    )
-  ), [data, installRecordCustomers]);
+
+  // Progress tab — consistent with Operasional: PO yang sedang aktif dalam pipeline instalasi
+  // = PO delivered tapi belum installed, ATAU yang punya install record
+  // Filter by year (PO issue year) + search by customer/SPH/modality
+  const installProjects = useMemo(() => {
+    return data.filter(s => {
+      if (s.poStatus !== 'issued') return false;
+      const inPipeline = (s.shippingStatus === 'delivered' && s.installationStatus !== 'installed') || installRecordCustomers.has(s.customer);
+      if (!inPipeline) return false;
+      if (filterYear !== 'all' && !s.issuedDate?.startsWith(filterYear)) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        if (!s.customer?.toLowerCase().includes(q) && !s.sphNo?.toLowerCase().includes(q) && !s.subModality?.toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+  }, [data, installRecordCustomers, filterYear, search]);
+
+  // Total installed cumulative (across all years) — for context KPI subtitle
   const totalInstalled = useMemo(() => data.filter(s => s.installationStatus === 'installed').length, [data]);
+  const installedThisYear = useMemo(() => filterYear === 'all'
+    ? totalInstalled
+    : data.filter(s => s.installationStatus === 'installed' && s.issuedDate?.startsWith(filterYear)).length, [data, filterYear, totalInstalled]);
+
   const toggleStep = (id, field) => { if (!canEdit) return; setData(prev => prev.map(s => s.id === id ? { ...s, [field]: !s[field] } : s)); };
   const updateEvidence = (id, field, url) => { if (!canEdit) return; setData(prev => prev.map(s => s.id === id ? { ...s, [field]: url } : s)); };
 
@@ -8573,7 +8599,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
         <div style={{padding: '16px 18px', background: '#fefcf7'}}>
           <div className="lbl-tag">{t.inst_total_records}</div>
           <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px'}}>{totalRecords}</div>
-          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{lang === 'id' ? `${totalInstalled} unit total terpasang (kumulatif)` : `${totalInstalled} units installed (cumulative)`}</div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{lang === 'id' ? `${installedThisYear} unit terpasang ${filterYear === 'all' ? '(kumulatif)' : `(${filterYear})`}` : `${installedThisYear} units installed ${filterYear === 'all' ? '(cumulative)' : `(${filterYear})`}`}</div>
         </div>
         <div style={{padding: '16px 18px', background: '#fefcf7'}}>
           <div className="lbl-tag">{t.inst_in_progress}</div>
@@ -8591,6 +8617,24 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
           <div className="lbl-tag">{t.inst_training_done}</div>
           <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px', color: '#7b3fb5'}}>{trainingDoneCount}</div>
         </div>
+      </div>
+
+      {/* Year filter + search bar */}
+      <div style={{display: 'flex', gap: '10px', marginBottom: '14px', alignItems: 'center', flexWrap: 'wrap'}}>
+        <div style={{position: 'relative', flex: '1 1 260px', maxWidth: '380px'}}>
+          <Search size={14} style={{position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#8a7d5c'}} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={lang === 'id' ? 'Cari pelanggan, SPH, atau modalitas...' : 'Search customer, SPH, or modality...'} style={{paddingLeft: '36px'}} />
+        </div>
+        <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{lang === 'id' ? 'Tahun PO' : 'PO Year'}:</span>
+        <select value={filterYear} onChange={e => setFilterYear(e.target.value)} style={{width: 'auto', minWidth: '110px'}}>
+          <option value="all">{lang === 'id' ? 'Semua Tahun' : 'All Years'}</option>
+          {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+        </select>
+        <span style={{fontSize: '11px', color: '#8a7d5c', fontStyle: 'italic'}}>
+          {lang === 'id'
+            ? `${installedThisYear} unit terpasang${filterYear !== 'all' ? ` di ${filterYear}` : ' (kumulatif)'} · ${installProjects.length} dalam pipeline aktif`
+            : `${installedThisYear} units installed${filterYear !== 'all' ? ` in ${filterYear}` : ' (cumulative)'} · ${installProjects.length} in active pipeline`}
+        </span>
       </div>
 
       {/* Tabs */}
@@ -9322,7 +9366,7 @@ const Footer = React.memo(function Footer({ t }) {
           <IMSLogo size="sm" />
           <span style={{fontSize: '11px', color: '#8a7d5c'}}>· {t.company}</span>
         </div>
-        <div className="lbl-tag">Phase 29 · © 2026</div>
+        <div className="lbl-tag">Phase 30 · © 2026</div>
       </div>
     </footer>
   );
@@ -9335,12 +9379,33 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
   const [editingIssue, setEditingIssue] = useState(null);
   const [pmModalOpen, setPmModalOpen] = useState(false);
   const [editingPm, setEditingPm] = useState(null);
+  // Year filter + search for unit monitoring (sinkron dengan SPH module style)
+  const [filterYear, setFilterYear] = useState('all');
+  const [search, setSearch] = useState('');
 
-  // PERFORMANCE: Categorize units + KPIs all in one useMemo block
+  const availableYears = useMemo(() => {
+    const years = new Set();
+    units.forEach(u => { if (u.installDate) years.add(u.installDate.substring(0, 4)); });
+    return Array.from(years).sort().reverse();
+  }, [units]);
+
+  // PERFORMANCE: Categorize units + KPIs all in one useMemo block (now year-aware)
   const unitsAndStats = useMemo(() => {
     const today = new Date('2026-05-16');
     const monthAhead = new Date('2026-06-16');
-    const unitsByPmStatus = units.map(u => {
+    // Apply year + search filters to units
+    const filteredUnits = units.filter(u => {
+      if (filterYear !== 'all' && !u.installDate?.startsWith(filterYear)) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        if (!u.customer?.toLowerCase().includes(q) &&
+            !u.serialNo?.toLowerCase().includes(q) &&
+            !u.subModality?.toLowerCase().includes(q) &&
+            !u.modality?.toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+    const unitsByPmStatus = filteredUnits.map(u => {
       const nextPm = new Date(u.nextPmDate);
       let pmStatus;
       if (nextPm < today) pmStatus = 'overdue';
@@ -9350,15 +9415,16 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
       const underWarranty = warrantyEnd >= today;
       return { ...u, pmStatus, underWarranty };
     });
-    const totalUnits = units.length;
+    const totalUnits = filteredUnits.length;
+    const totalAllYears = units.length;
     const underWarranty = unitsByPmStatus.filter(u => u.underWarranty).length;
     const pmThisMonth = unitsByPmStatus.filter(u => u.pmStatus === 'overdue' || u.pmStatus === 'upcoming').length;
     const openIssues = issues.filter(i => i.status !== 'resolved').length;
     const repairs = issues.filter(i => i.type === 'repair');
     const complaints = issues.filter(i => i.type === 'complaint');
-    return { unitsByPmStatus, totalUnits, underWarranty, pmThisMonth, openIssues, repairs, complaints };
-  }, [units, issues]);
-  const { unitsByPmStatus, totalUnits, underWarranty, pmThisMonth, openIssues, repairs, complaints } = unitsAndStats;
+    return { unitsByPmStatus, totalUnits, totalAllYears, underWarranty, pmThisMonth, openIssues, repairs, complaints };
+  }, [units, issues, filterYear, search]);
+  const { unitsByPmStatus, totalUnits, totalAllYears, underWarranty, pmThisMonth, openIssues, repairs, complaints } = unitsAndStats;
 
   // Sort by priority (critical→high→medium→low), then by date desc
   const [repairsSortBy, setRepairsSortBy] = useState('priority');
@@ -9460,6 +9526,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
         <div className="card-pad">
           <div className="lbl-tag">{t.mt_total_units}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{totalUnits}</div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{lang === 'id' ? `${filterYear === 'all' ? `kumulatif (${totalAllYears} total)` : `terpasang di ${filterYear}`}` : `${filterYear === 'all' ? `cumulative (${totalAllYears} total)` : `installed in ${filterYear}`}`}</div>
         </div>
         <div className="card-pad">
           <div className="lbl-tag">{t.mt_units_warranty}</div>
@@ -9473,6 +9540,19 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
           <div className="lbl-tag">{t.mt_open_issues}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#c03030'}}>{openIssues}</div>
         </div>
+      </div>
+
+      {/* Year filter + search */}
+      <div style={{display: 'flex', gap: '10px', marginBottom: '14px', alignItems: 'center', flexWrap: 'wrap'}}>
+        <div style={{position: 'relative', flex: '1 1 260px', maxWidth: '380px'}}>
+          <Search size={14} style={{position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#8a7d5c'}} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={lang === 'id' ? 'Cari pelanggan, serial, modalitas...' : 'Search customer, serial, modality...'} style={{paddingLeft: '36px'}} />
+        </div>
+        <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{lang === 'id' ? 'Tahun Instalasi' : 'Install Year'}:</span>
+        <select value={filterYear} onChange={e => setFilterYear(e.target.value)} style={{width: 'auto', minWidth: '110px'}}>
+          <option value="all">{lang === 'id' ? 'Semua Tahun' : 'All Years'}</option>
+          {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+        </select>
       </div>
 
       <div style={{display: 'flex', gap: '2px', marginBottom: '22px', borderBottom: '1px solid #d4cdb8', flexWrap: 'wrap'}}>

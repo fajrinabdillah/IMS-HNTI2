@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { TrendingUp, FileText, Briefcase, Plus, Search, Edit2, Trash2, X, ArrowUpRight, ArrowDownRight, Activity, DollarSign, Users, Clock, Globe, LogOut, Shield, Wrench, Truck, Wallet, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, FileCheck, Menu, ChevronDown, ClipboardList, Star, Settings, ShieldCheck, CalendarDays, AlertTriangle, FileSearch, UserPlus, UserCheck, UserX, Plane, Receipt, Hotel } from 'lucide-react';
+import { TrendingUp, FileText, Briefcase, Plus, Search, Edit2, Trash2, X, ArrowUpRight, ArrowDownRight, Activity, DollarSign, Users, Clock, Globe, LogOut, Shield, Wrench, Truck, Wallet, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, FileCheck, Menu, ChevronDown, ClipboardList, Star, Settings, ShieldCheck, CalendarDays, AlertTriangle, FileSearch, UserPlus, UserCheck, UserX, Plane, Receipt, Hotel, RefreshCw, History, FolderOpen, Upload, MessageSquare, Download, Target, Layers, FileBarChart, Paperclip } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Area, ComposedChart } from 'recharts';
 
 const DEFAULT_USD_IDR = 18000;
@@ -22,6 +22,8 @@ const translations = {
     nav_sales: 'Tim Sales', nav_sales_report: 'Laporan Lapangan', nav_finance: 'Finance',
     nav_operations: 'Operasional', nav_installation: 'Instalasi', nav_valuation: 'Valuasi',
     nav_employees: 'Manajemen Karyawan', nav_business_trip: 'Perjalanan Dinas',
+    nav_audit_log: 'Audit Trail',
+    nav_risk: 'Konsentrasi Risiko',
     pipeline_value: 'Nilai Pipeline', weighted_pipeline: 'Pipeline Tertimbang',
     revenue_ytd: 'Pendapatan YTD', win_rate: 'Win Rate',
     active_projects: 'Proyek Aktif', avg_deal_size: 'Rata-rata Deal',
@@ -698,6 +700,8 @@ const translations = {
     nav_sales: 'Sales Team', nav_sales_report: 'Field Reports', nav_finance: 'Finance',
     nav_operations: 'Operations', nav_installation: 'Installation', nav_valuation: 'Valuation',
     nav_employees: 'Employee Management', nav_business_trip: 'Business Trip',
+    nav_audit_log: 'Audit Trail',
+    nav_risk: 'Risk Concentration',
     pipeline_value: 'Pipeline Value', weighted_pipeline: 'Weighted Pipeline',
     revenue_ytd: 'Revenue YTD', win_rate: 'Win Rate',
     active_projects: 'Active Projects', avg_deal_size: 'Avg Deal Size',
@@ -1347,12 +1351,12 @@ const translations = {
 
 // ============== 5 Sales Team — synced with user spec ==============
 const SALES_TEAM = [
-  { id: 'lukman', name: 'Lukman', initial: 'LK', territory: 'Jateng + DIY B', territoryEn: 'Central Java + DIY B', accent: '#1a6bb0' },
-  { id: 'hatim', name: 'Hatim', initial: 'HT', territory: 'Jateng A', territoryEn: 'Central Java A', accent: '#d4780a' },
+  { id: 'lukman', name: 'Lukman Effendi', initial: 'LE', territory: 'Jateng + DIY B', territoryEn: 'Central Java + DIY B', accent: '#1a6bb0' },
+  { id: 'hatim', name: 'Hatim Tirmidzi', initial: 'HT', territory: 'Jateng A', territoryEn: 'Central Java A', accent: '#d4780a' },
   { id: 'dwi', name: 'Dwi Wahyudianto', initial: 'DW', territory: 'Jabodetabek + Jabar', territoryEn: 'Jabodetabek + West Java', accent: '#c03030' },
   { id: 'tri', name: 'Tri Sutjahjono', initial: 'TS', territory: 'Jatim 1', territoryEn: 'East Java 1', accent: '#12855a' },
   { id: 'bagus', name: 'Bagus Iswahyudi', initial: 'BI', territory: 'Jatim 2', territoryEn: 'East Java 2', accent: '#7b3fb5' },
-  { id: 'icha', name: 'Ika Apriani (Icha)', initial: 'IA', territory: 'Jabodetabek + Jabar (bawah Dwi)', territoryEn: 'Jabodetabek + West Java (under Dwi)', accent: '#d4a8c8', supervisedBy: 'dwi' },
+  { id: 'icha', name: 'Ika Apriani Pratiwi', initial: 'IA', territory: 'Jabodetabek + Jabar (bawah Dwi)', territoryEn: 'Jabodetabek + West Java (under Dwi)', accent: '#d4a8c8', supervisedBy: 'dwi' },
   { id: 'office', name: 'HNT Indonesia (Office)', initial: 'HO', territory: 'Nasional', territoryEn: 'Nationwide', accent: '#1a2942', isOffice: true },
 ];
 
@@ -1373,20 +1377,20 @@ const POSITION_ALLOWANCE = {
 };
 
 const USERS = {
-  'ceo': { password: 'hnti2026', role: 'super_admin', name: 'Fajrin', initial: 'F', position: 'Direksi', allowancePerDay: 500000, active: true },
+  'ceo': { password: 'hnti2026', role: 'super_admin', name: 'Fajrin Mukhammad Iskandar', initial: 'F', position: 'Direksi', allowancePerDay: 500000, active: true },
   'gm': { password: 'hnti2026', role: 'gm', name: 'Endah Purwitasari', initial: 'EP', position: 'General Manager', allowancePerDay: 175000, active: true },
-  'manager_ops': { password: 'hnti2026', role: 'manager_ops', name: 'Novan Restu', initial: 'NR', position: 'Manager Operasional', allowancePerDay: 175000, active: true },
+  'manager_ops': { password: 'hnti2026', role: 'manager_ops', name: 'Novan Restu Pradana', initial: 'NR', position: 'Manager Operasional', allowancePerDay: 175000, active: true },
   'admin': { password: 'hnti2026', role: 'admin', name: 'Siti Rahayu', initial: 'SR', position: 'Manager', allowancePerDay: 175000, active: true },
   'teknisi': { password: 'hnti2026', role: 'technician', name: 'Budi Hartono', initial: 'BH', position: 'Supervisor', allowancePerDay: 150000, active: true },
   'ops': { password: 'hnti2026', role: 'operations', name: 'Andi Pratama', initial: 'AP', position: 'Supervisor', allowancePerDay: 150000, active: true },
-  'finance': { password: 'hnti2026', role: 'finance', name: 'Maya Sari', initial: 'MS', position: 'Manager', allowancePerDay: 175000, active: true },
+  'finance': { password: 'hnti2026', role: 'finance', name: 'Maya Sari Wijayanti', initial: 'MS', position: 'Manager', allowancePerDay: 175000, active: true },
   'regulatory': { password: 'hnti2026', role: 'regulatory', name: 'Rini Wahyuni', initial: 'RW', position: 'Supervisor', allowancePerDay: 150000, active: true },
-  'lukman': { password: 'hnti2026', role: 'sales', name: 'Lukman', initial: 'LK', salesId: 'lukman', position: 'Staff', allowancePerDay: 130000, active: true },
-  'hatim': { password: 'hnti2026', role: 'sales', name: 'Hatim', initial: 'HT', salesId: 'hatim', position: 'Staff', allowancePerDay: 130000, active: true },
+  'lukman': { password: 'hnti2026', role: 'sales', name: 'Lukman Effendi', initial: 'LE', salesId: 'lukman', position: 'Staff', allowancePerDay: 130000, active: true },
+  'hatim': { password: 'hnti2026', role: 'sales', name: 'Hatim Tirmidzi', initial: 'HT', salesId: 'hatim', position: 'Staff', allowancePerDay: 130000, active: true },
   'dwi': { password: 'hnti2026', role: 'sales', name: 'Dwi Wahyudianto', initial: 'DW', salesId: 'dwi', position: 'Manager', allowancePerDay: 175000, active: true },
   'tri': { password: 'hnti2026', role: 'sales', name: 'Tri Sutjahjono', initial: 'TS', salesId: 'tri', position: 'Manager', allowancePerDay: 175000, active: true },
   'bagus': { password: 'hnti2026', role: 'sales', name: 'Bagus Iswahyudi', initial: 'BI', salesId: 'bagus', position: 'Manager', allowancePerDay: 175000, active: true },
-  'icha': { password: 'hnti2026', role: 'sales', name: 'Ika Apriani (Icha)', initial: 'IA', salesId: 'icha', position: 'Staff', allowancePerDay: 130000, active: true },
+  'icha': { password: 'hnti2026', role: 'sales', name: 'Ika Apriani Pratiwi', initial: 'IA', salesId: 'icha', position: 'Staff', allowancePerDay: 130000, active: true },
   'office': { password: 'hnti2026', role: 'sales', name: 'HNT Indonesia (Office)', initial: 'HO', salesId: 'office', isOffice: true, position: '-', allowancePerDay: 0, active: true },
 };
 
@@ -1400,18 +1404,27 @@ const PERMISSIONS = {
   finance:      { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'read', sales_report: 'read', finance: 'full', operations: 'read', installation: 'read', maintenance: 'none', regulatory: 'none', valuation: 'none', incentive: 'full', employees: 'none', business_trip: 'full' },
   regulatory:   { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'none', sales_report: 'none', finance: 'none', operations: 'read', installation: 'read', maintenance: 'read', regulatory: 'full', valuation: 'none', incentive: 'none', employees: 'none', business_trip: 'self' },
   sales:        { dashboard: 'read', sph: 'write', pipeline: 'write', sales: 'read', sales_report: 'full', finance: 'none', operations: 'none', installation: 'none', maintenance: 'none', regulatory: 'none', valuation: 'none', incentive: 'self', employees: 'none', business_trip: 'self' },
+  // Product Specialist: supports sales (technical demos) — read SPH/pipeline, full sales_report
+  product_specialist: { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'read', sales_report: 'write', finance: 'none', operations: 'none', installation: 'read', maintenance: 'read', regulatory: 'read', valuation: 'none', incentive: 'none', employees: 'none', business_trip: 'self' },
+  // Security: minimal access, only business_trip self (jadwal jaga)
+  security:     { dashboard: 'none', sph: 'none', pipeline: 'none', sales: 'none', sales_report: 'none', finance: 'none', operations: 'none', installation: 'none', maintenance: 'none', regulatory: 'none', valuation: 'none', incentive: 'none', employees: 'none', business_trip: 'self' },
+  // Office Support (OB): minimal — hanya business_trip self (kalau OB ikut perjalanan)
+  office_support: { dashboard: 'none', sph: 'none', pipeline: 'none', sales: 'none', sales_report: 'none', finance: 'none', operations: 'none', installation: 'none', maintenance: 'none', regulatory: 'none', valuation: 'none', incentive: 'none', employees: 'none', business_trip: 'self' },
 };
 
 const NAV_BY_ROLE = {
-  super_admin:  ['dashboard', 'sph', 'pipeline', 'sales', 'incentive', 'sales_report', 'business_trip', 'finance', 'operations', 'installation', 'maintenance', 'regulatory', 'valuation', 'employees'],
-  gm:           ['dashboard', 'sph', 'pipeline', 'sales', 'incentive', 'sales_report', 'business_trip', 'finance', 'operations', 'installation', 'maintenance', 'regulatory', 'valuation', 'employees'],
+  super_admin:  ['dashboard', 'sph', 'pipeline', 'sales', 'incentive', 'sales_report', 'business_trip', 'finance', 'operations', 'installation', 'maintenance', 'regulatory', 'valuation', 'risk', 'employees', 'audit_log'],
+  gm:           ['dashboard', 'sph', 'pipeline', 'sales', 'incentive', 'sales_report', 'business_trip', 'finance', 'operations', 'installation', 'maintenance', 'regulatory', 'valuation', 'risk', 'employees', 'audit_log'],
   manager_ops:  ['dashboard', 'sph', 'pipeline', 'sales', 'sales_report', 'business_trip', 'finance', 'operations', 'installation', 'maintenance', 'regulatory', 'employees'],
   admin:        ['dashboard', 'sph', 'pipeline', 'sales', 'sales_report', 'business_trip', 'installation', 'maintenance', 'regulatory'],
   technician:   ['dashboard', 'pipeline', 'business_trip', 'installation', 'maintenance'],
   operations:   ['dashboard', 'pipeline', 'business_trip', 'operations', 'maintenance'],
-  finance:      ['dashboard', 'pipeline', 'sales_report', 'business_trip', 'incentive', 'finance'],
+  finance:      ['dashboard', 'pipeline', 'sales_report', 'business_trip', 'incentive', 'finance', 'risk'],
   regulatory:   ['dashboard', 'pipeline', 'business_trip', 'installation', 'regulatory'],
   sales:        ['sales_report', 'sph', 'pipeline', 'business_trip', 'incentive', 'dashboard'],
+  product_specialist: ['dashboard', 'sph', 'pipeline', 'sales', 'sales_report', 'business_trip', 'installation', 'maintenance', 'regulatory'],
+  security:     ['business_trip'],
+  office_support: ['business_trip'],
 };
 
 // Translation key for new regulatory role
@@ -3929,7 +3942,30 @@ export default function App() {
   const [businessTrips, setBusinessTrips] = useState(ALL_BUSINESS_TRIPS);
   const [realizations, setRealizations] = useState(ALL_BT_REALIZATIONS);
   const [exchangeRate, setExchangeRate] = useState(DEFAULT_USD_IDR);
+  const [auditLog, setAuditLog] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Last sync timestamp - updated on every storage write (data changed) or manual refresh
+  const [lastSync, setLastSync] = useState(Date.now());
+  const handleRefresh = () => {
+    setLastSync(Date.now());
+    // Trigger a state update to force re-renders downstream (in real app this would re-fetch from server)
+    setData(prev => [...prev]);
+  };
+  // Logger function passed down to modules — records every meaningful action
+  const logAction = (action) => {
+    if (!session) return;
+    appendAuditLog(setAuditLog, {
+      user: session.username, userName: session.name, role: session.role,
+      module: action.module || 'unknown',
+      action: action.action || 'update', // create | update | delete | login | export | etc
+      entityId: action.entityId || null,
+      entityLabel: action.entityLabel || '',
+      field: action.field || null,
+      before: action.before ?? null,
+      after: action.after ?? null,
+      note: action.note || '',
+    });
+  };
 
   useEffect(() => {
     (async () => {
@@ -3992,6 +4028,8 @@ export default function App() {
       if (bt) try { setBusinessTrips(JSON.parse(bt)); } catch {}
       const btrStored = await storeGet('ims_hnti:btr_v22');
       if (btrStored) try { setRealizations(JSON.parse(btrStored)); } catch {}
+      const auditStored = await storeGet(AUDIT_LOG_KEY);
+      if (auditStored) try { setAuditLog(JSON.parse(auditStored)); } catch {}
       // Generate reg records on first load from current data
       if (reg) {
         try { setRegRecords(JSON.parse(reg)); } catch {}
@@ -4003,7 +4041,7 @@ export default function App() {
     })();
   }, []);
 
-  useEffect(() => { if (!loading) storeSet(STORAGE_KEY, JSON.stringify(data)); }, [data, loading]);
+  useEffect(() => { if (!loading) { storeSet(STORAGE_KEY, JSON.stringify(data)); setLastSync(Date.now()); } }, [data, loading]);
   useEffect(() => { if (!loading) storeSet(REPORTS_KEY, JSON.stringify(reports)); }, [reports, loading]);
   useEffect(() => { if (!loading) storeSet('ims_hnti:issues_v22', JSON.stringify(issues)); }, [issues, loading]);
   useEffect(() => { if (!loading) storeSet('ims_hnti:reg_v22', JSON.stringify(regRecords)); }, [regRecords, loading]);
@@ -4023,6 +4061,7 @@ export default function App() {
   useEffect(() => { if (!loading) storeSet(LANG_KEY, lang); }, [lang, loading]);
   useEffect(() => { if (!loading) { session ? storeSet(SESSION_KEY, JSON.stringify(session)) : storeDel(SESSION_KEY); } }, [session, loading]);
   useEffect(() => { if (!loading) storeSet(RATE_KEY, String(exchangeRate)); }, [exchangeRate, loading]);
+  useEffect(() => { if (!loading) storeSet(AUDIT_LOG_KEY, JSON.stringify(auditLog)); }, [auditLog, loading]);
 
   // Derive installed units from current data (always fresh)
   const installedUnits = useMemo(() => generateInstalledUnits(), [data]);
@@ -4032,8 +4071,15 @@ export default function App() {
   const fmtFull = (n) => formatCurrencyFull(n, lang, exchangeRate);
 
   if (loading) return <div style={{minHeight: '100vh', background: '#f8f5ef', display: 'flex', alignItems: 'center', justifyContent: 'center'}}><GlobalStyles /><IMSLogo size="lg" showTagline /></div>;
-  if (!session) return <><LoginScreen t={t} lang={lang} setLang={setLang} onLogin={setSession} employees={employees} /><ToastContainer /></>;
-  return <><AuthApp session={session} setSession={setSession} lang={lang} setLang={setLang} t={t} data={data} setData={setData} reports={reports} setReports={setReports} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} regRecords={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} employees={employees} setEmployees={setEmployees} businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} installedUnits={installedUnits} fmt={fmt} fmtFull={fmtFull} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} /><ToastContainer /></>;
+  const handleLogin = (sessionData) => {
+    setSession(sessionData);
+    appendAuditLog(setAuditLog, {
+      user: sessionData.username, userName: sessionData.name, role: sessionData.role,
+      module: 'auth', action: 'login', timestamp: new Date().toISOString(), entityLabel: 'User session',
+    });
+  };
+  if (!session) return <><LoginScreen t={t} lang={lang} setLang={setLang} onLogin={handleLogin} employees={employees} /><ToastContainer /></>;
+  return <><AuthApp session={session} setSession={setSession} lang={lang} setLang={setLang} t={t} data={data} setData={setData} reports={reports} setReports={setReports} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} regRecords={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} employees={employees} setEmployees={setEmployees} businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} installedUnits={installedUnits} fmt={fmt} fmtFull={fmtFull} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} lastSync={lastSync} onRefresh={handleRefresh} auditLog={auditLog} setAuditLog={setAuditLog} logAction={logAction} /><ToastContainer /></>;
 }
 
 function LoginScreen({ t, lang, setLang, onLogin, employees }) {
@@ -4115,7 +4161,7 @@ function LoginScreen({ t, lang, setLang, onLogin, employees }) {
   );
 }
 
-function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports, setReports, issues, setIssues, pmSchedule, setPmSchedule, manifests, setManifests, customsDocs, setCustomsDocs, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, regRecords, setRegRecords, aklRecords, setAklRecords, importRecords, setImportRecords, pengalihanRecords, setPengalihanRecords, piRecords, setPiRecords, employees, setEmployees, businessTrips, setBusinessTrips, realizations, setRealizations, installedUnits, fmt, fmtFull, exchangeRate, setExchangeRate }) {
+function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports, setReports, issues, setIssues, pmSchedule, setPmSchedule, manifests, setManifests, customsDocs, setCustomsDocs, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, regRecords, setRegRecords, aklRecords, setAklRecords, importRecords, setImportRecords, pengalihanRecords, setPengalihanRecords, piRecords, setPiRecords, employees, setEmployees, businessTrips, setBusinessTrips, realizations, setRealizations, installedUnits, fmt, fmtFull, exchangeRate, setExchangeRate, lastSync, onRefresh, auditLog, setAuditLog, logAction }) {
   const [view, setView] = useState(session.role === 'sales' ? 'sales_report' : session.role === 'regulatory' ? 'regulatory' : 'dashboard');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSph, setEditingSph] = useState(null);
@@ -4125,6 +4171,7 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
   // Self-service password change for the logged-in user
   const handleChangePassword = (newPassword) => {
     setEmployees(prev => ({ ...prev, [session.username]: { ...prev[session.username], password: newPassword, mustChangePassword: false } }));
+    logAction({ module: 'auth', action: 'update', entityLabel: `Password changed (self)`, field: 'password', note: 'Self-service password change' });
     setChangePwOpen(false);
   };
 
@@ -4139,14 +4186,23 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
   const filteredData = session.role === 'sales' && session.salesId ? data.filter(s => s.salesOwner === session.salesId) : data;
 
   const handleSave = (sph) => {
-    if (editingSph) setData(prev => prev.map(s => s.id === sph.id ? sph : s));
-    else setData(prev => [...prev, { ...sph, id: 'sph_' + Date.now() }]);
+    const isEdit = !!editingSph;
+    if (isEdit) {
+      setData(prev => prev.map(s => s.id === sph.id ? sph : s));
+      logAction({ module: 'sph', action: 'update', entityId: sph.id, entityLabel: `${sph.sphNo} · ${sph.customer}`, note: `Total: ${sph.totalValue}` });
+    } else {
+      const newId = 'sph_' + Date.now();
+      setData(prev => [...prev, { ...sph, id: newId }]);
+      logAction({ module: 'sph', action: 'create', entityId: newId, entityLabel: `${sph.sphNo} · ${sph.customer}`, note: `Total: ${sph.totalValue}` });
+    }
     setModalOpen(false); setEditingSph(null);
   };
   const [deleteSphId, setDeleteSphId] = useState(null);
   const handleDelete = (id) => setDeleteSphId(id);
   const confirmDeleteSph = () => {
+    const sph = data.find(s => s.id === deleteSphId);
     setData(prev => prev.filter(s => s.id !== deleteSphId));
+    if (sph) logAction({ module: 'sph', action: 'delete', entityId: deleteSphId, entityLabel: `${sph.sphNo} · ${sph.customer}`, note: `Permanently deleted` });
     setDeleteSphId(null);
   };
 
@@ -4170,12 +4226,14 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
         {view === 'valuation' && canRead('valuation') && <Valuation data={data} t={t} lang={lang} fmt={fmt} />}
         {view === 'employees' && canRead('employees') && <EmployeesModule employees={employees} setEmployees={setEmployees} t={t} lang={lang} session={session} fmt={fmt} />}
         {view === 'business_trip' && canRead('business_trip') && <BusinessTripModule businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} employees={employees} t={t} lang={lang} session={session} fmt={fmt} />}
+        {view === 'audit_log' && (session.role === 'super_admin' || session.role === 'gm') && <AuditLogModule auditLog={auditLog} employees={employees} t={t} lang={lang} />}
+        {view === 'risk' && <RiskConcentration data={data} t={t} lang={lang} fmt={fmt} />}
       </main>
 
       {modalOpen && <SPHModal sph={editingSph} t={t} lang={lang} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingSph(null); }} fmtFull={fmtFull} />}
       <ConfirmDialog open={!!deleteSphId} title={lang === 'id' ? 'Hapus SPH?' : 'Delete SPH?'} message={t.confirm_delete || (lang === 'id' ? 'Yakin ingin menghapus SPH ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this SPH? This action cannot be undone.')} onConfirm={confirmDeleteSph} onCancel={() => setDeleteSphId(null)} danger lang={lang} />
       {changePwOpen && <ChangePasswordModal session={session} employees={employees} onSave={handleChangePassword} onClose={() => setChangePwOpen(false)} t={t} lang={lang} />}
-      <Footer t={t} />
+      <Footer t={t} lastSync={lastSync} onRefresh={onRefresh} lang={lang} />
     </div>
   );
 }
@@ -4240,8 +4298,44 @@ function ChangePasswordModal({ session, employees, onSave, onClose, t, lang }) {
   );
 }
 
+// ============== Real-time WIB Clock ==============
+// Displays current date/time in Western Indonesia Time (WIB, GMT+7) — updates every second
+const WIBClock = React.memo(function WIBClock({ lang, compact = false }) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  // Force WIB regardless of user's local timezone
+  const wib = useMemo(() => {
+    const parts = new Intl.DateTimeFormat(lang === 'id' ? 'id-ID' : 'en-US', {
+      timeZone: 'Asia/Jakarta',
+      weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    }).formatToParts(now);
+    const get = (t) => parts.find(p => p.type === t)?.value || '';
+    return {
+      weekday: get('weekday'), day: get('day'), month: get('month'), year: get('year'),
+      hour: get('hour'), minute: get('minute'), second: get('second'),
+    };
+  }, [now, lang]);
+  if (compact) {
+    return (
+      <span className="mono" style={{fontSize: '11px', color: '#1a2942', fontWeight: 500}} title={`${wib.weekday}, ${wib.day} ${wib.month} ${wib.year} WIB`}>
+        {wib.hour}:{wib.minute}:{wib.second} WIB
+      </span>
+    );
+  }
+  return (
+    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', fontFamily: 'inherit', lineHeight: 1.2}}>
+      <span className="mono" style={{fontSize: '13px', color: '#1a2942', fontWeight: 600, letterSpacing: '0.02em'}}>{wib.hour}:{wib.minute}:{wib.second} <span style={{fontSize: '9px', color: '#8a7d5c', letterSpacing: '0.15em'}}>WIB</span></span>
+      <span style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{wib.weekday}, {wib.day} {wib.month} {wib.year}</span>
+    </div>
+  );
+});
+
 function Header({ session, setSession, lang, setLang, view, setView, allowedNav, t, mobileMenuOpen, setMobileMenuOpen, exchangeRate, setExchangeRate, businessTrips, realizations, onChangePassword }) {
-  const navIcons = { dashboard: Activity, sph: FileText, pipeline: Briefcase, sales: Users, sales_report: ClipboardList, incentive: DollarSign, finance: Wallet, operations: Truck, installation: Wrench, maintenance: Settings, regulatory: ShieldCheck, valuation: TrendingUp, employees: UserPlus, business_trip: Plane };
+  const navIcons = { dashboard: Activity, sph: FileText, pipeline: Briefcase, sales: Users, sales_report: ClipboardList, incentive: DollarSign, finance: Wallet, operations: Truck, installation: Wrench, maintenance: Settings, regulatory: ShieldCheck, valuation: TrendingUp, employees: UserPlus, business_trip: Plane, audit_log: History, risk: Target };
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [rateMenuOpen, setRateMenuOpen] = useState(false);
   const [tempRate, setTempRate] = useState(exchangeRate);
@@ -4291,7 +4385,10 @@ function Header({ session, setSession, lang, setLang, view, setView, allowedNav,
           })}
         </nav>
 
-        <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: '14px'}}>
+          <div className="hide-mobile" style={{paddingRight: '12px', borderRight: '1px solid #d4cdb8'}}>
+            <WIBClock lang={lang} />
+          </div>
           {lang === 'en' && (
             <div style={{position: 'relative'}}>
               <button onClick={() => setRateMenuOpen(!rateMenuOpen)} className="mono" style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '6px 10px', fontSize: '10px', cursor: 'pointer', color: '#1a2942', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px'}}>
@@ -4929,15 +5026,38 @@ function PipelineBoard({ data, t, lang, canEdit, fmt, onEdit }) {
   const [filterYear, setFilterYear] = useState('2026');
   // Win rate calculation mode: 'current' (filtered year only) | 'ttm' (trailing 12 months) | 'all' (cumulative)
   const [winRateMode, setWinRateMode] = useState('ttm');
+  // Probability filter: 'all' | 'hot' (>=70%) | 'warm' (40-69%) | 'cold' (<40%)
+  const [probFilter, setProbFilter] = useState('all');
+  // Sort order for deals within a stage column: 'prob_desc' (default, prioritize closing) | 'prob_asc' | 'value_desc' | 'value_asc'
+  const [sortBy, setSortBy] = useState('prob_desc');
+
   const availableYears = useMemo(() => {
     const years = new Set(data.map(s => s.issuedDate?.substring(0, 4)).filter(Boolean));
     return Array.from(years).sort().reverse();
   }, [data]);
 
-  // PERFORMANCE: All pipeline calcs memoized (now scoped by selected year)
+  // Probability bucket helper
+  const probBucket = (p) => {
+    const v = Number(p.probability) || 0;
+    if (v >= 70) return 'hot';
+    if (v >= 40) return 'warm';
+    return 'cold';
+  };
+  // Sort comparator
+  const sortDeals = (arr) => {
+    const sorted = [...arr];
+    if (sortBy === 'prob_desc') sorted.sort((a, b) => (Number(b.probability) || 0) - (Number(a.probability) || 0));
+    else if (sortBy === 'prob_asc') sorted.sort((a, b) => (Number(a.probability) || 0) - (Number(b.probability) || 0));
+    else if (sortBy === 'value_desc') sorted.sort((a, b) => (Number(b.totalValue) || 0) - (Number(a.totalValue) || 0));
+    else if (sortBy === 'value_asc') sorted.sort((a, b) => (Number(a.totalValue) || 0) - (Number(b.totalValue) || 0));
+    return sorted;
+  };
+
+  // PERFORMANCE: All pipeline calcs memoized (now scoped by selected year + probability)
   const pipelineStats = useMemo(() => {
     const yearScoped = filterYear === 'all' ? data : data.filter(s => s.issuedDate?.startsWith(filterYear));
-    const pipelineData = yearScoped.filter(s => s.status === 'active' || s.status === 'won' || s.status === 'lost');
+    const probScoped = probFilter === 'all' ? yearScoped : yearScoped.filter(s => probBucket(s) === probFilter);
+    const pipelineData = probScoped.filter(s => s.status === 'active' || s.status === 'won' || s.status === 'lost');
     const totalDeals = pipelineData.length;
     const totalValue = pipelineData.reduce((s, p) => s + (Number(p.totalValue) || 0), 0);
     const wonCount = pipelineData.filter(p => p.status === 'won').length;
@@ -4973,7 +5093,7 @@ function PipelineBoard({ data, t, lang, canEdit, fmt, onEdit }) {
     const smallSample = winRateDen > 0 && winRateDen < 20;
 
     return { pipelineData, totalDeals, totalValue, wonCount, lostCount, activeCount, winRate, winRateNum, winRateDen, winRateScope, smallSample, ttmWon, ttmLost, allWon, allLost };
-  }, [data, filterYear, winRateMode]);
+  }, [data, filterYear, winRateMode, probFilter]);
   const { pipelineData, totalDeals, totalValue, wonCount, lostCount, activeCount, winRate, winRateNum, winRateDen, winRateScope, smallSample } = pipelineStats;
 
   // Stage definitions including lost - show statistical view of full journey
@@ -4988,8 +5108,10 @@ function PipelineBoard({ data, t, lang, canEdit, fmt, onEdit }) {
       const g = groups.get(p.stage);
       if (g) { g.projects.push(p); g.stageValue += p.totalValue; }
     });
+    // Apply sort to each group's projects
+    groups.forEach(g => { g.projects = sortDeals(g.projects); });
     return groups;
-  }, [pipelineData]);
+  }, [pipelineData, sortBy]);
 
   return (
     <div>
@@ -5009,6 +5131,36 @@ function PipelineBoard({ data, t, lang, canEdit, fmt, onEdit }) {
         </select>
         <span style={{fontSize: '11px', color: '#8a7d5c', fontStyle: 'italic'}}>{lang === 'id' ? `Menampilkan ${pipelineData.length} deal untuk ${filterYear === 'all' ? 'semua tahun' : filterYear}` : `Showing ${pipelineData.length} deals for ${filterYear === 'all' ? 'all years' : filterYear}`}</span>
       </div>
+
+      {/* Probability filter + Sort */}
+      <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', flexWrap: 'wrap', padding: '10px 14px', background: 'rgba(26,41,66,0.03)', border: '1px solid #e8e1cc'}}>
+        <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{lang === 'id' ? '🎯 Prioritas Kunjungan' : '🎯 Visit Priority'}:</span>
+        {[
+          { id: 'all', label: lang === 'id' ? 'Semua' : 'All', color: '#8a7d5c' },
+          { id: 'hot', label: lang === 'id' ? '🔥 Hot (≥70%)' : '🔥 Hot (≥70%)', color: '#c03030' },
+          { id: 'warm', label: lang === 'id' ? '⚡ Warm (40-69%)' : '⚡ Warm (40-69%)', color: '#c8a96a' },
+          { id: 'cold', label: lang === 'id' ? '❄ Cold (<40%)' : '❄ Cold (<40%)', color: '#5b87b8' },
+        ].map(opt => (
+          <button key={opt.id} onClick={() => setProbFilter(opt.id)} style={{padding: '5px 11px', fontSize: '11px', fontFamily: 'inherit', background: probFilter === opt.id ? opt.color : 'transparent', color: probFilter === opt.id ? '#fff' : opt.color, border: `1px solid ${opt.color}`, cursor: 'pointer', fontWeight: 600}}>{opt.label}</button>
+        ))}
+        <span style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px'}}>
+          <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{lang === 'id' ? 'Urutkan' : 'Sort'}:</span>
+          <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{width: 'auto', minWidth: '180px', fontSize: '11px'}}>
+            <option value="prob_desc">{lang === 'id' ? 'Probabilitas Tertinggi (default)' : 'Highest Probability (default)'}</option>
+            <option value="prob_asc">{lang === 'id' ? 'Probabilitas Terendah' : 'Lowest Probability'}</option>
+            <option value="value_desc">{lang === 'id' ? 'Nilai Terbesar' : 'Highest Value'}</option>
+            <option value="value_asc">{lang === 'id' ? 'Nilai Terkecil' : 'Lowest Value'}</option>
+          </select>
+        </span>
+      </div>
+
+      {probFilter !== 'all' && (
+        <div style={{padding: '8px 14px', marginBottom: '14px', background: '#fef9e7', borderLeft: '3px solid #c8a96a', fontSize: '11.5px', color: '#5a4a1a', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+          💡 <span>{lang === 'id'
+            ? <>Anda memfilter <strong>{probFilter === 'hot' ? 'deal panas (≥70%)' : probFilter === 'warm' ? 'deal hangat (40-69%)' : 'deal dingin (<40%)'}</strong>. Fokuskan waktu kunjungan & resources di sini — ini deal yang paling mungkin closing. Klik "Semua" untuk lihat semua deal kembali.</>
+            : <>Filtered to <strong>{probFilter === 'hot' ? 'hot deals (≥70%)' : probFilter === 'warm' ? 'warm deals (40-69%)' : 'cold deals (<40%)'}</strong>. Focus your visit time & resources here. Click "All" to reset.</>}</span>
+        </div>
+      )}
 
       {/* Info box explaining pipeline columns */}
       <div style={{padding: '12px 16px', background: 'rgba(26,41,66,0.04)', borderLeft: '3px solid #1a2942', marginBottom: '16px', fontSize: '11.5px', color: '#1a2942', lineHeight: 1.6}}>
@@ -5297,7 +5449,7 @@ function SRDashboard({ reports, t, lang }) {
               return (
                 <div key={id} style={{marginBottom: '12px'}}>
                   <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px'}}>
-                    <span style={{fontWeight: 500}}>{sales.name.split(' ')[0]} <span style={{color: '#8a7d5c', fontSize: '11px'}}>· {lang === 'id' ? sales.territory : sales.territoryEn}</span></span>
+                    <span style={{fontWeight: 500}}>{sales.name} <span style={{color: '#8a7d5c', fontSize: '11px'}}>· {lang === 'id' ? sales.territory : sales.territoryEn}</span></span>
                     <span className="mono" style={{color: '#8a7d5c', fontSize: '11px'}}>{st.count}</span>
                   </div>
                   <div style={{height: '6px', background: '#f0ebe0', overflow: 'hidden'}}>
@@ -5549,6 +5701,360 @@ function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, session, fmt }
 
 // ============== Employees Module (Master Data Karyawan) ==============
 // Akses: hanya CEO (super_admin), General Manager (gm), dan Manager Operasional (manager_ops)
+// ============== Risk Concentration Dashboard ==============
+// Investor-grade risk dashboard: customer/principal/region concentration, payment overdue heatmap
+function RiskConcentration({ data, t, lang, fmt }) {
+  const [scope, setScope] = useState('all'); // 'all' | 'won' | 'po_issued'
+
+  const scoped = useMemo(() => {
+    if (scope === 'won') return data.filter(s => s.status === 'won');
+    if (scope === 'po_issued') return data.filter(s => s.poStatus === 'issued');
+    return data;
+  }, [data, scope]);
+
+  const totalValue = useMemo(() => scoped.reduce((s, p) => s + (Number(p.totalValue) || 0), 0), [scoped]);
+
+  // Aggregate by dimension
+  const aggBy = (key) => {
+    const map = new Map();
+    scoped.forEach(p => {
+      const k = p[key] || (lang === 'id' ? 'Tidak diketahui' : 'Unknown');
+      const v = Number(p.totalValue) || 0;
+      map.set(k, (map.get(k) || 0) + v);
+    });
+    const arr = Array.from(map.entries()).map(([name, value]) => ({ name, value, pct: totalValue > 0 ? (value / totalValue) * 100 : 0 }));
+    arr.sort((a, b) => b.value - a.value);
+    return arr;
+  };
+
+  const byCustomer = useMemo(() => aggBy('customer'), [scoped, totalValue]);
+  const byRegion = useMemo(() => aggBy('region'), [scoped, totalValue]);
+  const byPartner = useMemo(() => aggBy('partner'), [scoped, totalValue]);
+  const byModality = useMemo(() => aggBy('modality'), [scoped, totalValue]);
+
+  // Top-N concentration ratios
+  const topN = (arr, n) => arr.slice(0, n).reduce((s, x) => s + x.pct, 0);
+  const concentrationLevel = (pct) => {
+    if (pct >= 60) return { label: lang === 'id' ? 'TINGGI' : 'HIGH', color: '#c03030' };
+    if (pct >= 35) return { label: lang === 'id' ? 'SEDANG' : 'MEDIUM', color: '#c8a96a' };
+    return { label: lang === 'id' ? 'RENDAH' : 'LOW', color: '#3a6b3a' };
+  };
+
+  const concentrationStats = useMemo(() => ({
+    top3Customer: topN(byCustomer, 3),
+    top1Customer: byCustomer[0]?.pct || 0,
+    top3Region: topN(byRegion, 3),
+    top3Partner: topN(byPartner, 3),
+    top1Partner: byPartner[0]?.pct || 0,
+    top3Modality: topN(byModality, 3),
+  }), [byCustomer, byRegion, byPartner, byModality]);
+
+  // Herfindahl-Hirschman Index (HHI) — standard concentration measure (0-10000, >2500 = highly concentrated)
+  const hhi = (arr) => arr.reduce((s, x) => s + Math.pow(x.pct, 2), 0);
+  const hhiCustomer = useMemo(() => hhi(byCustomer), [byCustomer]);
+  const hhiPartner = useMemo(() => hhi(byPartner), [byPartner]);
+
+  // Overdue payment risk
+  const today = new Date();
+  const overdueAnalysis = useMemo(() => {
+    const poIssued = data.filter(s => s.poStatus === 'issued');
+    let overdueDP = 0, overdueValue = 0;
+    poIssued.forEach(p => {
+      const issueDate = new Date(p.issuedDate || today);
+      const daysSince = Math.floor((today - issueDate) / (1000 * 60 * 60 * 24));
+      // If PO issued >30 days ago AND DP not paid = overdue DP
+      if (daysSince > 30 && !p.dpPaid) {
+        overdueDP++;
+        overdueValue += (Number(p.totalValue) || 0) * 0.3;
+      }
+    });
+    return { overdueDPCount: overdueDP, overdueDPValue: overdueValue, totalPO: poIssued.length };
+  }, [data, today]);
+
+  const exportRiskCSV = () => {
+    const header = [lang === 'id' ? 'Dimensi' : 'Dimension', lang === 'id' ? 'Nama' : 'Name', lang === 'id' ? 'Nilai' : 'Value', '% Total'];
+    const rows = [header];
+    byCustomer.forEach(x => rows.push(['Customer', x.name, x.value, x.pct.toFixed(2)]));
+    byRegion.forEach(x => rows.push(['Region', x.name, x.value, x.pct.toFixed(2)]));
+    byPartner.forEach(x => rows.push(['Partner', x.name, x.value, x.pct.toFixed(2)]));
+    byModality.forEach(x => rows.push(['Modality', x.name, x.value, x.pct.toFixed(2)]));
+    downloadCSV(`HNTI_Risk_Concentration_${new Date().toISOString().split('T')[0]}.csv`, rows);
+  };
+
+  // Render concentration bar chart
+  const ConcentrationBars = ({ title, data: items, accent = '#1a4d8a' }) => {
+    const top10 = items.slice(0, 10);
+    const others = items.slice(10);
+    const othersTotal = others.reduce((s, x) => s + x.value, 0);
+    const othersPct = others.reduce((s, x) => s + x.pct, 0);
+    const display = othersTotal > 0 ? [...top10, { name: lang === 'id' ? `Lainnya (${others.length})` : `Others (${others.length})`, value: othersTotal, pct: othersPct, _other: true }] : top10;
+    const max = display[0]?.pct || 1;
+    return (
+      <div style={{padding: '18px', background: '#fefcf7', border: '1px solid #e8e1cc'}}>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '14px'}}>
+          <div style={{fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{title}</div>
+          <div style={{fontSize: '10px', color: '#8a7d5c'}}>{items.length} {lang === 'id' ? 'entitas' : 'entities'}</div>
+        </div>
+        {display.length === 0 && <div style={{padding: '20px', color: '#8a7d5c', fontStyle: 'italic', fontSize: '12px'}}>{lang === 'id' ? 'Tidak ada data' : 'No data'}</div>}
+        {display.map((x, i) => (
+          <div key={x.name + i} style={{marginBottom: '8px'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: '11px', marginBottom: '3px'}}>
+              <span style={{color: x._other ? '#8a7d5c' : '#1a2942', fontStyle: x._other ? 'italic' : 'normal', maxWidth: '70%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{x.name}</span>
+              <span style={{fontWeight: 600, color: '#1a2942'}} className="mono">{x.pct.toFixed(1)}%</span>
+            </div>
+            <div style={{height: '6px', background: '#e8e1cc', overflow: 'hidden'}}>
+              <div style={{height: '100%', width: `${(x.pct / max) * 100}%`, background: x._other ? '#c8a96a' : accent, transition: 'width 0.3s'}} />
+            </div>
+            <div style={{fontSize: '9.5px', color: '#8a7d5c', marginTop: '2px'}} className="mono">{fmt(x.value)}</div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const top1Lvl = concentrationLevel(concentrationStats.top1Customer);
+  const top3CustLvl = concentrationLevel(concentrationStats.top3Customer);
+  const top1PartnerLvl = concentrationLevel(concentrationStats.top1Partner);
+
+  return (
+    <div>
+      <div style={{marginBottom: '22px'}}>
+        <div style={{fontSize: '11px', letterSpacing: '0.3em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '6px'}}>{lang === 'id' ? 'Risk Management' : 'Risk Management'}</div>
+        <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{lang === 'id' ? 'Konsentrasi Risiko' : 'Risk Concentration'}</h1>
+        <div style={{fontSize: '13px', color: '#8a7d5c', marginTop: '6px'}}>{lang === 'id' ? 'Identifikasi single point of failure — investor-grade governance' : 'Identify single points of failure — investor-grade governance'}</div>
+      </div>
+
+      {/* Scope selector + export */}
+      <div style={{display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center', flexWrap: 'wrap'}}>
+        <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{lang === 'id' ? 'Cakupan' : 'Scope'}:</span>
+        {[
+          { id: 'all', label: lang === 'id' ? 'Semua SPH' : 'All SPH' },
+          { id: 'won', label: lang === 'id' ? 'Menang Saja' : 'Won Only' },
+          { id: 'po_issued', label: lang === 'id' ? 'PO Terbit' : 'PO Issued' },
+        ].map(opt => (
+          <button key={opt.id} onClick={() => setScope(opt.id)} style={{background: scope === opt.id ? '#1a2942' : 'transparent', border: `1px solid ${scope === opt.id ? '#1a2942' : '#d4cdb8'}`, color: scope === opt.id ? '#fff' : '#8a7d5c', padding: '5px 11px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 500}}>{opt.label}</button>
+        ))}
+        <span style={{fontSize: '11px', color: '#8a7d5c', fontStyle: 'italic'}}>{scoped.length} {lang === 'id' ? 'entitas · total' : 'entities · total'} {fmt(totalValue)}</span>
+        <button onClick={exportRiskCSV} style={{background: '#3a6b3a', border: 'none', color: '#fff', padding: '6px 12px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px', marginLeft: 'auto'}}>
+          <Download size={12} />CSV
+        </button>
+      </div>
+
+      {/* Concentration KPIs */}
+      <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '22px', border: '1px solid #d4cdb8'}}>
+        <div className="card-pad">
+          <div className="lbl-tag">{lang === 'id' ? 'Top 1 Pelanggan' : 'Top 1 Customer'}</div>
+          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px', color: top1Lvl.color}}>{concentrationStats.top1Customer.toFixed(1)}%</div>
+          <div style={{fontSize: '10px', color: top1Lvl.color, marginTop: '2px', fontWeight: 600, letterSpacing: '0.05em'}}>{top1Lvl.label}</div>
+        </div>
+        <div className="card-pad">
+          <div className="lbl-tag">{lang === 'id' ? 'Top 3 Pelanggan' : 'Top 3 Customers'}</div>
+          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px', color: top3CustLvl.color}}>{concentrationStats.top3Customer.toFixed(1)}%</div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>HHI: {hhiCustomer.toFixed(0)}</div>
+        </div>
+        <div className="card-pad">
+          <div className="lbl-tag">{lang === 'id' ? 'Top 1 Principal' : 'Top 1 Principal'}</div>
+          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px', color: top1PartnerLvl.color}}>{concentrationStats.top1Partner.toFixed(1)}%</div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>HHI: {hhiPartner.toFixed(0)}</div>
+        </div>
+        <div className="card-pad">
+          <div className="lbl-tag">{lang === 'id' ? 'DP Terlambat' : 'Overdue DP'}</div>
+          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px', color: overdueAnalysis.overdueDPCount > 0 ? '#c03030' : '#3a6b3a'}}>{overdueAnalysis.overdueDPCount}</div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{fmt(overdueAnalysis.overdueDPValue)} {lang === 'id' ? 'tertahan' : 'at risk'}</div>
+        </div>
+      </div>
+
+      {/* HHI Interpretation Guide */}
+      <div style={{padding: '12px 16px', background: 'rgba(26,41,66,0.04)', borderLeft: '3px solid #1a2942', marginBottom: '20px', fontSize: '11.5px', color: '#1a2942', lineHeight: 1.6}}>
+        <strong>📐 HHI (Herfindahl-Hirschman Index)</strong>: {lang === 'id' ? 'Ukuran konsentrasi pasar standar industri. ' : 'Industry-standard market concentration measure. '}
+        <span style={{color: '#3a6b3a'}}>&lt;1500 = {lang === 'id' ? 'terdiversifikasi baik' : 'well diversified'}</span>{' · '}
+        <span style={{color: '#c8a96a'}}>1500-2500 = {lang === 'id' ? 'moderat' : 'moderate'}</span>{' · '}
+        <span style={{color: '#c03030'}}>&gt;2500 = {lang === 'id' ? 'konsentrasi tinggi (risiko)' : 'highly concentrated (risk)'}</span>
+      </div>
+
+      {/* Concentration breakdowns */}
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px', marginBottom: '22px'}}>
+        <ConcentrationBars title={lang === 'id' ? 'Per Pelanggan' : 'By Customer'} data={byCustomer} accent="#1a4d8a" />
+        <ConcentrationBars title={lang === 'id' ? 'Per Principal' : 'By Principal'} data={byPartner} accent="#7b3fb5" />
+        <ConcentrationBars title={lang === 'id' ? 'Per Wilayah' : 'By Region'} data={byRegion} accent="#3a6b3a" />
+        <ConcentrationBars title={lang === 'id' ? 'Per Modalitas' : 'By Modality'} data={byModality} accent="#c8a96a" />
+      </div>
+    </div>
+  );
+}
+
+// ============== Audit Trail / Change Log Module ==============
+// SOX-grade audit log: every meaningful action is captured with who/what/when
+function AuditLogModule({ auditLog, employees, t, lang }) {
+  const [filterUser, setFilterUser] = useState('all');
+  const [filterModule, setFilterModule] = useState('all');
+  const [filterAction, setFilterAction] = useState('all');
+  const [search, setSearch] = useState('');
+
+  const filteredLog = useMemo(() => {
+    return auditLog.filter(entry => {
+      if (filterUser !== 'all' && entry.user !== filterUser) return false;
+      if (filterModule !== 'all' && entry.module !== filterModule) return false;
+      if (filterAction !== 'all' && entry.action !== filterAction) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        if (!entry.entityLabel?.toLowerCase().includes(q) &&
+            !entry.userName?.toLowerCase().includes(q) &&
+            !entry.field?.toLowerCase().includes(q) &&
+            !entry.note?.toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+  }, [auditLog, filterUser, filterModule, filterAction, search]);
+
+  const uniqueUsers = useMemo(() => [...new Set(auditLog.map(e => e.user).filter(Boolean))], [auditLog]);
+  const uniqueModules = useMemo(() => [...new Set(auditLog.map(e => e.module).filter(Boolean))], [auditLog]);
+  const uniqueActions = useMemo(() => [...new Set(auditLog.map(e => e.action).filter(Boolean))], [auditLog]);
+
+  const stats = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return {
+      total: auditLog.length,
+      todayCount: auditLog.filter(e => e.timestamp?.startsWith(today)).length,
+      uniqueUsers: uniqueUsers.length,
+      creates: auditLog.filter(e => e.action === 'create').length,
+      updates: auditLog.filter(e => e.action === 'update').length,
+      deletes: auditLog.filter(e => e.action === 'delete').length,
+    };
+  }, [auditLog, uniqueUsers]);
+
+  const exportCSV = () => {
+    const header = ['Timestamp', lang === 'id' ? 'Pengguna' : 'User', 'Role', lang === 'id' ? 'Modul' : 'Module', lang === 'id' ? 'Aksi' : 'Action', lang === 'id' ? 'Entitas' : 'Entity', lang === 'id' ? 'Field' : 'Field', lang === 'id' ? 'Sebelum' : 'Before', lang === 'id' ? 'Sesudah' : 'After', lang === 'id' ? 'Catatan' : 'Note'];
+    const rows = [header, ...filteredLog.map(e => [e.timestamp, e.userName || e.user, e.role || '', e.module, e.action, e.entityLabel || '', e.field || '', e.before == null ? '' : String(e.before), e.after == null ? '' : String(e.after), e.note || ''])];
+    downloadCSV(`HNTI_Audit_Log_${new Date().toISOString().split('T')[0]}.csv`, rows);
+  };
+
+  const actionColor = (a) => ({
+    create: '#3a6b3a', update: '#1a4d8a', delete: '#c03030', login: '#7b3fb5', logout: '#8a7d5c', export: '#c8a96a', refresh: '#5b87b8',
+  })[a] || '#8a7d5c';
+  const moduleLabel = (m) => ({
+    sph: 'SPH', pipeline: 'Pipeline', finance: 'Finance', operations: lang === 'id' ? 'Operasional' : 'Operations',
+    installation: lang === 'id' ? 'Instalasi' : 'Installation', maintenance: 'Maintenance', regulatory: 'Regulatory',
+    business_trip: lang === 'id' ? 'Perjalanan Dinas' : 'Business Trip', employees: lang === 'id' ? 'Karyawan' : 'Employees',
+    auth: lang === 'id' ? 'Autentikasi' : 'Authentication', sales_report: lang === 'id' ? 'Laporan Lapangan' : 'Field Report',
+  })[m] || m;
+
+  return (
+    <div>
+      <div style={{marginBottom: '22px'}}>
+        <div style={{fontSize: '11px', letterSpacing: '0.3em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '6px'}}>{lang === 'id' ? 'Audit Trail' : 'Audit Trail'}</div>
+        <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{lang === 'id' ? 'Log Perubahan Sistem' : 'System Change Log'}</h1>
+        <div style={{fontSize: '13px', color: '#8a7d5c', marginTop: '6px'}}>{lang === 'id' ? 'Setiap aksi di sistem terekam — SOX compliance ready' : 'Every action is logged — SOX compliance ready'}</div>
+      </div>
+
+      {/* KPI cards */}
+      <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '22px', border: '1px solid #d4cdb8'}}>
+        <div className="card-pad">
+          <div className="lbl-tag">{lang === 'id' ? 'Total Entri' : 'Total Entries'}</div>
+          <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{stats.total}</div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{lang === 'id' ? 'Sejak login pertama' : 'Since first login'}</div>
+        </div>
+        <div className="card-pad">
+          <div className="lbl-tag">{lang === 'id' ? 'Hari Ini' : 'Today'}</div>
+          <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#c8a96a'}}>{stats.todayCount}</div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{lang === 'id' ? 'Aksi tercatat' : 'Actions logged'}</div>
+        </div>
+        <div className="card-pad">
+          <div className="lbl-tag">{lang === 'id' ? 'Pengguna Aktif' : 'Active Users'}</div>
+          <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#1a4d8a'}}>{stats.uniqueUsers}</div>
+        </div>
+        <div className="card-pad">
+          <div className="lbl-tag">{lang === 'id' ? 'Edit / Hapus' : 'Edits / Deletes'}</div>
+          <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>
+            <span style={{color: '#1a4d8a'}}>{stats.updates}</span>
+            <span style={{color: '#8a7d5c', fontSize: '16px'}}> · </span>
+            <span style={{color: '#c03030'}}>{stats.deletes}</span>
+          </div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>+{stats.creates} {lang === 'id' ? 'buat' : 'creates'}</div>
+        </div>
+      </div>
+
+      {/* Filters + Export */}
+      <div style={{display: 'flex', gap: '10px', marginBottom: '14px', alignItems: 'center', flexWrap: 'wrap'}}>
+        <div style={{position: 'relative', flex: '1 1 220px', maxWidth: '320px'}}>
+          <Search size={14} style={{position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#8a7d5c'}} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={lang === 'id' ? 'Cari user, entitas, catatan...' : 'Search user, entity, note...'} style={{paddingLeft: '36px'}} />
+        </div>
+        <select value={filterUser} onChange={e => setFilterUser(e.target.value)} style={{width: 'auto', minWidth: '120px'}}>
+          <option value="all">{lang === 'id' ? 'Semua Pengguna' : 'All Users'}</option>
+          {uniqueUsers.map(u => <option key={u} value={u}>{employees?.[u]?.name || u}</option>)}
+        </select>
+        <select value={filterModule} onChange={e => setFilterModule(e.target.value)} style={{width: 'auto', minWidth: '120px'}}>
+          <option value="all">{lang === 'id' ? 'Semua Modul' : 'All Modules'}</option>
+          {uniqueModules.map(m => <option key={m} value={m}>{moduleLabel(m)}</option>)}
+        </select>
+        <select value={filterAction} onChange={e => setFilterAction(e.target.value)} style={{width: 'auto', minWidth: '110px'}}>
+          <option value="all">{lang === 'id' ? 'Semua Aksi' : 'All Actions'}</option>
+          {uniqueActions.map(a => <option key={a} value={a}>{a}</option>)}
+        </select>
+        <button onClick={exportCSV} style={{background: '#3a6b3a', border: 'none', color: '#fff', padding: '6px 12px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px', marginLeft: 'auto'}} title={lang === 'id' ? 'Export ke CSV' : 'Export to CSV'}>
+          <Download size={12} />CSV ({filteredLog.length})
+        </button>
+      </div>
+
+      {/* Log table */}
+      <div style={{background: '#fefcf7', border: '1px solid #e8e1cc', overflowX: 'auto'}}>
+        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11.5px', minWidth: '900px'}}>
+          <thead>
+            <tr style={{background: '#f0ebe0'}}>
+              <Th>{lang === 'id' ? 'Waktu' : 'Timestamp'}</Th>
+              <Th>{lang === 'id' ? 'Pengguna' : 'User'}</Th>
+              <Th>{lang === 'id' ? 'Modul' : 'Module'}</Th>
+              <Th>{lang === 'id' ? 'Aksi' : 'Action'}</Th>
+              <Th>{lang === 'id' ? 'Entitas' : 'Entity'}</Th>
+              <Th>{lang === 'id' ? 'Perubahan' : 'Change'}</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredLog.length === 0 && (
+              <tr><Td colSpan={6}><div className="empty-state">{lang === 'id' ? 'Belum ada aktivitas tercatat' : 'No activity logged yet'}</div></Td></tr>
+            )}
+            {filteredLog.map(entry => {
+              const dt = entry.timestamp ? new Date(entry.timestamp) : null;
+              return (
+                <tr key={entry.id} className="hover-row" style={{borderTop: '1px solid #e8e1cc'}}>
+                  <Td>
+                    <span className="mono" style={{fontSize: '10.5px', color: '#1a2942'}}>{dt ? dt.toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { dateStyle: 'short', timeStyle: 'medium' }) : '—'}</span>
+                  </Td>
+                  <Td>
+                    <div style={{fontWeight: 500}}>{entry.userName || entry.user}</div>
+                    <div style={{fontSize: '10px', color: '#8a7d5c'}}>{entry.role || '—'}</div>
+                  </Td>
+                  <Td>{moduleLabel(entry.module)}</Td>
+                  <Td><span style={{padding: '2px 8px', fontSize: '10px', background: actionColor(entry.action) + '22', color: actionColor(entry.action), fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', borderRadius: '3px'}}>{entry.action}</span></Td>
+                  <Td><span style={{fontSize: '11px'}}>{entry.entityLabel || '—'}</span></Td>
+                  <Td>
+                    {entry.field ? (
+                      <div style={{fontSize: '11px'}}>
+                        <span style={{color: '#8a7d5c'}}>{entry.field}: </span>
+                        {entry.before != null && <span style={{color: '#c03030', textDecoration: 'line-through'}}>{String(entry.before).substring(0, 30)}</span>}
+                        {entry.before != null && entry.after != null && <span style={{color: '#8a7d5c'}}> → </span>}
+                        {entry.after != null && <span style={{color: '#3a6b3a', fontWeight: 500}}>{String(entry.after).substring(0, 30)}</span>}
+                      </div>
+                    ) : (
+                      <span style={{fontSize: '11px', color: '#8a7d5c', fontStyle: 'italic'}}>{entry.note || '—'}</span>
+                    )}
+                  </Td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {auditLog.length >= MAX_AUDIT_ENTRIES && (
+        <div style={{marginTop: '10px', padding: '8px 12px', background: '#fef9e7', border: '1px solid #c8a96a', fontSize: '11px', color: '#5a4a1a'}}>
+          ⚠ {lang === 'id' ? `Log mencapai batas maksimum ${MAX_AUDIT_ENTRIES} entri. Entri terlama akan otomatis dihapus saat aksi baru ditambahkan.` : `Log reached maximum of ${MAX_AUDIT_ENTRIES} entries. Oldest entries will be auto-removed on new activity.`}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EmployeesModule({ employees, setEmployees, t, lang, session, fmt }) {
   const canManage = ['super_admin', 'gm', 'manager_ops'].includes(session.role);
   const [modalOpen, setModalOpen] = useState(false);
@@ -5576,7 +6082,22 @@ function EmployeesModule({ employees, setEmployees, t, lang, session, fmt }) {
   }, [filtered]);
 
   const handleSave = (emp) => {
-    setEmployees(prev => ({ ...prev, [emp.username]: emp }));
+    // If username was renamed, remove old key and add new
+    if (emp._renameFrom && emp._renameFrom !== emp.username) {
+      const renameFrom = emp._renameFrom;
+      const cleanEmp = { ...emp };
+      delete cleanEmp._renameFrom;
+      setEmployees(prev => {
+        const next = { ...prev };
+        delete next[renameFrom];
+        next[emp.username] = cleanEmp;
+        return next;
+      });
+    } else {
+      const cleanEmp = { ...emp };
+      delete cleanEmp._renameFrom;
+      setEmployees(prev => ({ ...prev, [emp.username]: cleanEmp }));
+    }
     setModalOpen(false); setEditingEmp(null);
   };
 
@@ -5769,11 +6290,17 @@ function EmployeeModal({ emp, employees, onSave, onClose, t, lang }) {
       setError(lang === 'id' ? 'Username dan Nama wajib diisi.' : 'Username and Name are required.');
       return;
     }
-    if (!isEdit && employees[form.username]) {
+    // Allow rename, but check duplicate (except if same as original)
+    const originalUsername = isEdit ? emp.username : null;
+    if (form.username !== originalUsername && employees[form.username]) {
       setError(t.emp_duplicate_username);
       return;
     }
     const finalForm = { ...form, initial: form.initial || autoInitial(form.name) };
+    // Pass original username for rename handling
+    if (isEdit && originalUsername && originalUsername !== form.username) {
+      finalForm._renameFrom = originalUsername;
+    }
     onSave(finalForm);
   };
 
@@ -5787,8 +6314,12 @@ function EmployeeModal({ emp, employees, onSave, onClose, t, lang }) {
         {error && <div style={{padding: '10px 14px', background: '#c0303015', borderLeft: '3px solid #c03030', color: '#c03030', fontSize: '12px', marginBottom: '14px'}}>{error}</div>}
         <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px'}}>
           <Field label={t.emp_username}>
-            <input value={form.username} onChange={e => update('username', e.target.value.toLowerCase().replace(/\s+/g, ''))} disabled={isEdit} placeholder="contoh: budi" />
-            <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px', fontStyle: 'italic'}}>{t.emp_field_username_help}</div>
+            <input value={form.username} onChange={e => update('username', e.target.value.toLowerCase().replace(/\s+/g, ''))} placeholder="contoh: budi" />
+            <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px', fontStyle: 'italic'}}>
+              {isEdit
+                ? (lang === 'id' ? '⚠ Mengubah username akan mempengaruhi login dan audit log. Pastikan tidak duplikat.' : '⚠ Changing username affects login and audit logs. Ensure uniqueness.')
+                : t.emp_field_username_help}
+            </div>
           </Field>
           <Field label={t.emp_name}>
             <input value={form.name} onChange={e => update('name', e.target.value)} placeholder="contoh: Budi Hartono" />
@@ -5818,6 +6349,9 @@ function EmployeeModal({ emp, employees, onSave, onClose, t, lang }) {
               <option value="technician">Technician</option>
               <option value="regulatory">Regulatory</option>
               <option value="sales">Sales</option>
+              <option value="product_specialist">Product Specialist</option>
+              <option value="security">Security</option>
+              <option value="office_support">Office Support (OB)</option>
             </select>
           </Field>
           <Field label={t.emp_allowance}>
@@ -9414,7 +9948,53 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull }) {
   );
 }
 
-const Footer = React.memo(function Footer({ t }) {
+// ============== Audit Trail Infrastructure ==============
+// Lightweight in-memory audit log (last 500 entries) — captures who/what/when for data mutations
+// In production this would write to a backend audit database, but for IMS this gives SOX-compliance demo
+const MAX_AUDIT_ENTRIES = 500;
+const AUDIT_LOG_KEY = 'ims_hnti:audit_v1';
+function appendAuditLog(setAuditLog, entry) {
+  setAuditLog(prev => {
+    const next = [{ ...entry, id: 'audit_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), timestamp: new Date().toISOString() }, ...prev];
+    return next.slice(0, MAX_AUDIT_ENTRIES);
+  });
+}
+
+// ============== Real-Time Sync Indicator ==============
+// Shows "Last synced X minutes ago" + manual refresh button
+const SyncIndicator = React.memo(function SyncIndicator({ lastSync, onRefresh, t, lang }) {
+  const [tick, setTick] = useState(0);
+  // Re-render every 30s to update relative time
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 30000);
+    return () => clearInterval(id);
+  }, []);
+  // Compute relative time
+  const relative = useMemo(() => {
+    if (!lastSync) return lang === 'id' ? 'Belum tersinkron' : 'Not synced yet';
+    const diffMs = Date.now() - lastSync;
+    const sec = Math.floor(diffMs / 1000);
+    if (sec < 60) return lang === 'id' ? 'Baru saja' : 'Just now';
+    const min = Math.floor(sec / 60);
+    if (min < 60) return lang === 'id' ? `${min} menit lalu` : `${min} min ago`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return lang === 'id' ? `${hr} jam lalu` : `${hr}h ago`;
+    const days = Math.floor(hr / 24);
+    return lang === 'id' ? `${days} hari lalu` : `${days}d ago`;
+  }, [lastSync, tick, lang]);
+  const dotColor = !lastSync || (Date.now() - lastSync) > 5 * 60 * 1000 ? '#c8a96a' : '#3a6b3a';
+  return (
+    <div style={{display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10.5px', color: '#8a7d5c'}}>
+      <span style={{display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%', background: dotColor, boxShadow: dotColor === '#3a6b3a' ? `0 0 6px ${dotColor}` : 'none'}} title={lang === 'id' ? (dotColor === '#3a6b3a' ? 'Tersinkron baru-baru ini' : 'Perlu refresh') : (dotColor === '#3a6b3a' ? 'Recently synced' : 'Needs refresh')} />
+      <span style={{fontFamily: 'inherit'}}>{lang === 'id' ? 'Tersinkron' : 'Synced'}: <span className="mono" style={{color: '#1a2942', fontWeight: 500}}>{relative}</span></span>
+      <button onClick={onRefresh} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '3px 8px', fontSize: '10px', cursor: 'pointer', color: '#1a2942', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px'}} title={lang === 'id' ? 'Refresh data manual' : 'Manual refresh'}>
+        <RefreshCw size={10} strokeWidth={1.5} />{lang === 'id' ? 'Refresh' : 'Refresh'}
+      </button>
+    </div>
+  );
+});
+
+const Footer = React.memo(function Footer({ t, lastSync, onRefresh, lang }) {
   return (
     <footer style={{borderTop: '1px solid #d4cdb8', padding: '24px 48px', marginTop: '40px'}}>
       <div style={{maxWidth: '1440px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px'}}>
@@ -9422,7 +10002,8 @@ const Footer = React.memo(function Footer({ t }) {
           <IMSLogo size="sm" />
           <span style={{fontSize: '11px', color: '#8a7d5c'}}>· {t.company}</span>
         </div>
-        <div className="lbl-tag">Phase 31 · © 2026</div>
+        {lastSync !== undefined && onRefresh && <SyncIndicator lastSync={lastSync} onRefresh={onRefresh} t={t} lang={lang} />}
+        <div className="lbl-tag">Phase 33 · © 2026</div>
       </div>
     </footer>
   );
@@ -11184,7 +11765,7 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
                     <div>{d.modality}</div>
                     <div style={{fontSize: '10px', color: '#8a7d5c'}}>{d.subModality}</div>
                   </Td>
-                  {!isSales && <Td>{sales ? sales.name.split(' ')[0] : d.salesOwner}</Td>}
+                  {!isSales && <Td>{sales ? sales.name : d.salesOwner}</Td>}
                   <Td align="right"><span className="mono">{fmt(d.totalValue)}</span></Td>
                   <Td align="right"><span className="mono" style={{color: '#8a7d5c'}}>{fmt(d._calc.netSales)}</span></Td>
                   <Td align="right"><span className="mono" style={{fontWeight: 700, color: '#1a2942'}}>{fmt(d._calc.incentive)}</span></Td>

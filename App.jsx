@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { TrendingUp, FileText, Briefcase, Plus, Search, Edit2, Trash2, X, ArrowUpRight, ArrowDownRight, Activity, DollarSign, Users, Clock, Globe, LogOut, Shield, Wrench, Truck, Wallet, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, FileCheck, Menu, ChevronDown, ClipboardList, Star, Settings, ShieldCheck, CalendarDays, AlertTriangle, FileSearch, UserPlus, UserCheck, UserX, Plane, Receipt, Hotel, RefreshCw, History, FolderOpen, Upload, MessageSquare, Download, Target, Layers, FileBarChart, Paperclip } from 'lucide-react';
+import { TrendingUp, FileText, Briefcase, Plus, Search, Edit2, Trash2, X, ArrowUpRight, ArrowDownRight, Activity, DollarSign, Users, Clock, Globe, LogOut, Shield, Wrench, Truck, Wallet, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, FileCheck, Menu, ChevronDown, ChevronRight, ChevronLeft, ClipboardList, Star, Settings, ShieldCheck, CalendarDays, AlertTriangle, FileSearch, UserPlus, UserCheck, UserX, Plane, Receipt, Hotel, RefreshCw, History, FolderOpen, Upload, MessageSquare, Download, Target, Layers, FileBarChart, Paperclip } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Area, ComposedChart } from 'recharts';
 
 const DEFAULT_USD_IDR = 18000;
@@ -1560,6 +1560,18 @@ const PRODUCT_MASTER_SEED = [
   { id: 'prod_eswl_basic', name: 'ESWL', modality: 'ESWL', brand: 'Hyde Medical (HAMSKI XR)', type: '168B', origin: 'China', principal: 'Shenzhen Hyde Medical', tkdn: 0, akl: 'KEMENKES RI AKL 10303770XXX', active: true, notes: 'Extracorporeal Shock Wave Lithotripter Basic model' },
 ];
 
+// ============== Stable Product Linkage (Catatan #2) ==============
+// SPH dihubungkan ke master produk via productId yang STABIL.
+// Ini memastikan: saat nama/tipe/principal produk diedit, jumlah SPH TIDAK hilang.
+// Karena link by ID, bukan by string modality::type.
+// resolveProductId: cari product yang cocok untuk sebuah SPH (by existing productId, lalu fallback by modality+type)
+const resolveProductId = (sph, productList) => {
+  if (sph.productId) return sph.productId;
+  const match = (productList || PRODUCT_MASTER_SEED).find(p => p.modality === sph.modality && p.type === sph.subModality);
+  return match ? match.id : null;
+};
+
+
 const mk = (id, no, customer, ct, pt, mod, sub, qty, price, owner, region, stage, opts = {}) => {
   const baseProbs = { sph_sent: 20, presentation_scheduled: 35, presentation_done: 50, ecatalog: 40, negotiation: 70, tender: 55, po_issued: 100, lost: 0 };
   const scheme = opts.paymentScheme || detectPaymentScheme(pt, ct);
@@ -2243,7 +2255,10 @@ const normalizeProduct = (s) => {
 // → Semarang RS → Hatim, Solo RS → Lukman, Surabaya RS → Bagus, Hermina/Mitra Keluarga/Pramita → pusat
 // Sub-dealer and Office tetap (tidak dimapping ke kota tertentu)
 const ALL_SPH = _RAW_ALL_SPH.map(s0 => {
-  const s = normalizeProduct(s0);
+  const s1 = normalizeProduct(s0);
+  // Catatan #2: assign stable productId so editing product master never breaks SPH count
+  const pid = resolveProductId(s1, PRODUCT_MASTER_SEED);
+  const s = pid ? { ...s1, productId: pid } : s1;
   // Skip if customer type indicates sub-dealer or partner (mereka punya logic sendiri)
   if (s.customerType === 'subdistributor' || s.customerType === 'partner') return s;
   // Skip if owner adalah 'office' (intentionally vacant)
@@ -4426,6 +4441,26 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
   const perms = PERMISSIONS[session.role];
   const allowedNav = NAV_BY_ROLE[session.role];
 
+  // Business-trip notification count (shared by HoverSidebar + Header)
+  const navBtNotifCount = useMemo(() => {
+    if (!businessTrips || !realizations) return 0;
+    let count = 0;
+    if (session.role === 'finance') {
+      count = businessTrips.filter(t => t.status === 'pending_finance').length +
+              realizations.filter(r => r.status === 'pending_finance').length +
+              businessTrips.filter(t => t.status === 'approved' && t.paymentStatus !== 'paid').length +
+              realizations.filter(r => r.status === 'approved' && r.settlementStatus === 'pending' && r.difference !== 0).length;
+    } else if (session.role === 'manager_ops') {
+      count = businessTrips.filter(t => t.status === 'pending_mops').length + realizations.filter(r => r.status === 'pending_mops').length;
+    } else if (session.role === 'gm') {
+      count = businessTrips.filter(t => t.status === 'pending_gm').length + realizations.filter(r => r.status === 'pending_gm').length;
+    } else if (['sales', 'technician', 'operations', 'admin', 'regulatory'].includes(session.role)) {
+      count = businessTrips.filter(t => t.travelerUsername === session.username && ['clarification', 'rejected'].includes(t.status)).length +
+              realizations.filter(r => r.travelerUsername === session.username && r.status === 'clarification').length;
+    }
+    return count;
+  }, [businessTrips, realizations, session.role, session.username]);
+
   useEffect(() => { if (!allowedNav.includes(view)) setView(allowedNav[0]); }, [session.role]);
 
   const canEdit = (mod) => perms[mod] === 'full' || perms[mod] === 'write';
@@ -4483,6 +4518,7 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
   return (
     <div style={{minHeight: '100vh', background: '#f8f5ef', fontFamily: 'Inter, sans-serif', color: '#1a2942'}}>
       <GlobalStyles />
+      <HoverSidebar allowedNav={allowedNav} view={view} setView={setView} t={t} lang={lang} btNotifCount={navBtNotifCount} />
       <Header session={session} setSession={setSession} lang={lang} setLang={setLang} view={view} setView={setView} allowedNav={allowedNav} t={t} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} businessTrips={businessTrips} realizations={realizations} onChangePassword={() => setChangePwOpen(true)} />
 
       <main className="main-content fade-in" style={{maxWidth: '1440px', margin: '0 auto', padding: '32px 48px 60px'}}>
@@ -4501,7 +4537,7 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
         {view === 'employees' && canRead('employees') && <EmployeesModule employees={employees} setEmployees={setEmployees} t={t} lang={lang} session={session} fmt={fmt} />}
         {view === 'business_trip' && canRead('business_trip') && <BusinessTripModule businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} employees={employees} t={t} lang={lang} session={session} fmt={fmt} />}
         {view === 'audit_log' && (session.role === 'super_admin' || session.role === 'gm') && <AuditLogModule auditLog={auditLog} employees={employees} t={t} lang={lang} />}
-        {view === 'risk' && <RiskConcentration data={data} t={t} lang={lang} fmt={fmt} />}
+        {view === 'risk' && <RiskConcentration data={data} products={products} t={t} lang={lang} fmt={fmt} />}
         {view === 'products' && <ProductMasterModule products={products} setProducts={setProducts} t={t} lang={lang} canEdit={session.role === 'super_admin' || session.role === 'gm' || session.role === 'manager_ops' || session.role === 'admin'} logAction={logAction} data={data} />}
         {view === 'cohort' && <CohortAnalysis data={data} t={t} lang={lang} fmt={fmt} />}
         {view === 'cashflow' && <CashFlowProjection data={data} t={t} lang={lang} fmt={fmt} />}
@@ -4650,19 +4686,7 @@ function Header({ session, setSession, lang, setLang, view, setView, allowedNav,
           <IMSLogo size="md" />
         </div>
 
-        <nav className="desktop-nav" style={{display: 'flex', gap: '1px', flex: 1, justifyContent: 'center', flexWrap: 'wrap'}}>
-          {allowedNav.map(item => {
-            const Icon = navIcons[item];
-            const active = view === item;
-            const badge = item === 'business_trip' ? btNotifCount : 0;
-            return (
-              <button key={item} onClick={() => setView(item)} style={{background: active ? '#1a2942' : 'transparent', color: active ? '#f8f5ef' : '#1a2942', border: 'none', padding: '8px 12px', fontFamily: 'inherit', fontSize: '11.5px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s', letterSpacing: '0.02em', whiteSpace: 'nowrap', position: 'relative'}}>
-                <Icon size={13} strokeWidth={1.5} />{t[`nav_${item}`]}
-                {badge > 0 && <span style={{background: '#c03030', color: '#fff', borderRadius: '10px', padding: '1px 6px', fontSize: '9px', fontWeight: 700, minWidth: '14px', textAlign: 'center', lineHeight: 1.3}}>{badge}</span>}
-              </button>
-            );
-          })}
-        </nav>
+        <div style={{flex: 1}} />
 
         <div style={{display: 'flex', alignItems: 'center', gap: '14px'}}>
           <div className="hide-mobile" style={{paddingRight: '12px', borderRight: '1px solid #d4cdb8'}}>
@@ -4731,6 +4755,78 @@ function Header({ session, setSession, lang, setLang, view, setView, allowedNav,
         </div>
       )}
     </header>
+  );
+}
+
+// ============== Hover Sidebar Navigation ==============
+// Navigasi modul di sisi kiri layar, muncul saat kursor digeser ke tepi kiri (atau diklik di mobile).
+// Membuat tampilan IMS lebih bersih — header tidak penuh tombol modul.
+function HoverSidebar({ allowedNav, view, setView, t, lang, btNotifCount }) {
+  const navIcons = { dashboard: Activity, sph: FileText, pipeline: Briefcase, sales: Users, sales_report: ClipboardList, incentive: DollarSign, finance: Wallet, operations: Truck, installation: Wrench, maintenance: Settings, regulatory: ShieldCheck, valuation: TrendingUp, employees: UserPlus, business_trip: Plane, audit_log: History, risk: Target, products: Layers, cohort: FileBarChart, cashflow: TrendingUp, annotations: MessageSquare, exec_summary: FileText };
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      {/* Hover trigger strip — far left edge, always present */}
+      <div
+        onMouseEnter={() => setOpen(true)}
+        onClick={() => setOpen(o => !o)}
+        title={lang === 'id' ? 'Geser ke sini untuk menu' : 'Hover here for menu'}
+        style={{position: 'fixed', left: 0, top: 0, bottom: 0, width: '14px', zIndex: 95, cursor: 'pointer', background: open ? 'transparent' : 'linear-gradient(90deg, rgba(26,41,66,0.10), transparent)', display: 'flex', alignItems: 'center', justifyContent: 'flex-start'}}
+      >
+        {!open && (
+          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', paddingLeft: '2px'}}>
+            <span style={{width: '3px', height: '26px', borderRadius: '2px', background: '#1a2942', opacity: 0.35}} />
+            <ChevronRight size={12} strokeWidth={2} color="#1a2942" style={{opacity: 0.5}} />
+            <span style={{width: '3px', height: '26px', borderRadius: '2px', background: '#1a2942', opacity: 0.35}} />
+          </div>
+        )}
+      </div>
+
+      {/* Dim overlay when open */}
+      {open && <div onMouseEnter={() => setOpen(false)} style={{position: 'fixed', inset: 0, zIndex: 96, background: 'rgba(26,41,66,0.18)', transition: 'opacity 0.2s'}} />}
+
+      {/* Drawer */}
+      <div
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        style={{position: 'fixed', left: 0, top: 0, bottom: 0, width: '236px', zIndex: 97, background: '#1a2942', color: '#f8f5ef', transform: open ? 'translateX(0)' : 'translateX(-100%)', transition: 'transform 0.25s ease', overflowY: 'auto', boxShadow: open ? '4px 0 24px rgba(0,0,0,0.18)' : 'none', display: 'flex', flexDirection: 'column'}}
+      >
+        {/* Drawer header */}
+        <div style={{padding: '20px 18px 16px', borderBottom: '1px solid rgba(248,245,239,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+          <div>
+            <div style={{fontSize: '15px', fontWeight: 700, letterSpacing: '0.04em'}}>IMS HNTI</div>
+            <div style={{fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#c8a96a', marginTop: '2px'}}>{lang === 'id' ? 'Sistem Monitoring' : 'Monitoring System'}</div>
+          </div>
+          <button onClick={() => setOpen(false)} style={{background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(248,245,239,0.6)', padding: '4px'}} title={lang === 'id' ? 'Tutup' : 'Close'}>
+            <ChevronLeft size={18} strokeWidth={1.5} />
+          </button>
+        </div>
+
+        {/* Nav items */}
+        <nav style={{padding: '10px 0', flex: 1}}>
+          {allowedNav.map(item => {
+            const Icon = navIcons[item] || Activity;
+            const active = view === item;
+            const badge = item === 'business_trip' ? btNotifCount : 0;
+            return (
+              <button key={item} onClick={() => { setView(item); setOpen(false); }} style={{width: '100%', background: active ? '#c8a96a' : 'transparent', color: active ? '#1a2942' : '#f8f5ef', border: 'none', borderLeft: active ? '3px solid #f8f5ef' : '3px solid transparent', padding: '11px 18px', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: active ? 600 : 400, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left', transition: 'background 0.15s', letterSpacing: '0.02em'}}
+                onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(248,245,239,0.08)'; }}
+                onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}>
+                <Icon size={15} strokeWidth={1.5} />
+                <span style={{flex: 1}}>{t[`nav_${item}`]}</span>
+                {badge > 0 && <span style={{background: '#c03030', color: '#fff', borderRadius: '10px', padding: '1px 7px', fontSize: '9px', fontWeight: 700, minWidth: '14px', textAlign: 'center'}}>{badge}</span>}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Drawer footer hint */}
+        <div style={{padding: '12px 18px', borderTop: '1px solid rgba(248,245,239,0.12)', fontSize: '9.5px', color: 'rgba(248,245,239,0.4)', letterSpacing: '0.05em'}}>
+          {lang === 'id' ? 'Geser keluar untuk menutup' : 'Move out to close'}
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -6601,205 +6697,212 @@ function CohortAnalysis({ data, t, lang, fmt }) {
   );
 }
 
-// ============== 5-Year Cash Flow Projection ==============
-// KSO-driven recurring revenue + pipeline weighted forecast
-// Projection bulanan untuk 60 bulan (5 tahun) ke depan dari hari ini
+// ============== 5-Year Revenue Projection (Catatan #7) ==============
+// Metodologi: proyeksi berbasis tren pertumbuhan (compound growth) yang dilandasi:
+//   1) Data historis: 2025 aktual (PO terbit) + 2026 estimasi berjalan (PO + pipeline weighted)
+//   2) Baseline pasar: CAGR alat imaging Indonesia 6.12% (Grand View Research),
+//      alat kesehatan 9.1% (Nexdigm) — HNTI tumbuh di atas pasar karena merebut pangsa
+//   3) Tailwind regulasi: UU 17/2023 reklasifikasi RS berbasis kompetensi (Paripurna/Utama/
+//      Madya/Dasar) mewajibkan RS Utama punya radiologi canggih → siklus upgrade CT/MRI;
+//      KRIS 2025 + Health Transformation Program Rp20T mempercepat belanja modal RS
+// Rumus: Revenue(tahun n) = BaseTahun2026 × (1 + g)^(n − 2026), g = laju pertumbuhan skenario
 function CashFlowProjection({ data, t, lang, fmt }) {
-  const [showActuals, setShowActuals] = useState(true);
-  const [confidence, setConfidence] = useState('weighted'); // 'weighted' | 'optimistic' | 'conservative'
+  const [scenario, setScenario] = useState('realistic'); // conservative | realistic | optimistic
+  const [includeKso, setIncludeKso] = useState(true);
 
-  // Compute monthly projection
+  // === STEP 1: Historical base ===
+  const base = useMemo(() => {
+    // 2025 actual: PO issued in 2025
+    const won2025 = data.filter(s => s.poStatus === 'issued' && (s.issuedDate||'').startsWith('2025'))
+      .reduce((sum, s) => sum + (Number(s.totalValue)||0), 0);
+    // 2026 PO issued YTD
+    const po2026 = data.filter(s => s.poStatus === 'issued' && (s.issuedDate||'').startsWith('2026'))
+      .reduce((sum, s) => sum + (Number(s.totalValue)||0), 0);
+    // 2026 active pipeline weighted (expected to convert this year): value × probability
+    const pipeline2026 = data.filter(s => s.status === 'active')
+      .reduce((sum, s) => sum + (Number(s.totalValue)||0) * ((Number(s.probability)||0)/100), 0);
+    // 2026 full-year estimate = PO YTD + weighted pipeline
+    const est2026 = po2026 + pipeline2026;
+    // KSO recurring annual (bagi hasil) — sum of KSO contracts' annualized share
+    const ksoAnnual = data.filter(s => s.poStatus === 'issued' && (s.projectType === 'kso' || s.paymentScheme === 'kso'))
+      .reduce((sum, s) => {
+        const total = Number(s.totalValue)||0;
+        const dpPct = typeof s.dpPercent === 'number' ? s.dpPercent : 10;
+        return sum + (total * (1 - dpPct/100)) / 5; // spread over 5yr, annual portion
+      }, 0);
+    return { won2025, po2026, pipeline2026, est2026, ksoAnnual };
+  }, [data]);
+
+  // === STEP 2: Scenario growth rates (justified by market + regulation) ===
+  const SCENARIOS = {
+    conservative: { rate: 0.12, label: lang === 'id' ? 'Konservatif' : 'Conservative', color: '#5b87b8',
+      basis: lang === 'id' ? 'Pertumbuhan pasar (6–9%) + sedikit rebut pangsa. Asumsi ada hambatan makro/anggaran RS.' : 'Market growth (6–9%) + minor share gain. Assumes macro/budget headwinds.' },
+    realistic: { rate: 0.18, label: lang === 'id' ? 'Realistis' : 'Realistic', color: '#1a2942',
+      basis: lang === 'id' ? '≈2× pertumbuhan pasar. Didorong siklus upgrade radiologi akibat reklasifikasi RS berbasis kompetensi (UU 17/2023) + ekspansi model KSO.' : '≈2× market growth. Driven by radiology upgrade cycle from competency-based hospital reclassification (Law 17/2023) + KSO expansion.' },
+    optimistic: { rate: 0.25, label: lang === 'id' ? 'Optimis' : 'Optimistic', color: '#3a6b3a',
+      basis: lang === 'id' ? 'Rebut pangsa agresif + recurring KSO + kemitraan principal baru (ANKE, 5G Healthcare, SINO MDT) + KRIS & Program Transformasi Kesehatan Rp20T.' : 'Aggressive share capture + KSO recurring + new principals + KRIS & Rp20T Health Transformation Program.' },
+  };
+  const g = SCENARIOS[scenario].rate;
+
+  // === STEP 3: Project 2025→2031 ===
   const projection = useMemo(() => {
-    const today = new Date('2026-05-31');
-    const months = [];
-    for (let i = 0; i < 60; i++) {
-      const d = new Date(today);
-      d.setMonth(d.getMonth() + i);
-      months.push({
-        key: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,
-        year: d.getFullYear(),
-        month: d.getMonth() + 1,
-        label: d.toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { month: 'short', year: '2-digit' }),
-        kso: 0, // bagi hasil dari KSO existing
-        pipeline: 0, // weighted pipeline conversions
-        actual: 0, // already-won deals' payments expected this month
-      });
+    const years = [];
+    // 2025 actual
+    years.push({ year: 2025, value: base.won2025, type: 'actual', label: lang === 'id' ? 'Aktual' : 'Actual' });
+    // 2026 estimate (base year for projection)
+    const base2026 = base.est2026;
+    years.push({ year: 2026, value: base2026, type: 'estimate', label: lang === 'id' ? 'Estimasi Berjalan' : 'Current Estimate' });
+    // 2027-2031 projected
+    for (let y = 2027; y <= 2031; y++) {
+      const n = y - 2026;
+      let val = base2026 * Math.pow(1 + g, n);
+      if (includeKso) val += base.ksoAnnual * n * 0.5; // KSO recurring compounds modestly
+      years.push({ year: y, value: val, type: 'projection', label: lang === 'id' ? 'Proyeksi' : 'Projection' });
     }
-    const monthMap = new Map(months.map(m => [m.key, m]));
+    return years;
+  }, [base, g, includeKso, lang]);
 
-    // === 1. KSO contracts ===
-    // Each KSO project pays revenue share monthly for 60 months
-    // Find PO issued + scheme = kso, then distribute revenue share
-    const ksoDeals = data.filter(s => s.poStatus === 'issued' && (s.paymentScheme === 'kso' || s.projectType === 'kso'));
-    ksoDeals.forEach(d => {
-      const total = Number(d.totalValue) || 0;
-      const dpPercent = typeof d.dpPercent === 'number' ? d.dpPercent : 10;
-      const monthlyShare = (total * (1 - dpPercent/100)) / 60;
-      const startDate = new Date(d.issuedDate || '2026-01-01');
-      for (let m = 1; m <= 60; m++) {
-        const due = new Date(startDate);
-        due.setMonth(due.getMonth() + m);
-        const key = `${due.getFullYear()}-${String(due.getMonth()+1).padStart(2,'0')}`;
-        const target = monthMap.get(key);
-        if (target) target.kso += monthlyShare;
+  // All three scenario trajectories for comparison line
+  const allScenarios = useMemo(() => {
+    const result = {};
+    Object.entries(SCENARIOS).forEach(([key, sc]) => {
+      const arr = [];
+      for (let y = 2027; y <= 2031; y++) {
+        const n = y - 2026;
+        let val = base.est2026 * Math.pow(1 + sc.rate, n);
+        if (includeKso) val += base.ksoAnnual * n * 0.5;
+        arr.push({ year: y, value: val });
       }
+      result[key] = arr;
     });
+    return result;
+  }, [base, includeKso]);
 
-    // === 2. DP+Installment contracts (PO already issued, ongoing payments) ===
-    const dpDeals = data.filter(s => s.poStatus === 'issued' && (s.paymentScheme === 'dp_installment' || (!s.paymentScheme && s.projectType !== 'kso' && s.projectType !== 'government')));
-    dpDeals.forEach(d => {
-      const total = Number(d.totalValue) || 0;
-      const dpPercent = typeof d.dpPercent === 'number' ? d.dpPercent : 30;
-      const installmentMonths = d.installmentMonths || 12;
-      const monthlyAmount = (total * (1 - dpPercent/100)) / installmentMonths;
-      const startDate = new Date(d.issuedDate || '2026-01-01');
-      for (let m = 1; m <= installmentMonths; m++) {
-        const due = new Date(startDate);
-        due.setMonth(due.getMonth() + m);
-        const key = `${due.getFullYear()}-${String(due.getMonth()+1).padStart(2,'0')}`;
-        const target = monthMap.get(key);
-        if (target) target.actual += monthlyAmount;
-      }
-    });
+  const cagr2031 = useMemo(() => {
+    // implied CAGR from 2026 base to 2031 projected (selected scenario)
+    const final = projection[projection.length - 1].value;
+    const start = base.est2026;
+    if (start <= 0) return 0;
+    return (Math.pow(final / start, 1/5) - 1) * 100;
+  }, [projection, base]);
 
-    // === 3. Pipeline-weighted projection ===
-    // For active deals: probability × value, distributed across expected closing month
-    const activeDeals = data.filter(s => s.status === 'active');
-    activeDeals.forEach(d => {
-      const value = Number(d.totalValue) || 0;
-      const prob = (Number(d.probability) || 0) / 100;
-      const multiplier = confidence === 'optimistic' ? 1.15 : confidence === 'conservative' ? 0.7 : 1.0;
-      const weighted = value * prob * multiplier;
-      // Assume closing in 2-4 months from now (use 3 as average)
-      const expectedClose = new Date(today);
-      expectedClose.setMonth(expectedClose.getMonth() + 3);
-      const key = `${expectedClose.getFullYear()}-${String(expectedClose.getMonth()+1).padStart(2,'0')}`;
-      const target = monthMap.get(key);
-      if (target) target.pipeline += weighted;
-    });
-
-    // Compute totals + cumulative
-    let cumulative = 0;
-    months.forEach(m => {
-      m.total = m.kso + (showActuals ? m.actual : 0) + m.pipeline;
-      cumulative += m.total;
-      m.cumulative = cumulative;
-    });
-
-    return { months, ksoDeals: ksoDeals.length, dpDeals: dpDeals.length, activeDeals: activeDeals.length };
-  }, [data, showActuals, confidence, lang]);
-
-  // Aggregate by year for chart
-  const yearlyData = useMemo(() => {
-    const map = new Map();
-    projection.months.forEach(m => {
-      if (!map.has(m.year)) map.set(m.year, { year: m.year, kso: 0, actual: 0, pipeline: 0, total: 0 });
-      const y = map.get(m.year);
-      y.kso += m.kso;
-      y.actual += m.actual;
-      y.pipeline += m.pipeline;
-      y.total += m.total;
-    });
-    return Array.from(map.values());
-  }, [projection]);
-
-  const totals = useMemo(() => {
-    const kso = projection.months.reduce((s, m) => s + m.kso, 0);
-    const actual = projection.months.reduce((s, m) => s + m.actual, 0);
-    const pipeline = projection.months.reduce((s, m) => s + m.pipeline, 0);
-    return { kso, actual, pipeline, total: kso + (showActuals ? actual : 0) + pipeline };
-  }, [projection, showActuals]);
+  const total5yr = useMemo(() => projection.filter(p => p.type === 'projection').reduce((s, p) => s + p.value, 0), [projection]);
+  const maxVal = useMemo(() => Math.max(...projection.map(p => p.value), 1), [projection]);
 
   return (
     <div>
       <div style={{marginBottom: '22px'}}>
         <div style={{fontSize: '11px', letterSpacing: '0.3em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '6px'}}>{lang === 'id' ? 'Forecast' : 'Forecast'}</div>
-        <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{lang === 'id' ? 'Proyeksi Cash Flow 5 Tahun' : '5-Year Cash Flow Projection'}</h1>
-        <div style={{fontSize: '13px', color: '#8a7d5c', marginTop: '6px'}}>{lang === 'id' ? 'KSO recurring + DP installment + pipeline weighted — 60 bulan ke depan' : 'KSO recurring + DP installment + pipeline weighted — 60 months forward'}</div>
+        <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{lang === 'id' ? 'Proyeksi Pendapatan 5 Tahun' : '5-Year Revenue Projection'}</h1>
+        <div style={{fontSize: '13px', color: '#8a7d5c', marginTop: '6px'}}>{lang === 'id' ? 'Berbasis tren pertumbuhan majemuk, dilandasi data historis + baseline pasar + tailwind regulasi' : 'Compound growth model grounded in historical data + market baseline + regulatory tailwind'}</div>
       </div>
 
-      {/* Controls */}
+      {/* Scenario selector */}
       <div style={{display: 'flex', gap: '10px', marginBottom: '18px', alignItems: 'center', flexWrap: 'wrap', padding: '10px 14px', background: 'rgba(26,41,66,0.03)', border: '1px solid #e8e1cc'}}>
         <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{lang === 'id' ? 'Skenario' : 'Scenario'}:</span>
-        {[
-          { id: 'conservative', label: lang === 'id' ? '🛡 Konservatif (×0.7)' : '🛡 Conservative (×0.7)', color: '#5b87b8' },
-          { id: 'weighted', label: lang === 'id' ? '⚖ Realistis (×1.0)' : '⚖ Realistic (×1.0)', color: '#1a2942' },
-          { id: 'optimistic', label: lang === 'id' ? '🚀 Optimis (×1.15)' : '🚀 Optimistic (×1.15)', color: '#3a6b3a' },
-        ].map(opt => (
-          <button key={opt.id} onClick={() => setConfidence(opt.id)} style={{padding: '5px 11px', fontSize: '11px', fontFamily: 'inherit', background: confidence === opt.id ? opt.color : 'transparent', color: confidence === opt.id ? '#fff' : opt.color, border: `1px solid ${opt.color}`, cursor: 'pointer', fontWeight: 600}}>{opt.label}</button>
+        {Object.entries(SCENARIOS).map(([key, sc]) => (
+          <button key={key} onClick={() => setScenario(key)} style={{padding: '6px 13px', fontSize: '11px', fontFamily: 'inherit', background: scenario === key ? sc.color : 'transparent', color: scenario === key ? '#fff' : sc.color, border: `1px solid ${sc.color}`, cursor: 'pointer', fontWeight: 600}}>{sc.label} (+{(sc.rate*100).toFixed(0)}%/thn)</button>
         ))}
         <label style={{display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '14px', fontSize: '11px', color: '#1a2942', cursor: 'pointer'}}>
-          <input type="checkbox" checked={showActuals} onChange={e => setShowActuals(e.target.checked)} style={{cursor: 'pointer'}} />
-          {lang === 'id' ? 'Include cicilan PO existing' : 'Include existing PO installments'}
+          <input type="checkbox" checked={includeKso} onChange={e => setIncludeKso(e.target.checked)} style={{cursor: 'pointer'}} />
+          {lang === 'id' ? 'Sertakan recurring KSO' : 'Include KSO recurring'}
         </label>
       </div>
 
-      {/* Total KPIs */}
+      {/* KPI cards */}
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '22px', border: '1px solid #d4cdb8'}}>
         <div className="card-pad" style={{background: '#1a2942', color: '#fff'}}>
-          <div style={{fontSize: '9px', letterSpacing: '0.2em', color: '#c8a96a', textTransform: 'uppercase'}}>{lang === 'id' ? 'Total 5 Tahun' : 'Total 5-Year'}</div>
-          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px', color: '#fff'}}>{fmt(totals.total)}</div>
-          <div style={{fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginTop: '2px'}}>{lang === 'id' ? `Skenario ${confidence === 'optimistic' ? 'optimis' : confidence === 'conservative' ? 'konservatif' : 'realistis'}` : `${confidence} scenario`}</div>
+          <div style={{fontSize: '9px', letterSpacing: '0.2em', color: '#c8a96a', textTransform: 'uppercase'}}>{lang === 'id' ? 'Total 2027–2031' : 'Total 2027–2031'}</div>
+          <div className="serif" style={{fontSize: '23px', fontWeight: 500, marginTop: '4px', color: '#fff'}}>{fmt(total5yr)}</div>
+          <div style={{fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginTop: '2px'}}>{SCENARIOS[scenario].label}</div>
         </div>
         <div className="card-pad">
-          <div className="lbl-tag">KSO Recurring</div>
-          <div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px', color: '#7b3fb5'}}>{fmt(totals.kso)}</div>
-          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{projection.ksoDeals} {lang === 'id' ? 'kontrak KSO' : 'KSO contracts'}</div>
+          <div className="lbl-tag">{lang === 'id' ? 'Basis 2026' : '2026 Base'}</div>
+          <div className="serif" style={{fontSize: '21px', fontWeight: 500, marginTop: '4px', color: '#1a4d8a'}}>{fmt(base.est2026)}</div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{lang === 'id' ? 'PO + pipeline weighted' : 'PO + weighted pipeline'}</div>
         </div>
         <div className="card-pad">
-          <div className="lbl-tag">{lang === 'id' ? 'Cicilan PO' : 'PO Installments'}</div>
-          <div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px', color: '#1a4d8a', opacity: showActuals ? 1 : 0.3}}>{fmt(totals.actual)}</div>
-          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{projection.dpDeals} {lang === 'id' ? 'PO aktif' : 'active POs'}</div>
+          <div className="lbl-tag">{lang === 'id' ? 'Laju Pertumbuhan' : 'Growth Rate'}</div>
+          <div className="serif" style={{fontSize: '21px', fontWeight: 500, marginTop: '4px', color: SCENARIOS[scenario].color}}>+{(g*100).toFixed(0)}%<span style={{fontSize: '12px'}}>/{lang === 'id' ? 'thn' : 'yr'}</span></div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>CAGR {cagr2031.toFixed(1)}%</div>
         </div>
         <div className="card-pad">
-          <div className="lbl-tag">Pipeline Weighted</div>
-          <div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px', color: '#c8a96a'}}>{fmt(totals.pipeline)}</div>
-          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{projection.activeDeals} {lang === 'id' ? 'deal aktif' : 'active deals'}</div>
+          <div className="lbl-tag">{lang === 'id' ? 'Proyeksi 2031' : '2031 Projection'}</div>
+          <div className="serif" style={{fontSize: '21px', fontWeight: 500, marginTop: '4px', color: '#3a6b3a'}}>{fmt(projection[projection.length-1].value)}</div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{(projection[projection.length-1].value / base.est2026).toFixed(1)}× {lang === 'id' ? 'dari 2026' : 'of 2026'}</div>
         </div>
       </div>
 
-      {/* Yearly stacked bar chart */}
+      {/* Bar chart — rising trend */}
       <div style={{padding: '20px', background: '#fefcf7', border: '1px solid #e8e1cc', marginBottom: '20px'}}>
-        <div style={{fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '14px'}}>{lang === 'id' ? 'Breakdown per Tahun' : 'Yearly Breakdown'}</div>
-        <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
-          {yearlyData.map(y => {
-            const max = Math.max(...yearlyData.map(yy => yy.total));
-            const pct = max > 0 ? (y.total / max) * 100 : 0;
-            const ksoP = y.total > 0 ? (y.kso / y.total) * 100 : 0;
-            const actualP = y.total > 0 ? (y.actual / y.total) * 100 : 0;
-            const pipeP = y.total > 0 ? (y.pipeline / y.total) * 100 : 0;
+        <div style={{fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '16px'}}>{lang === 'id' ? 'Tren Pendapatan 2025–2031' : 'Revenue Trend 2025–2031'}</div>
+        <div style={{display: 'flex', alignItems: 'flex-end', gap: '12px', height: '240px', paddingBottom: '28px', position: 'relative'}}>
+          {projection.map(p => {
+            const h = (p.value / maxVal) * 100;
+            const barColor = p.type === 'actual' ? '#8a7d5c' : p.type === 'estimate' ? '#c8a96a' : SCENARIOS[scenario].color;
             return (
-              <div key={y.year}>
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px'}}>
-                  <span style={{fontSize: '13px', fontWeight: 600, color: '#1a2942'}}>{y.year}</span>
-                  <span className="mono" style={{fontSize: '13px', fontWeight: 600, color: '#1a2942'}}>{fmt(y.total)}</span>
-                </div>
-                <div style={{height: '24px', display: 'flex', width: `${pct}%`, minWidth: '20px', position: 'relative'}}>
-                  {ksoP > 0 && <div style={{flex: ksoP, background: '#7b3fb5'}} title={`KSO: ${fmt(y.kso)}`}></div>}
-                  {showActuals && actualP > 0 && <div style={{flex: actualP, background: '#1a4d8a'}} title={`Cicilan: ${fmt(y.actual)}`}></div>}
-                  {pipeP > 0 && <div style={{flex: pipeP, background: '#c8a96a'}} title={`Pipeline: ${fmt(y.pipeline)}`}></div>}
-                </div>
-                <div style={{display: 'flex', gap: '14px', fontSize: '10px', color: '#8a7d5c', marginTop: '4px'}}>
-                  <span><span style={{display: 'inline-block', width: '8px', height: '8px', background: '#7b3fb5', marginRight: '4px'}}></span>KSO: {fmt(y.kso)}</span>
-                  {showActuals && <span><span style={{display: 'inline-block', width: '8px', height: '8px', background: '#1a4d8a', marginRight: '4px'}}></span>{lang === 'id' ? 'Cicilan' : 'Installments'}: {fmt(y.actual)}</span>}
-                  <span><span style={{display: 'inline-block', width: '8px', height: '8px', background: '#c8a96a', marginRight: '4px'}}></span>Pipeline: {fmt(y.pipeline)}</span>
-                </div>
+              <div key={p.year} style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', position: 'relative'}}>
+                <div style={{fontSize: '10px', fontWeight: 600, color: '#1a2942', marginBottom: '4px', whiteSpace: 'nowrap'}}>{fmt(p.value).replace(/\s?Rp\s?/,'').replace('Miliar','M').replace('Triliun','T')}</div>
+                <div style={{width: '100%', maxWidth: '64px', height: `${h}%`, background: barColor, transition: 'height 0.3s', borderRadius: '2px 2px 0 0', minHeight: '4px'}} title={`${p.year}: ${fmt(p.value)}`}></div>
+                <div style={{position: 'absolute', bottom: '-24px', fontSize: '11px', fontWeight: 600, color: '#1a2942'}}>{p.year}</div>
+                <div style={{position: 'absolute', bottom: '-40px', fontSize: '8px', color: '#8a7d5c', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap'}}>{p.label}</div>
               </div>
             );
           })}
         </div>
+        <div style={{marginTop: '24px', display: 'flex', gap: '16px', fontSize: '10px', color: '#8a7d5c', flexWrap: 'wrap'}}>
+          <span><span style={{display: 'inline-block', width: '10px', height: '10px', background: '#8a7d5c', marginRight: '4px'}}></span>{lang === 'id' ? 'Aktual (2025)' : 'Actual (2025)'}</span>
+          <span><span style={{display: 'inline-block', width: '10px', height: '10px', background: '#c8a96a', marginRight: '4px'}}></span>{lang === 'id' ? 'Estimasi berjalan (2026)' : 'Current estimate (2026)'}</span>
+          <span><span style={{display: 'inline-block', width: '10px', height: '10px', background: SCENARIOS[scenario].color, marginRight: '4px'}}></span>{lang === 'id' ? 'Proyeksi (2027–2031)' : 'Projection (2027–2031)'}</span>
+        </div>
       </div>
 
-      {/* Investor narrative */}
-      <div style={{padding: '14px 18px', background: 'rgba(123,63,181,0.06)', borderLeft: '3px solid #7b3fb5', fontSize: '12px', color: '#1a2942', lineHeight: 1.7}}>
-        <strong>🎯 {lang === 'id' ? 'Investor Narrative' : 'Investor Narrative'}:</strong>{' '}
-        {lang === 'id'
-          ? <>Proyeksi ini menunjukkan <strong>recurring revenue visibility</strong> yang langka untuk distributor alat medis di Indonesia. <strong>KSO contracts</strong> memberikan {fmt(totals.kso)} pendapatan bagi hasil yang terkunci 5 tahun ke depan. Dikombinasikan dengan cicilan PO existing dan pipeline conversion, total proyeksi mencapai <strong>{fmt(totals.total)}</strong> — angka yang dapat di-stress-test investor menggunakan skenario konservatif (×0.7).</>
-          : <>This projection shows <strong>recurring revenue visibility</strong> rarely seen in Indonesian medical device distributors. <strong>KSO contracts</strong> lock {fmt(totals.kso)} of revenue-share income for the next 5 years. Combined with existing PO installments and pipeline conversion, total projection reaches <strong>{fmt(totals.total)}</strong> — a number investors can stress-test with conservative scenario (×0.7).</>}
+      {/* Scenario comparison table */}
+      <div style={{background: '#fefcf7', border: '1px solid #e8e1cc', overflowX: 'auto', marginBottom: '20px'}}>
+        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11.5px', minWidth: '640px'}}>
+          <thead><tr style={{background: '#f0ebe0'}}>
+            <th style={{padding: '10px 14px', textAlign: 'left', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{lang === 'id' ? 'Skenario' : 'Scenario'}</th>
+            {[2027,2028,2029,2030,2031].map(y => <th key={y} style={{padding: '10px 14px', textAlign: 'right', fontSize: '10px', letterSpacing: '0.1em', color: '#8a7d5c', fontWeight: 600}}>{y}</th>)}
+          </tr></thead>
+          <tbody>
+            {Object.entries(SCENARIOS).map(([key, sc]) => (
+              <tr key={key} style={{borderTop: '1px solid #e8e1cc', background: scenario === key ? 'rgba(26,41,66,0.04)' : 'transparent'}}>
+                <td style={{padding: '10px 14px', fontWeight: 600, color: sc.color}}>{sc.label} <span style={{fontSize: '10px', color: '#8a7d5c'}}>+{(sc.rate*100).toFixed(0)}%</span></td>
+                {allScenarios[key].map(d => <td key={d.year} style={{padding: '10px 14px', textAlign: 'right', fontFamily: 'monospace', fontSize: '11px'}}>{fmt(d.value).replace(/\s?Rp\s?/,'')}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mathematical & regulatory foundation */}
+      <div style={{padding: '18px 20px', background: 'rgba(123,63,181,0.05)', borderLeft: '3px solid #7b3fb5', fontSize: '12px', color: '#1a2942', lineHeight: 1.75}}>
+        <div style={{fontWeight: 700, fontSize: '13px', marginBottom: '10px'}}>📐 {lang === 'id' ? 'Dasar Matematika & Logika Proyeksi' : 'Mathematical & Logical Foundation'}</div>
+        <div style={{marginBottom: '10px'}}>
+          <strong>{lang === 'id' ? '1. Rumus pertumbuhan majemuk:' : '1. Compound growth formula:'}</strong><br/>
+          <span style={{fontFamily: 'monospace', background: '#fff', padding: '2px 8px', display: 'inline-block', marginTop: '4px', border: '1px solid #e8e1cc'}}>Pendapatan(thn) = Basis₂₀₂₆ × (1 + g)^(thn − 2026)</span>
+          <div style={{fontSize: '11px', color: '#5a4a6a', marginTop: '4px'}}>{lang === 'id' ? `Basis 2026 = PO terbit YTD (${fmt(base.po2026)}) + pipeline weighted (${fmt(base.pipeline2026)}) = ${fmt(base.est2026)}. Setiap deal pipeline dibobot probabilitasnya — bukan asumsi semua closing.` : `2026 base = PO issued YTD + weighted pipeline. Each pipeline deal weighted by its probability — not assuming all close.`}</div>
+        </div>
+        <div style={{marginBottom: '10px'}}>
+          <strong>{lang === 'id' ? '2. Laju pertumbuhan (g) — bukan angka asal:' : '2. Growth rate (g) — not arbitrary:'}</strong>
+          <div style={{fontSize: '11px', color: '#5a4a6a', marginTop: '4px'}}>{lang === 'id' ? 'Baseline pasar alat imaging Indonesia: CAGR 6,12% (Grand View Research); alat kesehatan: 9,1% (Nexdigm); sistem imaging digital: 8,2% (Insights10). HNTI memproyeksikan tumbuh di ATAS pasar (12–25%) karena merebut pangsa di pasar yang sedang ekspansi struktural.' : 'Indonesia imaging market baseline CAGR: 6.12% (Grand View); medical devices 9.1% (Nexdigm). HNTI projects ABOVE-market (12–25%) by capturing share in a structurally expanding market.'}</div>
+        </div>
+        <div style={{marginBottom: '10px'}}>
+          <strong>{lang === 'id' ? '3. Tailwind regulasi (pendorong permintaan):' : '3. Regulatory tailwind (demand driver):'}</strong>
+          <ul style={{margin: '4px 0 0', paddingLeft: '18px', fontSize: '11px', color: '#5a4a6a'}}>
+            <li>{lang === 'id' ? 'UU 17/2023: klasifikasi RS bergeser dari kelas A/B/C/D ke berbasis kompetensi (Paripurna, Utama, Madya, Dasar). RS Utama wajib punya "radiologi canggih" (CT, MRI) → siklus upgrade modalitas.' : 'Law 17/2023: hospital classification shifts from class A/B/C/D to competency-based. RS Utama must have advanced radiology (CT, MRI) → modality upgrade cycle.'}</li>
+            <li>{lang === 'id' ? 'Sistem rujukan berjenjang berbasis kompetensi → tiap provinsi butuh RS Utama (layanan kanker: CT staging), tiap kabupaten butuh layanan Madya.' : 'Competency-based tiered referral → each province needs RS Utama (cancer: CT staging), each district needs Madya.'}</li>
+            <li>{lang === 'id' ? 'KRIS (pengganti kelas BPJS 1/2/3) berlaku penuh 2025 + Program Transformasi Kesehatan Rp20 Triliun (2024) → percepatan belanja modal RS.' : 'KRIS (replacing BPJS class 1/2/3) full 2025 + Rp20T Health Transformation Program (2024) → accelerated hospital capex.'}</li>
+          </ul>
+        </div>
+        <div style={{fontSize: '10.5px', color: '#8a7d5c', fontStyle: 'italic', marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #d4cdb8'}}>
+          {lang === 'id' ? 'Catatan kejujuran: proyeksi adalah estimasi, bukan jaminan. Skenario konservatif (×0,7 dari realistis) disediakan agar investor dapat stress-test. Data historis terbatas pada 2025–2026 (sistem baru go-live); seiring bertambahnya data tahunan, akurasi proyeksi akan meningkat.' : 'Honesty note: projections are estimates, not guarantees. Conservative scenario provided for investor stress-testing. Historical data limited to 2025–2026 (new system go-live); accuracy improves as annual data accumulates.'}
+        </div>
       </div>
     </div>
   );
 }
+
 
 // ============== Annotated Snapshot ==============
 // CEO can add commentary to dashboard charts/KPIs before sharing snapshot
@@ -6968,11 +7071,16 @@ function ProductMasterModule({ products, setProducts, t, lang, canEdit, logActio
     const activeProducts = products.filter(p => p.active).length;
     const byOrigin = {};
     products.forEach(p => { if (p.active) byOrigin[p.origin] = (byOrigin[p.origin] || 0) + 1; });
-    // Usage count from SPH data
+    // Catatan #2: Usage count by STABLE productId (fallback to modality::type for legacy SPH).
+    // This keeps SPH counts intact even after product name/type/principal is edited.
     const usage = new Map();
     (data || []).forEach(s => {
-      const key = `${s.modality}::${s.subModality}`;
-      usage.set(key, (usage.get(key) || 0) + 1);
+      let pid = s.productId;
+      if (!pid) {
+        const m = products.find(p => p.modality === s.modality && p.type === s.subModality);
+        pid = m ? m.id : null;
+      }
+      if (pid) usage.set(pid, (usage.get(pid) || 0) + 1);
     });
     return { total: products.length, active: activeProducts, inactive: products.length - activeProducts, byOrigin, usage };
   }, [products, data]);
@@ -7101,7 +7209,7 @@ function ProductMasterModule({ products, setProducts, t, lang, canEdit, logActio
               <tr><Td colSpan={canEdit ? 10 : 9}><div className="empty-state">{lang === 'id' ? 'Tidak ada produk yang sesuai filter' : 'No products match filter'}</div></Td></tr>
             )}
             {filtered.map(p => {
-              const used = kpis.usage.get(`${p.modality}::${p.type}`) || 0;
+              const used = kpis.usage.get(p.id) || 0;
               return (
                 <tr key={p.id} className="hover-row" style={{borderTop: '1px solid #e8e1cc', opacity: p.active ? 1 : 0.55}}>
                   <Td>
@@ -7198,17 +7306,24 @@ function ProductModal({ product, onSave, onCancel, t, lang, existing }) {
               <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px', fontStyle: 'italic'}}>{lang === 'id' ? 'Format: [Tipe] [Merek] — tampil di SPH' : 'Format: [Type] [Brand] — shown on SPH'}</div>
             </Field>
             <Field label={lang === 'id' ? 'Modalitas' : 'Modality'}>
-              <select value={form.modality} onChange={e => update('modality', e.target.value)}>
-                <option value="">— {lang === 'id' ? 'Pilih' : 'Select'} —</option>
-                <option value="MRI">MRI</option>
-                <option value="CT Scan">CT Scan</option>
-                <option value="C-Arm">C-Arm</option>
-                <option value="X-Ray">X-Ray</option>
-                <option value="Mammography">Mammography</option>
-                <option value="Flat Panel Detector">Flat Panel Detector</option>
-                <option value="Ultrasound">Ultrasound</option>
-                <option value="Other">{lang === 'id' ? 'Lainnya' : 'Other'}</option>
-              </select>
+              <input list="modality-options" value={form.modality} onChange={e => update('modality', e.target.value)} placeholder={lang === 'id' ? 'Pilih atau ketik sendiri...' : 'Select or type your own...'} />
+              <datalist id="modality-options">
+                <option value="MRI" />
+                <option value="CT Scan" />
+                <option value="C-Arm" />
+                <option value="X-Ray Stationer" />
+                <option value="X-Ray Ceiling" />
+                <option value="X-Ray Mobile" />
+                <option value="X-Ray Portable" />
+                <option value="Portable X-Ray" />
+                <option value="Mammography" />
+                <option value="Flat Panel Detector" />
+                <option value="ESWL" />
+                <option value="Ultrasound" />
+                <option value="Cath Lab" />
+                <option value="Bone Densitometry" />
+              </datalist>
+              <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px', fontStyle: 'italic'}}>{lang === 'id' ? 'Bisa pilih dari daftar atau ketik modalitas baru sesuai kebutuhan' : 'Pick from list or type a new modality as needed'}</div>
             </Field>
             <Field label={lang === 'id' ? 'Merek' : 'Brand'}>
               <input value={form.brand} onChange={e => update('brand', e.target.value)} placeholder="contoh: Precision, Innocare, Supermark" />
@@ -7217,16 +7332,17 @@ function ProductModal({ product, onSave, onCancel, t, lang, existing }) {
               <input value={form.type} onChange={e => update('type', e.target.value)} placeholder="contoh: MRI 1.5T, X-Ray Portable" />
             </Field>
             <Field label={lang === 'id' ? 'Negara Asal' : 'Country of Origin'}>
-              <select value={form.origin} onChange={e => update('origin', e.target.value)}>
-                <option value="">— {lang === 'id' ? 'Pilih' : 'Select'} —</option>
-                <option value="China">🇨🇳 China</option>
-                <option value="Korea">🇰🇷 Korea</option>
-                <option value="Taiwan">🇹🇼 Taiwan</option>
-                <option value="Japan">🇯🇵 Japan</option>
-                <option value="Germany">🇩🇪 Germany</option>
-                <option value="USA">🇺🇸 USA</option>
-                <option value="Other">🌐 {lang === 'id' ? 'Lainnya' : 'Other'}</option>
-              </select>
+              <input list="origin-options" value={form.origin} onChange={e => update('origin', e.target.value)} placeholder={lang === 'id' ? 'Pilih atau ketik...' : 'Select or type...'} />
+              <datalist id="origin-options">
+                <option value="China" />
+                <option value="Korea" />
+                <option value="Taiwan" />
+                <option value="Japan" />
+                <option value="Germany" />
+                <option value="USA" />
+                <option value="Netherlands" />
+                <option value="Italy" />
+              </datalist>
             </Field>
             <Field label={lang === 'id' ? 'Principal (Pabrikan)' : 'Principal (Manufacturer)'}>
               <input value={form.principal} onChange={e => update('principal', e.target.value)} placeholder="contoh: Anke Medical" />
@@ -7258,8 +7374,33 @@ function ProductModal({ product, onSave, onCancel, t, lang, existing }) {
   );
 }
 
-function RiskConcentration({ data, t, lang, fmt }) {
+function RiskConcentration({ data, products, t, lang, fmt }) {
   const [scope, setScope] = useState('all'); // 'all' | 'won' | 'po_issued'
+
+  // Catatan #6: derive principal from product master (via productId) + region from sales territory
+  // So no more "Tidak diketahui" — HNTI knows all its own data.
+  const prodMap = useMemo(() => new Map((products || []).map(p => [p.id, p])), [products]);
+  const REGION_BY_OWNER = {
+    lukman: lang === 'id' ? 'Jateng Selatan + DIY' : 'South Central Java + DIY',
+    hatim: lang === 'id' ? 'Jateng Utara (Semarang)' : 'North Central Java',
+    dwi: 'Jabodetabek + Jabar',
+    tri: lang === 'id' ? 'Jatim 1 (Malang-Kediri)' : 'East Java 1',
+    bagus: lang === 'id' ? 'Jatim 2 (Surabaya)' : 'East Java 2',
+    icha: 'Jabodetabek + Jabar',
+    office: lang === 'id' ? 'Nasional / Luar Jawa' : 'National / Outside Java',
+  };
+  const getPrincipal = (s) => {
+    const prod = s.productId ? prodMap.get(s.productId) : null;
+    if (prod?.principal) return prod.principal;
+    // fallback by modality::subModality match
+    const m = (products || []).find(p => p.modality === s.modality && p.type === s.subModality);
+    if (m?.principal) return m.principal;
+    return lang === 'id' ? 'Lainnya' : 'Other';
+  };
+  const getRegion = (s) => {
+    if (s.region && s.region.trim()) return s.region;
+    return REGION_BY_OWNER[s.salesOwner] || (lang === 'id' ? 'Nasional' : 'National');
+  };
 
   const scoped = useMemo(() => {
     if (scope === 'won') return data.filter(s => s.status === 'won');
@@ -7269,11 +7410,12 @@ function RiskConcentration({ data, t, lang, fmt }) {
 
   const totalValue = useMemo(() => scoped.reduce((s, p) => s + (Number(p.totalValue) || 0), 0), [scoped]);
 
-  // Aggregate by dimension
-  const aggBy = (key) => {
+  // Aggregate by dimension — accepts a key string OR a value-getter function
+  const aggBy = (keyOrFn) => {
     const map = new Map();
+    const getter = typeof keyOrFn === 'function' ? keyOrFn : (p) => p[keyOrFn] || (lang === 'id' ? 'Tidak diketahui' : 'Unknown');
     scoped.forEach(p => {
-      const k = p[key] || (lang === 'id' ? 'Tidak diketahui' : 'Unknown');
+      const k = getter(p);
       const v = Number(p.totalValue) || 0;
       map.set(k, (map.get(k) || 0) + v);
     });
@@ -7283,8 +7425,8 @@ function RiskConcentration({ data, t, lang, fmt }) {
   };
 
   const byCustomer = useMemo(() => aggBy('customer'), [scoped, totalValue]);
-  const byRegion = useMemo(() => aggBy('region'), [scoped, totalValue]);
-  const byPartner = useMemo(() => aggBy('partner'), [scoped, totalValue]);
+  const byRegion = useMemo(() => aggBy(getRegion), [scoped, totalValue, lang]);
+  const byPartner = useMemo(() => aggBy(getPrincipal), [scoped, totalValue, prodMap, lang]);
   const byModality = useMemo(() => aggBy('modality'), [scoped, totalValue]);
 
   // Top-N concentration ratios
@@ -11750,7 +11892,7 @@ const Footer = React.memo(function Footer({ t, lastSync, onRefresh, lang }) {
           <span style={{fontSize: '11px', color: '#8a7d5c'}}>· {t.company}</span>
         </div>
         {lastSync !== undefined && onRefresh && <SyncIndicator lastSync={lastSync} onRefresh={onRefresh} t={t} lang={lang} />}
-        <div className="lbl-tag">Phase 35 · © 2026</div>
+        <div className="lbl-tag">Phase 37 · © 2026</div>
       </div>
     </footer>
   );
@@ -13373,9 +13515,15 @@ function RegulatoryRecordModal({ record, recordType, onSave, onClose, t, lang })
 function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdit }) {
   const isSales = session.role === 'sales';
   const isOfficeAccount = session.salesId === 'office';
-  // For sales role, filter to only own deals; for finance/CEO, show all
+  // Catatan #1: per-sales filter for CEO/Finance to drill into each sales' incentive detail
+  const [incFilterSales, setIncFilterSales] = useState('all');
+  // For sales role, filter to only own deals; for finance/CEO, show all (or filtered by chosen sales)
   const incentiveStats = useMemo(() => {
-    const visibleData = isSales ? data.filter(s => s.salesOwner === session.salesId) : data;
+    let visibleData = isSales ? data.filter(s => s.salesOwner === session.salesId) : data;
+    // Apply per-sales filter (only for non-sales roles)
+    if (!isSales && incFilterSales !== 'all') {
+      visibleData = visibleData.filter(s => s.salesOwner === incFilterSales);
+    }
     // Only PO Issued deals trigger incentive
     const poDeals = visibleData.filter(s => s.poStatus === 'issued');
     // Compute per-deal incentive
@@ -13390,14 +13538,14 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
     const totalPaid = dealsWithIncentive.filter(d => d._stat?.status === 'paid').reduce((sum, d) => sum + d._calc.incentive, 0);
     const totalKsoSplit = dealsWithIncentive.filter(d => d._stat?.status === 'kso_prorata').reduce((sum, d) => sum + d._calc.incentive * (d._stat.progress || 0), 0);
     const ytdTotal = totalEstimated + totalReady + totalPaid + totalKsoSplit;
-    // Leaderboard (for CEO/Finance only)
+    // Leaderboard (for CEO/Finance only) — always full team regardless of filter
     const leaderboard = !isSales ? SALES_TEAM.map(sales => {
       const salesDeals = data.filter(s => s.salesOwner === sales.id && s.poStatus === 'issued');
       const total = salesDeals.reduce((sum, s) => sum + calcIncentive(s).incentive, 0);
       return { ...sales, total, dealsCount: salesDeals.length };
     }).sort((a, b) => b.total - a.total) : [];
     return { visibleData, poDeals, dealsWithIncentive, totalEstimated, totalReady, totalPaid, totalKsoSplit, ytdTotal, leaderboard };
-  }, [data, isSales, session.salesId]);
+  }, [data, isSales, session.salesId, incFilterSales]);
   const { visibleData, poDeals, dealsWithIncentive, totalEstimated, totalReady, totalPaid, totalKsoSplit, ytdTotal, leaderboard } = incentiveStats;
 
   const [selectedDeal, setSelectedDeal] = useState(null);
@@ -13422,6 +13570,25 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
         <div style={{padding: '14px 18px', background: 'rgba(200,169,106,0.15)', borderLeft: '3px solid #c8a96a', marginBottom: '20px', fontSize: '12.5px', color: '#1a2942', lineHeight: 1.6}}>
           <div style={{fontWeight: 700, marginBottom: '4px'}}>{t.inc_office_label}</div>
           <div style={{fontSize: '11.5px'}}>{t.inc_office_note}</div>
+        </div>
+      )}
+
+      {/* Catatan #1: Per-sales filter (CEO/Finance only) to drill into each sales' incentive */}
+      {!isSales && (
+        <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', flexWrap: 'wrap'}}>
+          <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{lang === 'id' ? 'Filter Sales' : 'Filter Sales'}:</span>
+          <button onClick={() => setIncFilterSales('all')} style={{padding: '6px 14px', fontSize: '11px', fontFamily: 'inherit', background: incFilterSales === 'all' ? '#1a2942' : 'transparent', color: incFilterSales === 'all' ? '#fff' : '#1a2942', border: '1px solid #1a2942', cursor: 'pointer', fontWeight: 600}}>{lang === 'id' ? 'Semua Tim' : 'All Team'}</button>
+          {SALES_TEAM.map(s => (
+            <button key={s.id} onClick={() => setIncFilterSales(s.id)} style={{padding: '6px 14px', fontSize: '11px', fontFamily: 'inherit', background: incFilterSales === s.id ? s.accent : 'transparent', color: incFilterSales === s.id ? '#fff' : s.accent, border: `1px solid ${s.accent}`, cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px'}}>
+              <span style={{width: '16px', height: '16px', borderRadius: '50%', background: incFilterSales === s.id ? 'rgba(255,255,255,0.3)' : s.accent, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700}}>{s.initial}</span>
+              {s.name.split(' ')[0]}
+            </button>
+          ))}
+        </div>
+      )}
+      {!isSales && incFilterSales !== 'all' && (
+        <div style={{padding: '10px 14px', marginBottom: '18px', background: 'rgba(26,41,66,0.04)', borderLeft: '3px solid #1a2942', fontSize: '12px', color: '#1a2942'}}>
+          {lang === 'id' ? 'Menampilkan detail insentif & perhitungan untuk' : 'Showing incentive detail & calculation for'} <strong>{SALES_TEAM.find(s => s.id === incFilterSales)?.name}</strong> · {poDeals.length} {lang === 'id' ? 'deal PO' : 'PO deals'} · {lang === 'id' ? 'Total insentif' : 'Total incentive'}: <strong>{fmt(ytdTotal)}</strong>
         </div>
       )}
 

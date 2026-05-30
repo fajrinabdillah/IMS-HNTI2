@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { TrendingUp, FileText, Briefcase, Plus, Search, Edit2, Trash2, X, ArrowUpRight, ArrowDownRight, Activity, DollarSign, Users, Clock, Globe, LogOut, Shield, Wrench, Truck, Wallet, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, FileCheck, Menu, ChevronDown, ChevronRight, ChevronLeft, ClipboardList, Star, Settings, ShieldCheck, CalendarDays, AlertTriangle, FileSearch, UserPlus, UserCheck, UserX, Plane, Receipt, Hotel, RefreshCw, History, FolderOpen, Upload, MessageSquare, Download, Target, Layers, FileBarChart, Paperclip } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Area, ComposedChart } from 'recharts';
-
+import logoHnti from './logo.png';
 const DEFAULT_USD_IDR = 18000;
 
 // ============== i18n ==============
@@ -3955,7 +3955,20 @@ const PAYMENT_TERMS = {
 
 // ============== Refined Logo (3-layer diamond) ==============
 // React.memo wrapped - logo is pure presentational, no state, no parent re-render needed
-const IMSLogo = React.memo(function IMSLogo({ size = 'md', inverted = false, showTagline = false }) {
+const IMSLogo = React.memo(function IMSLogo({ size = 'md', inverted = false }) {
+  // Ukuran logo akan menyesuaikan secara otomatis (besar di menu depan, kecil di pojok dasbor)
+  const logoWidth = size === 'xl' ? '180px' : size === 'lg' ? '140px' : '100px';
+
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+      <img 
+        src={logoHnti} 
+        alt="Logo Resmi IMS HNTI" 
+        style={{ width: logoWidth, height: 'auto', objectFit: 'contain' }} 
+      />
+    </div>
+  );
+}) {
   const sizes = {
     sm: { layer: 24, txt: 22, tag: 8, gap: 4, sub: 10 },
     md: { layer: 36, txt: 32, tag: 10, gap: 5, sub: 12 },

@@ -25,6 +25,10 @@ const translations = {
     nav_audit_log: 'Audit Trail',
     nav_risk: 'Konsentrasi Risiko',
     nav_products: 'Master Produk',
+    nav_cohort: 'Cohort Analysis',
+    nav_cashflow: 'Proyeksi 5 Tahun',
+    nav_annotations: 'Komentar CEO',
+    nav_exec_summary: 'Ringkasan Eksekutif',
     pipeline_value: 'Nilai Pipeline', weighted_pipeline: 'Pipeline Tertimbang',
     revenue_ytd: 'Pendapatan YTD', win_rate: 'Win Rate',
     active_projects: 'Proyek Aktif', avg_deal_size: 'Rata-rata Deal',
@@ -704,6 +708,10 @@ const translations = {
     nav_audit_log: 'Audit Trail',
     nav_risk: 'Risk Concentration',
     nav_products: 'Product Master',
+    nav_cohort: 'Cohort Analysis',
+    nav_cashflow: '5-Year Projection',
+    nav_annotations: 'CEO Commentary',
+    nav_exec_summary: 'Executive Summary',
     pipeline_value: 'Pipeline Value', weighted_pipeline: 'Weighted Pipeline',
     revenue_ytd: 'Revenue YTD', win_rate: 'Win Rate',
     active_projects: 'Active Projects', avg_deal_size: 'Avg Deal Size',
@@ -1485,13 +1493,13 @@ const PERMISSIONS = {
 };
 
 const NAV_BY_ROLE = {
-  super_admin:  ['dashboard', 'sph', 'pipeline', 'sales', 'incentive', 'sales_report', 'business_trip', 'finance', 'operations', 'installation', 'maintenance', 'regulatory', 'products', 'valuation', 'risk', 'employees', 'audit_log'],
-  gm:           ['dashboard', 'sph', 'pipeline', 'sales', 'incentive', 'sales_report', 'business_trip', 'finance', 'operations', 'installation', 'maintenance', 'regulatory', 'products', 'valuation', 'risk', 'employees', 'audit_log'],
+  super_admin:  ['dashboard', 'sph', 'pipeline', 'sales', 'incentive', 'sales_report', 'business_trip', 'finance', 'operations', 'installation', 'maintenance', 'regulatory', 'products', 'valuation', 'risk', 'cohort', 'cashflow', 'annotations', 'exec_summary', 'employees', 'audit_log'],
+  gm:           ['dashboard', 'sph', 'pipeline', 'sales', 'incentive', 'sales_report', 'business_trip', 'finance', 'operations', 'installation', 'maintenance', 'regulatory', 'products', 'valuation', 'risk', 'cohort', 'cashflow', 'annotations', 'exec_summary', 'employees', 'audit_log'],
   manager_ops:  ['dashboard', 'sph', 'pipeline', 'sales', 'sales_report', 'business_trip', 'finance', 'operations', 'installation', 'maintenance', 'regulatory', 'products', 'employees'],
   admin:        ['dashboard', 'sph', 'pipeline', 'sales', 'sales_report', 'business_trip', 'installation', 'maintenance', 'regulatory', 'products'],
   technician:   ['dashboard', 'pipeline', 'business_trip', 'installation', 'maintenance', 'products'],
   operations:   ['dashboard', 'pipeline', 'business_trip', 'operations', 'maintenance', 'products'],
-  finance:      ['dashboard', 'pipeline', 'sales_report', 'business_trip', 'incentive', 'finance', 'risk'],
+  finance:      ['dashboard', 'pipeline', 'sales_report', 'business_trip', 'incentive', 'finance', 'risk', 'cohort', 'cashflow'],
   regulatory:   ['dashboard', 'pipeline', 'business_trip', 'installation', 'regulatory', 'products'],
   sales:        ['sales_report', 'sph', 'pipeline', 'business_trip', 'incentive', 'dashboard', 'products'],
   product_specialist: ['dashboard', 'sph', 'pipeline', 'sales', 'sales_report', 'business_trip', 'installation', 'maintenance', 'regulatory', 'products'],
@@ -1523,39 +1531,33 @@ const detectPaymentScheme = (projectType, customerType) => {
 // Field: id, name (display), modality (kategori), brand, type (model), origin, principal (manufacturer), tkdn, akl, active, notes
 // Storage: ims_hnti:prod_v22 — editable via Master Produk module
 const PRODUCT_MASTER_SEED = [
-  // === MRI ===
-  { id: 'prod_mri_15t_supermark', name: 'MRI 1.5T Supermark', modality: 'MRI', brand: 'Supermark', type: 'MRI 1.5T', origin: 'China', principal: 'Anke Medical', tkdn: 18, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Mid-range 1.5T, 16-channel coil' },
-  { id: 'prod_mri_15t_basda', name: 'MRI 1.5T Basda', modality: 'MRI', brand: 'Basda', type: 'MRI 1.5T', origin: 'China', principal: 'Basda Medical Apparatus', tkdn: 15, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Entry-level 1.5T' },
-  { id: 'prod_mri_30t_supermark', name: 'MRI 3.0T Supermark', modality: 'MRI', brand: 'Supermark', type: 'MRI 3.0T', origin: 'China', principal: 'Anke Medical', tkdn: 18, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Premium 3.0T research-grade' },
-
-  // === CT Scan ===
-  { id: 'prod_ct_64_anatom', name: 'CT 64 Slice Anatom Clarity', modality: 'CT Scan', brand: 'Anatom', type: 'CT 64 Slice', origin: 'China', principal: 'United Imaging', tkdn: 20, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'Best-selling mid-range CT' },
-  { id: 'prod_ct_128_anatom', name: 'CT 128 Slice Anatom', modality: 'CT Scan', brand: 'Anatom', type: 'CT 128 Slice', origin: 'China', principal: 'United Imaging', tkdn: 20, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'High-end diagnostic CT' },
-  { id: 'prod_ct_16_supermark', name: 'CT 16 Slice Supermark', modality: 'CT Scan', brand: 'Supermark', type: 'CT 16 Slice', origin: 'China', principal: 'Anke Medical', tkdn: 18, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'Budget-friendly entry CT' },
-
-  // === C-Arm ===
-  { id: 'prod_carm_garion', name: 'C-Arm Garion', modality: 'C-Arm', brand: 'Garion', type: 'C-Arm Surgical', origin: 'Korea', principal: 'Garion Medical', tkdn: 15, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Standard surgical C-Arm' },
-  { id: 'prod_carm_garion_hd', name: 'C-Arm Garion HD', modality: 'C-Arm', brand: 'Garion', type: 'C-Arm Surgical HD', origin: 'Korea', principal: 'Garion Medical', tkdn: 15, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'HD imaging C-Arm' },
-
-  // === X-Ray Stationary ===
-  { id: 'prod_xray_500ma_supermark', name: 'X-Ray Stationary 500mA Supermark', modality: 'X-Ray', brand: 'Supermark', type: 'X-Ray Stationary 500mA', origin: 'China', principal: 'Anke Medical', tkdn: 22, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'High-output stationary X-Ray' },
-  { id: 'prod_xray_300ma_supermark', name: 'X-Ray Stationary 300mA Supermark', modality: 'X-Ray', brand: 'Supermark', type: 'X-Ray Stationary 300mA', origin: 'China', principal: 'Anke Medical', tkdn: 22, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Standard radiology X-Ray' },
-
-  // === X-Ray Portable ===
-  { id: 'prod_xray_portable_supermark', name: 'X-Ray Portable Supermark', modality: 'X-Ray', brand: 'Supermark', type: 'X-Ray Portable', origin: 'China', principal: 'Anke Medical', tkdn: 20, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Mobile bedside X-Ray' },
-  // NEW: Portable X-Ray merk Precision (China) — req Fajrin 2026-05-30
-  { id: 'prod_xray_portable_precision', name: 'X-Ray Portable Precision', modality: 'X-Ray', brand: 'Precision', type: 'X-Ray Portable', origin: 'China', principal: 'Precision Healthcare', tkdn: 18, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Portable X-Ray for ICU/ER use' },
-
-  // === Mammography ===
-  { id: 'prod_mammo_3d_anatom', name: 'Mammography 3D Anatom', modality: 'Mammography', brand: 'Anatom', type: 'Mammo 3D Tomosynthesis', origin: 'China', principal: 'United Imaging', tkdn: 18, akl: 'KEMENKES RI AKL 10303550XXX', active: true, notes: '3D digital mammography with tomosynthesis' },
-  { id: 'prod_mammo_2d_anatom', name: 'Mammography 2D Anatom', modality: 'Mammography', brand: 'Anatom', type: 'Mammo 2D Digital', origin: 'China', principal: 'United Imaging', tkdn: 18, akl: 'KEMENKES RI AKL 10303550XXX', active: true, notes: '2D digital mammography' },
-
-  // === Flat Panel Detector ===
-  // NEW: Flat Panel Detector Innocare (Taiwan) — req Fajrin 2026-05-30
-  { id: 'prod_fpd_innocare', name: 'Flat Panel Detector Innocare', modality: 'Flat Panel Detector', brand: 'Innocare', type: 'FPD 14x17 Wireless', origin: 'Taiwan', principal: 'Innocare Optoelectronics', tkdn: 12, akl: 'KEMENKES RI AKL 10303660XXX', active: true, notes: 'Wireless flat panel detector untuk upgrade X-Ray analog ke digital' },
-
-  // === Ultrasound (placeholder for future) ===
-  { id: 'prod_us_color_supermark', name: 'Ultrasound Color Doppler Supermark', modality: 'Ultrasound', brand: 'Supermark', type: 'USG Color Doppler', origin: 'China', principal: 'Anke Medical', tkdn: 15, akl: 'KEMENKES RI AKL 10303770XXX', active: false, notes: 'Pending principal agreement' },
+  // === MRI (ANKE / Shenzhen Anke High-Tech, China) ===
+  { id: 'prod_mri_15t_hfm', name: 'MRI 1.5 Tesla', modality: 'MRI', brand: 'ANKE', type: 'Supermark 1.5T HFM', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Non-Helium 1.5Tesla MRI System' },
+  { id: 'prod_mri_15t_art', name: 'MRI 1.5 Tesla', modality: 'MRI', brand: 'ANKE', type: 'Supermark 1.5T ART', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Less-Helium 1.5Tesla MRI System (700 Liter)' },
+  { id: 'prod_mri_30t', name: 'MRI 3.0T Supermark', modality: 'MRI', brand: 'ANKE', type: 'Supermark 590D', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Premium 3.0T research-grade' },
+  // === CT Scan (ANKE, China) ===
+  { id: 'prod_ct64_cardiac', name: 'CT 64 Slice Cardiac', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom Clarity', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'CT 64-slice cardiac' },
+  { id: 'prod_ct128_premium', name: 'CT 128 Slice Premium', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom Precision', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'High-end diagnostic CT' },
+  { id: 'prod_ct32', name: 'CT 32 Slice', modality: 'CT Scan', brand: 'Supermark', type: 'Anatom C201', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'Budget-friendly entry CT' },
+  { id: 'prod_ct64_noncardiac', name: 'CT 64 Slice Non-Cardiac', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom C206', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'CT 64-slice non-cardiac' },
+  { id: 'prod_ct128_basic', name: 'CT 128 Slice Basic', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom C408', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'CT 128-slice budget-friendly' },
+  // === C-Arm (5G Healthcare, Korea) ===
+  { id: 'prod_carm_5kw', name: 'Mobile C-Arm', modality: 'C-Arm', brand: '5G Healthcare', type: 'Garion 5kW', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Standard surgical C-Arm' },
+  { id: 'prod_carm_15kw', name: 'Mobile C-Arm', modality: 'C-Arm', brand: '5G Healthcare', type: 'Garion 15kW', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Advance surgical C-Arm' },
+  // === X-Ray (5G Healthcare Korea + Precision China) ===
+  { id: 'prod_xray_stat500', name: 'X-Ray Stationary 500mA', modality: 'X-Ray Stationer', brand: '5G Healthcare', type: 'Jumong General', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'General X-Ray floor mounted 500mA' },
+  { id: 'prod_xray_ceiling500', name: 'X-Ray Ceiling 500mA', modality: 'X-Ray Ceiling', brand: '5G Healthcare', type: 'Jumong General', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'General X-Ray ceiling mounted 500mA' },
+  { id: 'prod_xray_mobile100', name: 'X-ray Mobile 100mA', modality: 'X-Ray Mobile', brand: '5G Healthcare', type: 'Jumong Mobile 5kW', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Entry Level X-Ray machine' },
+  { id: 'prod_xray_portable', name: 'X-Ray Portable', modality: 'X-Ray Portable', brand: 'Precision', type: 'DJPS5DR', origin: 'China', principal: 'Daeji Medical Equipment', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Portable X-Ray for ICU/ER/TB screening use' },
+  // === Mammography (SINO MDT, China) ===
+  { id: 'prod_mammo_3d', name: 'Mammography 3D Tomosynthesis', modality: 'Mammography', brand: 'SINO MDT', type: 'Navigator 1000A', origin: 'China', principal: 'SINO MDT', tkdn: 0, akl: 'KEMENKES RI AKL 10303550XXX', active: true, notes: '3D digital mammography with tomosynthesis' },
+  { id: 'prod_mammo_2d', name: 'Mammography 2D Digital', modality: 'Mammography', brand: 'SINO MDT', type: 'Navigator DRCare', origin: 'China', principal: 'SINO MDT', tkdn: 0, akl: 'KEMENKES RI AKL 10303550XXX', active: true, notes: '2D digital mammography' },
+  // === Flat Panel Detector (Innocare HAMSKI XR, Taiwan) ===
+  { id: 'prod_fpd_17', name: 'Flat Panel Detector 17x17 inch', modality: 'Flat Panel Detector', brand: 'Innocare (HAMSKI XR)', type: 'V17C', origin: 'Taiwan', principal: 'Innocare Optoelectronics', tkdn: 0, akl: 'KEMENKES RI AKL 10303660XXX', active: true, notes: 'Wireless flat panel detector 17 inch' },
+  { id: 'prod_fpd_14', name: 'Flat Panel Detector 14x17 inch', modality: 'Flat Panel Detector', brand: 'Innocare (HAMSKI XR)', type: 'V14C', origin: 'Taiwan', principal: 'Innocare Optoelectronics', tkdn: 0, akl: 'KEMENKES RI AKL 10303660XXX', active: true, notes: 'Wireless flat panel detector 14 inch' },
+  // === ESWL (Hyde Medical HAMSKI XR, China) ===
+  { id: 'prod_eswl_advance', name: 'ESWL', modality: 'ESWL', brand: 'Hyde Medical (HAMSKI XR)', type: '168A', origin: 'China', principal: 'Shenzhen Hyde Medical', tkdn: 0, akl: 'KEMENKES RI AKL 10303770XXX', active: true, notes: 'Extracorporeal Shock Wave Lithotripter Advance model' },
+  { id: 'prod_eswl_basic', name: 'ESWL', modality: 'ESWL', brand: 'Hyde Medical (HAMSKI XR)', type: '168B', origin: 'China', principal: 'Shenzhen Hyde Medical', tkdn: 0, akl: 'KEMENKES RI AKL 10303770XXX', active: true, notes: 'Extracorporeal Shock Wave Lithotripter Basic model' },
 ];
 
 const mk = (id, no, customer, ct, pt, mod, sub, qty, price, owner, region, stage, opts = {}) => {
@@ -2191,10 +2193,57 @@ const ICHA_SPH = [
 ];
 
 const _RAW_ALL_SPH = [...SEED_SPH, ...BULK_SPH, ...HNTI_OFFICE_SPH, ...ICHA_SPH];
+
+// ============== SPH Product Normalization ==============
+// Selaraskan modality/subModality SPH lama → Master Produk 2026-05-30 (dari spreadsheet Fajrin)
+// Supaya badge "dipakai di X SPH" di Master Produk akurat + dashboard modality chart sinkron
+// key: "oldModality::oldSubModality" → { modality, subModality } sesuai master
+const SPH_PRODUCT_NORMALIZATION = {
+  'MRI::MRI 1.5T Supermark': { modality: 'MRI', subModality: 'Supermark 1.5T HFM' },
+  'MRI::MRI 1.5T': { modality: 'MRI', subModality: 'Supermark 1.5T HFM' },
+  'MRI::MRI 0.5T Opemark 5000': { modality: 'MRI', subModality: 'Supermark 1.5T ART' },
+  'MRI::MRI 3.0T': { modality: 'MRI', subModality: 'Supermark 590D' },
+  'CT Scan::CT 64 Slice Anatom Clarity': { modality: 'CT Scan', subModality: 'Anatom Clarity' },
+  'CT Scan::CT 128 Slice Anatom Precision': { modality: 'CT Scan', subModality: 'Anatom Precision' },
+  'CT Scan::CT 32 Slice C201': { modality: 'CT Scan', subModality: 'Anatom C201' },
+  'CT Scan::CT 32 Slice': { modality: 'CT Scan', subModality: 'Anatom C201' },
+  'CT Scan::CT 128 Slice': { modality: 'CT Scan', subModality: 'Anatom C408' },
+  'CT Scan::CT 64 Slice': { modality: 'CT Scan', subModality: 'Anatom C206' },
+  'C-Arm::C-Arm Garion': { modality: 'C-Arm', subModality: 'Garion 5kW' },
+  'C-Arm::C-Arm Surgical': { modality: 'C-Arm', subModality: 'Garion 5kW' },
+  'C-Arm::C-Arm Garion 15kW': { modality: 'C-Arm', subModality: 'Garion 15kW' },
+  'X-Ray::X-Ray Mobile 100mA': { modality: 'X-Ray Mobile', subModality: 'Jumong Mobile 5kW' },
+  'X-Ray::X-Ray Mobile': { modality: 'X-Ray Mobile', subModality: 'Jumong Mobile 5kW' },
+  'X-Ray::X-Ray Stationary 500mA': { modality: 'X-Ray Stationer', subModality: 'Jumong General' },
+  'X-Ray::X-Ray Stationary Jumong General': { modality: 'X-Ray Stationer', subModality: 'Jumong General' },
+  'X-Ray::X-Ray Digital DR': { modality: 'X-Ray Stationer', subModality: 'Jumong General' },
+  'X-Ray::X-Ray Ceiling 500mA': { modality: 'X-Ray Ceiling', subModality: 'Jumong General' },
+  'X-Ray::Flat Panel Detector': { modality: 'Flat Panel Detector', subModality: 'V17C' },
+  'X-Ray::X-Ray Portable': { modality: 'X-Ray Portable', subModality: 'DJPS5DR' },
+  'Mammography::Mammo 3D': { modality: 'Mammography', subModality: 'Navigator 1000A' },
+  'Mammography::Mammo Tomosynthesis': { modality: 'Mammography', subModality: 'Navigator 1000A' },
+  'Mammography::Mammo 2D Navigator': { modality: 'Mammography', subModality: 'Navigator DRCare' },
+  'Mammography::Mammo Digital': { modality: 'Mammography', subModality: 'Navigator DRCare' },
+  'ESWL::ESWL Hyde Medical Tipe 109X': { modality: 'ESWL', subModality: '168A' },
+  'ESWL::ESWL Hyde Medical Tipe 109': { modality: 'ESWL', subModality: '168B' },
+  'ESWL::ESWL Compact': { modality: 'ESWL', subModality: '168B' },
+  'ESWL::ESWL Tipe 109X': { modality: 'ESWL', subModality: '168A' },
+  'CT Scan::CT 16 Slice': { modality: 'CT Scan', subModality: 'Anatom C201' },
+  'Mammography::Mammography Navigator DRCare': { modality: 'Mammography', subModality: 'Navigator DRCare' },
+  'X-Ray::X-Ray Konvensional': { modality: 'X-Ray Stationer', subModality: 'Jumong General' },
+};
+const normalizeProduct = (s) => {
+  const key = `${s.modality}::${s.subModality}`;
+  const norm = SPH_PRODUCT_NORMALIZATION[key];
+  if (norm) return { ...s, modality: norm.modality, subModality: norm.subModality };
+  return s;
+};
+
 // Territory auto-correction: apply detectSalesOwnerFromCustomer to seed
 // → Semarang RS → Hatim, Solo RS → Lukman, Surabaya RS → Bagus, Hermina/Mitra Keluarga/Pramita → pusat
 // Sub-dealer and Office tetap (tidak dimapping ke kota tertentu)
-const ALL_SPH = _RAW_ALL_SPH.map(s => {
+const ALL_SPH = _RAW_ALL_SPH.map(s0 => {
+  const s = normalizeProduct(s0);
   // Skip if customer type indicates sub-dealer or partner (mereka punya logic sendiri)
   if (s.customerType === 'subdistributor' || s.customerType === 'partner') return s;
   // Skip if owner adalah 'office' (intentionally vacant)
@@ -3792,7 +3841,7 @@ const formatDate = (dateStr, lang) => new Date(dateStr).toLocaleDateString(lang 
 // Storage
 const STORAGE_KEY = 'ims_hnti:data_v22';
 const REPORTS_KEY = 'ims_hnti:reports_v22';
-const PRODUCT_KEY = 'ims_hnti:prod_v22';
+const PRODUCT_KEY = 'ims_hnti:prod_v23';
 const LANG_KEY = 'ims_hnti:lang_v22';
 const SESSION_KEY = 'ims_hnti:session_v22';
 const RATE_KEY = 'ims_hnti:rate_v23';
@@ -4074,6 +4123,7 @@ export default function App() {
   const [businessTrips, setBusinessTrips] = useState(ALL_BUSINESS_TRIPS);
   const [realizations, setRealizations] = useState(ALL_BT_REALIZATIONS);
   const [products, setProducts] = useState(PRODUCT_MASTER_SEED);
+  const [annotations, setAnnotations] = useState([]);
   const [exchangeRate, setExchangeRate] = useState(DEFAULT_USD_IDR);
   const [auditLog, setAuditLog] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -4152,7 +4202,40 @@ export default function App() {
         }
         // Clear old product key to force reload of fresh seed (with Precision + Innocare)
         try { await window.storage.delete('ims_hnti:prod_v22'); } catch {}
+        try { await window.storage.delete('ims_hnti:prod_v23'); } catch {}
         await storeSet(V34_MIGRATION_MARKER, 'true');
+      }
+
+      // V35 migration: FORCE full re-sync of sales ownership across ALL existing data
+      // This guarantees Pipeline/Sales Team/Incentive all read identical owner assignments.
+      // Runs once; recomputes every SPH owner from territory map (overriding any stale assignment).
+      const V35_RESYNC_MARKER = 'ims_hnti:v35_resync_migrated';
+      const v35Resynced = await storeGet(V35_RESYNC_MARKER);
+      if (!v35Resynced) {
+        const existingSPH = await storeGet(STORAGE_KEY);
+        if (existingSPH) {
+          try {
+            const parsed = JSON.parse(existingSPH);
+            const resynced = parsed.map(s => {
+              // Normalize product modality/subModality to new master
+              const key = `${s.modality}::${s.subModality}`;
+              const norm = SPH_PRODUCT_NORMALIZATION[key];
+              let next = norm ? { ...s, modality: norm.modality, subModality: norm.subModality } : s;
+              // Skip sub-dealer/partner (own logic) for territory
+              if (next.customerType === 'subdistributor' || next.customerType === 'partner') return next;
+              const correct = detectSalesOwnerFromCustomer(next.customer);
+              if (correct && correct !== next.salesOwner) {
+                return { ...next, salesOwner: correct };
+              }
+              return next;
+            });
+            await storeSet(STORAGE_KEY, JSON.stringify(resynced));
+          } catch {}
+        }
+        // Refresh product master to new spreadsheet data
+        try { await window.storage.delete('ims_hnti:prod_v22'); } catch {}
+        try { await window.storage.delete('ims_hnti:prod_v23'); } catch {}
+        await storeSet(V35_RESYNC_MARKER, 'true');
       }
 
       const [d, l, s, r, rep, iss, reg, akl, imp, pgl, pi, pm, mfst, cdoc, inst, bast, train, emp, bt] = await Promise.all([
@@ -4191,6 +4274,8 @@ export default function App() {
       if (auditStored) try { setAuditLog(JSON.parse(auditStored)); } catch {}
       const productStored = await storeGet(PRODUCT_KEY);
       if (productStored) try { setProducts(JSON.parse(productStored)); } catch {}
+      const annStored = await storeGet(ANNOTATIONS_KEY);
+      if (annStored) try { setAnnotations(JSON.parse(annStored)); } catch {}
       // Generate reg records on first load from current data
       if (reg) {
         try { setRegRecords(JSON.parse(reg)); } catch {}
@@ -4224,6 +4309,7 @@ export default function App() {
   useEffect(() => { if (!loading) storeSet(RATE_KEY, String(exchangeRate)); }, [exchangeRate, loading]);
   useEffect(() => { if (!loading) storeSet(AUDIT_LOG_KEY, JSON.stringify(auditLog)); }, [auditLog, loading]);
   useEffect(() => { if (!loading) storeSet(PRODUCT_KEY, JSON.stringify(products)); }, [products, loading]);
+  useEffect(() => { if (!loading) storeSet(ANNOTATIONS_KEY, JSON.stringify(annotations)); }, [annotations, loading]);
 
   // Derive installed units from current data (always fresh)
   const installedUnits = useMemo(() => generateInstalledUnits(), [data]);
@@ -4241,7 +4327,7 @@ export default function App() {
     });
   };
   if (!session) return <><LoginScreen t={t} lang={lang} setLang={setLang} onLogin={handleLogin} employees={employees} /><ToastContainer /></>;
-  return <><AuthApp session={session} setSession={setSession} lang={lang} setLang={setLang} t={t} data={data} setData={setData} reports={reports} setReports={setReports} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} regRecords={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} employees={employees} setEmployees={setEmployees} businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} installedUnits={installedUnits} fmt={fmt} fmtFull={fmtFull} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} lastSync={lastSync} onRefresh={handleRefresh} auditLog={auditLog} setAuditLog={setAuditLog} logAction={logAction} products={products} setProducts={setProducts} /><ToastContainer /></>;
+  return <><AuthApp session={session} setSession={setSession} lang={lang} setLang={setLang} t={t} data={data} setData={setData} reports={reports} setReports={setReports} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} regRecords={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} employees={employees} setEmployees={setEmployees} businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} installedUnits={installedUnits} fmt={fmt} fmtFull={fmtFull} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} lastSync={lastSync} onRefresh={handleRefresh} auditLog={auditLog} setAuditLog={setAuditLog} logAction={logAction} products={products} setProducts={setProducts} annotations={annotations} setAnnotations={setAnnotations} /><ToastContainer /></>;
 }
 
 function LoginScreen({ t, lang, setLang, onLogin, employees }) {
@@ -4323,7 +4409,7 @@ function LoginScreen({ t, lang, setLang, onLogin, employees }) {
   );
 }
 
-function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports, setReports, issues, setIssues, pmSchedule, setPmSchedule, manifests, setManifests, customsDocs, setCustomsDocs, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, regRecords, setRegRecords, aklRecords, setAklRecords, importRecords, setImportRecords, pengalihanRecords, setPengalihanRecords, piRecords, setPiRecords, employees, setEmployees, businessTrips, setBusinessTrips, realizations, setRealizations, installedUnits, fmt, fmtFull, exchangeRate, setExchangeRate, lastSync, onRefresh, auditLog, setAuditLog, logAction, products, setProducts }) {
+function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports, setReports, issues, setIssues, pmSchedule, setPmSchedule, manifests, setManifests, customsDocs, setCustomsDocs, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, regRecords, setRegRecords, aklRecords, setAklRecords, importRecords, setImportRecords, pengalihanRecords, setPengalihanRecords, piRecords, setPiRecords, employees, setEmployees, businessTrips, setBusinessTrips, realizations, setRealizations, installedUnits, fmt, fmtFull, exchangeRate, setExchangeRate, lastSync, onRefresh, auditLog, setAuditLog, logAction, products, setProducts, annotations, setAnnotations }) {
   const [view, setView] = useState(session.role === 'sales' ? 'sales_report' : session.role === 'regulatory' ? 'regulatory' : 'dashboard');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSph, setEditingSph] = useState(null);
@@ -4417,6 +4503,10 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
         {view === 'audit_log' && (session.role === 'super_admin' || session.role === 'gm') && <AuditLogModule auditLog={auditLog} employees={employees} t={t} lang={lang} />}
         {view === 'risk' && <RiskConcentration data={data} t={t} lang={lang} fmt={fmt} />}
         {view === 'products' && <ProductMasterModule products={products} setProducts={setProducts} t={t} lang={lang} canEdit={session.role === 'super_admin' || session.role === 'gm' || session.role === 'manager_ops' || session.role === 'admin'} logAction={logAction} data={data} />}
+        {view === 'cohort' && <CohortAnalysis data={data} t={t} lang={lang} fmt={fmt} />}
+        {view === 'cashflow' && <CashFlowProjection data={data} t={t} lang={lang} fmt={fmt} />}
+        {view === 'annotations' && <AnnotatedSnapshotModule annotations={annotations} setAnnotations={setAnnotations} t={t} lang={lang} logAction={logAction} session={session} fmt={fmt} data={data} reports={reports} />}
+        {view === 'exec_summary' && <ExecutiveSummary data={data} reports={reports} annotations={annotations} products={products} t={t} lang={lang} fmt={fmt} session={session} exchangeRate={exchangeRate} />}
       </main>
 
       {modalOpen && <SPHModal sph={editingSph} t={t} lang={lang} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingSph(null); }} fmtFull={fmtFull} existingData={data} products={products} />}
@@ -4524,7 +4614,7 @@ const WIBClock = React.memo(function WIBClock({ lang, compact = false }) {
 });
 
 function Header({ session, setSession, lang, setLang, view, setView, allowedNav, t, mobileMenuOpen, setMobileMenuOpen, exchangeRate, setExchangeRate, businessTrips, realizations, onChangePassword }) {
-  const navIcons = { dashboard: Activity, sph: FileText, pipeline: Briefcase, sales: Users, sales_report: ClipboardList, incentive: DollarSign, finance: Wallet, operations: Truck, installation: Wrench, maintenance: Settings, regulatory: ShieldCheck, valuation: TrendingUp, employees: UserPlus, business_trip: Plane, audit_log: History, risk: Target, products: Layers };
+  const navIcons = { dashboard: Activity, sph: FileText, pipeline: Briefcase, sales: Users, sales_report: ClipboardList, incentive: DollarSign, finance: Wallet, operations: Truck, installation: Wrench, maintenance: Settings, regulatory: ShieldCheck, valuation: TrendingUp, employees: UserPlus, business_trip: Plane, audit_log: History, risk: Target, products: Layers, cohort: FileBarChart, cashflow: TrendingUp, annotations: MessageSquare, exec_summary: FileText };
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [rateMenuOpen, setRateMenuOpen] = useState(false);
   const [tempRate, setTempRate] = useState(exchangeRate);
@@ -5548,23 +5638,37 @@ function PipelineBoard({ data, allData, setData, session, logAction, t, lang, ca
 }
 
 function SalesModule({ data, reports, t, lang, fmt }) {
+  // Filter: view all sales, or drill into one specific sales
+  const [selectedSales, setSelectedSales] = useState('all');
   const stats = useMemo(() => SALES_TEAM.map(sales => {
     const sd = data.filter(s => s.salesOwner === sales.id);
     const sr = reports.filter(r => r.salesId === sales.id);
     const active = sd.filter(s => s.status === 'active');
     const won = sd.filter(s => s.status === 'won');
     const lost = sd.filter(s => s.status === 'lost');
+    const poIssued = sd.filter(s => s.poStatus === 'issued');
     return {
       ...sales,
-      activeCount: active.length, wonCount: won.length,
-      pipelineValue: active.reduce((s, p) => s + p.totalValue, 0),
-      wonValue: won.reduce((s, p) => s + p.totalValue, 0),
+      activeCount: active.length, wonCount: won.length, lostCount: lost.length,
+      poCount: poIssued.length,
+      pipelineValue: active.reduce((s, p) => s + (Number(p.totalValue)||0), 0),
+      wonValue: won.reduce((s, p) => s + (Number(p.totalValue)||0), 0),
+      poValue: poIssued.reduce((s, p) => s + (Number(p.totalValue)||0), 0),
       winRate: (won.length + lost.length) > 0 ? (won.length / (won.length + lost.length)) * 100 : 0,
       visitsCount: sr.reduce((s, r) => s + (r.visits?.length || 0), 0),
+      totalSPH: sd.length,
     };
   }).sort((a, b) => (b.pipelineValue + b.wonValue) - (a.pipelineValue + a.wonValue)), [data, reports]);
 
+  // Filtered view based on selection
+  const displayStats = useMemo(() => selectedSales === 'all' ? stats : stats.filter(s => s.id === selectedSales), [stats, selectedSales]);
   const totalAll = useMemo(() => stats.reduce((s, x) => s + x.pipelineValue + x.wonValue, 0), [stats]);
+
+  // Detailed deal list for the selected sales (drill-down)
+  const selectedDeals = useMemo(() => {
+    if (selectedSales === 'all') return [];
+    return data.filter(s => s.salesOwner === selectedSales).sort((a, b) => (Number(b.totalValue)||0) - (Number(a.totalValue)||0));
+  }, [data, selectedSales]);
 
   return (
     <div>
@@ -5574,10 +5678,22 @@ function SalesModule({ data, reports, t, lang, fmt }) {
         <div style={{fontSize: '13px', color: '#8a7d5c', marginTop: '6px'}}>{t.sales_subtitle}</div>
       </div>
 
-      <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px', marginBottom: '24px'}}>
-        {stats.map((s, i) => (
+      {/* Sales filter — drill into one sales at a time */}
+      <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', flexWrap: 'wrap'}}>
+        <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{lang === 'id' ? 'Filter Sales' : 'Filter Sales'}:</span>
+        <button onClick={() => setSelectedSales('all')} style={{padding: '6px 14px', fontSize: '11px', fontFamily: 'inherit', background: selectedSales === 'all' ? '#1a2942' : 'transparent', color: selectedSales === 'all' ? '#fff' : '#1a2942', border: '1px solid #1a2942', cursor: 'pointer', fontWeight: 600}}>{lang === 'id' ? 'Semua' : 'All'}</button>
+        {SALES_TEAM.map(s => (
+          <button key={s.id} onClick={() => setSelectedSales(s.id)} style={{padding: '6px 14px', fontSize: '11px', fontFamily: 'inherit', background: selectedSales === s.id ? s.accent : 'transparent', color: selectedSales === s.id ? '#fff' : s.accent, border: `1px solid ${s.accent}`, cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px'}}>
+            <span style={{width: '16px', height: '16px', borderRadius: '50%', background: selectedSales === s.id ? 'rgba(255,255,255,0.3)' : s.accent, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700}}>{s.initial}</span>
+            {s.name.split(' ')[0]}
+          </button>
+        ))}
+      </div>
+
+      <div style={{display: 'grid', gridTemplateColumns: selectedSales === 'all' ? 'repeat(auto-fill, minmax(280px, 1fr))' : 'repeat(auto-fill, minmax(340px, 1fr))', gap: '12px', marginBottom: '24px'}}>
+        {displayStats.map((s, i) => (
           <div key={s.id} style={{padding: '18px', background: '#fefcf7', border: '1px solid #e8e1cc', position: 'relative', overflow: 'hidden'}}>
-            {i < 3 && <div style={{position: 'absolute', top: 0, right: 0, padding: '5px 11px', background: i === 0 ? '#c8a96a' : i === 1 ? '#b8b8b8' : '#cd7f32', color: '#fff', fontSize: '10px', fontWeight: 600, letterSpacing: '0.1em'}}>#{i + 1}</div>}
+            {selectedSales === 'all' && i < 3 && <div style={{position: 'absolute', top: 0, right: 0, padding: '5px 11px', background: i === 0 ? '#c8a96a' : i === 1 ? '#b8b8b8' : '#cd7f32', color: '#fff', fontSize: '10px', fontWeight: 600, letterSpacing: '0.1em'}}>#{i + 1}</div>}
             <div style={{display: 'flex', alignItems: 'center', gap: '11px', marginBottom: '14px'}}>
               <div style={{width: '42px', height: '42px', borderRadius: '50%', background: s.accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 600}}>{s.initial}</div>
               <div>
@@ -5591,32 +5707,64 @@ function SalesModule({ data, reports, t, lang, fmt }) {
                 <div className="mono" style={{fontSize: '13px', fontWeight: 600, marginTop: '2px'}}>{fmt(s.pipelineValue)}</div>
               </div>
               <div>
-                <div style={{fontSize: '9px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.revenue_ytd}</div>
+                <div style={{fontSize: '9px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase'}}>{lang === 'id' ? 'Nilai Menang' : 'Won Value'}</div>
                 <div className="mono" style={{fontSize: '13px', fontWeight: 600, marginTop: '2px', color: '#3a6b3a'}}>{fmt(s.wonValue)}</div>
               </div>
-            </div>
-            <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px', paddingTop: '11px', borderTop: '1px solid #e8e1cc'}}>
-              <div style={{textAlign: 'center'}}><div style={{fontSize: '8px', letterSpacing: '0.1em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.deals_active}</div><div className="serif" style={{fontSize: '16px', fontWeight: 600, marginTop: '2px'}}>{s.activeCount}</div></div>
-              <div style={{textAlign: 'center'}}><div style={{fontSize: '8px', letterSpacing: '0.1em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.deals_won}</div><div className="serif" style={{fontSize: '16px', fontWeight: 600, color: '#3a6b3a', marginTop: '2px'}}>{s.wonCount}</div></div>
-              <div style={{textAlign: 'center'}}><div style={{fontSize: '8px', letterSpacing: '0.1em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.win_rate}</div><div className="serif" style={{fontSize: '16px', fontWeight: 600, marginTop: '2px'}}>{s.winRate.toFixed(0)}%</div></div>
-              <div style={{textAlign: 'center'}}><div style={{fontSize: '8px', letterSpacing: '0.1em', color: '#8a7d5c', textTransform: 'uppercase'}}>{lang === 'id' ? 'Visit' : 'Visits'}</div><div className="serif" style={{fontSize: '16px', fontWeight: 600, marginTop: '2px'}}>{s.visitsCount}</div></div>
-            </div>
-            <div style={{marginTop: '10px'}}>
-              <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#8a7d5c', marginBottom: '4px', letterSpacing: '0.1em', textTransform: 'uppercase'}}>
-                <span>{t.contribution}</span><span>{totalAll > 0 ? (((s.pipelineValue + s.wonValue) / totalAll) * 100).toFixed(0) : 0}%</span>
+              <div>
+                <div style={{fontSize: '9px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase'}}>{lang === 'id' ? 'Deal Aktif' : 'Active Deals'}</div>
+                <div className="mono" style={{fontSize: '13px', fontWeight: 600, marginTop: '2px'}}>{s.activeCount}</div>
               </div>
-              <div style={{height: '4px', background: '#f0ebe0', overflow: 'hidden'}}>
-                <div style={{height: '100%', width: `${totalAll > 0 ? ((s.pipelineValue + s.wonValue) / totalAll) * 100 : 0}%`, background: s.accent}} />
+              <div>
+                <div style={{fontSize: '9px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase'}}>Win Rate</div>
+                <div className="mono" style={{fontSize: '13px', fontWeight: 600, marginTop: '2px'}}>{s.winRate.toFixed(0)}%</div>
               </div>
+            </div>
+            <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#8a7d5c', paddingTop: '10px', borderTop: '1px solid #e8e1cc'}}>
+              <span>{lang === 'id' ? 'Total SPH' : 'Total SPH'}: <strong style={{color: '#1a2942'}}>{s.totalSPH}</strong></span>
+              <span>PO: <strong style={{color: '#1a2942'}}>{s.poCount}</strong></span>
+              <span>{lang === 'id' ? 'Kunjungan' : 'Visits'}: <strong style={{color: '#1a2942'}}>{s.visitsCount}</strong></span>
             </div>
           </div>
         ))}
       </div>
 
+      {/* Drill-down deal list when single sales selected */}
+      {selectedSales !== 'all' && (
+        <div style={{background: '#fefcf7', border: '1px solid #e8e1cc', overflowX: 'auto'}}>
+          <div style={{padding: '14px 16px', borderBottom: '1px solid #e8e1cc', fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>
+            {lang === 'id' ? `Semua Deal — ${SALES_TEAM.find(x => x.id === selectedSales)?.name} (${selectedDeals.length})` : `All Deals — ${SALES_TEAM.find(x => x.id === selectedSales)?.name} (${selectedDeals.length})`}
+          </div>
+          <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11.5px', minWidth: '700px'}}>
+            <thead>
+              <tr style={{background: '#f0ebe0'}}>
+                <Th>No. SPH</Th><Th>{lang === 'id' ? 'Pelanggan' : 'Customer'}</Th><Th>{lang === 'id' ? 'Produk' : 'Product'}</Th>
+                <Th align="right">{lang === 'id' ? 'Nilai' : 'Value'}</Th><Th align="center">Status</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {selectedDeals.length === 0 && <tr><Td colSpan={5}><div className="empty-state">{lang === 'id' ? 'Belum ada deal' : 'No deals yet'}</div></Td></tr>}
+              {selectedDeals.map(d => (
+                <tr key={d.id} className="hover-row" style={{borderTop: '1px solid #e8e1cc'}}>
+                  <Td><span className="mono" style={{fontSize: '11px'}}>{d.sphNo}</span></Td>
+                  <Td>{d.customer}</Td>
+                  <Td><span style={{fontSize: '11px'}}>{d.modality} · {d.subModality}</span></Td>
+                  <Td align="right"><span className="mono">{fmt(d.totalValue)}</span></Td>
+                  <Td align="center">
+                    <span style={{padding: '2px 8px', fontSize: '10px', fontWeight: 600, borderRadius: '3px', background: d.status === 'won' ? '#3a6b3a22' : d.status === 'lost' ? '#c0303022' : '#5b87b822', color: d.status === 'won' ? '#3a6b3a' : d.status === 'lost' ? '#c03030' : '#5b87b8'}}>
+                      {d.status === 'won' ? (lang === 'id' ? 'Menang' : 'Won') : d.status === 'lost' ? (lang === 'id' ? 'Kalah' : 'Lost') : (lang === 'id' ? 'Aktif' : 'Active')}
+                    </span>
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       <div className="card">
         <div className="card-title">{t.sales_performance}</div>
         <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={stats.map(s => ({ name: s.name.split(' ')[0], [t.pipeline_value]: s.pipelineValue, [t.revenue_ytd]: s.wonValue }))} margin={{top: 5, right: 16, left: 0, bottom: 5}}>
+          <BarChart data={(selectedSales === 'all' ? stats : displayStats).map(s => ({ name: s.name.split(' ')[0], [t.pipeline_value]: s.pipelineValue, [t.revenue_ytd]: s.wonValue }))} margin={{top: 5, right: 16, left: 0, bottom: 5}}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e8e1cc" vertical={false} />
             <XAxis dataKey="name" stroke="#8a7d5c" style={{fontSize: 10}} />
             <YAxis stroke="#8a7d5c" style={{fontSize: 10}} tickFormatter={(v) => v >= 1e9 ? `${(v/1e9).toFixed(0)}M` : v >= 1e6 ? `${(v/1e6).toFixed(0)}Jt` : v} />
@@ -5998,6 +6146,790 @@ function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, session, fmt }
 // CRUD database for product catalog — single source of truth for all SPH/SPK/Quotation generation
 // Editable: anyone with super_admin or manager_ops role can add/edit/delete
 // Auto-syncs to SPH module via autocomplete dropdown
+// ============== Cohort Revenue Analysis ==============
+// Standar valuasi SaaS — track customer cohort by acquisition year, measure repeat purchase pattern
+// Cohort = grouping customer berdasarkan tahun pertama mereka jadi customer HNTI
+// Retention metric: berapa persen customer cohort tahun X yang masih beli di tahun X+1, X+2, etc
+// ============== Executive Summary / Investor Pack (PDF Export) ==============
+// One-click investor-ready summary. Reuses IDENTICAL KPI logic as Dashboard (no desync).
+// Uses window.print() with a dedicated print stylesheet → high-quality PDF via browser print dialog.
+function ExecutiveSummary({ data, reports, annotations, products, t, lang, fmt, session, exchangeRate }) {
+  const today = new Date();
+  // === KPIs — identical formulas to Dashboard ===
+  const k = useMemo(() => {
+    const active = data.filter(s => s.status === 'active');
+    const won = data.filter(s => s.status === 'won');
+    const lost = data.filter(s => s.status === 'lost');
+    const poIssued = data.filter(s => s.poStatus === 'issued');
+    const totalPipeline = active.reduce((sum, s) => sum + (Number(s.totalValue)||0), 0);
+    const weightedPipeline = active.reduce((sum, s) => sum + ((Number(s.totalValue)||0) * (Number(s.probability)||0) / 100), 0);
+    const revenueYTD = won.reduce((sum, s) => sum + (Number(s.totalValue)||0), 0);
+    const poValue = poIssued.reduce((sum, s) => sum + (Number(s.totalValue)||0), 0);
+    const winRate = (won.length + lost.length) > 0 ? (won.length / (won.length + lost.length)) * 100 : 0;
+    // Unique customers
+    const customers = new Set(data.map(s => s.customer)).size;
+    return { active, won, lost, poIssued, totalPipeline, weightedPipeline, revenueYTD, poValue, winRate, customers };
+  }, [data]);
+
+  // Sales performance — identical to SalesModule
+  const salesPerf = useMemo(() => SALES_TEAM.filter(s => !s.isOffice || data.some(d => d.salesOwner === s.id)).map(sales => {
+    const sd = data.filter(s => s.salesOwner === sales.id);
+    const won = sd.filter(s => s.status === 'won');
+    const lost = sd.filter(s => s.status === 'lost');
+    return {
+      name: sales.name,
+      pipeline: sd.filter(s => s.status === 'active').reduce((s, p) => s + (Number(p.totalValue)||0), 0),
+      won: won.reduce((s, p) => s + (Number(p.totalValue)||0), 0),
+      winRate: (won.length + lost.length) > 0 ? (won.length / (won.length + lost.length)) * 100 : 0,
+      poCount: sd.filter(s => s.poStatus === 'issued').length,
+    };
+  }).sort((a, b) => (b.pipeline + b.won) - (a.pipeline + a.won)), [data]);
+
+  // Modality distribution
+  const modalityDist = useMemo(() => {
+    const m = {};
+    data.filter(s => s.status === 'active' || s.status === 'won').forEach(s => {
+      m[s.modality] = (m[s.modality] || 0) + (Number(s.totalValue)||0);
+    });
+    return Object.entries(m).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+  }, [data]);
+
+  // Top customers by total value
+  const topCustomers = useMemo(() => {
+    const c = {};
+    data.forEach(s => { c[s.customer] = (c[s.customer] || 0) + (Number(s.totalValue)||0); });
+    return Object.entries(c).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8);
+  }, [data]);
+
+  // KSO recurring (5-year visibility)
+  const ksoTotal = useMemo(() => data.filter(s => s.poStatus === 'issued' && (s.paymentScheme === 'kso' || s.projectType === 'kso')).reduce((sum, s) => sum + (Number(s.totalValue)||0), 0), [data]);
+
+  const doPrint = () => {
+    if (typeof window !== 'undefined' && window.print) window.print();
+  };
+
+  const totalModalityVal = modalityDist.reduce((s, m) => s + m.value, 0);
+  const maxCustomerVal = topCustomers.length > 0 ? topCustomers[0].value : 1;
+
+  return (
+    <div>
+      {/* Print-specific stylesheet */}
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          #exec-summary-print, #exec-summary-print * { visibility: visible; }
+          #exec-summary-print { position: absolute; left: 0; top: 0; width: 100%; padding: 0; }
+          .no-print { display: none !important; }
+          @page { margin: 1.5cm; size: A4 portrait; }
+          .exec-page-break { page-break-before: always; }
+          .exec-card { border: 1px solid #ccc !important; box-shadow: none !important; }
+        }
+      `}</style>
+
+      {/* Screen header + export button */}
+      <div className="no-print" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '22px', flexWrap: 'wrap', gap: '12px'}}>
+        <div>
+          <div style={{fontSize: '11px', letterSpacing: '0.3em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '6px'}}>{lang === 'id' ? 'Paket Investor' : 'Investor Pack'}</div>
+          <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{lang === 'id' ? 'Ringkasan Eksekutif' : 'Executive Summary'}</h1>
+          <div style={{fontSize: '13px', color: '#8a7d5c', marginTop: '6px'}}>{lang === 'id' ? 'Ringkasan satu-klik untuk calon investor — siap cetak ke PDF' : 'One-click summary for prospective investors — print-ready to PDF'}</div>
+        </div>
+        <button onClick={doPrint} style={{background: '#1a2942', color: '#fff', border: 'none', padding: '11px 20px', fontSize: '12px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', letterSpacing: '0.03em'}}>
+          <Download size={15} strokeWidth={2} />{lang === 'id' ? 'Export ke PDF' : 'Export to PDF'}
+        </button>
+      </div>
+
+      <div className="no-print" style={{padding: '12px 16px', background: '#fef9e7', border: '1px solid #c8a96a', marginBottom: '22px', fontSize: '11.5px', color: '#5a4a1a', lineHeight: 1.6}}>
+        💡 {lang === 'id'
+          ? <>Klik <strong>Export ke PDF</strong> → dialog cetak browser akan terbuka → pilih <strong>"Save as PDF"</strong> sebagai printer. Semua angka di bawah identik dengan Dashboard (satu sumber data, dijamin sinkron).</>
+          : <>Click <strong>Export to PDF</strong> → browser print dialog opens → select <strong>"Save as PDF"</strong> as printer. All numbers below are identical to Dashboard (single data source, guaranteed synced).</>}
+      </div>
+
+      {/* Printable area */}
+      <div id="exec-summary-print">
+        {/* Letterhead */}
+        <div style={{borderBottom: '3px solid #1a2942', paddingBottom: '16px', marginBottom: '24px'}}>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end'}}>
+            <div>
+              <div className="serif" style={{fontSize: '26px', fontWeight: 600, color: '#1a2942', lineHeight: 1.1}}>PT Harmoni Nasional Teknologi Indonesia</div>
+              <div style={{fontSize: '12px', color: '#8a7d5c', marginTop: '4px'}}>{lang === 'id' ? 'Distributor Alat Kesehatan Radiologi · Ringkasan Eksekutif' : 'Radiology Medical Device Distributor · Executive Summary'}</div>
+            </div>
+            <div style={{textAlign: 'right', fontSize: '11px', color: '#8a7d5c'}}>
+              <div style={{fontWeight: 600, color: '#1a2942'}}>{today.toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+              <div style={{marginTop: '2px'}}>{lang === 'id' ? 'Kurs' : 'Rate'}: Rp {exchangeRate?.toLocaleString('id-ID') || '18.000'}/USD</div>
+            </div>
+          </div>
+        </div>
+
+        {/* KPI grid */}
+        <div style={{fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '12px'}}>{lang === 'id' ? 'Indikator Kinerja Utama' : 'Key Performance Indicators'}</div>
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '28px'}}>
+          {[
+            { label: lang === 'id' ? 'Total Pipeline' : 'Total Pipeline', value: fmt(k.totalPipeline), sub: `${k.active.length} ${lang === 'id' ? 'deal aktif' : 'active deals'}`, color: '#1a4d8a' },
+            { label: lang === 'id' ? 'Pipeline Tertimbang' : 'Weighted Pipeline', value: fmt(k.weightedPipeline), sub: lang === 'id' ? 'probabilitas × nilai' : 'probability × value', color: '#c8a96a' },
+            { label: lang === 'id' ? 'Pendapatan (Menang)' : 'Revenue (Won)', value: fmt(k.revenueYTD), sub: `${k.won.length} ${lang === 'id' ? 'deal menang' : 'won deals'}`, color: '#3a6b3a' },
+            { label: 'Win Rate', value: `${k.winRate.toFixed(1)}%`, sub: `${k.won.length}/${k.won.length + k.lost.length} ${lang === 'id' ? 'closing' : 'closed'}`, color: '#7b3fb5' },
+          ].map((kpi, i) => (
+            <div key={i} className="exec-card" style={{padding: '16px', background: '#fefcf7', border: '1px solid #e8e1cc'}}>
+              <div style={{fontSize: '9px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{kpi.label}</div>
+              <div className="serif" style={{fontSize: '20px', fontWeight: 600, marginTop: '6px', color: kpi.color}}>{kpi.value}</div>
+              <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '3px'}}>{kpi.sub}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Secondary metrics */}
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '28px'}}>
+          {[
+            { label: lang === 'id' ? 'PO Diterbitkan' : 'PO Issued', value: `${k.poIssued.length}`, sub: fmt(k.poValue) },
+            { label: lang === 'id' ? 'Pelanggan Unik' : 'Unique Customers', value: `${k.customers}`, sub: lang === 'id' ? 'RS, klinik, mitra' : 'hospitals, clinics, partners' },
+            { label: lang === 'id' ? 'KSO Recurring' : 'KSO Recurring', value: fmt(ksoTotal), sub: lang === 'id' ? 'pendapatan bagi hasil' : 'revenue-share income' },
+            { label: lang === 'id' ? 'Produk Aktif' : 'Active Products', value: `${(products || []).filter(p => p.active !== false).length}`, sub: lang === 'id' ? 'di katalog master' : 'in master catalog' },
+          ].map((kpi, i) => (
+            <div key={i} className="exec-card" style={{padding: '14px', background: '#f0ebe0', border: '1px solid #e8e1cc'}}>
+              <div style={{fontSize: '9px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{kpi.label}</div>
+              <div className="serif" style={{fontSize: '18px', fontWeight: 600, marginTop: '4px', color: '#1a2942'}}>{kpi.value}</div>
+              <div style={{fontSize: '9.5px', color: '#8a7d5c', marginTop: '2px'}}>{kpi.sub}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Sales performance table */}
+        <div style={{fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '12px'}}>{lang === 'id' ? 'Kinerja Tim Sales' : 'Sales Team Performance'}</div>
+        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', marginBottom: '28px'}}>
+          <thead>
+            <tr style={{background: '#1a2942', color: '#fff'}}>
+              <th style={{padding: '8px 10px', textAlign: 'left'}}>Sales</th>
+              <th style={{padding: '8px 10px', textAlign: 'right'}}>Pipeline</th>
+              <th style={{padding: '8px 10px', textAlign: 'right'}}>{lang === 'id' ? 'Menang' : 'Won'}</th>
+              <th style={{padding: '8px 10px', textAlign: 'right'}}>Win Rate</th>
+              <th style={{padding: '8px 10px', textAlign: 'right'}}>PO</th>
+            </tr>
+          </thead>
+          <tbody>
+            {salesPerf.map((s, i) => (
+              <tr key={i} style={{borderBottom: '1px solid #e8e1cc', background: i % 2 ? '#fefcf7' : '#fff'}}>
+                <td style={{padding: '7px 10px', fontWeight: 600, color: '#1a2942'}}>{s.name}</td>
+                <td style={{padding: '7px 10px', textAlign: 'right', fontFamily: 'monospace'}}>{fmt(s.pipeline)}</td>
+                <td style={{padding: '7px 10px', textAlign: 'right', fontFamily: 'monospace', color: '#3a6b3a'}}>{fmt(s.won)}</td>
+                <td style={{padding: '7px 10px', textAlign: 'right', fontFamily: 'monospace'}}>{s.winRate.toFixed(0)}%</td>
+                <td style={{padding: '7px 10px', textAlign: 'right', fontFamily: 'monospace'}}>{s.poCount}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* Page 2 */}
+        <div className="exec-page-break"></div>
+
+        {/* Modality distribution + Top customers side by side */}
+        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '28px'}}>
+          <div>
+            <div style={{fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '12px'}}>{lang === 'id' ? 'Distribusi Modalitas' : 'Modality Distribution'}</div>
+            {modalityDist.map((m, i) => {
+              const pct = totalModalityVal > 0 ? (m.value / totalModalityVal) * 100 : 0;
+              return (
+                <div key={i} style={{marginBottom: '8px'}}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', marginBottom: '2px'}}>
+                    <span style={{color: '#1a2942', fontWeight: 500}}>{m.name}</span>
+                    <span style={{color: '#8a7d5c', fontFamily: 'monospace'}}>{pct.toFixed(0)}%</span>
+                  </div>
+                  <div style={{height: '7px', background: '#f0ebe0'}}>
+                    <div style={{height: '100%', width: `${pct}%`, background: MODALITY_COLORS[m.name] || '#1a4d8a'}}></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div>
+            <div style={{fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '12px'}}>{lang === 'id' ? 'Pelanggan Teratas' : 'Top Customers'}</div>
+            {topCustomers.map((c, i) => {
+              const pct = (c.value / maxCustomerVal) * 100;
+              return (
+                <div key={i} style={{marginBottom: '7px'}}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginBottom: '2px'}}>
+                    <span style={{color: '#1a2942', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px'}}>{c.name}</span>
+                    <span style={{color: '#8a7d5c', fontFamily: 'monospace', flexShrink: 0, marginLeft: '6px'}}>{fmt(c.value)}</span>
+                  </div>
+                  <div style={{height: '6px', background: '#f0ebe0'}}>
+                    <div style={{height: '100%', width: `${pct}%`, background: '#c8a96a'}}></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* CEO Commentary (annotations) */}
+        {annotations && annotations.length > 0 && (
+          <div style={{marginBottom: '24px'}}>
+            <div style={{fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '12px'}}>{lang === 'id' ? 'Komentar Manajemen' : 'Management Commentary'}</div>
+            {annotations.slice(0, 6).map((a, i) => {
+              const sc = ({ positive: '#3a6b3a', negative: '#c03030', concern: '#c8a96a', neutral: '#5b87b8' })[a.sentiment] || '#8a7d5c';
+              return (
+                <div key={i} style={{padding: '10px 14px', background: '#fefcf7', borderLeft: `3px solid ${sc}`, marginBottom: '8px', fontSize: '11px', color: '#1a2942', lineHeight: 1.5}}>
+                  <div style={{fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase', color: sc, fontWeight: 600, marginBottom: '3px'}}>{a.target}</div>
+                  {a.commentary}
+                  <div style={{fontSize: '9px', color: '#8a7d5c', marginTop: '4px'}}>— {a.author}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Footer / credentials */}
+        <div style={{borderTop: '2px solid #1a2942', paddingTop: '12px', marginTop: '24px', fontSize: '9.5px', color: '#8a7d5c', lineHeight: 1.6}}>
+          <strong style={{color: '#1a2942'}}>{lang === 'id' ? 'Kredensial Regulasi' : 'Regulatory Credentials'}:</strong> BAPETEN · IDAK · CDAKB · CPAKB · ISO 9001:2015 · IDAK (Izin Distribusi Alat Kesehatan).
+          <br/>
+          <span style={{fontStyle: 'italic'}}>{lang === 'id' ? 'Dokumen ini dihasilkan otomatis dari sistem IMS HNTI. Semua angka bersumber dari satu basis data tunggal yang tersinkronisasi penuh lintas modul.' : 'This document is auto-generated from IMS HNTI. All figures sourced from a single, fully-synchronized cross-module database.'}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CohortAnalysis({ data, t, lang, fmt }) {
+  const [view, setView] = useState('revenue'); // 'revenue' | 'count' | 'retention'
+
+  // Build cohort matrix
+  // Step 1: identify acquisition year per customer (year of FIRST won SPH)
+  // Step 2: for each year × cohort, sum revenue / count deals
+  const cohortMatrix = useMemo(() => {
+    const wonSPH = data.filter(s => s.status === 'won' && s.poStatus === 'issued' && s.issuedDate);
+    // Group by customer → find acquisition year
+    const customerFirstYear = new Map();
+    const customerYearlyRevenue = new Map(); // customer → year → revenue
+    const customerYearlyDeals = new Map();
+    wonSPH.forEach(s => {
+      const year = s.issuedDate.substring(0, 4);
+      const cust = s.customer;
+      if (!customerFirstYear.has(cust) || year < customerFirstYear.get(cust)) {
+        customerFirstYear.set(cust, year);
+      }
+      if (!customerYearlyRevenue.has(cust)) customerYearlyRevenue.set(cust, {});
+      customerYearlyRevenue.get(cust)[year] = (customerYearlyRevenue.get(cust)[year] || 0) + (Number(s.totalValue) || 0);
+      if (!customerYearlyDeals.has(cust)) customerYearlyDeals.set(cust, {});
+      customerYearlyDeals.get(cust)[year] = (customerYearlyDeals.get(cust)[year] || 0) + 1;
+    });
+    // Build cohort buckets: cohort year → { year+0: {revenue,deals,customers,returningCustomers}, ... }
+    const years = [...new Set(wonSPH.map(s => s.issuedDate.substring(0, 4)))].sort();
+    const cohorts = new Map();
+    customerFirstYear.forEach((firstYear, cust) => {
+      if (!cohorts.has(firstYear)) cohorts.set(firstYear, { customers: new Set(), perYear: {} });
+      cohorts.get(firstYear).customers.add(cust);
+      const yearlyRev = customerYearlyRevenue.get(cust) || {};
+      Object.entries(yearlyRev).forEach(([yr, rev]) => {
+        if (!cohorts.get(firstYear).perYear[yr]) cohorts.get(firstYear).perYear[yr] = { revenue: 0, deals: 0, returningCustomers: new Set() };
+        cohorts.get(firstYear).perYear[yr].revenue += rev;
+        cohorts.get(firstYear).perYear[yr].deals += (customerYearlyDeals.get(cust)?.[yr] || 0);
+        cohorts.get(firstYear).perYear[yr].returningCustomers.add(cust);
+      });
+    });
+    return { years, cohorts: Array.from(cohorts.entries()).sort(([a],[b]) => a.localeCompare(b)) };
+  }, [data]);
+
+  const cellValue = (cohort, year) => {
+    const cell = cohort.perYear[year];
+    if (!cell) return null;
+    if (view === 'revenue') return cell.revenue;
+    if (view === 'count') return cell.deals;
+    if (view === 'retention') {
+      const totalCohort = cohort.customers.size;
+      return totalCohort > 0 ? (cell.returningCustomers.size / totalCohort) * 100 : 0;
+    }
+    return null;
+  };
+
+  // Cell color intensity based on value
+  const cellColor = (val, maxVal) => {
+    if (val == null) return 'transparent';
+    const intensity = maxVal > 0 ? Math.min(val / maxVal, 1) : 0;
+    if (view === 'retention') {
+      // Green gradient: 0% red → 100% green
+      if (intensity >= 0.8) return '#3a6b3a';
+      if (intensity >= 0.5) return '#7ba87b';
+      if (intensity >= 0.2) return '#c8a96a';
+      return '#e8b08c';
+    }
+    // Blue gradient for revenue/count
+    if (intensity >= 0.7) return '#1a2942';
+    if (intensity >= 0.4) return '#3d5878';
+    if (intensity >= 0.2) return '#7592b8';
+    if (intensity >= 0.05) return '#b8c8d8';
+    return '#e8eef5';
+  };
+
+  // Max value for color scaling
+  const maxValue = useMemo(() => {
+    let max = 0;
+    cohortMatrix.cohorts.forEach(([_, cohort]) => {
+      cohortMatrix.years.forEach(y => {
+        const v = cellValue(cohort, y);
+        if (v != null && v > max) max = v;
+      });
+    });
+    return max;
+  }, [cohortMatrix, view]);
+
+  const formatCell = (val) => {
+    if (val == null) return '—';
+    if (view === 'revenue') return fmt(val).replace(/Rp\s/, '');
+    if (view === 'count') return String(val);
+    if (view === 'retention') return `${val.toFixed(0)}%`;
+    return '—';
+  };
+
+  // Retention insights — compute Year 1 retention rate across cohorts
+  const retentionInsights = useMemo(() => {
+    const insights = [];
+    cohortMatrix.cohorts.forEach(([cohortYear, cohort]) => {
+      const totalCohort = cohort.customers.size;
+      const followingYear = String(Number(cohortYear) + 1);
+      const yearOneRetention = cohort.perYear[followingYear]?.returningCustomers?.size || 0;
+      const rate = totalCohort > 0 ? (yearOneRetention / totalCohort) * 100 : 0;
+      insights.push({ cohortYear, totalCohort, yearOneReturned: yearOneRetention, rate });
+    });
+    return insights;
+  }, [cohortMatrix]);
+
+  // Total customers across cohorts
+  const totalCustomers = useMemo(() => {
+    const all = new Set();
+    cohortMatrix.cohorts.forEach(([_, c]) => c.customers.forEach(cu => all.add(cu)));
+    return all.size;
+  }, [cohortMatrix]);
+
+  return (
+    <div>
+      <div style={{marginBottom: '22px'}}>
+        <div style={{fontSize: '11px', letterSpacing: '0.3em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '6px'}}>{lang === 'id' ? 'Analytics' : 'Analytics'}</div>
+        <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{lang === 'id' ? 'Cohort Analysis' : 'Cohort Analysis'}</h1>
+        <div style={{fontSize: '13px', color: '#8a7d5c', marginTop: '6px'}}>{lang === 'id' ? 'Pola repeat purchase per kohort akuisisi — standar valuasi investor sophisticated' : 'Repeat purchase pattern per acquisition cohort — sophisticated investor metric'}</div>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '22px', border: '1px solid #d4cdb8'}}>
+        <div className="card-pad">
+          <div className="lbl-tag">{lang === 'id' ? 'Total Customer' : 'Total Customers'}</div>
+          <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{totalCustomers}</div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{lang === 'id' ? 'Unik, semua kohort' : 'Unique, all cohorts'}</div>
+        </div>
+        <div className="card-pad">
+          <div className="lbl-tag">{lang === 'id' ? 'Kohort Aktif' : 'Active Cohorts'}</div>
+          <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#1a4d8a'}}>{cohortMatrix.cohorts.length}</div>
+        </div>
+        {retentionInsights.length > 0 && retentionInsights[0] && (
+          <div className="card-pad">
+            <div className="lbl-tag">{lang === 'id' ? 'Y1 Retention 2025' : 'Y1 Retention 2025'}</div>
+            <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: retentionInsights[0].rate >= 30 ? '#3a6b3a' : retentionInsights[0].rate >= 15 ? '#c8a96a' : '#c03030'}}>{retentionInsights[0].rate.toFixed(0)}%</div>
+            <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{retentionInsights[0].yearOneReturned} {lang === 'id' ? 'dari' : 'of'} {retentionInsights[0].totalCohort}</div>
+          </div>
+        )}
+        <div className="card-pad">
+          <div className="lbl-tag">{lang === 'id' ? 'Cara Baca' : 'Reading Guide'}</div>
+          <div style={{fontSize: '11px', color: '#1a2942', marginTop: '4px', lineHeight: 1.5}}>
+            {lang === 'id' ? <>Baris = tahun akuisisi.<br/>Kolom = tahun aktivitas.<br/>Sel makin pekat = makin besar nilai.</> : <>Row = acquisition year.<br/>Col = activity year.<br/>Darker = larger value.</>}
+          </div>
+        </div>
+      </div>
+
+      {/* View toggle */}
+      <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', flexWrap: 'wrap'}}>
+        <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{lang === 'id' ? 'Metrik' : 'Metric'}:</span>
+        {[
+          { id: 'revenue', label: lang === 'id' ? '💰 Pendapatan' : '💰 Revenue' },
+          { id: 'count', label: lang === 'id' ? '🔢 Jumlah Deal' : '🔢 Deal Count' },
+          { id: 'retention', label: lang === 'id' ? '🔁 Retention Rate' : '🔁 Retention Rate' },
+        ].map(opt => (
+          <button key={opt.id} onClick={() => setView(opt.id)} style={{padding: '6px 12px', fontSize: '11px', fontFamily: 'inherit', background: view === opt.id ? '#1a2942' : 'transparent', color: view === opt.id ? '#fff' : '#1a2942', border: '1px solid #1a2942', cursor: 'pointer', fontWeight: 500}}>{opt.label}</button>
+        ))}
+      </div>
+
+      {/* Cohort matrix table */}
+      <div style={{background: '#fefcf7', border: '1px solid #e8e1cc', overflowX: 'auto', padding: '6px'}}>
+        <table style={{borderCollapse: 'collapse', fontSize: '11.5px', width: '100%', minWidth: `${100 + cohortMatrix.years.length * 110}px`}}>
+          <thead>
+            <tr>
+              <th style={{padding: '10px 12px', textAlign: 'left', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, background: '#f0ebe0', borderBottom: '2px solid #1a2942'}}>{lang === 'id' ? 'Kohort' : 'Cohort'}</th>
+              <th style={{padding: '10px 12px', textAlign: 'right', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, background: '#f0ebe0', borderBottom: '2px solid #1a2942', minWidth: '80px'}}>{lang === 'id' ? 'Ukuran' : 'Size'}</th>
+              {cohortMatrix.years.map(y => (
+                <th key={y} style={{padding: '10px 12px', textAlign: 'right', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, background: '#f0ebe0', borderBottom: '2px solid #1a2942', minWidth: '100px'}}>{y}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {cohortMatrix.cohorts.length === 0 && (
+              <tr><td colSpan={cohortMatrix.years.length + 2}><div className="empty-state">{lang === 'id' ? 'Belum ada data won SPH' : 'No won SPH data yet'}</div></td></tr>
+            )}
+            {cohortMatrix.cohorts.map(([cohortYear, cohort]) => {
+              const totalCohort = cohort.customers.size;
+              return (
+                <tr key={cohortYear} className="hover-row" style={{borderTop: '1px solid #e8e1cc'}}>
+                  <td style={{padding: '10px 12px', fontWeight: 600, color: '#1a2942'}}>
+                    <span style={{fontSize: '14px'}}>{cohortYear}</span>
+                    <div style={{fontSize: '9.5px', color: '#8a7d5c', marginTop: '2px', fontWeight: 400}}>{lang === 'id' ? 'akuisisi' : 'acquired'}</div>
+                  </td>
+                  <td style={{padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontSize: '12px', color: '#1a2942', fontWeight: 600}}>{totalCohort}</td>
+                  {cohortMatrix.years.map(y => {
+                    const val = cellValue(cohort, y);
+                    const isBeforeCohort = y < cohortYear;
+                    if (isBeforeCohort) {
+                      return <td key={y} style={{padding: '10px 12px', textAlign: 'right', background: '#f0ebe0', color: '#d4cdb8'}}>—</td>;
+                    }
+                    const bg = cellColor(val, maxValue);
+                    const txtColor = val != null && bg !== '#e8eef5' && bg !== 'transparent' && bg !== '#e8b08c' && bg !== '#c8a96a' ? '#fff' : '#1a2942';
+                    return (
+                      <td key={y} style={{padding: '10px 12px', textAlign: 'right', background: bg, color: txtColor, fontFamily: 'monospace', fontSize: '11px', fontWeight: 500}}>
+                        {formatCell(val)}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Investor insight banner */}
+      <div style={{padding: '14px 18px', background: 'rgba(26,41,66,0.04)', borderLeft: '3px solid #1a2942', marginTop: '18px', fontSize: '12px', color: '#1a2942', lineHeight: 1.7}}>
+        <strong>💡 {lang === 'id' ? 'Insight Investor' : 'Investor Insight'}:</strong>{' '}
+        {lang === 'id'
+          ? <>Cohort matrix menunjukkan <strong>repeat purchase pattern</strong> — metrik kunci yang dicari investor sophisticated. <strong>Customer yang kembali</strong> = bukti retensi & kualitas hubungan. Untuk distributor alat medis dengan kontrak service & maintenance multi-tahun, retensi tinggi membuktikan <strong>recurring revenue potential</strong>.</>
+          : <>Cohort matrix shows <strong>repeat purchase patterns</strong> — a key metric sophisticated investors look for. <strong>Returning customers</strong> demonstrate retention & relationship quality. For medical device distributor with multi-year service contracts, high retention proves <strong>recurring revenue potential</strong>.</>}
+      </div>
+    </div>
+  );
+}
+
+// ============== 5-Year Cash Flow Projection ==============
+// KSO-driven recurring revenue + pipeline weighted forecast
+// Projection bulanan untuk 60 bulan (5 tahun) ke depan dari hari ini
+function CashFlowProjection({ data, t, lang, fmt }) {
+  const [showActuals, setShowActuals] = useState(true);
+  const [confidence, setConfidence] = useState('weighted'); // 'weighted' | 'optimistic' | 'conservative'
+
+  // Compute monthly projection
+  const projection = useMemo(() => {
+    const today = new Date('2026-05-31');
+    const months = [];
+    for (let i = 0; i < 60; i++) {
+      const d = new Date(today);
+      d.setMonth(d.getMonth() + i);
+      months.push({
+        key: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,
+        year: d.getFullYear(),
+        month: d.getMonth() + 1,
+        label: d.toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { month: 'short', year: '2-digit' }),
+        kso: 0, // bagi hasil dari KSO existing
+        pipeline: 0, // weighted pipeline conversions
+        actual: 0, // already-won deals' payments expected this month
+      });
+    }
+    const monthMap = new Map(months.map(m => [m.key, m]));
+
+    // === 1. KSO contracts ===
+    // Each KSO project pays revenue share monthly for 60 months
+    // Find PO issued + scheme = kso, then distribute revenue share
+    const ksoDeals = data.filter(s => s.poStatus === 'issued' && (s.paymentScheme === 'kso' || s.projectType === 'kso'));
+    ksoDeals.forEach(d => {
+      const total = Number(d.totalValue) || 0;
+      const dpPercent = typeof d.dpPercent === 'number' ? d.dpPercent : 10;
+      const monthlyShare = (total * (1 - dpPercent/100)) / 60;
+      const startDate = new Date(d.issuedDate || '2026-01-01');
+      for (let m = 1; m <= 60; m++) {
+        const due = new Date(startDate);
+        due.setMonth(due.getMonth() + m);
+        const key = `${due.getFullYear()}-${String(due.getMonth()+1).padStart(2,'0')}`;
+        const target = monthMap.get(key);
+        if (target) target.kso += monthlyShare;
+      }
+    });
+
+    // === 2. DP+Installment contracts (PO already issued, ongoing payments) ===
+    const dpDeals = data.filter(s => s.poStatus === 'issued' && (s.paymentScheme === 'dp_installment' || (!s.paymentScheme && s.projectType !== 'kso' && s.projectType !== 'government')));
+    dpDeals.forEach(d => {
+      const total = Number(d.totalValue) || 0;
+      const dpPercent = typeof d.dpPercent === 'number' ? d.dpPercent : 30;
+      const installmentMonths = d.installmentMonths || 12;
+      const monthlyAmount = (total * (1 - dpPercent/100)) / installmentMonths;
+      const startDate = new Date(d.issuedDate || '2026-01-01');
+      for (let m = 1; m <= installmentMonths; m++) {
+        const due = new Date(startDate);
+        due.setMonth(due.getMonth() + m);
+        const key = `${due.getFullYear()}-${String(due.getMonth()+1).padStart(2,'0')}`;
+        const target = monthMap.get(key);
+        if (target) target.actual += monthlyAmount;
+      }
+    });
+
+    // === 3. Pipeline-weighted projection ===
+    // For active deals: probability × value, distributed across expected closing month
+    const activeDeals = data.filter(s => s.status === 'active');
+    activeDeals.forEach(d => {
+      const value = Number(d.totalValue) || 0;
+      const prob = (Number(d.probability) || 0) / 100;
+      const multiplier = confidence === 'optimistic' ? 1.15 : confidence === 'conservative' ? 0.7 : 1.0;
+      const weighted = value * prob * multiplier;
+      // Assume closing in 2-4 months from now (use 3 as average)
+      const expectedClose = new Date(today);
+      expectedClose.setMonth(expectedClose.getMonth() + 3);
+      const key = `${expectedClose.getFullYear()}-${String(expectedClose.getMonth()+1).padStart(2,'0')}`;
+      const target = monthMap.get(key);
+      if (target) target.pipeline += weighted;
+    });
+
+    // Compute totals + cumulative
+    let cumulative = 0;
+    months.forEach(m => {
+      m.total = m.kso + (showActuals ? m.actual : 0) + m.pipeline;
+      cumulative += m.total;
+      m.cumulative = cumulative;
+    });
+
+    return { months, ksoDeals: ksoDeals.length, dpDeals: dpDeals.length, activeDeals: activeDeals.length };
+  }, [data, showActuals, confidence, lang]);
+
+  // Aggregate by year for chart
+  const yearlyData = useMemo(() => {
+    const map = new Map();
+    projection.months.forEach(m => {
+      if (!map.has(m.year)) map.set(m.year, { year: m.year, kso: 0, actual: 0, pipeline: 0, total: 0 });
+      const y = map.get(m.year);
+      y.kso += m.kso;
+      y.actual += m.actual;
+      y.pipeline += m.pipeline;
+      y.total += m.total;
+    });
+    return Array.from(map.values());
+  }, [projection]);
+
+  const totals = useMemo(() => {
+    const kso = projection.months.reduce((s, m) => s + m.kso, 0);
+    const actual = projection.months.reduce((s, m) => s + m.actual, 0);
+    const pipeline = projection.months.reduce((s, m) => s + m.pipeline, 0);
+    return { kso, actual, pipeline, total: kso + (showActuals ? actual : 0) + pipeline };
+  }, [projection, showActuals]);
+
+  return (
+    <div>
+      <div style={{marginBottom: '22px'}}>
+        <div style={{fontSize: '11px', letterSpacing: '0.3em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '6px'}}>{lang === 'id' ? 'Forecast' : 'Forecast'}</div>
+        <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{lang === 'id' ? 'Proyeksi Cash Flow 5 Tahun' : '5-Year Cash Flow Projection'}</h1>
+        <div style={{fontSize: '13px', color: '#8a7d5c', marginTop: '6px'}}>{lang === 'id' ? 'KSO recurring + DP installment + pipeline weighted — 60 bulan ke depan' : 'KSO recurring + DP installment + pipeline weighted — 60 months forward'}</div>
+      </div>
+
+      {/* Controls */}
+      <div style={{display: 'flex', gap: '10px', marginBottom: '18px', alignItems: 'center', flexWrap: 'wrap', padding: '10px 14px', background: 'rgba(26,41,66,0.03)', border: '1px solid #e8e1cc'}}>
+        <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{lang === 'id' ? 'Skenario' : 'Scenario'}:</span>
+        {[
+          { id: 'conservative', label: lang === 'id' ? '🛡 Konservatif (×0.7)' : '🛡 Conservative (×0.7)', color: '#5b87b8' },
+          { id: 'weighted', label: lang === 'id' ? '⚖ Realistis (×1.0)' : '⚖ Realistic (×1.0)', color: '#1a2942' },
+          { id: 'optimistic', label: lang === 'id' ? '🚀 Optimis (×1.15)' : '🚀 Optimistic (×1.15)', color: '#3a6b3a' },
+        ].map(opt => (
+          <button key={opt.id} onClick={() => setConfidence(opt.id)} style={{padding: '5px 11px', fontSize: '11px', fontFamily: 'inherit', background: confidence === opt.id ? opt.color : 'transparent', color: confidence === opt.id ? '#fff' : opt.color, border: `1px solid ${opt.color}`, cursor: 'pointer', fontWeight: 600}}>{opt.label}</button>
+        ))}
+        <label style={{display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '14px', fontSize: '11px', color: '#1a2942', cursor: 'pointer'}}>
+          <input type="checkbox" checked={showActuals} onChange={e => setShowActuals(e.target.checked)} style={{cursor: 'pointer'}} />
+          {lang === 'id' ? 'Include cicilan PO existing' : 'Include existing PO installments'}
+        </label>
+      </div>
+
+      {/* Total KPIs */}
+      <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '22px', border: '1px solid #d4cdb8'}}>
+        <div className="card-pad" style={{background: '#1a2942', color: '#fff'}}>
+          <div style={{fontSize: '9px', letterSpacing: '0.2em', color: '#c8a96a', textTransform: 'uppercase'}}>{lang === 'id' ? 'Total 5 Tahun' : 'Total 5-Year'}</div>
+          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px', color: '#fff'}}>{fmt(totals.total)}</div>
+          <div style={{fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginTop: '2px'}}>{lang === 'id' ? `Skenario ${confidence === 'optimistic' ? 'optimis' : confidence === 'conservative' ? 'konservatif' : 'realistis'}` : `${confidence} scenario`}</div>
+        </div>
+        <div className="card-pad">
+          <div className="lbl-tag">KSO Recurring</div>
+          <div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px', color: '#7b3fb5'}}>{fmt(totals.kso)}</div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{projection.ksoDeals} {lang === 'id' ? 'kontrak KSO' : 'KSO contracts'}</div>
+        </div>
+        <div className="card-pad">
+          <div className="lbl-tag">{lang === 'id' ? 'Cicilan PO' : 'PO Installments'}</div>
+          <div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px', color: '#1a4d8a', opacity: showActuals ? 1 : 0.3}}>{fmt(totals.actual)}</div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{projection.dpDeals} {lang === 'id' ? 'PO aktif' : 'active POs'}</div>
+        </div>
+        <div className="card-pad">
+          <div className="lbl-tag">Pipeline Weighted</div>
+          <div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px', color: '#c8a96a'}}>{fmt(totals.pipeline)}</div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{projection.activeDeals} {lang === 'id' ? 'deal aktif' : 'active deals'}</div>
+        </div>
+      </div>
+
+      {/* Yearly stacked bar chart */}
+      <div style={{padding: '20px', background: '#fefcf7', border: '1px solid #e8e1cc', marginBottom: '20px'}}>
+        <div style={{fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '14px'}}>{lang === 'id' ? 'Breakdown per Tahun' : 'Yearly Breakdown'}</div>
+        <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+          {yearlyData.map(y => {
+            const max = Math.max(...yearlyData.map(yy => yy.total));
+            const pct = max > 0 ? (y.total / max) * 100 : 0;
+            const ksoP = y.total > 0 ? (y.kso / y.total) * 100 : 0;
+            const actualP = y.total > 0 ? (y.actual / y.total) * 100 : 0;
+            const pipeP = y.total > 0 ? (y.pipeline / y.total) * 100 : 0;
+            return (
+              <div key={y.year}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px'}}>
+                  <span style={{fontSize: '13px', fontWeight: 600, color: '#1a2942'}}>{y.year}</span>
+                  <span className="mono" style={{fontSize: '13px', fontWeight: 600, color: '#1a2942'}}>{fmt(y.total)}</span>
+                </div>
+                <div style={{height: '24px', display: 'flex', width: `${pct}%`, minWidth: '20px', position: 'relative'}}>
+                  {ksoP > 0 && <div style={{flex: ksoP, background: '#7b3fb5'}} title={`KSO: ${fmt(y.kso)}`}></div>}
+                  {showActuals && actualP > 0 && <div style={{flex: actualP, background: '#1a4d8a'}} title={`Cicilan: ${fmt(y.actual)}`}></div>}
+                  {pipeP > 0 && <div style={{flex: pipeP, background: '#c8a96a'}} title={`Pipeline: ${fmt(y.pipeline)}`}></div>}
+                </div>
+                <div style={{display: 'flex', gap: '14px', fontSize: '10px', color: '#8a7d5c', marginTop: '4px'}}>
+                  <span><span style={{display: 'inline-block', width: '8px', height: '8px', background: '#7b3fb5', marginRight: '4px'}}></span>KSO: {fmt(y.kso)}</span>
+                  {showActuals && <span><span style={{display: 'inline-block', width: '8px', height: '8px', background: '#1a4d8a', marginRight: '4px'}}></span>{lang === 'id' ? 'Cicilan' : 'Installments'}: {fmt(y.actual)}</span>}
+                  <span><span style={{display: 'inline-block', width: '8px', height: '8px', background: '#c8a96a', marginRight: '4px'}}></span>Pipeline: {fmt(y.pipeline)}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Investor narrative */}
+      <div style={{padding: '14px 18px', background: 'rgba(123,63,181,0.06)', borderLeft: '3px solid #7b3fb5', fontSize: '12px', color: '#1a2942', lineHeight: 1.7}}>
+        <strong>🎯 {lang === 'id' ? 'Investor Narrative' : 'Investor Narrative'}:</strong>{' '}
+        {lang === 'id'
+          ? <>Proyeksi ini menunjukkan <strong>recurring revenue visibility</strong> yang langka untuk distributor alat medis di Indonesia. <strong>KSO contracts</strong> memberikan {fmt(totals.kso)} pendapatan bagi hasil yang terkunci 5 tahun ke depan. Dikombinasikan dengan cicilan PO existing dan pipeline conversion, total proyeksi mencapai <strong>{fmt(totals.total)}</strong> — angka yang dapat di-stress-test investor menggunakan skenario konservatif (×0.7).</>
+          : <>This projection shows <strong>recurring revenue visibility</strong> rarely seen in Indonesian medical device distributors. <strong>KSO contracts</strong> lock {fmt(totals.kso)} of revenue-share income for the next 5 years. Combined with existing PO installments and pipeline conversion, total projection reaches <strong>{fmt(totals.total)}</strong> — a number investors can stress-test with conservative scenario (×0.7).</>}
+      </div>
+    </div>
+  );
+}
+
+// ============== Annotated Snapshot ==============
+// CEO can add commentary to dashboard charts/KPIs before sharing snapshot
+// Persists to storage: ims_hnti:annotations_v1
+const ANNOTATIONS_KEY = 'ims_hnti:annotations_v1';
+function AnnotatedSnapshotModule({ annotations, setAnnotations, t, lang, logAction, session, fmt, data, reports }) {
+  const [newAnnotation, setNewAnnotation] = useState({ target: '', commentary: '', sentiment: 'neutral' });
+  const [editingId, setEditingId] = useState(null);
+
+  // Available "anchors" — chart/KPI keys that user can annotate
+  const ANCHORS = useMemo(() => [
+    { id: 'kpi_pipeline', label: lang === 'id' ? 'KPI: Nilai Pipeline' : 'KPI: Pipeline Value' },
+    { id: 'kpi_winrate', label: lang === 'id' ? 'KPI: Win Rate' : 'KPI: Win Rate' },
+    { id: 'kpi_revenue_ytd', label: lang === 'id' ? 'KPI: Pendapatan YTD' : 'KPI: Revenue YTD' },
+    { id: 'kpi_weighted', label: lang === 'id' ? 'KPI: Weighted Pipeline' : 'KPI: Weighted Pipeline' },
+    { id: 'chart_funnel', label: lang === 'id' ? 'Chart: Sales Funnel' : 'Chart: Sales Funnel' },
+    { id: 'chart_trend', label: lang === 'id' ? 'Chart: Tren Pipeline' : 'Chart: Pipeline Trend' },
+    { id: 'chart_sales_team', label: lang === 'id' ? 'Chart: Performa Tim Sales' : 'Chart: Sales Team Performance' },
+    { id: 'chart_modality', label: lang === 'id' ? 'Chart: Distribusi Modalitas' : 'Chart: Modality Distribution' },
+    { id: 'risk_top1_customer', label: lang === 'id' ? 'Risk: Top 1 Customer' : 'Risk: Top 1 Customer' },
+    { id: 'cohort_retention', label: lang === 'id' ? 'Cohort: Retention Rate' : 'Cohort: Retention Rate' },
+    { id: 'cashflow_5y', label: lang === 'id' ? 'Cash Flow: 5-Year Projection' : 'Cash Flow: 5-Year Projection' },
+  ], [lang]);
+
+  const addAnnotation = () => {
+    if (!newAnnotation.target || !newAnnotation.commentary.trim()) return;
+    const a = {
+      id: 'ann_' + Date.now(),
+      target: newAnnotation.target,
+      commentary: newAnnotation.commentary.trim(),
+      sentiment: newAnnotation.sentiment,
+      author: session?.name || session?.username || 'Unknown',
+      authorUsername: session?.username,
+      timestamp: new Date().toISOString(),
+    };
+    setAnnotations(prev => [a, ...prev]);
+    if (logAction) logAction({ module: 'annotations', action: 'create', entityId: a.id, entityLabel: a.target, note: `${a.sentiment} · ${a.commentary.substring(0, 60)}` });
+    setNewAnnotation({ target: '', commentary: '', sentiment: 'neutral' });
+  };
+
+  const deleteAnnotation = (id) => {
+    const ann = annotations.find(a => a.id === id);
+    setAnnotations(prev => prev.filter(a => a.id !== id));
+    if (ann && logAction) logAction({ module: 'annotations', action: 'delete', entityId: id, entityLabel: ann.target });
+  };
+
+  const sentimentColor = (s) => ({ positive: '#3a6b3a', negative: '#c03030', concern: '#c8a96a', neutral: '#5b87b8' })[s] || '#8a7d5c';
+  const sentimentEmoji = (s) => ({ positive: '✅', negative: '⚠', concern: '👀', neutral: 'ℹ' })[s] || '•';
+
+  return (
+    <div>
+      <div style={{marginBottom: '22px'}}>
+        <div style={{fontSize: '11px', letterSpacing: '0.3em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '6px'}}>{lang === 'id' ? 'Narrative' : 'Narrative'}</div>
+        <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{lang === 'id' ? 'Komentar CEO' : 'CEO Commentary'}</h1>
+        <div style={{fontSize: '13px', color: '#8a7d5c', marginTop: '6px'}}>{lang === 'id' ? 'Tambahkan narasi pada KPI/chart sebelum di-share ke investor' : 'Add narrative to KPIs/charts before sharing with investors'}</div>
+      </div>
+
+      {/* Add annotation form */}
+      <div style={{padding: '18px', background: '#fefcf7', border: '1px solid #e8e1cc', marginBottom: '20px'}}>
+        <div style={{fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '12px'}}>{lang === 'id' ? '✍ Tambah Komentar Baru' : '✍ Add New Annotation'}</div>
+        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px'}}>
+          <div>
+            <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '6px'}}>{lang === 'id' ? 'Target (KPI / Chart)' : 'Target (KPI / Chart)'}</label>
+            <select value={newAnnotation.target} onChange={e => setNewAnnotation(a => ({ ...a, target: e.target.value }))}>
+              <option value="">— {lang === 'id' ? 'Pilih anchor' : 'Select anchor'} —</option>
+              {ANCHORS.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '6px'}}>{lang === 'id' ? 'Sentimen' : 'Sentiment'}</label>
+            <select value={newAnnotation.sentiment} onChange={e => setNewAnnotation(a => ({ ...a, sentiment: e.target.value }))}>
+              <option value="positive">{sentimentEmoji('positive')} {lang === 'id' ? 'Positif (highlight prestasi)' : 'Positive (highlight)'}</option>
+              <option value="neutral">{sentimentEmoji('neutral')} {lang === 'id' ? 'Netral (informatif)' : 'Neutral (informative)'}</option>
+              <option value="concern">{sentimentEmoji('concern')} {lang === 'id' ? 'Perhatian (perlu dijelaskan)' : 'Concern (needs context)'}</option>
+              <option value="negative">{sentimentEmoji('negative')} {lang === 'id' ? 'Negatif (jujur ungkap)' : 'Negative (transparency)'}</option>
+            </select>
+          </div>
+        </div>
+        <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '6px'}}>{lang === 'id' ? 'Komentar' : 'Commentary'}</label>
+        <textarea value={newAnnotation.commentary} onChange={e => setNewAnnotation(a => ({ ...a, commentary: e.target.value }))} rows={3} placeholder={lang === 'id' ? 'Contoh: "Lihat dip di Q2 2025? Itu karena tender RSUD ditunda — sudah recovered di Q3 dengan kontrak swasta."' : 'Example: "See the dip in Q2 2025? Government tender delay — already recovered in Q3 via private contracts."'} />
+        <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: '10px'}}>
+          <button onClick={addAnnotation} disabled={!newAnnotation.target || !newAnnotation.commentary.trim()} style={{background: !newAnnotation.target || !newAnnotation.commentary.trim() ? '#d4cdb8' : '#1a2942', color: '#fff', border: 'none', padding: '8px 18px', fontFamily: 'inherit', fontSize: '12px', cursor: !newAnnotation.target || !newAnnotation.commentary.trim() ? 'not-allowed' : 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px'}}>
+            <MessageSquare size={13} />{lang === 'id' ? 'Simpan Komentar' : 'Save Annotation'}
+          </button>
+        </div>
+      </div>
+
+      {/* Annotations list */}
+      <div>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px'}}>
+          <div style={{fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{lang === 'id' ? `Komentar Tersimpan (${annotations.length})` : `Saved Annotations (${annotations.length})`}</div>
+        </div>
+        {annotations.length === 0 && <div className="empty-state" style={{padding: '40px', textAlign: 'center', background: '#fefcf7', border: '1px dashed #d4cdb8'}}>{lang === 'id' ? 'Belum ada komentar. Tambahkan di atas.' : 'No annotations yet. Add one above.'}</div>}
+        <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
+          {annotations.map(a => {
+            const anchor = ANCHORS.find(x => x.id === a.target);
+            return (
+              <div key={a.id} style={{padding: '14px 16px', background: '#fefcf7', border: '1px solid #e8e1cc', borderLeft: `4px solid ${sentimentColor(a.sentiment)}`}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', marginBottom: '8px'}}>
+                  <div style={{flex: 1}}>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px'}}>
+                      <span style={{fontSize: '14px'}}>{sentimentEmoji(a.sentiment)}</span>
+                      <span style={{fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase', color: sentimentColor(a.sentiment), fontWeight: 600}}>{anchor?.label || a.target}</span>
+                    </div>
+                    <div style={{fontSize: '13px', color: '#1a2942', lineHeight: 1.6}}>{a.commentary}</div>
+                    <div style={{fontSize: '10.5px', color: '#8a7d5c', marginTop: '6px'}}>
+                      ✍ {a.author} · <span className="mono">{new Date(a.timestamp).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                    </div>
+                  </div>
+                  <button onClick={() => deleteAnnotation(a.id)} style={{background: 'transparent', border: '1px solid #c03030', color: '#c03030', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', fontFamily: 'inherit'}} title={lang === 'id' ? 'Hapus' : 'Delete'}>
+                    <Trash2 size={11} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Tips */}
+      <div style={{padding: '14px 18px', background: 'rgba(123,63,181,0.04)', borderLeft: '3px solid #7b3fb5', marginTop: '20px', fontSize: '12px', color: '#1a2942', lineHeight: 1.7}}>
+        <strong>💡 {lang === 'id' ? 'Tips Investor' : 'Investor Tips'}:</strong>{' '}
+        {lang === 'id'
+          ? <>Investor menghargai <strong>narasi yang siap, jujur, dan kontekstual</strong>. Untuk angka yang menurun, beri konteks (musiman, regulasi baru, dll). Untuk yang naik, jelaskan apakah pertumbuhan organik atau one-time. Komentar ini akan muncul di Executive Summary PDF.</>
+          : <>Investors value <strong>ready, honest, contextual narratives</strong>. For declining numbers, explain context (seasonality, regulation, etc). For growth, distinguish organic vs one-time. These annotations appear in Executive Summary PDF.</>}
+      </div>
+    </div>
+  );
+}
+
 function ProductMasterModule({ products, setProducts, t, lang, canEdit, logAction, data }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -10818,7 +11750,7 @@ const Footer = React.memo(function Footer({ t, lastSync, onRefresh, lang }) {
           <span style={{fontSize: '11px', color: '#8a7d5c'}}>· {t.company}</span>
         </div>
         {lastSync !== undefined && onRefresh && <SyncIndicator lastSync={lastSync} onRefresh={onRefresh} t={t} lang={lang} />}
-        <div className="lbl-tag">Phase 34 · © 2026</div>
+        <div className="lbl-tag">Phase 35 · © 2026</div>
       </div>
     </footer>
   );

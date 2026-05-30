@@ -24,6 +24,7 @@ const translations = {
     nav_employees: 'Manajemen Karyawan', nav_business_trip: 'Perjalanan Dinas',
     nav_audit_log: 'Audit Trail',
     nav_risk: 'Konsentrasi Risiko',
+    nav_products: 'Master Produk',
     pipeline_value: 'Nilai Pipeline', weighted_pipeline: 'Pipeline Tertimbang',
     revenue_ytd: 'Pendapatan YTD', win_rate: 'Win Rate',
     active_projects: 'Proyek Aktif', avg_deal_size: 'Rata-rata Deal',
@@ -702,6 +703,7 @@ const translations = {
     nav_employees: 'Employee Management', nav_business_trip: 'Business Trip',
     nav_audit_log: 'Audit Trail',
     nav_risk: 'Risk Concentration',
+    nav_products: 'Product Master',
     pipeline_value: 'Pipeline Value', weighted_pipeline: 'Weighted Pipeline',
     revenue_ytd: 'Revenue YTD', win_rate: 'Win Rate',
     active_projects: 'Active Projects', avg_deal_size: 'Avg Deal Size',
@@ -1360,6 +1362,76 @@ const SALES_TEAM = [
   { id: 'office', name: 'HNT Indonesia (Office)', initial: 'HO', territory: 'Nasional', territoryEn: 'Nationwide', accent: '#1a2942', isOffice: true },
 ];
 
+// ============== Territory-Based Sales Owner Mapping ==============
+// Mapping kota → sales owner berdasarkan area yang Bapak Fajrin tetapkan
+// Catatan: Faskes Group (Hermina pusat, Pramita pusat, dll) di-handle dari kantor pusat
+// → SPH masuk ke sales yang area-nya = kantor pusat group tersebut
+const TERRITORY_MAP = {
+  // === Hatim — Jateng A (Semarang, sekitar, Pati, Tegal, Brebes, Cirebon coastal) ===
+  'semarang': 'hatim', 'kendal': 'hatim', 'demak': 'hatim', 'jepara': 'hatim', 'kudus': 'hatim',
+  'pati': 'hatim', 'rembang': 'hatim', 'blora': 'hatim', 'grobogan': 'hatim', 'bojonegoro': 'hatim',
+  'tegal': 'hatim', 'brebes': 'hatim', 'pemalang': 'hatim', 'pekalongan': 'hatim',
+  'tuban': 'hatim',
+  // === Lukman — Jateng selatan + DIY B ===
+  'solo': 'lukman', 'surakarta': 'lukman', 'sukoharjo': 'lukman', 'karanganyar': 'lukman',
+  'sragen': 'lukman', 'wonogiri': 'lukman', 'klaten': 'lukman', 'boyolali': 'lukman',
+  'magelang': 'lukman', 'salatiga': 'lukman', 'temanggung': 'lukman', 'wonosobo': 'lukman',
+  'banjarnegara': 'lukman', 'purbalingga': 'lukman', 'banyumas': 'lukman', 'purwokerto': 'lukman',
+  'cilacap': 'lukman', 'kebumen': 'lukman', 'purworejo': 'lukman',
+  'yogyakarta': 'lukman', 'sleman': 'lukman', 'bantul': 'lukman', 'kulon progo': 'lukman', 'gunung kidul': 'lukman',
+  // === Dwi — Jabodetabek + Jabar (mayoritas), Icha membantu di bawahnya ===
+  'jakarta': 'dwi', 'bekasi': 'dwi', 'tangerang': 'dwi', 'depok': 'dwi', 'bogor': 'dwi',
+  'bandung': 'dwi', 'cimahi': 'dwi', 'sumedang': 'dwi', 'karawang': 'dwi', 'purwakarta': 'dwi',
+  'subang': 'dwi', 'majalengka': 'dwi', 'cirebon': 'dwi', 'kuningan': 'dwi',
+  'indramayu': 'dwi', 'sukabumi': 'dwi', 'cianjur': 'dwi', 'garut': 'dwi', 'tasikmalaya': 'dwi',
+  'ciamis': 'dwi', 'banjar': 'dwi',
+  // === Tri — Jatim 1 (Sisi barat/selatan Jatim termasuk Malang, Kediri, dll) ===
+  'malang': 'tri', 'batu': 'tri', 'kediri': 'tri', 'tulungagung': 'tri', 'trenggalek': 'tri',
+  'blitar': 'tri', 'jombang': 'tri', 'nganjuk': 'tri', 'madiun': 'tri', 'magetan': 'tri',
+  'ngawi': 'tri', 'ponorogo': 'tri', 'pacitan': 'tri', 'mojokerto': 'tri',
+  // === Bagus — Jatim 2 (Surabaya & sekitar termasuk Madura, Banyuwangi, Pasuruan) ===
+  'surabaya': 'bagus', 'gresik': 'bagus', 'lamongan': 'bagus', 'sidoarjo': 'bagus',
+  'pasuruan': 'bagus', 'probolinggo': 'bagus', 'lumajang': 'bagus', 'jember': 'bagus',
+  'bondowoso': 'bagus', 'situbondo': 'bagus', 'banyuwangi': 'bagus',
+  'bangkalan': 'bagus', 'sampang': 'bagus', 'pamekasan': 'bagus', 'sumenep': 'bagus',
+  // === Bali → Office (luar 5 area, di-handle kantor pusat) ===
+  'bali': 'office', 'denpasar': 'office', 'badung': 'office',
+  // === Luar Jawa → Office sementara ===
+  'medan': 'office', 'palembang': 'office', 'makassar': 'office', 'manado': 'office', 'pontianak': 'office',
+};
+
+// Helper: tebak sales owner dari nama customer
+// Aturan: extract kota dari nama RS → cek di TERRITORY_MAP
+// Khusus untuk Faskes Group (RS Hermina, Klinik Pramita, RS Mitra Keluarga, RS Siloam, RS Hermina, RS Premier):
+//   - Hermina/Mitra Keluarga/Siloam/Premier dengan pusat di Jakarta → Dwi
+//   - Pramita dengan pusat di Surabaya → Bagus
+//   - Tapi tetap respect kota tujuan kalau ada (kecuali Hermina pusat di Jakarta = Dwi)
+const detectSalesOwnerFromCustomer = (customerName) => {
+  if (!customerName) return null;
+  const lower = customerName.toLowerCase();
+  // 1. Cek apakah Faskes Group yang pengadaan terpusat
+  // RS Hermina → pengadaan dari pusat Jakarta → semua jadi Dwi/Icha
+  if (/\b(rs|rumah sakit)\s+hermina\b/i.test(customerName)) {
+    // Default Hermina = Dwi (pusat Jakarta), tapi bisa diedit manual
+    return 'dwi';
+  }
+  // Klinik Pramita / Lab Pramita → pengadaan dari pusat Surabaya
+  if (/\b(klinik|lab(oratorium)?)\s+pramita\b/i.test(customerName)) {
+    return 'bagus';
+  }
+  // 2. Cek mapping kota
+  const cityMatches = [];
+  for (const [city, owner] of Object.entries(TERRITORY_MAP)) {
+    if (lower.includes(city)) cityMatches.push({ city, owner, len: city.length });
+  }
+  // Sort by length desc — longest match wins (e.g. "yogyakarta" beats "kart" if both matched)
+  cityMatches.sort((a, b) => b.len - a.len);
+  if (cityMatches.length > 0) return cityMatches[0].owner;
+  // 3. Default: office (akan di-flag sebagai "vacant area" di UI)
+  return 'office';
+};
+
+
 // Sales IDs to include in bulk generator (include office and icha)
 const SALES_IDS_WITH_OFFICE = ['lukman', 'hatim', 'dwi', 'tri', 'bagus', 'office'];
 
@@ -1413,16 +1485,16 @@ const PERMISSIONS = {
 };
 
 const NAV_BY_ROLE = {
-  super_admin:  ['dashboard', 'sph', 'pipeline', 'sales', 'incentive', 'sales_report', 'business_trip', 'finance', 'operations', 'installation', 'maintenance', 'regulatory', 'valuation', 'risk', 'employees', 'audit_log'],
-  gm:           ['dashboard', 'sph', 'pipeline', 'sales', 'incentive', 'sales_report', 'business_trip', 'finance', 'operations', 'installation', 'maintenance', 'regulatory', 'valuation', 'risk', 'employees', 'audit_log'],
-  manager_ops:  ['dashboard', 'sph', 'pipeline', 'sales', 'sales_report', 'business_trip', 'finance', 'operations', 'installation', 'maintenance', 'regulatory', 'employees'],
-  admin:        ['dashboard', 'sph', 'pipeline', 'sales', 'sales_report', 'business_trip', 'installation', 'maintenance', 'regulatory'],
-  technician:   ['dashboard', 'pipeline', 'business_trip', 'installation', 'maintenance'],
-  operations:   ['dashboard', 'pipeline', 'business_trip', 'operations', 'maintenance'],
+  super_admin:  ['dashboard', 'sph', 'pipeline', 'sales', 'incentive', 'sales_report', 'business_trip', 'finance', 'operations', 'installation', 'maintenance', 'regulatory', 'products', 'valuation', 'risk', 'employees', 'audit_log'],
+  gm:           ['dashboard', 'sph', 'pipeline', 'sales', 'incentive', 'sales_report', 'business_trip', 'finance', 'operations', 'installation', 'maintenance', 'regulatory', 'products', 'valuation', 'risk', 'employees', 'audit_log'],
+  manager_ops:  ['dashboard', 'sph', 'pipeline', 'sales', 'sales_report', 'business_trip', 'finance', 'operations', 'installation', 'maintenance', 'regulatory', 'products', 'employees'],
+  admin:        ['dashboard', 'sph', 'pipeline', 'sales', 'sales_report', 'business_trip', 'installation', 'maintenance', 'regulatory', 'products'],
+  technician:   ['dashboard', 'pipeline', 'business_trip', 'installation', 'maintenance', 'products'],
+  operations:   ['dashboard', 'pipeline', 'business_trip', 'operations', 'maintenance', 'products'],
   finance:      ['dashboard', 'pipeline', 'sales_report', 'business_trip', 'incentive', 'finance', 'risk'],
-  regulatory:   ['dashboard', 'pipeline', 'business_trip', 'installation', 'regulatory'],
-  sales:        ['sales_report', 'sph', 'pipeline', 'business_trip', 'incentive', 'dashboard'],
-  product_specialist: ['dashboard', 'sph', 'pipeline', 'sales', 'sales_report', 'business_trip', 'installation', 'maintenance', 'regulatory'],
+  regulatory:   ['dashboard', 'pipeline', 'business_trip', 'installation', 'regulatory', 'products'],
+  sales:        ['sales_report', 'sph', 'pipeline', 'business_trip', 'incentive', 'dashboard', 'products'],
+  product_specialist: ['dashboard', 'sph', 'pipeline', 'sales', 'sales_report', 'business_trip', 'installation', 'maintenance', 'regulatory', 'products'],
   security:     ['business_trip'],
   office_support: ['business_trip'],
 };
@@ -1445,6 +1517,46 @@ const detectPaymentScheme = (projectType, customerType) => {
   if (projectType === 'government' || projectType === 'tender') return 'after_bast';
   return 'dp_installment';
 };
+
+// ============== Product Master Database ==============
+// Single source of truth untuk semua produk yang dijual HNTI
+// Field: id, name (display), modality (kategori), brand, type (model), origin, principal (manufacturer), tkdn, akl, active, notes
+// Storage: ims_hnti:prod_v22 — editable via Master Produk module
+const PRODUCT_MASTER_SEED = [
+  // === MRI ===
+  { id: 'prod_mri_15t_supermark', name: 'MRI 1.5T Supermark', modality: 'MRI', brand: 'Supermark', type: 'MRI 1.5T', origin: 'China', principal: 'Anke Medical', tkdn: 18, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Mid-range 1.5T, 16-channel coil' },
+  { id: 'prod_mri_15t_basda', name: 'MRI 1.5T Basda', modality: 'MRI', brand: 'Basda', type: 'MRI 1.5T', origin: 'China', principal: 'Basda Medical Apparatus', tkdn: 15, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Entry-level 1.5T' },
+  { id: 'prod_mri_30t_supermark', name: 'MRI 3.0T Supermark', modality: 'MRI', brand: 'Supermark', type: 'MRI 3.0T', origin: 'China', principal: 'Anke Medical', tkdn: 18, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Premium 3.0T research-grade' },
+
+  // === CT Scan ===
+  { id: 'prod_ct_64_anatom', name: 'CT 64 Slice Anatom Clarity', modality: 'CT Scan', brand: 'Anatom', type: 'CT 64 Slice', origin: 'China', principal: 'United Imaging', tkdn: 20, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'Best-selling mid-range CT' },
+  { id: 'prod_ct_128_anatom', name: 'CT 128 Slice Anatom', modality: 'CT Scan', brand: 'Anatom', type: 'CT 128 Slice', origin: 'China', principal: 'United Imaging', tkdn: 20, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'High-end diagnostic CT' },
+  { id: 'prod_ct_16_supermark', name: 'CT 16 Slice Supermark', modality: 'CT Scan', brand: 'Supermark', type: 'CT 16 Slice', origin: 'China', principal: 'Anke Medical', tkdn: 18, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'Budget-friendly entry CT' },
+
+  // === C-Arm ===
+  { id: 'prod_carm_garion', name: 'C-Arm Garion', modality: 'C-Arm', brand: 'Garion', type: 'C-Arm Surgical', origin: 'Korea', principal: 'Garion Medical', tkdn: 15, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Standard surgical C-Arm' },
+  { id: 'prod_carm_garion_hd', name: 'C-Arm Garion HD', modality: 'C-Arm', brand: 'Garion', type: 'C-Arm Surgical HD', origin: 'Korea', principal: 'Garion Medical', tkdn: 15, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'HD imaging C-Arm' },
+
+  // === X-Ray Stationary ===
+  { id: 'prod_xray_500ma_supermark', name: 'X-Ray Stationary 500mA Supermark', modality: 'X-Ray', brand: 'Supermark', type: 'X-Ray Stationary 500mA', origin: 'China', principal: 'Anke Medical', tkdn: 22, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'High-output stationary X-Ray' },
+  { id: 'prod_xray_300ma_supermark', name: 'X-Ray Stationary 300mA Supermark', modality: 'X-Ray', brand: 'Supermark', type: 'X-Ray Stationary 300mA', origin: 'China', principal: 'Anke Medical', tkdn: 22, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Standard radiology X-Ray' },
+
+  // === X-Ray Portable ===
+  { id: 'prod_xray_portable_supermark', name: 'X-Ray Portable Supermark', modality: 'X-Ray', brand: 'Supermark', type: 'X-Ray Portable', origin: 'China', principal: 'Anke Medical', tkdn: 20, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Mobile bedside X-Ray' },
+  // NEW: Portable X-Ray merk Precision (China) — req Fajrin 2026-05-30
+  { id: 'prod_xray_portable_precision', name: 'X-Ray Portable Precision', modality: 'X-Ray', brand: 'Precision', type: 'X-Ray Portable', origin: 'China', principal: 'Precision Healthcare', tkdn: 18, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Portable X-Ray for ICU/ER use' },
+
+  // === Mammography ===
+  { id: 'prod_mammo_3d_anatom', name: 'Mammography 3D Anatom', modality: 'Mammography', brand: 'Anatom', type: 'Mammo 3D Tomosynthesis', origin: 'China', principal: 'United Imaging', tkdn: 18, akl: 'KEMENKES RI AKL 10303550XXX', active: true, notes: '3D digital mammography with tomosynthesis' },
+  { id: 'prod_mammo_2d_anatom', name: 'Mammography 2D Anatom', modality: 'Mammography', brand: 'Anatom', type: 'Mammo 2D Digital', origin: 'China', principal: 'United Imaging', tkdn: 18, akl: 'KEMENKES RI AKL 10303550XXX', active: true, notes: '2D digital mammography' },
+
+  // === Flat Panel Detector ===
+  // NEW: Flat Panel Detector Innocare (Taiwan) — req Fajrin 2026-05-30
+  { id: 'prod_fpd_innocare', name: 'Flat Panel Detector Innocare', modality: 'Flat Panel Detector', brand: 'Innocare', type: 'FPD 14x17 Wireless', origin: 'Taiwan', principal: 'Innocare Optoelectronics', tkdn: 12, akl: 'KEMENKES RI AKL 10303660XXX', active: true, notes: 'Wireless flat panel detector untuk upgrade X-Ray analog ke digital' },
+
+  // === Ultrasound (placeholder for future) ===
+  { id: 'prod_us_color_supermark', name: 'Ultrasound Color Doppler Supermark', modality: 'Ultrasound', brand: 'Supermark', type: 'USG Color Doppler', origin: 'China', principal: 'Anke Medical', tkdn: 15, akl: 'KEMENKES RI AKL 10303770XXX', active: false, notes: 'Pending principal agreement' },
+];
 
 const mk = (id, no, customer, ct, pt, mod, sub, qty, price, owner, region, stage, opts = {}) => {
   const baseProbs = { sph_sent: 20, presentation_scheduled: 35, presentation_done: 50, ecatalog: 40, negotiation: 70, tender: 55, po_issued: 100, lost: 0 };
@@ -2078,7 +2190,26 @@ const ICHA_SPH = [
     paymentTerm: 'dp_6', paymentReceivedPct: 0 },
 ];
 
-const ALL_SPH = [...SEED_SPH, ...BULK_SPH, ...HNTI_OFFICE_SPH, ...ICHA_SPH];
+const _RAW_ALL_SPH = [...SEED_SPH, ...BULK_SPH, ...HNTI_OFFICE_SPH, ...ICHA_SPH];
+// Territory auto-correction: apply detectSalesOwnerFromCustomer to seed
+// → Semarang RS → Hatim, Solo RS → Lukman, Surabaya RS → Bagus, Hermina/Mitra Keluarga/Pramita → pusat
+// Sub-dealer and Office tetap (tidak dimapping ke kota tertentu)
+const ALL_SPH = _RAW_ALL_SPH.map(s => {
+  // Skip if customer type indicates sub-dealer or partner (mereka punya logic sendiri)
+  if (s.customerType === 'subdistributor' || s.customerType === 'partner') return s;
+  // Skip if owner adalah 'office' (intentionally vacant)
+  if (s.salesOwner === 'office') {
+    // Only override if territory mapping ada kota yang spesifik (e.g. Semarang → Hatim)
+    const detected = detectSalesOwnerFromCustomer(s.customer);
+    if (detected && detected !== 'office') return { ...s, salesOwner: detected };
+    return s;
+  }
+  const detected = detectSalesOwnerFromCustomer(s.customer);
+  if (detected && detected !== s.salesOwner) {
+    return { ...s, salesOwner: detected };
+  }
+  return s;
+});
 
 // ============== Seed Field Reports (Laporan Lapangan untuk semua Sales) ==============
 // Detail naratif yang realistis untuk demo go-live, periode Jan-Mei 2026 (~20 minggu)
@@ -3661,6 +3792,7 @@ const formatDate = (dateStr, lang) => new Date(dateStr).toLocaleDateString(lang 
 // Storage
 const STORAGE_KEY = 'ims_hnti:data_v22';
 const REPORTS_KEY = 'ims_hnti:reports_v22';
+const PRODUCT_KEY = 'ims_hnti:prod_v22';
 const LANG_KEY = 'ims_hnti:lang_v22';
 const SESSION_KEY = 'ims_hnti:session_v22';
 const RATE_KEY = 'ims_hnti:rate_v23';
@@ -3941,6 +4073,7 @@ export default function App() {
   const [employees, setEmployees] = useState(USERS);
   const [businessTrips, setBusinessTrips] = useState(ALL_BUSINESS_TRIPS);
   const [realizations, setRealizations] = useState(ALL_BT_REALIZATIONS);
+  const [products, setProducts] = useState(PRODUCT_MASTER_SEED);
   const [exchangeRate, setExchangeRate] = useState(DEFAULT_USD_IDR);
   const [auditLog, setAuditLog] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -3996,6 +4129,32 @@ export default function App() {
         await storeSet(RATE_MIGRATION_MARKER, 'true');
       }
 
+      // V34 migration: auto-fix SPH sales ownership based on customer location (territory map)
+      // + seed product master
+      const V34_MIGRATION_MARKER = 'ims_hnti:v34_territory_migrated';
+      const v34Migrated = await storeGet(V34_MIGRATION_MARKER);
+      if (!v34Migrated) {
+        // Re-assign sales owners based on customer city
+        const existingSPH = await storeGet(STORAGE_KEY);
+        if (existingSPH) {
+          try {
+            const parsed = JSON.parse(existingSPH);
+            const fixed = parsed.map(s => {
+              // Only auto-correct if we can confidently detect; otherwise keep existing
+              const correct = detectSalesOwnerFromCustomer(s.customer);
+              if (correct && correct !== s.salesOwner) {
+                return { ...s, salesOwner: correct, _autoReassigned: { from: s.salesOwner, to: correct, reason: 'territory_match', at: new Date().toISOString() } };
+              }
+              return s;
+            });
+            await storeSet(STORAGE_KEY, JSON.stringify(fixed));
+          } catch {}
+        }
+        // Clear old product key to force reload of fresh seed (with Precision + Innocare)
+        try { await window.storage.delete('ims_hnti:prod_v22'); } catch {}
+        await storeSet(V34_MIGRATION_MARKER, 'true');
+      }
+
       const [d, l, s, r, rep, iss, reg, akl, imp, pgl, pi, pm, mfst, cdoc, inst, bast, train, emp, bt] = await Promise.all([
         storeGet(STORAGE_KEY), storeGet(LANG_KEY), storeGet(SESSION_KEY),
         storeGet(RATE_KEY), storeGet(REPORTS_KEY),
@@ -4030,6 +4189,8 @@ export default function App() {
       if (btrStored) try { setRealizations(JSON.parse(btrStored)); } catch {}
       const auditStored = await storeGet(AUDIT_LOG_KEY);
       if (auditStored) try { setAuditLog(JSON.parse(auditStored)); } catch {}
+      const productStored = await storeGet(PRODUCT_KEY);
+      if (productStored) try { setProducts(JSON.parse(productStored)); } catch {}
       // Generate reg records on first load from current data
       if (reg) {
         try { setRegRecords(JSON.parse(reg)); } catch {}
@@ -4062,6 +4223,7 @@ export default function App() {
   useEffect(() => { if (!loading) { session ? storeSet(SESSION_KEY, JSON.stringify(session)) : storeDel(SESSION_KEY); } }, [session, loading]);
   useEffect(() => { if (!loading) storeSet(RATE_KEY, String(exchangeRate)); }, [exchangeRate, loading]);
   useEffect(() => { if (!loading) storeSet(AUDIT_LOG_KEY, JSON.stringify(auditLog)); }, [auditLog, loading]);
+  useEffect(() => { if (!loading) storeSet(PRODUCT_KEY, JSON.stringify(products)); }, [products, loading]);
 
   // Derive installed units from current data (always fresh)
   const installedUnits = useMemo(() => generateInstalledUnits(), [data]);
@@ -4079,7 +4241,7 @@ export default function App() {
     });
   };
   if (!session) return <><LoginScreen t={t} lang={lang} setLang={setLang} onLogin={handleLogin} employees={employees} /><ToastContainer /></>;
-  return <><AuthApp session={session} setSession={setSession} lang={lang} setLang={setLang} t={t} data={data} setData={setData} reports={reports} setReports={setReports} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} regRecords={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} employees={employees} setEmployees={setEmployees} businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} installedUnits={installedUnits} fmt={fmt} fmtFull={fmtFull} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} lastSync={lastSync} onRefresh={handleRefresh} auditLog={auditLog} setAuditLog={setAuditLog} logAction={logAction} /><ToastContainer /></>;
+  return <><AuthApp session={session} setSession={setSession} lang={lang} setLang={setLang} t={t} data={data} setData={setData} reports={reports} setReports={setReports} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} regRecords={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} employees={employees} setEmployees={setEmployees} businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} installedUnits={installedUnits} fmt={fmt} fmtFull={fmtFull} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} lastSync={lastSync} onRefresh={handleRefresh} auditLog={auditLog} setAuditLog={setAuditLog} logAction={logAction} products={products} setProducts={setProducts} /><ToastContainer /></>;
 }
 
 function LoginScreen({ t, lang, setLang, onLogin, employees }) {
@@ -4161,7 +4323,7 @@ function LoginScreen({ t, lang, setLang, onLogin, employees }) {
   );
 }
 
-function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports, setReports, issues, setIssues, pmSchedule, setPmSchedule, manifests, setManifests, customsDocs, setCustomsDocs, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, regRecords, setRegRecords, aklRecords, setAklRecords, importRecords, setImportRecords, pengalihanRecords, setPengalihanRecords, piRecords, setPiRecords, employees, setEmployees, businessTrips, setBusinessTrips, realizations, setRealizations, installedUnits, fmt, fmtFull, exchangeRate, setExchangeRate, lastSync, onRefresh, auditLog, setAuditLog, logAction }) {
+function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports, setReports, issues, setIssues, pmSchedule, setPmSchedule, manifests, setManifests, customsDocs, setCustomsDocs, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, regRecords, setRegRecords, aklRecords, setAklRecords, importRecords, setImportRecords, pengalihanRecords, setPengalihanRecords, piRecords, setPiRecords, employees, setEmployees, businessTrips, setBusinessTrips, realizations, setRealizations, installedUnits, fmt, fmtFull, exchangeRate, setExchangeRate, lastSync, onRefresh, auditLog, setAuditLog, logAction, products, setProducts }) {
   const [view, setView] = useState(session.role === 'sales' ? 'sales_report' : session.role === 'regulatory' ? 'regulatory' : 'dashboard');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSph, setEditingSph] = useState(null);
@@ -4187,13 +4349,39 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
 
   const handleSave = (sph) => {
     const isEdit = !!editingSph;
+    // Strip internal markers before saving
+    const replaceOldIds = sph._replaceOldIds || [];
+    const duplicateNote = sph._duplicateNote || null;
+    const clean = { ...sph };
+    delete clean._replaceOldIds;
+    delete clean._duplicateNote;
+
     if (isEdit) {
-      setData(prev => prev.map(s => s.id === sph.id ? sph : s));
-      logAction({ module: 'sph', action: 'update', entityId: sph.id, entityLabel: `${sph.sphNo} · ${sph.customer}`, note: `Total: ${sph.totalValue}` });
+      setData(prev => prev.map(s => s.id === clean.id ? clean : s));
+      logAction({ module: 'sph', action: 'update', entityId: clean.id, entityLabel: `${clean.sphNo} · ${clean.customer}`, note: `Total: ${clean.totalValue}` });
     } else {
       const newId = 'sph_' + Date.now();
-      setData(prev => [...prev, { ...sph, id: newId }]);
-      logAction({ module: 'sph', action: 'create', entityId: newId, entityLabel: `${sph.sphNo} · ${sph.customer}`, note: `Total: ${sph.totalValue}` });
+      const newSph = { ...clean, id: newId };
+      // If replacing old SPHs, mark them as cancelled with link to new SPH
+      if (replaceOldIds.length > 0) {
+        setData(prev => {
+          const updated = prev.map(s => replaceOldIds.includes(s.id)
+            ? { ...s, status: 'cancelled', stage: 'lost', _replacedBy: newId, _replacedAt: new Date().toISOString(), notes: (s.notes || '') + ` [Digantikan oleh ${clean.sphNo} pada ${new Date().toLocaleDateString('id-ID')}]` }
+            : s);
+          return [...updated, newSph];
+        });
+        // Log each replacement
+        replaceOldIds.forEach(oldId => {
+          const oldSph = data.find(s => s.id === oldId);
+          if (oldSph) {
+            logAction({ module: 'sph', action: 'update', entityId: oldId, entityLabel: `${oldSph.sphNo} · ${oldSph.customer}`, field: 'status', before: oldSph.status, after: 'cancelled', note: `Digantikan oleh SPH baru ${clean.sphNo}` });
+          }
+        });
+        logAction({ module: 'sph', action: 'create', entityId: newId, entityLabel: `${clean.sphNo} · ${clean.customer}`, note: `${duplicateNote || ''} · Menggantikan: ${replaceOldIds.join(', ')}` });
+      } else {
+        setData(prev => [...prev, newSph]);
+        logAction({ module: 'sph', action: 'create', entityId: newId, entityLabel: `${clean.sphNo} · ${clean.customer}`, note: duplicateNote ? `${duplicateNote} · Total: ${clean.totalValue}` : `Total: ${clean.totalValue}` });
+      }
     }
     setModalOpen(false); setEditingSph(null);
   };
@@ -4214,7 +4402,7 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
       <main className="main-content fade-in" style={{maxWidth: '1440px', margin: '0 auto', padding: '32px 48px 60px'}}>
         {view === 'dashboard' && <Dashboard data={filteredData} reports={reports} t={t} lang={lang} session={session} fmt={fmt} />}
         {view === 'sph' && canRead('sph') && <SPHManagement data={filteredData} t={t} lang={lang} canEdit={canEdit('sph')} fmt={fmt} onAdd={() => { setEditingSph(null); setModalOpen(true); }} onEdit={(s) => { setEditingSph(s); setModalOpen(true); }} onDelete={handleDelete} />}
-        {view === 'pipeline' && canRead('pipeline') && <PipelineBoard data={filteredData} t={t} lang={lang} canEdit={canEdit('pipeline')} fmt={fmt} onEdit={(s) => { setEditingSph(s); setModalOpen(true); }} />}
+        {view === 'pipeline' && canRead('pipeline') && <PipelineBoard data={filteredData} allData={data} setData={setData} session={session} logAction={logAction} t={t} lang={lang} canEdit={canEdit('pipeline')} fmt={fmt} onEdit={(s) => { setEditingSph(s); setModalOpen(true); }} />}
         {view === 'sales' && canRead('sales') && <SalesModule data={data} reports={reports} t={t} lang={lang} fmt={fmt} />}
         {view === 'sales_report' && canRead('sales_report') && <SalesReport reports={reports} setReports={setReports} t={t} lang={lang} session={session} fmt={fmt} />}
         {view === 'finance' && canRead('finance') && <FinanceModule data={data} setData={setData} t={t} lang={lang} canEdit={canEdit('finance')} fmt={fmt} />}
@@ -4228,9 +4416,10 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
         {view === 'business_trip' && canRead('business_trip') && <BusinessTripModule businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} employees={employees} t={t} lang={lang} session={session} fmt={fmt} />}
         {view === 'audit_log' && (session.role === 'super_admin' || session.role === 'gm') && <AuditLogModule auditLog={auditLog} employees={employees} t={t} lang={lang} />}
         {view === 'risk' && <RiskConcentration data={data} t={t} lang={lang} fmt={fmt} />}
+        {view === 'products' && <ProductMasterModule products={products} setProducts={setProducts} t={t} lang={lang} canEdit={session.role === 'super_admin' || session.role === 'gm' || session.role === 'manager_ops' || session.role === 'admin'} logAction={logAction} data={data} />}
       </main>
 
-      {modalOpen && <SPHModal sph={editingSph} t={t} lang={lang} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingSph(null); }} fmtFull={fmtFull} />}
+      {modalOpen && <SPHModal sph={editingSph} t={t} lang={lang} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingSph(null); }} fmtFull={fmtFull} existingData={data} products={products} />}
       <ConfirmDialog open={!!deleteSphId} title={lang === 'id' ? 'Hapus SPH?' : 'Delete SPH?'} message={t.confirm_delete || (lang === 'id' ? 'Yakin ingin menghapus SPH ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this SPH? This action cannot be undone.')} onConfirm={confirmDeleteSph} onCancel={() => setDeleteSphId(null)} danger lang={lang} />
       {changePwOpen && <ChangePasswordModal session={session} employees={employees} onSave={handleChangePassword} onClose={() => setChangePwOpen(false)} t={t} lang={lang} />}
       <Footer t={t} lastSync={lastSync} onRefresh={onRefresh} lang={lang} />
@@ -4335,7 +4524,7 @@ const WIBClock = React.memo(function WIBClock({ lang, compact = false }) {
 });
 
 function Header({ session, setSession, lang, setLang, view, setView, allowedNav, t, mobileMenuOpen, setMobileMenuOpen, exchangeRate, setExchangeRate, businessTrips, realizations, onChangePassword }) {
-  const navIcons = { dashboard: Activity, sph: FileText, pipeline: Briefcase, sales: Users, sales_report: ClipboardList, incentive: DollarSign, finance: Wallet, operations: Truck, installation: Wrench, maintenance: Settings, regulatory: ShieldCheck, valuation: TrendingUp, employees: UserPlus, business_trip: Plane, audit_log: History, risk: Target };
+  const navIcons = { dashboard: Activity, sph: FileText, pipeline: Briefcase, sales: Users, sales_report: ClipboardList, incentive: DollarSign, finance: Wallet, operations: Truck, installation: Wrench, maintenance: Settings, regulatory: ShieldCheck, valuation: TrendingUp, employees: UserPlus, business_trip: Plane, audit_log: History, risk: Target, products: Layers };
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [rateMenuOpen, setRateMenuOpen] = useState(false);
   const [tempRate, setTempRate] = useState(exchangeRate);
@@ -5021,7 +5210,13 @@ function SPHManagement({ data, t, lang, canEdit, fmt, onAdd, onEdit, onDelete })
   );
 }
 
-function PipelineBoard({ data, t, lang, canEdit, fmt, onEdit }) {
+function PipelineBoard({ data, allData, setData, session, logAction, t, lang, canEdit, fmt, onEdit }) {
+  // For privileged roles, allow filtering by sales owner; sales role uses its own data
+  const isPrivilegedRole = session && (session.role === 'super_admin' || session.role === 'gm' || session.role === 'manager_ops' || session.role === 'admin');
+  // Sales owner filter — 'all' or specific sales id
+  const [filterSales, setFilterSales] = useState('all');
+  // Deal reassignment modal state
+  const [reassignDeal, setReassignDeal] = useState(null); // null | { deal, newOwner }
   // Default to current year (2026) so pipeline shows current-year deals
   const [filterYear, setFilterYear] = useState('2026');
   // Win rate calculation mode: 'current' (filtered year only) | 'ttm' (trailing 12 months) | 'all' (cumulative)
@@ -5056,7 +5251,8 @@ function PipelineBoard({ data, t, lang, canEdit, fmt, onEdit }) {
   // PERFORMANCE: All pipeline calcs memoized (now scoped by selected year + probability)
   const pipelineStats = useMemo(() => {
     const yearScoped = filterYear === 'all' ? data : data.filter(s => s.issuedDate?.startsWith(filterYear));
-    const probScoped = probFilter === 'all' ? yearScoped : yearScoped.filter(s => probBucket(s) === probFilter);
+    const salesScoped = filterSales === 'all' ? yearScoped : yearScoped.filter(s => s.salesOwner === filterSales);
+    const probScoped = probFilter === 'all' ? salesScoped : salesScoped.filter(s => probBucket(s) === probFilter);
     const pipelineData = probScoped.filter(s => s.status === 'active' || s.status === 'won' || s.status === 'lost');
     const totalDeals = pipelineData.length;
     const totalValue = pipelineData.reduce((s, p) => s + (Number(p.totalValue) || 0), 0);
@@ -5093,7 +5289,7 @@ function PipelineBoard({ data, t, lang, canEdit, fmt, onEdit }) {
     const smallSample = winRateDen > 0 && winRateDen < 20;
 
     return { pipelineData, totalDeals, totalValue, wonCount, lostCount, activeCount, winRate, winRateNum, winRateDen, winRateScope, smallSample, ttmWon, ttmLost, allWon, allLost };
-  }, [data, filterYear, winRateMode, probFilter]);
+  }, [data, filterYear, winRateMode, probFilter, filterSales]);
   const { pipelineData, totalDeals, totalValue, wonCount, lostCount, activeCount, winRate, winRateNum, winRateDen, winRateScope, smallSample } = pipelineStats;
 
   // Stage definitions including lost - show statistical view of full journey
@@ -5122,14 +5318,23 @@ function PipelineBoard({ data, t, lang, canEdit, fmt, onEdit }) {
       </div>
       {!canEdit && <ReadOnlyBanner t={t} />}
 
-      {/* Year filter */}
+      {/* Year filter + Sales filter */}
       <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', flexWrap: 'wrap'}}>
         <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{lang === 'id' ? 'Tahun' : 'Year'}:</span>
         <select value={filterYear} onChange={e => setFilterYear(e.target.value)} style={{width: 'auto', minWidth: '110px'}}>
           <option value="all">{lang === 'id' ? 'Semua Tahun' : 'All Years'}</option>
           {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
         </select>
-        <span style={{fontSize: '11px', color: '#8a7d5c', fontStyle: 'italic'}}>{lang === 'id' ? `Menampilkan ${pipelineData.length} deal untuk ${filterYear === 'all' ? 'semua tahun' : filterYear}` : `Showing ${pipelineData.length} deals for ${filterYear === 'all' ? 'all years' : filterYear}`}</span>
+        {isPrivilegedRole && (
+          <>
+            <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginLeft: '8px'}}>{lang === 'id' ? '👤 Sales' : '👤 Sales'}:</span>
+            <select value={filterSales} onChange={e => setFilterSales(e.target.value)} style={{width: 'auto', minWidth: '170px'}}>
+              <option value="all">{lang === 'id' ? 'Semua Sales' : 'All Sales'}</option>
+              {SALES_TEAM.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </>
+        )}
+        <span style={{fontSize: '11px', color: '#8a7d5c', fontStyle: 'italic'}}>{lang === 'id' ? `Menampilkan ${pipelineData.length} deal` : `Showing ${pipelineData.length} deals`}{filterSales !== 'all' && ` · ${SALES_TEAM.find(s => s.id === filterSales)?.name}`}</span>
       </div>
 
       {/* Probability filter + Sort */}
@@ -5233,16 +5438,35 @@ function PipelineBoard({ data, t, lang, canEdit, fmt, onEdit }) {
               <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
                 {projects.map(p => {
                   const pt = projectTypeMap.get(p.projectType);
+                  const owner = SALES_TEAM.find(s => s.id === p.salesOwner);
                   return (
-                    <div key={p.id} className="card-hover" onClick={() => canEdit && onEdit(p)} style={{padding: '13px', background: '#fefcf7', border: '1px solid #e8e1cc', cursor: canEdit ? 'pointer' : 'default', opacity: isLostCol ? 0.75 : 1}}>
-                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', gap: '8px'}}>
-                        <div style={{fontSize: '12px', fontWeight: 600, lineHeight: 1.3, textDecoration: isLostCol ? 'line-through' : 'none'}}>{p.customer}</div>
-                        <div style={{width: '26px', height: '26px', borderRadius: '50%', background: stage.color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 600, flexShrink: 0}}>{p.probability}</div>
+                    <div key={p.id} className="card-hover" style={{padding: '13px', background: '#fefcf7', border: '1px solid #e8e1cc', opacity: isLostCol ? 0.75 : 1}}>
+                      <div onClick={() => canEdit && onEdit(p)} style={{cursor: canEdit ? 'pointer' : 'default'}}>
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', gap: '8px'}}>
+                          <div style={{fontSize: '12px', fontWeight: 600, lineHeight: 1.3, textDecoration: isLostCol ? 'line-through' : 'none'}}>{p.customer}</div>
+                          <div style={{width: '26px', height: '26px', borderRadius: '50%', background: stage.color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 600, flexShrink: 0}}>{p.probability}</div>
+                        </div>
+                        {pt && <div style={{display: 'inline-block', padding: '2px 6px', fontSize: '9px', background: pt.color + '25', color: pt.color, fontWeight: 600, letterSpacing: '0.05em', marginBottom: '8px', textTransform: 'uppercase'}}>{t[`ptype_${p.projectType}`]}</div>}
+                        <div style={{fontSize: '10px', color: '#8a7d5c', marginBottom: '8px'}}>{p.subModality} · Qty {p.qty}</div>
+                        <div className="mono" style={{fontSize: '13px', fontWeight: 500}}>{fmt(p.totalValue)}</div>
+                        {p.stage === 'tender' && p.tenderSubStage && <div style={{padding: '3px 7px', background: '#c8a96a20', color: '#8a7d5c', fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: '6px', display: 'inline-block', fontWeight: 600}}>{t[`tender_${p.tenderSubStage}`]}</div>}
                       </div>
-                      {pt && <div style={{display: 'inline-block', padding: '2px 6px', fontSize: '9px', background: pt.color + '25', color: pt.color, fontWeight: 600, letterSpacing: '0.05em', marginBottom: '8px', textTransform: 'uppercase'}}>{t[`ptype_${p.projectType}`]}</div>}
-                      <div style={{fontSize: '10px', color: '#8a7d5c', marginBottom: '8px'}}>{p.subModality} · Qty {p.qty}</div>
-                      <div className="mono" style={{fontSize: '13px', fontWeight: 500}}>{fmt(p.totalValue)}</div>
-                      {p.stage === 'tender' && p.tenderSubStage && <div style={{padding: '3px 7px', background: '#c8a96a20', color: '#8a7d5c', fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: '6px', display: 'inline-block', fontWeight: 600}}>{t[`tender_${p.tenderSubStage}`]}</div>}
+                      {/* Owner badge with reassign button — only for privileged roles */}
+                      <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #e8e1cc'}}>
+                        {owner ? (
+                          <div style={{display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0}}>
+                            <div style={{width: '20px', height: '20px', borderRadius: '50%', background: owner.accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 600, flexShrink: 0}}>{owner.initial}</div>
+                            <span style={{fontSize: '10.5px', color: '#1a2942', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{owner.name}</span>
+                          </div>
+                        ) : (
+                          <span style={{fontSize: '10px', color: '#c03030', fontStyle: 'italic'}}>{lang === 'id' ? 'Belum ada owner' : 'Unassigned'}</span>
+                        )}
+                        {isPrivilegedRole && canEdit && (
+                          <button onClick={(e) => { e.stopPropagation(); setReassignDeal({ deal: p, newOwner: p.salesOwner || 'lukman' }); }} style={{background: 'transparent', border: '1px solid #d4cdb8', color: '#1a4d8a', padding: '2px 6px', cursor: 'pointer', fontSize: '9px', fontFamily: 'inherit', fontWeight: 600, letterSpacing: '0.03em', flexShrink: 0}} title={lang === 'id' ? 'Ubah owner sales' : 'Reassign sales owner'}>
+                            ⇄ {lang === 'id' ? 'Ubah' : 'Reassign'}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -5252,6 +5476,73 @@ function PipelineBoard({ data, t, lang, canEdit, fmt, onEdit }) {
           );
         })}
       </div>
+
+      {/* Sales Reassignment Modal — only privileged roles */}
+      {reassignDeal && (
+        <div className="modal-overlay" onClick={() => setReassignDeal(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '520px'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
+              <h2 className="serif" style={{fontSize: '20px', margin: 0, fontWeight: 500}}>{lang === 'id' ? 'Ubah Owner Sales' : 'Reassign Sales Owner'}</h2>
+              <button onClick={() => setReassignDeal(null)} style={{background: 'transparent', border: 'none', cursor: 'pointer', color: '#8a7d5c'}}><X size={18} /></button>
+            </div>
+
+            <div style={{padding: '12px 14px', background: '#fef9e7', border: '1px solid #c8a96a', marginBottom: '14px', fontSize: '11.5px', color: '#5a4a1a', lineHeight: 1.5}}>
+              <strong>{lang === 'id' ? '💡 Mengapa pindah owner?' : '💡 Why reassign?'}</strong>
+              <div style={{marginTop: '4px'}}>
+                {lang === 'id'
+                  ? 'Faskes group (Hermina, Pramita, Mitra Keluarga) pengadaan dari pusat. Misal: Hermina Makassar — area vacant — bisa di-assign ke Dwi (pusat Jakarta) atau Icha (asisten Dwi). Setiap perubahan tercatat di Audit Trail.'
+                  : 'Healthcare groups (Hermina, Pramita) procure centrally. E.g. Hermina Makassar — vacant area — can be assigned to Dwi (Jakarta HQ) or Icha. Every change is logged to Audit Trail.'}
+              </div>
+            </div>
+
+            <div style={{padding: '12px', background: '#f0ebe0', marginBottom: '14px'}}>
+              <div style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '6px'}}>{lang === 'id' ? 'Deal' : 'Deal'}</div>
+              <div style={{fontSize: '13px', fontWeight: 600, color: '#1a2942'}}>{reassignDeal.deal.customer}</div>
+              <div style={{fontSize: '11px', color: '#8a7d5c', marginTop: '3px'}}>
+                <span className="mono">{reassignDeal.deal.sphNo}</span> · {reassignDeal.deal.modality} {reassignDeal.deal.subModality} · {fmt(reassignDeal.deal.totalValue)}
+              </div>
+            </div>
+
+            <Field label={lang === 'id' ? 'Owner Sales Baru' : 'New Sales Owner'}>
+              <select value={reassignDeal.newOwner} onChange={e => setReassignDeal(r => ({ ...r, newOwner: e.target.value }))}>
+                {SALES_TEAM.map(s => (
+                  <option key={s.id} value={s.id}>{s.name} · {lang === 'id' ? s.territory : s.territoryEn}</option>
+                ))}
+              </select>
+            </Field>
+
+            {reassignDeal.deal.salesOwner !== reassignDeal.newOwner && (
+              <div style={{marginTop: '10px', padding: '8px 12px', background: '#e8f4ed', border: '1px solid #3a6b3a', fontSize: '11px', color: '#1a4d2a'}}>
+                {lang === 'id' ? 'Pindah dari' : 'Reassigning from'} <strong>{SALES_TEAM.find(s => s.id === reassignDeal.deal.salesOwner)?.name || '—'}</strong> → <strong>{SALES_TEAM.find(s => s.id === reassignDeal.newOwner)?.name}</strong>
+              </div>
+            )}
+
+            <div style={{display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px'}}>
+              <button onClick={() => setReassignDeal(null)} style={{background: 'transparent', border: '1px solid #d4cdb8', color: '#8a7d5c', padding: '8px 18px', fontFamily: 'inherit', fontSize: '12px', cursor: 'pointer'}}>{lang === 'id' ? 'Batal' : 'Cancel'}</button>
+              <button onClick={() => {
+                const oldOwner = reassignDeal.deal.salesOwner;
+                const newOwner = reassignDeal.newOwner;
+                if (oldOwner === newOwner) { setReassignDeal(null); return; }
+                if (setData) {
+                  setData(prev => prev.map(s => s.id === reassignDeal.deal.id ? { ...s, salesOwner: newOwner, _ownerHistory: [...(s._ownerHistory || []), { from: oldOwner, to: newOwner, at: new Date().toISOString(), by: session?.username || 'unknown' }] } : s));
+                }
+                if (logAction) {
+                  logAction({
+                    module: 'sph', action: 'update',
+                    entityId: reassignDeal.deal.id,
+                    entityLabel: `${reassignDeal.deal.sphNo} · ${reassignDeal.deal.customer}`,
+                    field: 'salesOwner',
+                    before: SALES_TEAM.find(s => s.id === oldOwner)?.name || oldOwner,
+                    after: SALES_TEAM.find(s => s.id === newOwner)?.name || newOwner,
+                    note: 'Reassigned via Pipeline board',
+                  });
+                }
+                setReassignDeal(null);
+              }} style={{background: '#1a2942', color: '#fff', border: 'none', padding: '8px 18px', fontFamily: 'inherit', fontSize: '12px', cursor: 'pointer', fontWeight: 600}}>{lang === 'id' ? 'Simpan Perubahan' : 'Save Change'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -5703,6 +5994,338 @@ function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, session, fmt }
 // Akses: hanya CEO (super_admin), General Manager (gm), dan Manager Operasional (manager_ops)
 // ============== Risk Concentration Dashboard ==============
 // Investor-grade risk dashboard: customer/principal/region concentration, payment overdue heatmap
+// ============== Product Master Module ==============
+// CRUD database for product catalog — single source of truth for all SPH/SPK/Quotation generation
+// Editable: anyone with super_admin or manager_ops role can add/edit/delete
+// Auto-syncs to SPH module via autocomplete dropdown
+function ProductMasterModule({ products, setProducts, t, lang, canEdit, logAction, data }) {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [search, setSearch] = useState('');
+  const [filterModality, setFilterModality] = useState('all');
+  const [filterBrand, setFilterBrand] = useState('all');
+  const [filterOrigin, setFilterOrigin] = useState('all');
+  const [filterActive, setFilterActive] = useState('all');
+  const [deleteId, setDeleteId] = useState(null);
+
+  // Derive filter options from data
+  const modalities = useMemo(() => [...new Set(products.map(p => p.modality).filter(Boolean))].sort(), [products]);
+  const brands = useMemo(() => [...new Set(products.map(p => p.brand).filter(Boolean))].sort(), [products]);
+  const origins = useMemo(() => [...new Set(products.map(p => p.origin).filter(Boolean))].sort(), [products]);
+
+  // Apply all filters
+  const filtered = useMemo(() => products.filter(p => {
+    if (filterModality !== 'all' && p.modality !== filterModality) return false;
+    if (filterBrand !== 'all' && p.brand !== filterBrand) return false;
+    if (filterOrigin !== 'all' && p.origin !== filterOrigin) return false;
+    if (filterActive === 'active' && !p.active) return false;
+    if (filterActive === 'inactive' && p.active) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (!p.name?.toLowerCase().includes(q) &&
+          !p.brand?.toLowerCase().includes(q) &&
+          !p.type?.toLowerCase().includes(q) &&
+          !p.principal?.toLowerCase().includes(q) &&
+          !p.modality?.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  }), [products, search, filterModality, filterBrand, filterOrigin, filterActive]);
+
+  // Calculate KPIs
+  const kpis = useMemo(() => {
+    const activeProducts = products.filter(p => p.active).length;
+    const byOrigin = {};
+    products.forEach(p => { if (p.active) byOrigin[p.origin] = (byOrigin[p.origin] || 0) + 1; });
+    // Usage count from SPH data
+    const usage = new Map();
+    (data || []).forEach(s => {
+      const key = `${s.modality}::${s.subModality}`;
+      usage.set(key, (usage.get(key) || 0) + 1);
+    });
+    return { total: products.length, active: activeProducts, inactive: products.length - activeProducts, byOrigin, usage };
+  }, [products, data]);
+
+  const handleSave = (prod) => {
+    const isEdit = !!editingProduct;
+    if (isEdit) {
+      const before = editingProduct;
+      setProducts(prev => prev.map(p => p.id === prod.id ? prod : p));
+      if (logAction) logAction({ module: 'products', action: 'update', entityId: prod.id, entityLabel: prod.name, field: 'product', before: `${before.brand} ${before.type}`, after: `${prod.brand} ${prod.type}` });
+    } else {
+      const newProd = { ...prod, id: 'prod_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6) };
+      setProducts(prev => [...prev, newProd]);
+      if (logAction) logAction({ module: 'products', action: 'create', entityId: newProd.id, entityLabel: newProd.name, note: `Brand: ${newProd.brand}, Type: ${newProd.type}, Origin: ${newProd.origin}` });
+    }
+    setModalOpen(false); setEditingProduct(null);
+  };
+
+  const confirmDelete = () => {
+    const prod = products.find(p => p.id === deleteId);
+    setProducts(prev => prev.filter(p => p.id !== deleteId));
+    if (prod && logAction) logAction({ module: 'products', action: 'delete', entityId: deleteId, entityLabel: prod.name, note: 'Permanently removed from master' });
+    setDeleteId(null);
+  };
+
+  const toggleActive = (id) => {
+    if (!canEdit) return;
+    const prod = products.find(p => p.id === id);
+    if (!prod) return;
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, active: !p.active } : p));
+    if (logAction) logAction({ module: 'products', action: 'update', entityId: id, entityLabel: prod.name, field: 'active', before: prod.active, after: !prod.active });
+  };
+
+  const exportCSV = () => {
+    const header = [lang === 'id' ? 'Nama Produk' : 'Product Name', lang === 'id' ? 'Modalitas' : 'Modality', lang === 'id' ? 'Merek' : 'Brand', lang === 'id' ? 'Tipe' : 'Type', lang === 'id' ? 'Asal' : 'Origin', 'Principal', 'TKDN %', 'AKL', lang === 'id' ? 'Status' : 'Status', lang === 'id' ? 'Catatan' : 'Notes'];
+    const rows = [header, ...filtered.map(p => [p.name, p.modality, p.brand, p.type, p.origin, p.principal, p.tkdn, p.akl, p.active ? 'Aktif' : 'Nonaktif', p.notes || ''])];
+    downloadCSV(`HNTI_Product_Master_${new Date().toISOString().split('T')[0]}.csv`, rows);
+  };
+
+  const originFlag = (o) => ({ 'China': '🇨🇳', 'Korea': '🇰🇷', 'Taiwan': '🇹🇼', 'Japan': '🇯🇵', 'Germany': '🇩🇪', 'USA': '🇺🇸' })[o] || '🌐';
+
+  return (
+    <div>
+      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '22px', flexWrap: 'wrap', gap: '12px'}}>
+        <div>
+          <div style={{fontSize: '11px', letterSpacing: '0.3em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '6px'}}>{lang === 'id' ? 'Master Data' : 'Master Data'}</div>
+          <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{lang === 'id' ? 'Master Produk' : 'Product Master'}</h1>
+          <div style={{fontSize: '13px', color: '#8a7d5c', marginTop: '6px'}}>{lang === 'id' ? 'Database produk terpusat — tersinkron ke semua modul' : 'Centralized product database — synced to all modules'}</div>
+        </div>
+        {canEdit && (
+          <button onClick={() => { setEditingProduct(null); setModalOpen(true); }} style={{background: '#1a2942', color: '#fff', border: 'none', padding: '10px 18px', fontSize: '12px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '7px', letterSpacing: '0.03em'}}>
+            <Plus size={14} strokeWidth={2} />{lang === 'id' ? 'Tambah Produk' : 'Add Product'}
+          </button>
+        )}
+      </div>
+
+      {/* KPI Cards */}
+      <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '22px', border: '1px solid #d4cdb8'}}>
+        <div className="card-pad">
+          <div className="lbl-tag">{lang === 'id' ? 'Total Produk' : 'Total Products'}</div>
+          <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{kpis.total}</div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{kpis.active} {lang === 'id' ? 'aktif' : 'active'} · {kpis.inactive} {lang === 'id' ? 'nonaktif' : 'inactive'}</div>
+        </div>
+        <div className="card-pad">
+          <div className="lbl-tag">{lang === 'id' ? 'Modalitas' : 'Modalities'}</div>
+          <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#1a4d8a'}}>{modalities.length}</div>
+        </div>
+        <div className="card-pad">
+          <div className="lbl-tag">{lang === 'id' ? 'Merek' : 'Brands'}</div>
+          <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#7b3fb5'}}>{brands.length}</div>
+        </div>
+        <div className="card-pad">
+          <div className="lbl-tag">{lang === 'id' ? 'Negara Asal' : 'Countries'}</div>
+          <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: '#3a6b3a'}}>{origins.length}</div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{origins.map(o => originFlag(o)).join(' ')}</div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div style={{display: 'flex', gap: '10px', marginBottom: '14px', alignItems: 'center', flexWrap: 'wrap'}}>
+        <div style={{position: 'relative', flex: '1 1 240px', maxWidth: '340px'}}>
+          <Search size={14} style={{position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#8a7d5c'}} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={lang === 'id' ? 'Cari nama, merek, tipe...' : 'Search name, brand, type...'} style={{paddingLeft: '36px'}} />
+        </div>
+        <select value={filterModality} onChange={e => setFilterModality(e.target.value)} style={{width: 'auto', minWidth: '120px'}}>
+          <option value="all">{lang === 'id' ? 'Semua Modalitas' : 'All Modalities'}</option>
+          {modalities.map(m => <option key={m} value={m}>{m}</option>)}
+        </select>
+        <select value={filterBrand} onChange={e => setFilterBrand(e.target.value)} style={{width: 'auto', minWidth: '110px'}}>
+          <option value="all">{lang === 'id' ? 'Semua Merek' : 'All Brands'}</option>
+          {brands.map(b => <option key={b} value={b}>{b}</option>)}
+        </select>
+        <select value={filterOrigin} onChange={e => setFilterOrigin(e.target.value)} style={{width: 'auto', minWidth: '110px'}}>
+          <option value="all">{lang === 'id' ? 'Semua Asal' : 'All Origins'}</option>
+          {origins.map(o => <option key={o} value={o}>{originFlag(o)} {o}</option>)}
+        </select>
+        <select value={filterActive} onChange={e => setFilterActive(e.target.value)} style={{width: 'auto', minWidth: '110px'}}>
+          <option value="all">{lang === 'id' ? 'Semua Status' : 'All Status'}</option>
+          <option value="active">{lang === 'id' ? 'Aktif' : 'Active'}</option>
+          <option value="inactive">{lang === 'id' ? 'Nonaktif' : 'Inactive'}</option>
+        </select>
+        <button onClick={exportCSV} style={{background: '#3a6b3a', border: 'none', color: '#fff', padding: '6px 12px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px', marginLeft: 'auto'}}>
+          <Download size={12} />CSV ({filtered.length})
+        </button>
+      </div>
+
+      {/* Product table */}
+      <div style={{background: '#fefcf7', border: '1px solid #e8e1cc', overflowX: 'auto'}}>
+        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11.5px', minWidth: '1000px'}}>
+          <thead>
+            <tr style={{background: '#f0ebe0'}}>
+              <Th>{lang === 'id' ? 'Nama Produk' : 'Product Name'}</Th>
+              <Th>{lang === 'id' ? 'Modalitas' : 'Modality'}</Th>
+              <Th>{lang === 'id' ? 'Merek' : 'Brand'}</Th>
+              <Th>{lang === 'id' ? 'Tipe' : 'Type'}</Th>
+              <Th>{lang === 'id' ? 'Asal' : 'Origin'}</Th>
+              <Th>Principal</Th>
+              <Th align="right">TKDN</Th>
+              <Th align="center">{lang === 'id' ? 'Dipakai' : 'Used'}</Th>
+              <Th align="center">{lang === 'id' ? 'Status' : 'Status'}</Th>
+              {canEdit && <Th align="center">{lang === 'id' ? 'Aksi' : 'Actions'}</Th>}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 && (
+              <tr><Td colSpan={canEdit ? 10 : 9}><div className="empty-state">{lang === 'id' ? 'Tidak ada produk yang sesuai filter' : 'No products match filter'}</div></Td></tr>
+            )}
+            {filtered.map(p => {
+              const used = kpis.usage.get(`${p.modality}::${p.type}`) || 0;
+              return (
+                <tr key={p.id} className="hover-row" style={{borderTop: '1px solid #e8e1cc', opacity: p.active ? 1 : 0.55}}>
+                  <Td>
+                    <div style={{fontWeight: 600, color: '#1a2942'}}>{p.name}</div>
+                    {p.notes && <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px', fontStyle: 'italic', maxWidth: '280px'}}>{p.notes}</div>}
+                  </Td>
+                  <Td>{p.modality}</Td>
+                  <Td><span style={{fontWeight: 500}}>{p.brand}</span></Td>
+                  <Td>{p.type}</Td>
+                  <Td><span style={{fontSize: '13px'}}>{originFlag(p.origin)}</span> {p.origin}</Td>
+                  <Td><span style={{fontSize: '11px'}}>{p.principal}</span></Td>
+                  <Td align="right"><span className="mono" style={{fontSize: '11px', color: (p.tkdn || 0) >= 20 ? '#3a6b3a' : '#8a7d5c'}}>{p.tkdn || 0}%</span></Td>
+                  <Td align="center">
+                    {used > 0 ? (
+                      <span style={{padding: '2px 8px', fontSize: '10px', background: '#1a4d8a22', color: '#1a4d8a', fontWeight: 600, borderRadius: '3px'}}>{used}× SPH</span>
+                    ) : (
+                      <span style={{fontSize: '10px', color: '#8a7d5c', fontStyle: 'italic'}}>—</span>
+                    )}
+                  </Td>
+                  <Td align="center">
+                    <button onClick={() => toggleActive(p.id)} disabled={!canEdit} style={{padding: '3px 9px', fontSize: '10px', background: p.active ? '#3a6b3a' : '#8a7d5c', color: '#fff', border: 'none', cursor: canEdit ? 'pointer' : 'default', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', borderRadius: '3px'}}>{p.active ? (lang === 'id' ? 'Aktif' : 'Active') : (lang === 'id' ? 'Nonaktif' : 'Inactive')}</button>
+                  </Td>
+                  {canEdit && (
+                    <Td align="center">
+                      <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
+                        <button onClick={() => { setEditingProduct(p); setModalOpen(true); }} style={{background: 'transparent', border: '1px solid #1a4d8a', color: '#1a4d8a', padding: '4px 6px', cursor: 'pointer'}} title={lang === 'id' ? 'Edit' : 'Edit'}>
+                          <Edit2 size={11} />
+                        </button>
+                        <button onClick={() => setDeleteId(p.id)} disabled={used > 0} style={{background: 'transparent', border: '1px solid ' + (used > 0 ? '#d4cdb8' : '#c03030'), color: used > 0 ? '#d4cdb8' : '#c03030', padding: '4px 6px', cursor: used > 0 ? 'not-allowed' : 'pointer'}} title={used > 0 ? (lang === 'id' ? `Tidak bisa dihapus, masih dipakai di ${used} SPH` : `Cannot delete, used in ${used} SPH`) : (lang === 'id' ? 'Hapus' : 'Delete')}>
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
+                    </Td>
+                  )}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Product Modal */}
+      {modalOpen && (
+        <ProductModal product={editingProduct} onSave={handleSave} onCancel={() => { setModalOpen(false); setEditingProduct(null); }} t={t} lang={lang} existing={products} />
+      )}
+
+      {/* Delete confirmation */}
+      <ConfirmDialog
+        open={!!deleteId}
+        title={lang === 'id' ? 'Hapus Produk?' : 'Delete Product?'}
+        message={lang === 'id' ? `Hapus produk "${products.find(p => p.id === deleteId)?.name || ''}" dari master? Aksi ini tidak bisa dibatalkan.` : `Delete product "${products.find(p => p.id === deleteId)?.name || ''}" from master? This cannot be undone.`}
+        onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang}
+      />
+    </div>
+  );
+}
+
+// ============== Product Modal (Add/Edit) ==============
+function ProductModal({ product, onSave, onCancel, t, lang, existing }) {
+  const isEdit = !!product;
+  const [form, setForm] = useState(product || {
+    name: '', modality: '', brand: '', type: '', origin: '', principal: '', tkdn: 0, akl: '', active: true, notes: '',
+  });
+  const [error, setError] = useState('');
+
+  const update = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleSubmit = () => {
+    if (!form.name?.trim() || !form.brand?.trim() || !form.modality?.trim() || !form.type?.trim()) {
+      setError(lang === 'id' ? 'Nama, Modalitas, Merek, dan Tipe wajib diisi.' : 'Name, Modality, Brand, and Type are required.');
+      return;
+    }
+    // Check duplicate (same brand+type, exclude own)
+    const dup = existing.find(p => p.id !== form.id && p.brand?.toLowerCase() === form.brand.toLowerCase().trim() && p.type?.toLowerCase() === form.type.toLowerCase().trim());
+    if (dup) {
+      setError(lang === 'id' ? `Produk dengan merek "${form.brand}" dan tipe "${form.type}" sudah ada.` : `Product with brand "${form.brand}" and type "${form.type}" already exists.`);
+      return;
+    }
+    onSave({ ...form, name: form.name.trim(), brand: form.brand.trim(), type: form.type.trim() });
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={onCancel}>
+      <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '640px'}}>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid #e8e1cc'}}>
+          <h2 className="serif" style={{margin: 0, fontSize: '22px', fontWeight: 500}}>{isEdit ? (lang === 'id' ? 'Edit Produk' : 'Edit Product') : (lang === 'id' ? 'Tambah Produk Baru' : 'Add New Product')}</h2>
+          <button onClick={onCancel} style={{background: 'transparent', border: 'none', cursor: 'pointer', color: '#8a7d5c'}}><X size={20} /></button>
+        </div>
+        <div style={{padding: '20px 24px', maxHeight: '70vh', overflowY: 'auto'}}>
+          {error && <div style={{padding: '10px 14px', background: '#fde8e8', border: '1px solid #c03030', color: '#c03030', fontSize: '12px', marginBottom: '14px'}}>{error}</div>}
+          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px'}}>
+            <Field label={lang === 'id' ? 'Nama Produk (Display)' : 'Product Name (Display)'}>
+              <input value={form.name} onChange={e => update('name', e.target.value)} placeholder="contoh: MRI 1.5T Supermark" />
+              <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px', fontStyle: 'italic'}}>{lang === 'id' ? 'Format: [Tipe] [Merek] — tampil di SPH' : 'Format: [Type] [Brand] — shown on SPH'}</div>
+            </Field>
+            <Field label={lang === 'id' ? 'Modalitas' : 'Modality'}>
+              <select value={form.modality} onChange={e => update('modality', e.target.value)}>
+                <option value="">— {lang === 'id' ? 'Pilih' : 'Select'} —</option>
+                <option value="MRI">MRI</option>
+                <option value="CT Scan">CT Scan</option>
+                <option value="C-Arm">C-Arm</option>
+                <option value="X-Ray">X-Ray</option>
+                <option value="Mammography">Mammography</option>
+                <option value="Flat Panel Detector">Flat Panel Detector</option>
+                <option value="Ultrasound">Ultrasound</option>
+                <option value="Other">{lang === 'id' ? 'Lainnya' : 'Other'}</option>
+              </select>
+            </Field>
+            <Field label={lang === 'id' ? 'Merek' : 'Brand'}>
+              <input value={form.brand} onChange={e => update('brand', e.target.value)} placeholder="contoh: Precision, Innocare, Supermark" />
+            </Field>
+            <Field label={lang === 'id' ? 'Tipe / Model' : 'Type / Model'}>
+              <input value={form.type} onChange={e => update('type', e.target.value)} placeholder="contoh: MRI 1.5T, X-Ray Portable" />
+            </Field>
+            <Field label={lang === 'id' ? 'Negara Asal' : 'Country of Origin'}>
+              <select value={form.origin} onChange={e => update('origin', e.target.value)}>
+                <option value="">— {lang === 'id' ? 'Pilih' : 'Select'} —</option>
+                <option value="China">🇨🇳 China</option>
+                <option value="Korea">🇰🇷 Korea</option>
+                <option value="Taiwan">🇹🇼 Taiwan</option>
+                <option value="Japan">🇯🇵 Japan</option>
+                <option value="Germany">🇩🇪 Germany</option>
+                <option value="USA">🇺🇸 USA</option>
+                <option value="Other">🌐 {lang === 'id' ? 'Lainnya' : 'Other'}</option>
+              </select>
+            </Field>
+            <Field label={lang === 'id' ? 'Principal (Pabrikan)' : 'Principal (Manufacturer)'}>
+              <input value={form.principal} onChange={e => update('principal', e.target.value)} placeholder="contoh: Anke Medical" />
+            </Field>
+            <Field label="TKDN %">
+              <input type="number" min="0" max="100" value={form.tkdn} onChange={e => update('tkdn', Number(e.target.value) || 0)} placeholder="0-100" />
+              <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px', fontStyle: 'italic'}}>{lang === 'id' ? '≥20% lolos lelang LKPP P3DN' : '≥20% qualifies for LKPP tender'}</div>
+            </Field>
+            <Field label="AKL (Izin Edar Kemenkes)">
+              <input value={form.akl} onChange={e => update('akl', e.target.value)} placeholder="KEMENKES RI AKL ..." />
+            </Field>
+          </div>
+          <Field label={lang === 'id' ? 'Catatan' : 'Notes'}>
+            <textarea value={form.notes} onChange={e => update('notes', e.target.value)} rows={2} placeholder={lang === 'id' ? 'Spesifikasi singkat, fitur unggulan, dll' : 'Brief spec, key features, etc'} />
+          </Field>
+          <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginTop: '14px', padding: '12px', background: '#fef9e7', border: '1px solid #c8a96a'}}>
+            <input type="checkbox" id="prod-active" checked={!!form.active} onChange={e => update('active', e.target.checked)} style={{width: '16px', height: '16px', cursor: 'pointer'}} />
+            <label htmlFor="prod-active" style={{fontSize: '12px', cursor: 'pointer', color: '#5a4a1a'}}>
+              <strong>{lang === 'id' ? 'Produk Aktif' : 'Active Product'}</strong> · {lang === 'id' ? 'Tampil di dropdown SPH' : 'Shown in SPH dropdown'}
+            </label>
+          </div>
+        </div>
+        <div style={{padding: '16px 24px', borderTop: '1px solid #e8e1cc', display: 'flex', justifyContent: 'flex-end', gap: '10px'}}>
+          <button onClick={onCancel} style={{background: 'transparent', border: '1px solid #d4cdb8', color: '#8a7d5c', padding: '8px 18px', fontFamily: 'inherit', fontSize: '12px', cursor: 'pointer'}}>{lang === 'id' ? 'Batal' : 'Cancel'}</button>
+          <button onClick={handleSubmit} style={{background: '#1a2942', color: '#fff', border: 'none', padding: '8px 18px', fontFamily: 'inherit', fontSize: '12px', cursor: 'pointer', fontWeight: 600}}>{lang === 'id' ? 'Simpan' : 'Save'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RiskConcentration({ data, t, lang, fmt }) {
   const [scope, setScope] = useState('all'); // 'all' | 'won' | 'po_issued'
 
@@ -9820,7 +10443,7 @@ function Valuation({ data, t, lang, fmt }) {
   );
 }
 
-function SPHModal({ sph, t, lang, onSave, onClose, fmtFull }) {
+function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, products }) {
   const [form, setForm] = useState(sph || {
     sphNo: `SPH/2026/${String(Date.now()).slice(-3)}`,
     customer: '', customerType: 'hospital', projectType: 'private',
@@ -9831,6 +10454,39 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull }) {
     poStatus: null, dpPaid: false, finalPaid: false, shippingStatus: null, customsStatus: null,
   });
 
+  // Duplicate detection — detect SPH dengan customer+modality+subModality yang sama
+  // Excludes self (kalau edit), excludes lost/cancelled, excludes status 'won' yang sudah closed
+  const duplicates = useMemo(() => {
+    if (!existingData || !form.customer || !form.modality || !form.subModality) return [];
+    const ownId = sph?.id;
+    return existingData.filter(s => {
+      if (s.id === ownId) return false;
+      if (s.status === 'lost' || s.status === 'cancelled') return false;
+      // Match customer (case-insensitive) + modality + subModality
+      return (
+        s.customer?.toLowerCase().trim() === form.customer.toLowerCase().trim() &&
+        s.modality?.toLowerCase() === form.modality.toLowerCase() &&
+        s.subModality?.toLowerCase().trim() === form.subModality.toLowerCase().trim()
+      );
+    });
+  }, [existingData, form.customer, form.modality, form.subModality, sph]);
+
+  // Modal state for duplicate confirmation
+  const [duplicatePrompt, setDuplicatePrompt] = useState(null); // null | { action: 'save_both' | 'replace' | 'cancel' }
+
+  // Active products only — for autocomplete dropdown
+  const activeProducts = useMemo(() => (products || []).filter(p => p.active !== false), [products]);
+  const modalityOptions = useMemo(() => {
+    const set = new Set(activeProducts.map(p => p.modality).filter(Boolean));
+    return Array.from(set).sort();
+  }, [activeProducts]);
+  // Filter sub-modalities by selected modality
+  const subModalityOptions = useMemo(() => {
+    return activeProducts.filter(p => p.modality === form.modality).map(p => ({
+      type: p.type, brand: p.brand, name: p.name, principal: p.principal, origin: p.origin,
+    }));
+  }, [activeProducts, form.modality]);
+
   const update = (k, v) => {
     setForm(prev => {
       const next = { ...prev, [k]: v };
@@ -9840,8 +10496,38 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull }) {
         if (stage) next.probability = stage.baseProbability;
         if (v === 'po_issued') next.poStatus = 'issued';
       }
+      // If modality changed, reset subModality (since options change)
+      if (k === 'modality') next.subModality = '';
+      // If customer changes, also auto-detect sales owner (if not yet set or matches old territory)
+      if (k === 'customer' && v && typeof detectSalesOwnerFromCustomer === 'function') {
+        const suggested = detectSalesOwnerFromCustomer(v);
+        if (suggested) next.salesOwner = suggested;
+      }
       return next;
     });
+  };
+
+  // Handle final save — interception logic for duplicates
+  const handleFinalSave = () => {
+    if (duplicates.length > 0 && !sph) {
+      // Only prompt for NEW SPH (not edits) when duplicates detected
+      setDuplicatePrompt({ open: true });
+      return;
+    }
+    onSave(form);
+  };
+
+  // User chose "save both" — proceed
+  const confirmSaveBoth = () => {
+    setDuplicatePrompt(null);
+    onSave({ ...form, _duplicateNote: `Sengaja disimpan meski ada ${duplicates.length} SPH serupa untuk customer & produk yang sama. Kemungkinan: update harga / revisi pasca-negosiasi.` });
+  };
+
+  // User chose "replace old" — mark old as cancelled and save new
+  const confirmReplace = () => {
+    const oldIds = duplicates.map(d => d.id);
+    setDuplicatePrompt(null);
+    onSave({ ...form, _replaceOldIds: oldIds, _duplicateNote: `Menggantikan ${duplicates.length} SPH lama (${duplicates.map(d => d.sphNo).join(', ')}) — kemungkinan revisi harga atau penawaran terbaru.` });
   };
 
   return (
@@ -9851,6 +10537,34 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull }) {
           <h2 className="serif" style={{fontSize: '24px', margin: 0, fontWeight: 500}}>{sph ? t.edit_sph : t.add_new_sph}</h2>
           <button onClick={onClose} style={{background: 'transparent', border: 'none', cursor: 'pointer', color: '#8a7d5c'}}><X size={20} /></button>
         </div>
+
+        {/* Duplicate warning banner — visible saat user mengetik */}
+        {duplicates.length > 0 && !sph && (
+          <div style={{padding: '12px 14px', background: '#fef3e2', border: '2px solid #c8a96a', marginBottom: '14px', fontSize: '12px', color: '#5a4a1a', lineHeight: 1.6}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px'}}>
+              <AlertTriangle size={16} color="#c8a96a" />
+              <strong style={{fontSize: '13px'}}>⚠ {lang === 'id' ? `${duplicates.length} SPH Serupa Terdeteksi` : `${duplicates.length} Similar SPH Detected`}</strong>
+            </div>
+            <div style={{fontSize: '11px', marginBottom: '6px'}}>
+              {lang === 'id'
+                ? `Customer "${form.customer}" dengan produk ${form.modality} (${form.subModality}) sudah pernah dapat SPH:`
+                : `Customer "${form.customer}" with product ${form.modality} (${form.subModality}) has previous SPH:`}
+            </div>
+            <ul style={{margin: 0, paddingLeft: '20px', fontSize: '11px'}}>
+              {duplicates.map(d => (
+                <li key={d.id} style={{marginBottom: '3px'}}>
+                  <span className="mono" style={{color: '#1a2942', fontWeight: 600}}>{d.sphNo}</span>
+                  <span style={{color: '#8a7d5c'}}> · {d.issuedDate} · </span>
+                  <span style={{fontWeight: 500}}>{fmtFull ? fmtFull(d.totalValue) : d.totalValue}</span>
+                  <span style={{color: '#8a7d5c'}}> · stage: {d.stage}</span>
+                </li>
+              ))}
+            </ul>
+            <div style={{fontSize: '10.5px', color: '#8a7d5c', marginTop: '6px', fontStyle: 'italic'}}>
+              {lang === 'id' ? 'Saat menekan Simpan, sistem akan menanyakan: lanjutkan keduanya atau gantikan yang lama.' : 'On Save, system will ask: keep both or replace old one.'}
+            </div>
+          </div>
+        )}
 
         <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px'}}>
           {[
@@ -9885,12 +10599,25 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull }) {
           <div>
             <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '6px'}}>{t.modality}</label>
             <select value={form.modality} onChange={e => update('modality', e.target.value)}>
-              {Object.keys(MODALITY_COLORS).map(m => <option key={m} value={m}>{m}</option>)}
+              {(modalityOptions.length > 0 ? modalityOptions : Object.keys(MODALITY_COLORS)).map(m => <option key={m} value={m}>{m}</option>)}
             </select>
+            <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px', fontStyle: 'italic'}}>{lang === 'id' ? 'Dari Master Produk' : 'From Product Master'}</div>
           </div>
           <div style={{gridColumn: '1 / -1'}}>
-            <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '6px'}}>{lang === 'id' ? 'Sub-Modalitas' : 'Sub-Modality'}</label>
-            <input value={form.subModality} onChange={e => update('subModality', e.target.value)} placeholder="e.g. CT 128 Slice" />
+            <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '6px'}}>{lang === 'id' ? 'Tipe / Sub-Modalitas' : 'Type / Sub-Modality'}</label>
+            {subModalityOptions.length > 0 ? (
+              <>
+                <select value={form.subModality} onChange={e => update('subModality', e.target.value)}>
+                  <option value="">— {lang === 'id' ? 'Pilih dari Master Produk' : 'Select from Product Master'} —</option>
+                  {subModalityOptions.map((p, i) => (
+                    <option key={i} value={p.type}>{p.type} ({p.brand} · {p.origin})</option>
+                  ))}
+                </select>
+                <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px', fontStyle: 'italic'}}>{lang === 'id' ? `${subModalityOptions.length} produk tersedia untuk modalitas ${form.modality}` : `${subModalityOptions.length} products available for ${form.modality}`}</div>
+              </>
+            ) : (
+              <input value={form.subModality} onChange={e => update('subModality', e.target.value)} placeholder="e.g. CT 128 Slice" />
+            )}
           </div>
           <div>
             <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '6px'}}>{t.quantity}</label>
@@ -9941,9 +10668,97 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull }) {
 
         <div style={{display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '24px'}}>
           <button className="btn-ghost" onClick={onClose}>{t.cancel}</button>
-          <button className="btn-primary" onClick={() => onSave(form)}>{t.save}</button>
+          <button className="btn-primary" onClick={handleFinalSave}>{t.save}</button>
         </div>
       </div>
+
+      {/* Duplicate Detection Modal — pops over the SPH modal when duplicate is found */}
+      {duplicatePrompt && (
+        <div className="modal-overlay" style={{zIndex: 10001, background: 'rgba(0,0,0,0.7)'}} onClick={() => setDuplicatePrompt(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '600px'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px'}}>
+              <div style={{width: '40px', height: '40px', borderRadius: '50%', background: '#fef3e2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0}}>
+                <AlertTriangle size={22} color="#c8a96a" />
+              </div>
+              <h2 className="serif" style={{fontSize: '22px', margin: 0, fontWeight: 500, color: '#1a2942'}}>
+                {lang === 'id' ? `${duplicates.length} SPH Serupa Terdeteksi` : `${duplicates.length} Similar SPH Detected`}
+              </h2>
+            </div>
+
+            <p style={{fontSize: '13px', color: '#1a2942', lineHeight: 1.6, margin: '0 0 14px'}}>
+              {lang === 'id'
+                ? <>Sistem mendeteksi SPH dengan <strong>customer + produk + tipe yang sama</strong>. Hal ini umum terjadi karena:</>
+                : <>System detected SPH with <strong>same customer + product + type</strong>. This commonly happens because:</>}
+            </p>
+            <ul style={{fontSize: '12px', color: '#5a4a1a', lineHeight: 1.7, paddingLeft: '20px', margin: '0 0 14px', background: '#fef9e7', padding: '12px 14px 12px 32px', border: '1px solid #c8a96a'}}>
+              <li>{lang === 'id' ? 'Proyek tahun lalu pending, customer minta penawaran terbaru dengan harga update' : 'Last year\'s pending project, customer requests updated quotation'}</li>
+              <li>{lang === 'id' ? 'Hasil negosiasi — SPH baru dengan harga setelah diskusi' : 'Post-negotiation — new SPH reflecting agreed price'}</li>
+              <li>{lang === 'id' ? 'Revisi konfigurasi atau bundling alat berbeda' : 'Configuration revision or different equipment bundling'}</li>
+            </ul>
+
+            <div style={{padding: '12px', background: '#f0ebe0', marginBottom: '16px', maxHeight: '180px', overflowY: 'auto'}}>
+              <div style={{fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '8px'}}>
+                {lang === 'id' ? 'SPH Lama yang Sudah Ada' : 'Existing Previous SPH'}
+              </div>
+              {duplicates.map(d => (
+                <div key={d.id} style={{padding: '8px 10px', background: '#fefcf7', marginBottom: '6px', border: '1px solid #e8e1cc'}}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+                    <div>
+                      <span className="mono" style={{color: '#1a2942', fontWeight: 600, fontSize: '12px'}}>{d.sphNo}</span>
+                      <span style={{color: '#8a7d5c', fontSize: '11px'}}> · {d.issuedDate}</span>
+                    </div>
+                    <div style={{fontWeight: 600, color: '#1a2942', fontSize: '12px'}}>{fmtFull ? fmtFull(d.totalValue) : d.totalValue}</div>
+                  </div>
+                  <div style={{fontSize: '10.5px', color: '#8a7d5c', marginTop: '3px'}}>
+                    {lang === 'id' ? 'Stage' : 'Stage'}: <strong style={{color: '#1a2942'}}>{d.stage}</strong>
+                    {' · '}
+                    {lang === 'id' ? 'Probabilitas' : 'Probability'}: <strong style={{color: '#1a2942'}}>{d.probability}%</strong>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{fontSize: '12px', color: '#1a2942', lineHeight: 1.6, margin: '0 0 12px', fontWeight: 600}}>
+              {lang === 'id' ? 'Apa yang ingin Bapak lakukan?' : 'What would you like to do?'}
+            </div>
+
+            <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+              {/* Option 1: Save both */}
+              <button onClick={confirmSaveBoth} style={{padding: '12px 14px', background: '#fff', border: '1px solid #1a4d8a', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                  <Plus size={16} color="#1a4d8a" />
+                  <div style={{flex: 1}}>
+                    <div style={{fontSize: '12px', fontWeight: 600, color: '#1a4d8a'}}>{lang === 'id' ? 'Simpan Keduanya' : 'Save Both'}</div>
+                    <div style={{fontSize: '11px', color: '#8a7d5c', marginTop: '2px'}}>{lang === 'id' ? 'SPH baru disimpan, SPH lama tetap aktif. Berguna untuk membandingkan revisi harga.' : 'New SPH saved, old SPH stays active. Useful for tracking price revisions.'}</div>
+                  </div>
+                </div>
+              </button>
+
+              {/* Option 2: Replace old */}
+              <button onClick={confirmReplace} style={{padding: '12px 14px', background: '#fff', border: '1px solid #c8a96a', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                  <RefreshCw size={16} color="#c8a96a" />
+                  <div style={{flex: 1}}>
+                    <div style={{fontSize: '12px', fontWeight: 600, color: '#c8a96a'}}>{lang === 'id' ? `Gantikan SPH Lama (${duplicates.length})` : `Replace Old SPH (${duplicates.length})`}</div>
+                    <div style={{fontSize: '11px', color: '#8a7d5c', marginTop: '2px'}}>{lang === 'id' ? 'SPH lama di-set "cancelled" + SPH baru disimpan. Cocok untuk revisi pasca-negosiasi.' : 'Old SPHs marked "cancelled" + new SPH saved. Best for post-negotiation revision.'}</div>
+                  </div>
+                </div>
+              </button>
+
+              {/* Option 3: Cancel */}
+              <button onClick={() => setDuplicatePrompt(null)} style={{padding: '12px 14px', background: '#fefcf7', border: '1px solid #d4cdb8', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                  <X size={16} color="#8a7d5c" />
+                  <div style={{flex: 1}}>
+                    <div style={{fontSize: '12px', fontWeight: 600, color: '#8a7d5c'}}>{lang === 'id' ? 'Batal — Tinjau Ulang Dulu' : 'Cancel — Review First'}</div>
+                    <div style={{fontSize: '11px', color: '#8a7d5c', marginTop: '2px'}}>{lang === 'id' ? 'Kembali ke form untuk edit/perbaiki data.' : 'Back to form to edit/correct data.'}</div>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -10003,7 +10818,7 @@ const Footer = React.memo(function Footer({ t, lastSync, onRefresh, lang }) {
           <span style={{fontSize: '11px', color: '#8a7d5c'}}>· {t.company}</span>
         </div>
         {lastSync !== undefined && onRefresh && <SyncIndicator lastSync={lastSync} onRefresh={onRefresh} t={t} lang={lang} />}
-        <div className="lbl-tag">Phase 33 · © 2026</div>
+        <div className="lbl-tag">Phase 34 · © 2026</div>
       </div>
     </footer>
   );

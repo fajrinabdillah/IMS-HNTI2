@@ -4228,7 +4228,7 @@ export default function App() {
   const fmt = (n) => formatCurrency(n, lang, exchangeRate);
   const fmtFull = (n) => formatCurrencyFull(n, lang, exchangeRate);
 
-  if (loading) return <div style={{minHeight: '100vh', background: '#f8f5ef', display: 'flex', alignItems: 'center', justifyContent: 'center'}}><GlobalStyles /><IMSLogo size="lg" showTagline /></div>;
+  if (loading) return <div style={{minHeight: '100vh', background: '#f8f5ef', display: 'flex', alignItems: 'center', justifyContent: 'center'}}><GlobalStyles />;
   const handleLogin = (sessionData) => {
     setSession(sessionData);
     appendAuditLog(setAuditLog, {
@@ -13470,22 +13470,36 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
 
       {/* Catatan #1: Per-sales filter (CEO/Finance only) to drill into each sales' incentive */}
       {!isSales && (
-        <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', flexWrap: 'wrap'}}>
-          <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{lang === 'id' ? 'Filter Sales' : 'Filter Sales'}:</span>
-          <button onClick={() => setIncFilterSales('all')} style={{padding: '6px 14px', fontSize: '11px', fontFamily: 'inherit', background: incFilterSales === 'all' ? '#1a2942' : 'transparent', color: incFilterSales === 'all' ? '#fff' : '#1a2942', border: '1px solid #1a2942', cursor: 'pointer', fontWeight: 600}}>{lang === 'id' ? 'Semua Tim' : 'All Team'}</button>
-          {SALES_TEAM.map(s => (
-            <button key={s.id} onClick={() => setIncFilterSales(s.id)} style={{padding: '6px 14px', fontSize: '11px', fontFamily: 'inherit', background: incFilterSales === s.id ? s.accent : 'transparent', color: incFilterSales === s.id ? '#fff' : s.accent, border: `1px solid ${s.accent}`, cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px'}}>
-              <span style={{width: '16px', height: '16px', borderRadius: '50%', background: incFilterSales === s.id ? 'rgba(255,255,255,0.3)' : s.accent, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700}}>{s.initial}</span>
-              {s.name.split(' ')[0]}
-            </button>
-          ))}
-        </div>
-      )}
-      {!isSales && incFilterSales !== 'all' && (
-        <div style={{padding: '10px 14px', marginBottom: '18px', background: 'rgba(26,41,66,0.04)', borderLeft: '3px solid #1a2942', fontSize: '12px', color: '#1a2942'}}>
-          {lang === 'id' ? 'Menampilkan detail insentif & perhitungan untuk' : 'Showing incentive detail & calculation for'} <strong>{SALES_TEAM.find(s => s.id === incFilterSales)?.name}</strong> · {poDeals.length} {lang === 'id' ? 'deal PO' : 'PO deals'} · {lang === 'id' ? 'Total insentif' : 'Total incentive'}: <strong>{fmt(ytdTotal)}</strong>
-        </div>
-      )}
+        // ====== KODE BARU: PANEL KIRI SEBAGAI GAMBAR FULL BLOCK ======
+<div style={{
+  // Kita ganti warna latar dengan gambar
+  backgroundImage: `url(${logoHNTI})`,
+  
+  // Agar gambar memenuhi kotak secara proporsional
+  backgroundSize: 'contain', // Menampilkan gambar utuh (agar teks terlihat), centered.
+  // backgroundSize: 'cover', // Pilihan Alternatif: Gambar memenuhi penuh sampai pinggir kotak, tapi mungkin akan terpotong sedikit jika aspect ratio beda. Bapak bisa coba 'cover' jika 'contain' terasa kurang full.
+  
+  // Posisi di tengah
+  backgroundPosition: 'center',
+  
+  // Jangan diulang gambarnya (tile)
+  backgroundRepeat: 'no-repeat',
+  
+  // Jaga warna latar belakang tetap sama dengan gambar agar serasi (jika aspect ratio beda)
+  backgroundColor: '#1a2942', 
+  
+  // Hapus semua padding agar gambar terasa benar-benar memenuhi kotak
+  padding: '0px', 
+  
+  // Pengaturan flex agar kontainer ini tetap pada posisi grid
+  display: 'flex',
+  minHeight: '100%',
+  alignItems: 'center',
+  justifyContent: 'center'
+}}>
+  {/* KOTAK INI SEKARANG KOSONG KARENA GAMBAR SUDAH MENJADI LATAR BELAKANG */}
+  {/* KITA TIDAK MEMANGGIL <IMSLogo /> DI SINI LAGI */}
+</div>      )}
 
       {/* KPI Cards */}
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '24px', border: '1px solid #d4cdb8'}}>

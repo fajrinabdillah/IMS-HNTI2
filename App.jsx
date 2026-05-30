@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { TrendingUp, FileText, Briefcase, Plus, Search, Edit2, Trash2, X, ArrowUpRight, ArrowDownRight, Activity, DollarSign, Users, Clock, Globe, LogOut, Shield, Wrench, Truck, Wallet, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, FileCheck, Menu, ChevronDown, ChevronRight, ChevronLeft, ClipboardList, Star, Settings, ShieldCheck, CalendarDays, AlertTriangle, FileSearch, UserPlus, UserCheck, UserX, Plane, Receipt, Hotel, RefreshCw, History, FolderOpen, Upload, MessageSquare, Download, Target, Layers, FileBarChart, Paperclip } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Area, ComposedChart } from 'recharts';
-import logoHNTI from './logo.png';
+
 const DEFAULT_USD_IDR = 18000;
 
 // ============== i18n ==============
@@ -3953,17 +3953,120 @@ const PAYMENT_TERMS = {
   'kso_monthly': { label: 'pt_kso_monthly', installments: 60, dpRequired: false },
 };
 
-// ====== KODE LOGO GAMBAR BARU ======
+// ============== Refined Logo (3-layer diamond) ==============
+// React.memo wrapped - logo is pure presentational, no state, no parent re-render needed
 const IMSLogo = React.memo(function IMSLogo({ size = 'md', inverted = false, showTagline = false }) {
-  const logoWidth = size === 'xl' ? '180px' : size === 'lg' ? '140px' : '100px';
+  const sizes = {
+    sm: { layer: 24, txt: 22, tag: 8, gap: 4, sub: 10 },
+    md: { layer: 36, txt: 32, tag: 10, gap: 5, sub: 12 },
+    lg: { layer: 64, txt: 56, tag: 14, gap: 8, sub: 18 },
+    xl: { layer: 96, txt: 84, tag: 20, gap: 12, sub: 28 },
+  };
+  const s = sizes[size] || sizes.md;
+  const txtColor = inverted ? '#f8f5ef' : '#1a2942';
+  const subColor = inverted ? '#f0e6c8' : '#1a2942';
+  const goldColor = '#c8a96a';
+  const goldLight = '#e8c98a';
+  const goldDark = '#a88a4a';
+  const silverColor = '#b8bcc4';
+  const silverLight = '#d8dce4';
+  const silverDark = '#8a8e96';
+  const blueColor = '#1e5aa8';
+  const blueLight = '#4a8ad8';
+  const blueDark = '#0a3a78';
+  const navyDark = '#0a1a35';
+
+  // Layer SVG size: width = 1.5x layer height; viewBox 90x80 for stacked chevrons
+  const svgW = s.layer * 1.15;
+  const svgH = s.layer * 1.05;
 
   return (
-    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-      <img 
-        src={logoHNTI} 
-        alt="Logo Resmi IMS HNTI" 
-        style={{ width: logoWidth, height: 'auto', objectFit: 'contain' }} 
-      />
+    <div style={{display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1}}>
+      <div style={{display: 'flex', alignItems: 'center', gap: `${s.gap + 3}px`}}>
+        {/* 3-layer stacked chevron logo: silver pyramid + gold chevron + blue chevron */}
+        <svg width={svgW} height={svgH} viewBox="0 0 90 80" style={{flexShrink: 0}}>
+          <defs>
+            {/* Silver gradient - top layer (pyramid/diamond) */}
+            <linearGradient id="ims-silver" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={silverLight} />
+              <stop offset="50%" stopColor={silverColor} />
+              <stop offset="100%" stopColor={silverDark} />
+            </linearGradient>
+            {/* Gold gradient - middle layer */}
+            <linearGradient id="ims-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={goldLight} />
+              <stop offset="50%" stopColor={goldColor} />
+              <stop offset="100%" stopColor={goldDark} />
+            </linearGradient>
+            {/* Blue gradient - bottom layer */}
+            <linearGradient id="ims-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={blueLight} />
+              <stop offset="50%" stopColor={blueColor} />
+              <stop offset="100%" stopColor={blueDark} />
+            </linearGradient>
+            {/* Inner face shading (darker side of chevron) */}
+            <linearGradient id="ims-silver-dark" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={silverColor} />
+              <stop offset="100%" stopColor={silverDark} />
+            </linearGradient>
+            <linearGradient id="ims-gold-dark" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={goldColor} />
+              <stop offset="100%" stopColor={goldDark} />
+            </linearGradient>
+            <linearGradient id="ims-blue-dark" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={blueColor} />
+              <stop offset="100%" stopColor={blueDark} />
+            </linearGradient>
+          </defs>
+
+          {/* Top: Silver pyramid/diamond (solid) */}
+          <polygon points="45,3 80,22 45,28 10,22" fill="url(#ims-silver)" stroke={silverDark} strokeWidth="0.5" />
+          {/* Silver face shading (right side darker) */}
+          <polygon points="45,3 80,22 45,28" fill="url(#ims-silver-dark)" opacity="0.35" />
+
+          {/* Middle: Gold chevron (pointing down) */}
+          <polygon points="10,30 45,49 80,30 80,38 45,57 10,38" fill="url(#ims-gold)" stroke={goldDark} strokeWidth="0.5" />
+          <polygon points="45,49 80,30 80,38 45,57" fill="url(#ims-gold-dark)" opacity="0.3" />
+
+          {/* Bottom: Blue chevron (pointing down) */}
+          <polygon points="10,46 45,65 80,46 80,55 45,75 10,55" fill="url(#ims-blue)" stroke={blueDark} strokeWidth="0.5" />
+          <polygon points="45,65 80,46 80,55 45,75" fill="url(#ims-blue-dark)" opacity="0.3" />
+        </svg>
+
+        {/* iMS text - navy with gold outline */}
+        <div style={{display: 'flex', alignItems: 'baseline', fontFamily: 'Inter, sans-serif', position: 'relative'}}>
+          <span style={{
+            fontSize: `${s.txt}px`,
+            fontWeight: 800,
+            color: txtColor,
+            letterSpacing: '-0.04em',
+            lineHeight: 0.9,
+            WebkitTextStroke: size === 'xl' || size === 'lg' ? `1px ${goldColor}` : `0.5px ${goldColor}`,
+            textShadow: inverted ? 'none' : `1px 1px 0 ${goldColor}40`,
+          }}>
+            <span style={{fontStyle: 'normal'}}>i</span>MS
+          </span>
+        </div>
+      </div>
+
+      {showTagline && (
+        <div style={{marginTop: `${s.gap * 1.2}px`, width: '100%'}}>
+          {/* Gold underline */}
+          <div style={{height: '2px', background: `linear-gradient(90deg, ${goldDark}, ${goldLight}, ${goldDark})`, marginBottom: `${s.gap}px`}} />
+          {/* Main subtitle */}
+          <div style={{
+            fontFamily: 'Inter, sans-serif',
+            fontSize: `${s.sub}px`,
+            fontWeight: 700,
+            color: subColor,
+            letterSpacing: '0.02em',
+            textTransform: 'uppercase',
+            WebkitTextStroke: (size === 'xl' || size === 'lg') ? `0.3px ${goldColor}` : 'none',
+          }}>
+            Integrated Monitoring System
+          </div>
+        </div>
+      )}
     </div>
   );
 });
@@ -3976,6 +4079,7 @@ const GlobalStyles = () => (
     body { margin: 0; }
     .serif { font-family: 'Cormorant Garamond', Georgia, serif; }
     .mono { font-family: 'JetBrains Mono', monospace; }
+    /* Common label styles (replaces 38+ duplicated inline styles) */
     .lbl-tag { font-size: 10px; letter-spacing: 0.2em; color: #8a7d5c; text-transform: uppercase; }
     .lbl-tag-sm { font-size: 9px; letter-spacing: 0.15em; color: #8a7d5c; text-transform: uppercase; font-weight: 600; }
     .lbl-tag-md { font-size: 11px; letter-spacing: 0.15em; color: #8a7d5c; text-transform: uppercase; font-weight: 600; }
@@ -4011,6 +4115,7 @@ const GlobalStyles = () => (
     .mobile-menu-btn { display: none; }
   `}</style>
 );
+
 // Main App
 export default function App() {
   const [lang, setLang] = useState('id');
@@ -4228,7 +4333,7 @@ export default function App() {
   const fmt = (n) => formatCurrency(n, lang, exchangeRate);
   const fmtFull = (n) => formatCurrencyFull(n, lang, exchangeRate);
 
-  if (loading) return <div style={{minHeight: '100vh', background: '#f8f5ef', display: 'flex', alignItems: 'center', justifyContent: 'center'}}><GlobalStyles />;
+  if (loading) return <div style={{minHeight: '100vh', background: '#f8f5ef', display: 'flex', alignItems: 'center', justifyContent: 'center'}}><GlobalStyles /><IMSLogo size="lg" showTagline /></div>;
   const handleLogin = (sessionData) => {
     setSession(sessionData);
     appendAuditLog(setAuditLog, {
@@ -13470,36 +13575,22 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
 
       {/* Catatan #1: Per-sales filter (CEO/Finance only) to drill into each sales' incentive */}
       {!isSales && (
-        // ====== KODE BARU: PANEL KIRI SEBAGAI GAMBAR FULL BLOCK ======
-<div style={{
-  // Kita ganti warna latar dengan gambar
-  backgroundImage: `url(${logoHNTI})`,
-  
-  // Agar gambar memenuhi kotak secara proporsional
-  backgroundSize: 'contain', // Menampilkan gambar utuh (agar teks terlihat), centered.
-  // backgroundSize: 'cover', // Pilihan Alternatif: Gambar memenuhi penuh sampai pinggir kotak, tapi mungkin akan terpotong sedikit jika aspect ratio beda. Bapak bisa coba 'cover' jika 'contain' terasa kurang full.
-  
-  // Posisi di tengah
-  backgroundPosition: 'center',
-  
-  // Jangan diulang gambarnya (tile)
-  backgroundRepeat: 'no-repeat',
-  
-  // Jaga warna latar belakang tetap sama dengan gambar agar serasi (jika aspect ratio beda)
-  backgroundColor: '#1a2942', 
-  
-  // Hapus semua padding agar gambar terasa benar-benar memenuhi kotak
-  padding: '0px', 
-  
-  // Pengaturan flex agar kontainer ini tetap pada posisi grid
-  display: 'flex',
-  minHeight: '100%',
-  alignItems: 'center',
-  justifyContent: 'center'
-}}>
-  {/* KOTAK INI SEKARANG KOSONG KARENA GAMBAR SUDAH MENJADI LATAR BELAKANG */}
-  {/* KITA TIDAK MEMANGGIL <IMSLogo /> DI SINI LAGI */}
-</div>      )}
+        <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', flexWrap: 'wrap'}}>
+          <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{lang === 'id' ? 'Filter Sales' : 'Filter Sales'}:</span>
+          <button onClick={() => setIncFilterSales('all')} style={{padding: '6px 14px', fontSize: '11px', fontFamily: 'inherit', background: incFilterSales === 'all' ? '#1a2942' : 'transparent', color: incFilterSales === 'all' ? '#fff' : '#1a2942', border: '1px solid #1a2942', cursor: 'pointer', fontWeight: 600}}>{lang === 'id' ? 'Semua Tim' : 'All Team'}</button>
+          {SALES_TEAM.map(s => (
+            <button key={s.id} onClick={() => setIncFilterSales(s.id)} style={{padding: '6px 14px', fontSize: '11px', fontFamily: 'inherit', background: incFilterSales === s.id ? s.accent : 'transparent', color: incFilterSales === s.id ? '#fff' : s.accent, border: `1px solid ${s.accent}`, cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px'}}>
+              <span style={{width: '16px', height: '16px', borderRadius: '50%', background: incFilterSales === s.id ? 'rgba(255,255,255,0.3)' : s.accent, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700}}>{s.initial}</span>
+              {s.name.split(' ')[0]}
+            </button>
+          ))}
+        </div>
+      )}
+      {!isSales && incFilterSales !== 'all' && (
+        <div style={{padding: '10px 14px', marginBottom: '18px', background: 'rgba(26,41,66,0.04)', borderLeft: '3px solid #1a2942', fontSize: '12px', color: '#1a2942'}}>
+          {lang === 'id' ? 'Menampilkan detail insentif & perhitungan untuk' : 'Showing incentive detail & calculation for'} <strong>{SALES_TEAM.find(s => s.id === incFilterSales)?.name}</strong> · {poDeals.length} {lang === 'id' ? 'deal PO' : 'PO deals'} · {lang === 'id' ? 'Total insentif' : 'Total incentive'}: <strong>{fmt(ytdTotal)}</strong>
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '24px', border: '1px solid #d4cdb8'}}>

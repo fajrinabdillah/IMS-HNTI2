@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { TrendingUp, FileText, Briefcase, Plus, Search, Edit2, Trash2, X, ArrowUpRight, ArrowDownRight, Activity, DollarSign, Users, Clock, Globe, LogOut, Shield, Wrench, Truck, Wallet, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, FileCheck, Menu, ChevronDown, ChevronRight, ChevronLeft, ClipboardList, Star, Settings, ShieldCheck, CalendarDays, AlertTriangle, FileSearch, UserPlus, UserCheck, UserX, Plane, Receipt, Hotel, RefreshCw, History, FolderOpen, Upload, MessageSquare, Download, Target, Layers, FileBarChart, Paperclip } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Area, ComposedChart } from 'recharts';
-import logoFull from './logo.png';
+
 const DEFAULT_USD_IDR = 18000;
 
 // ============== i18n ==============
@@ -1457,7 +1457,7 @@ const POSITION_ALLOWANCE = {
 };
 
 const USERS = {
-  'ceo': { password: 'hnti2026', role: 'super_admin', name: 'Fajrin Mukhammad Iskandar', initial: 'F', position: 'Direksi', allowancePerDay: 500000, active: true },
+  'ceo': { password: 'hnti2026', role: 'super_admin', name: 'Fajrin Abdillah', initial: 'F', position: 'Direksi', allowancePerDay: 500000, active: true },
   'gm': { password: 'hnti2026', role: 'gm', name: 'Endah Purwitasari', initial: 'EP', position: 'General Manager', allowancePerDay: 175000, active: true },
   'manager_ops': { password: 'hnti2026', role: 'manager_ops', name: 'Novan Restu Pradana', initial: 'NR', position: 'Manager Operasional', allowancePerDay: 175000, active: true },
   'admin': { password: 'hnti2026', role: 'admin', name: 'Siti Rahayu', initial: 'SR', position: 'Manager', allowancePerDay: 175000, active: true },
@@ -1558,6 +1558,10 @@ const PRODUCT_MASTER_SEED = [
   // === ESWL (Hyde Medical HAMSKI XR, China) ===
   { id: 'prod_eswl_advance', name: 'ESWL', modality: 'ESWL', brand: 'Hyde Medical (HAMSKI XR)', type: '168A', origin: 'China', principal: 'Shenzhen Hyde Medical', tkdn: 0, akl: 'KEMENKES RI AKL 10303770XXX', active: true, notes: 'Extracorporeal Shock Wave Lithotripter Advance model' },
   { id: 'prod_eswl_basic', name: 'ESWL', modality: 'ESWL', brand: 'Hyde Medical (HAMSKI XR)', type: '168B', origin: 'China', principal: 'Shenzhen Hyde Medical', tkdn: 0, akl: 'KEMENKES RI AKL 10303770XXX', active: true, notes: 'Extracorporeal Shock Wave Lithotripter Basic model' },
+  // === Angell (China) — premium digital X-Ray, principal baru (onboarding) ===
+  { id: 'prod_angell_ceiling', name: 'X-Ray Ceiling Digital Premium', modality: 'X-Ray Ceiling', brand: 'Angell', type: 'Ceiling Digital Premium', origin: 'China', principal: 'Angell Medical', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Premium ceiling-mounted digital X-Ray' },
+  { id: 'prod_angell_mobile', name: 'X-Ray Mobile Digital Premium', modality: 'X-Ray Mobile', brand: 'Angell', type: 'Mobile Digital Premium', origin: 'China', principal: 'Angell Medical', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Premium mobile digital X-Ray' },
+  { id: 'prod_angell_fluoro', name: 'Digital Fluoroscopy Premium', modality: 'Fluoroscopy', brand: 'Angell', type: 'Digital Fluoroscopy Premium', origin: 'China', principal: 'Angell Medical', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Premium digital fluoroscopy system' },
 ];
 
 // ============== Stable Product Linkage (Catatan #2) ==============
@@ -1696,19 +1700,16 @@ const SEED_SPH = [
 ];
 
 // ============== Business Partners ==============
+// Catatan #4: product chips are DERIVED from the Product Master (by brand match) so they always
+// stay in sync. Each partner lists the master brand(s) it represents; products auto-populate.
 const BUSINESS_PARTNERS = [
-  { id: 'sg', name: 'SG Healthcare', country: 'Korea', flag: '🇰🇷', color: '#1a4d8a', status: 'active',
-    products: ['X-Ray Stationary Jumong General', 'X-Ray Mobile Jumong Mobile', 'Flat Panel Detector Jumong Retro', 'C-Arm Garion', 'X-Ray Ceiling Jumong M'] },
-  { id: 'anke', name: 'ANKE', country: 'China', flag: '🇨🇳', color: '#c03030', status: 'active',
-    products: ['CT 128 Slice Anatom Precision', 'CT 64 Slice Anatom Clarity', 'CT 32 Slice C201', 'MRI 1.5T Supermark 1.5T', 'MRI 0.5T Opemark 5000', 'MRI 0.3T OpenMark III'] },
-  { id: 'sino', name: 'SINO MDT', country: 'China', flag: '🇨🇳', color: '#d4780a', status: 'active',
-    products: ['Mammography 2D Navigator DRCare', 'Mammography 3D'] },
-  { id: 'hyde', name: 'Hyde Medical', country: 'China', flag: '🇨🇳', color: '#7b3fb5', status: 'active',
-    products: ['ESWL Tipe 109', 'ESWL Tipe 109X'] },
-  { id: 'angell', name: 'Angell', country: 'China', flag: '🇨🇳', color: '#0f7a5a', status: 'onboarding',
-    products: ['X-Ray Ceiling Digital (Premium)', 'X-Ray Mobile Digital (Premium)', 'Digital Fluoroscopy (Premium)'] },
-  { id: 'innocare', name: 'Innocare', country: 'Taiwan', flag: '🇹🇼', color: '#b8860b', status: 'onboarding',
-    products: ['Flat Panel Detector Premium (OEM dengan HAMSKI XR — merek HNTI)'] },
+  { id: 'sg', name: 'SG Healthcare', country: 'Korea', flag: '🇰🇷', color: '#1a4d8a', status: 'active', brands: ['5G Healthcare'] },
+  { id: 'anke', name: 'ANKE', country: 'China', flag: '🇨🇳', color: '#c03030', status: 'active', brands: ['ANKE', 'Supermark'] },
+  { id: 'sino', name: 'SINO MDT', country: 'China', flag: '🇨🇳', color: '#d4780a', status: 'active', brands: ['SINO MDT'] },
+  { id: 'hyde', name: 'Hyde Medical', country: 'China', flag: '🇨🇳', color: '#7b3fb5', status: 'active', brands: ['Hyde Medical (HAMSKI XR)'] },
+  { id: 'precision', name: 'Precision', country: 'China', flag: '🇨🇳', color: '#0f7a5a', status: 'active', brands: ['Precision'] },
+  { id: 'angell', name: 'Angell', country: 'China', flag: '🇨🇳', color: '#0f7a5a', status: 'onboarding', brands: ['Angell'] },
+  { id: 'innocare', name: 'Innocare', country: 'Taiwan', flag: '🇹🇼', color: '#b8860b', status: 'onboarding', brands: ['Innocare (HAMSKI XR)'] },
 ];
 
 // ============== Bulk SPH Generator — 276 SPH 2026 (Jan-May) + 245 SPH 2025 ==============
@@ -3856,13 +3857,47 @@ const formatDate = (dateStr, lang) => new Date(dateStr).toLocaleDateString(lang 
 // Storage
 const STORAGE_KEY = 'ims_hnti:data_v22';
 const REPORTS_KEY = 'ims_hnti:reports_v22';
-const PRODUCT_KEY = 'ims_hnti:prod_v23';
+const PRODUCT_KEY = 'ims_hnti:prod_v24';
 const LANG_KEY = 'ims_hnti:lang_v22';
 const SESSION_KEY = 'ims_hnti:session_v22';
 const RATE_KEY = 'ims_hnti:rate_v23';
-const storeGet = async (k) => { try { const r = await window.storage.get(k); return r?.value; } catch { return null; } };
-const storeSet = async (k, v) => { try { await window.storage.set(k, v); } catch {} };
-const storeDel = async (k) => { try { await window.storage.delete(k); } catch {} };
+// ============== Universal Storage Adapter ==============
+// CRITICAL FIX: works across environments —
+//   • Vercel / normal browser → localStorage (persistent across logout/login/reload)
+//   • Claude artifact preview → window.storage
+//   • SSR / no-storage fallback → in-memory
+// Previously relied solely on window.storage (Claude API) which does NOT exist on Vercel,
+// causing every edit (employees, products, finance, etc.) to revert on reload.
+const _memStore = {};
+const _hasArtifactStorage = typeof window !== 'undefined' && window.storage && typeof window.storage.get === 'function';
+const _hasLocalStorage = (() => {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return false;
+    const k = '__ims_ls_test__'; window.localStorage.setItem(k, '1'); window.localStorage.removeItem(k);
+    return true;
+  } catch { return false; }
+})();
+const storeGet = async (k) => {
+  try {
+    if (_hasArtifactStorage) { const r = await window.storage.get(k); return r?.value ?? null; }
+    if (_hasLocalStorage) { return window.localStorage.getItem(k); }
+    return _memStore[k] ?? null;
+  } catch { return _memStore[k] ?? null; }
+};
+const storeSet = async (k, v) => {
+  try {
+    if (_hasArtifactStorage) { await window.storage.set(k, v); return; }
+    if (_hasLocalStorage) { window.localStorage.setItem(k, v); return; }
+    _memStore[k] = v;
+  } catch { _memStore[k] = v; }
+};
+const storeDel = async (k) => {
+  try {
+    if (_hasArtifactStorage) { await window.storage.delete(k); return; }
+    if (_hasLocalStorage) { window.localStorage.removeItem(k); return; }
+    delete _memStore[k];
+  } catch { delete _memStore[k]; }
+};
 
 // ============== Incentive Configuration ==============
 const PPN_RATE = 0.11;        // PPN 11%
@@ -4181,7 +4216,7 @@ export default function App() {
           'ims_hnti:data_v14', 'ims_hnti:data_v13', 'ims_hnti:data_v12',
         ];
         for (const k of obsoleteKeys) {
-          try { await window.storage.delete(k); } catch {}
+          await storeDel(k);
         }
         await storeSet(MIGRATION_MARKER, 'true');
       }
@@ -4190,7 +4225,7 @@ export default function App() {
       const RATE_MIGRATION_MARKER = 'ims_hnti:rate_v23_migrated';
       const rateMigrated = await storeGet(RATE_MIGRATION_MARKER);
       if (!rateMigrated) {
-        try { await window.storage.delete('ims_hnti:rate_v22'); } catch {}
+        await storeDel('ims_hnti:rate_v22');
         await storeSet(RATE_MIGRATION_MARKER, 'true');
       }
 
@@ -4216,8 +4251,8 @@ export default function App() {
           } catch {}
         }
         // Clear old product key to force reload of fresh seed (with Precision + Innocare)
-        try { await window.storage.delete('ims_hnti:prod_v22'); } catch {}
-        try { await window.storage.delete('ims_hnti:prod_v23'); } catch {}
+        await storeDel('ims_hnti:prod_v22');
+        await storeDel('ims_hnti:prod_v23');
         await storeSet(V34_MIGRATION_MARKER, 'true');
       }
 
@@ -4248,8 +4283,8 @@ export default function App() {
           } catch {}
         }
         // Refresh product master to new spreadsheet data
-        try { await window.storage.delete('ims_hnti:prod_v22'); } catch {}
-        try { await window.storage.delete('ims_hnti:prod_v23'); } catch {}
+        await storeDel('ims_hnti:prod_v22');
+        await storeDel('ims_hnti:prod_v23');
         await storeSet(V35_RESYNC_MARKER, 'true');
       }
 
@@ -4322,6 +4357,16 @@ export default function App() {
   useEffect(() => { if (!loading) storeSet(LANG_KEY, lang); }, [lang, loading]);
   useEffect(() => { if (!loading) { session ? storeSet(SESSION_KEY, JSON.stringify(session)) : storeDel(SESSION_KEY); } }, [session, loading]);
   useEffect(() => { if (!loading) storeSet(RATE_KEY, String(exchangeRate)); }, [exchangeRate, loading]);
+
+  // New #2: keep the logged-in user's display name/initial in sync with employee-DB edits.
+  // Previously editing your own name in Employee Management didn't update the header/greeting.
+  useEffect(() => {
+    if (loading || !session) return;
+    const emp = employees[session.username];
+    if (emp && (emp.name !== session.name || (emp.initial || '') !== (session.initial || ''))) {
+      setSession(s => ({ ...s, name: emp.name, initial: emp.initial || s.initial }));
+    }
+  }, [employees, loading]);
   useEffect(() => { if (!loading) storeSet(AUDIT_LOG_KEY, JSON.stringify(auditLog)); }, [auditLog, loading]);
   useEffect(() => { if (!loading) storeSet(PRODUCT_KEY, JSON.stringify(products)); }, [products, loading]);
   useEffect(() => { if (!loading) storeSet(ANNOTATIONS_KEY, JSON.stringify(annotations)); }, [annotations, loading]);
@@ -4369,15 +4414,19 @@ function LoginScreen({ t, lang, setLang, onLogin, employees }) {
   return (
     <div style={{minHeight: '100vh', background: '#f8f5ef', fontFamily: 'Inter, sans-serif', color: '#1a2942', display: 'flex'}}>
       <GlobalStyles />
-      <div className="login-left" style={{
-        flex: 1,
-        backgroundImage: `url(${logoFull})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        backgroundColor: '#1a2942'
-      }}>
+      <div className="login-left" style={{flex: 1, background: 'linear-gradient(135deg, #1a2942 0%, #2a3f5f 100%)', padding: '60px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', color: '#f8f5ef', position: 'relative', overflow: 'hidden'}}>
+        <div style={{position: 'absolute', top: '-100px', right: '-100px', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(200,169,106,0.13) 0%, transparent 70%)'}} />
+        <div style={{position: 'absolute', bottom: '-150px', left: '-150px', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(74,149,64,0.08) 0%, transparent 70%)'}} />
+        <div style={{position: 'relative', zIndex: 1}}><IMSLogo size="xl" inverted showTagline /></div>
+        <div style={{position: 'relative', zIndex: 1}}>
+          <div style={{fontSize: '10px', letterSpacing: '0.25em', color: '#c8a96a', textTransform: 'uppercase', marginBottom: '16px', fontWeight: 500, lineHeight: 1.6}}>{t.motto}</div>
+          <h1 className="serif" style={{fontSize: '42px', fontWeight: 400, lineHeight: 1.15, margin: 0, letterSpacing: '-0.02em'}}>
+            {lang === 'id' ? 'Sistem terpadu untuk monitoring operasional perusahaan' : 'Integrated platform for enterprise operations monitoring'}
+          </h1>
+        </div>
+        <div style={{position: 'relative', zIndex: 1, fontSize: '10px', letterSpacing: '0.2em', color: 'rgba(248,245,239,0.5)', textTransform: 'uppercase'}}>© 2026 {t.company} · Confidential</div>
       </div>
+
       <div className="login-right" style={{flex: '0 0 460px', padding: '60px 48px', display: 'flex', flexDirection: 'column', justifyContent: 'center', overflowY: 'auto'}}>
         <div style={{display: 'flex', justifyContent: 'flex-end', marginBottom: '32px'}}>
           <button onClick={() => setLang(lang === 'id' ? 'en' : 'id')} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '7px 13px', fontFamily: 'inherit', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.1em', color: '#1a2942', fontWeight: 500}}>
@@ -4404,14 +4453,11 @@ function LoginScreen({ t, lang, setLang, onLogin, employees }) {
         </button>
 
         <div style={{marginTop: '24px', padding: '14px', background: '#fefcf7', border: '1px solid #e8e1cc'}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase', fontWeight: 600, marginBottom: '10px'}}>{t.demo_credentials}</div>
-          <div style={{maxHeight: '210px', overflowY: 'auto'}}>
-            {Object.entries(USERS).map(([u, info]) => (
-              <div key={u} onClick={() => { setUsername(u); setPassword(info.password); }} style={{display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: '11px', cursor: 'pointer', borderBottom: '1px dashed #e8e1cc'}}>
-                <span><span className="mono" style={{color: '#1a2942', fontWeight: 500}}>{u}</span> <span style={{color: '#8a7d5c'}}>/ {info.password}</span></span>
-                <span style={{color: '#8a7d5c', fontSize: '10px'}}>{t[`role_${info.role}`]}</span>
-              </div>
-            ))}
+          <div style={{fontSize: '10px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase', fontWeight: 600, marginBottom: '8px'}}>{lang === 'id' ? 'Lupa Kata Sandi?' : 'Forgot Password?'}</div>
+          <div style={{fontSize: '11.5px', color: '#6b5d3a', lineHeight: 1.6}}>
+            {lang === 'id'
+              ? <>Hubungi <strong>Administrator IT / GM</strong> untuk reset kata sandi melalui modul <strong>Manajemen Karyawan</strong>. Admin dapat menetapkan kata sandi sementara, dan Anda akan diminta menggantinya saat login berikutnya.</>
+              : <>Contact your <strong>IT Administrator / GM</strong> to reset your password via the <strong>Employee Management</strong> module. The admin can set a temporary password, and you'll be prompted to change it on next login.</>}
           </div>
         </div>
       </div>
@@ -4518,7 +4564,7 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
       <Header session={session} setSession={setSession} lang={lang} setLang={setLang} view={view} setView={setView} allowedNav={allowedNav} t={t} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} businessTrips={businessTrips} realizations={realizations} onChangePassword={() => setChangePwOpen(true)} />
 
       <main className="main-content fade-in" style={{maxWidth: '1440px', margin: '0 auto', padding: '32px 48px 60px'}}>
-        {view === 'dashboard' && <Dashboard data={filteredData} reports={reports} t={t} lang={lang} session={session} fmt={fmt} />}
+        {view === 'dashboard' && <Dashboard data={filteredData} reports={reports} products={products} t={t} lang={lang} session={session} fmt={fmt} />}
         {view === 'sph' && canRead('sph') && <SPHManagement data={filteredData} t={t} lang={lang} canEdit={canEdit('sph')} fmt={fmt} onAdd={() => { setEditingSph(null); setModalOpen(true); }} onEdit={(s) => { setEditingSph(s); setModalOpen(true); }} onDelete={handleDelete} />}
         {view === 'pipeline' && canRead('pipeline') && <PipelineBoard data={filteredData} allData={data} setData={setData} session={session} logAction={logAction} t={t} lang={lang} canEdit={canEdit('pipeline')} fmt={fmt} onEdit={(s) => { setEditingSph(s); setModalOpen(true); }} />}
         {view === 'sales' && canRead('sales') && <SalesModule data={data} reports={reports} t={t} lang={lang} fmt={fmt} />}
@@ -4841,7 +4887,7 @@ const ChartTooltip = ({ active, payload, label, fmt }) => {
   );
 };
 
-function Dashboard({ data, reports, t, lang, session, fmt }) {
+function Dashboard({ data, reports, products, t, lang, session, fmt }) {
   // PERFORMANCE FIX: All filters/maps wrapped in useMemo to avoid recomputing on every render
   // (was causing scroll lag with 613 SPH records)
   const stats = useMemo(() => {
@@ -4868,10 +4914,23 @@ function Dashboard({ data, reports, t, lang, session, fmt }) {
     return { name: t[`ptype_${pt.id}`], value: projects.reduce((s, p) => s + p.totalValue, 0), count: projects.length, color: pt.color };
   }).filter(d => d.value > 0), [activeData, t]);
 
-  const modalityPieData = useMemo(() => Object.keys(MODALITY_COLORS).map(mod => {
-    const projects = activeData.filter(s => s.modality === mod);
-    return { name: mod, value: projects.reduce((s, p) => s + p.totalValue, 0), count: projects.length, color: MODALITY_COLORS[mod] };
-  }).filter(d => d.value > 0), [activeData]);
+  // New #3: derive modality pie DYNAMICALLY from live SPH data so it always matches the
+  // Product Master modalities (X-Ray Stationer/Mobile/Ceiling/Portable, FPD, etc.) — no longer
+  // limited to a hardcoded key list that silently dropped normalized modalities.
+  const MODALITY_PALETTE = ['#1a4d8a', '#c8a96a', '#8a5a3a', '#5a8a5a', '#8a3a5a', '#3a8a8a', '#7b3fb5', '#c03030', '#d4780a', '#0f7a5a', '#5b87b8', '#b8860b', '#6a8a3a'];
+  const modalityPieData = useMemo(() => {
+    const map = new Map();
+    activeData.forEach(s => {
+      const m = s.modality || (lang === 'id' ? 'Lainnya' : 'Other');
+      if (!map.has(m)) map.set(m, { value: 0, count: 0 });
+      const e = map.get(m); e.value += (Number(s.totalValue) || 0); e.count += 1;
+    });
+    let i = 0;
+    return Array.from(map.entries())
+      .map(([name, e]) => ({ name, value: e.value, count: e.count, color: MODALITY_COLORS[name] || MODALITY_PALETTE[i++ % MODALITY_PALETTE.length] }))
+      .filter(d => d.value > 0)
+      .sort((a, b) => b.value - a.value);
+  }, [activeData, lang]);
 
   const customerTypePieData = useMemo(() => [
     { name: t.type_hospital, value: activeData.filter(s => s.customerType === 'hospital').reduce((s, p) => s + p.totalValue, 0), color: '#1a4d8a' },
@@ -4902,7 +4961,7 @@ function Dashboard({ data, reports, t, lang, session, fmt }) {
     <div>
       <div style={{marginBottom: '28px'}}>
         <div style={{fontSize: '11px', letterSpacing: '0.3em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '6px'}}>
-          {t.welcome}, {session.name} · {formatDate('2026-05-16', lang)}
+          {t.welcome}, {session.name}
         </div>
         <h1 className="serif hero-title" style={{fontSize: '44px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{t.nav_dashboard}</h1>
       </div>
@@ -5048,7 +5107,10 @@ function Dashboard({ data, reports, t, lang, session, fmt }) {
         <div className="card">
           <div className="card-title">{t.bp_title} <span style={{fontSize: '10px', fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: '#8a7d5c', marginLeft: '8px'}}>· {t.bp_subtitle}</span></div>
           <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px'}}>
-            {BUSINESS_PARTNERS.map(bp => (
+            {BUSINESS_PARTNERS.map(bp => {
+              // Catatan #4: derive products from master by brand match — always in sync
+              const partnerProducts = (products || []).filter(pr => bp.brands.includes(pr.brand));
+              return (
               <div key={bp.id} style={{padding: '16px', background: '#f8f5ef', borderLeft: `3px solid ${bp.color}`, position: 'relative'}}>
                 {bp.status === 'onboarding' && (
                   <span style={{position: 'absolute', top: '10px', right: '10px', padding: '2px 7px', fontSize: '8px', background: '#c8a96a', color: '#fff', fontWeight: 700, letterSpacing: '0.1em'}}>
@@ -5064,10 +5126,11 @@ function Dashboard({ data, reports, t, lang, session, fmt }) {
                 </div>
                 <div style={{fontSize: '9px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', marginBottom: '6px'}}>{t.bp_products}</div>
                 <div style={{display: 'flex', flexWrap: 'wrap', gap: '4px'}}>
-                  {bp.products.map((p, i) => <span key={i} style={{padding: '3px 8px', fontSize: '10px', background: '#fefcf7', border: '1px solid #e8e1cc', color: '#1a2942'}}>{p}</span>)}
+                  {partnerProducts.length === 0 && <span style={{fontSize: '10px', color: '#8a7d5c', fontStyle: 'italic'}}>{lang === 'id' ? 'Belum ada produk di master' : 'No products in master yet'}</span>}
+                  {partnerProducts.map((pr, i) => <span key={i} style={{padding: '3px 8px', fontSize: '10px', background: '#fefcf7', border: '1px solid #e8e1cc', color: '#1a2942'}}>{pr.name} · {pr.type}</span>)}
                 </div>
               </div>
-            ))}
+            );})}
           </div>
         </div>
       )}
@@ -6783,7 +6846,13 @@ function CashFlowProjection({ data, t, lang, fmt }) {
   }, [projection, base]);
 
   const total5yr = useMemo(() => projection.filter(p => p.type === 'projection').reduce((s, p) => s + p.value, 0), [projection]);
-  const maxVal = useMemo(() => Math.max(...projection.map(p => p.value), 1), [projection]);
+  // FIX (Catatan #3): use a STABLE y-axis scale across all scenarios so that switching to a
+  // higher-growth scenario makes bars TALLER (not shorter). Denominator = global max across
+  // all scenarios' 2031 + historical, so the chart scale never shrinks when values rise.
+  const maxVal = useMemo(() => {
+    const scenarioMax = Math.max(...Object.values(allScenarios).flat().map(d => d.value), 1);
+    return Math.max(base.won2025, base.est2026, scenarioMax, 1);
+  }, [allScenarios, base]);
 
   return (
     <div>
@@ -7271,6 +7340,13 @@ function ProductModal({ product, onSave, onCancel, t, lang, existing }) {
   });
   const [error, setError] = useState('');
 
+  // Catatan #5: modality list is dynamic — derived from modalities actually used by products.
+  // Adding = type a new name; deleting/renaming = handled by editing the products that use it.
+  const modalityOptions = useMemo(() => {
+    const set = new Set((existing || []).map(p => p.modality).filter(Boolean));
+    return Array.from(set).sort();
+  }, [existing]);
+
   const update = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSubmit = () => {
@@ -7288,7 +7364,7 @@ function ProductModal({ product, onSave, onCancel, t, lang, existing }) {
   };
 
   return (
-    <div className="modal-backdrop" onClick={onCancel}>
+    <div className="modal-overlay" onClick={onCancel} style={{zIndex: 9999}}>
       <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '640px'}}>
         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid #e8e1cc'}}>
           <h2 className="serif" style={{margin: 0, fontSize: '22px', fontWeight: 500}}>{isEdit ? (lang === 'id' ? 'Edit Produk' : 'Edit Product') : (lang === 'id' ? 'Tambah Produk Baru' : 'Add New Product')}</h2>
@@ -7304,22 +7380,9 @@ function ProductModal({ product, onSave, onCancel, t, lang, existing }) {
             <Field label={lang === 'id' ? 'Modalitas' : 'Modality'}>
               <input list="modality-options" value={form.modality} onChange={e => update('modality', e.target.value)} placeholder={lang === 'id' ? 'Pilih atau ketik sendiri...' : 'Select or type your own...'} />
               <datalist id="modality-options">
-                <option value="MRI" />
-                <option value="CT Scan" />
-                <option value="C-Arm" />
-                <option value="X-Ray Stationer" />
-                <option value="X-Ray Ceiling" />
-                <option value="X-Ray Mobile" />
-                <option value="X-Ray Portable" />
-                <option value="Portable X-Ray" />
-                <option value="Mammography" />
-                <option value="Flat Panel Detector" />
-                <option value="ESWL" />
-                <option value="Ultrasound" />
-                <option value="Cath Lab" />
-                <option value="Bone Densitometry" />
+                {modalityOptions.map(m => <option key={m} value={m} />)}
               </datalist>
-              <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px', fontStyle: 'italic'}}>{lang === 'id' ? 'Bisa pilih dari daftar atau ketik modalitas baru sesuai kebutuhan' : 'Pick from list or type a new modality as needed'}</div>
+              <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px', fontStyle: 'italic'}}>{lang === 'id' ? 'Daftar diambil dari produk yang ada. Ketik nama baru untuk menambah modalitas; modalitas yang tak lagi dipakai produk akan hilang otomatis.' : 'List derived from existing products. Type a new name to add; unused modalities disappear automatically.'}</div>
             </Field>
             <Field label={lang === 'id' ? 'Merek' : 'Brand'}>
               <input value={form.brand} onChange={e => update('brand', e.target.value)} placeholder="contoh: Precision, Innocare, Supermark" />
@@ -7400,7 +7463,7 @@ function RiskConcentration({ data, products, t, lang, fmt }) {
 
   const scoped = useMemo(() => {
     if (scope === 'won') return data.filter(s => s.status === 'won');
-    if (scope === 'po_issued') return data.filter(s => s.poStatus === 'issued');
+    if (scope === 'active') return data.filter(s => s.status === 'active');
     return data;
   }, [data, scope]);
 
@@ -7518,12 +7581,12 @@ function RiskConcentration({ data, products, t, lang, fmt }) {
       </div>
 
       {/* Scope selector + export */}
-      <div style={{display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center', flexWrap: 'wrap'}}>
+      <div style={{display: 'flex', gap: '10px', marginBottom: '8px', alignItems: 'center', flexWrap: 'wrap'}}>
         <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{lang === 'id' ? 'Cakupan' : 'Scope'}:</span>
         {[
           { id: 'all', label: lang === 'id' ? 'Semua SPH' : 'All SPH' },
-          { id: 'won', label: lang === 'id' ? 'Menang Saja' : 'Won Only' },
-          { id: 'po_issued', label: lang === 'id' ? 'PO Terbit' : 'PO Issued' },
+          { id: 'active', label: lang === 'id' ? 'Pipeline Aktif' : 'Active Pipeline' },
+          { id: 'won', label: lang === 'id' ? 'Menang / Closed' : 'Won / Closed' },
         ].map(opt => (
           <button key={opt.id} onClick={() => setScope(opt.id)} style={{background: scope === opt.id ? '#1a2942' : 'transparent', border: `1px solid ${scope === opt.id ? '#1a2942' : '#d4cdb8'}`, color: scope === opt.id ? '#fff' : '#8a7d5c', padding: '5px 11px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 500}}>{opt.label}</button>
         ))}
@@ -7531,6 +7594,11 @@ function RiskConcentration({ data, products, t, lang, fmt }) {
         <button onClick={exportRiskCSV} style={{background: '#3a6b3a', border: 'none', color: '#fff', padding: '6px 12px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px', marginLeft: 'auto'}}>
           <Download size={12} />CSV
         </button>
+      </div>
+      <div style={{fontSize: '10.5px', color: '#8a7d5c', marginBottom: '20px', fontStyle: 'italic', lineHeight: 1.5}}>
+        {scope === 'all' && (lang === 'id' ? '“Semua SPH” = total eksposur termasuk pipeline aktif, menang, & kalah.' : '"All SPH" = total exposure including active pipeline, won & lost.')}
+        {scope === 'active' && (lang === 'id' ? '“Pipeline Aktif” = konsentrasi risiko prospektif — deal yang masih diperjuangkan (belum closing).' : '"Active Pipeline" = prospective concentration — deals still being pursued (not yet closed).')}
+        {scope === 'won' && (lang === 'id' ? '“Menang / Closed” = konsentrasi terealisasi — deal yang sudah menang & PO terbit (pendapatan riil).' : '"Won / Closed" = realized concentration — deals won with PO issued (actual revenue).')}
       </div>
 
       {/* Concentration KPIs */}
@@ -9803,6 +9871,17 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
     if (!canEdit || !paymentForm.amount) return;
     const amt = parseFloat(paymentForm.amount);
     if (!amt || amt <= 0) return;
+    // EDIT mode: update existing payment entry (Catatan #1 — fix wrong amount/date/type)
+    if (paymentForm.editId) {
+      setData(prev => prev.map(s => s.id === paymentForm.sphId ? {
+        ...s,
+        paymentHistory: (s.paymentHistory || []).map(h => h.id === paymentForm.editId
+          ? { ...h, date: paymentForm.date || h.date, amount: amt, type: paymentForm.type, note: paymentForm.note || '', editedAt: new Date().toISOString() }
+          : h)
+      } : s));
+      setPaymentForm({ open: false, sphId: null, amount: '', type: 'installment', date: '', note: '', editId: null });
+      return;
+    }
     const payment = {
       id: 'pay_' + Date.now(),
       date: paymentForm.date || new Date().toISOString().split('T')[0],
@@ -9812,7 +9891,11 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
       recordedAt: new Date().toISOString(),
     };
     setData(prev => prev.map(s => s.id === paymentForm.sphId ? { ...s, paymentHistory: [...(s.paymentHistory || []), payment] } : s));
-    setPaymentForm({ open: false, sphId: null, amount: '', type: 'installment', date: '', note: '' });
+    setPaymentForm({ open: false, sphId: null, amount: '', type: 'installment', date: '', note: '', editId: null });
+  };
+  // Open modal in EDIT mode pre-filled with an existing payment
+  const openEditPayment = (sphId, h) => {
+    setPaymentForm({ open: true, sphId, editId: h.id, amount: String(h.amount), type: h.type, date: h.date, note: h.note || '' });
   };
   const deletePayment = () => {
     if (!confirmDeletePayment) return;
@@ -10077,7 +10160,10 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
                                       <Td><span style={{fontSize: '11px', color: '#1a2942'}}>{h.note || '—'}</span></Td>
                                       {canEdit && (
                                         <Td align="center">
-                                          <button onClick={() => setConfirmDeletePayment({ sphId: p.id, paymentId: h.id })} style={{background: 'transparent', border: '1px solid #c03030', padding: '3px 7px', fontSize: '10px', cursor: 'pointer', color: '#c03030', fontFamily: 'inherit'}} title={lang === 'id' ? 'Hapus catatan ini' : 'Delete this record'}><Trash2 size={10} /></button>
+                                          <div style={{display: 'flex', gap: '5px', justifyContent: 'center'}}>
+                                            <button onClick={() => openEditPayment(p.id, h)} style={{background: 'transparent', border: '1px solid #1a4d8a', padding: '3px 7px', fontSize: '10px', cursor: 'pointer', color: '#1a4d8a', fontFamily: 'inherit'}} title={lang === 'id' ? 'Edit catatan ini' : 'Edit this record'}><Edit2 size={10} /></button>
+                                            <button onClick={() => setConfirmDeletePayment({ sphId: p.id, paymentId: h.id })} style={{background: 'transparent', border: '1px solid #c03030', padding: '3px 7px', fontSize: '10px', cursor: 'pointer', color: '#c03030', fontFamily: 'inherit'}} title={lang === 'id' ? 'Hapus catatan ini' : 'Delete this record'}><Trash2 size={10} /></button>
+                                          </div>
                                         </Td>
                                       )}
                                     </tr>
@@ -10098,13 +10184,13 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
         {filteredPoProjects.length === 0 && <div className="empty-state">{t.no_data}</div>}
       </div>
 
-      {/* Record Payment Modal */}
+      {/* Record / Edit Payment Modal */}
       {paymentForm.open && (
-        <div className="modal-overlay" onClick={() => setPaymentForm({ ...paymentForm, open: false })}>
+        <div className="modal-overlay" onClick={() => setPaymentForm({ ...paymentForm, open: false, editId: null })} style={{zIndex: 9999}}>
           <div onClick={e => e.stopPropagation()} style={{background: '#fefcf7', maxWidth: '460px', width: '90%', border: '1px solid #d4cdb8', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'}}>
             <div style={{padding: '18px 22px', borderBottom: '1px solid #e8e1cc', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-              <h3 className="serif" style={{margin: 0, fontSize: '18px', fontWeight: 500}}>{lang === 'id' ? 'Catat Pembayaran' : 'Record Payment'}</h3>
-              <button onClick={() => setPaymentForm({ ...paymentForm, open: false })} style={{background: 'transparent', border: 'none', cursor: 'pointer'}}><X size={18} /></button>
+              <h3 className="serif" style={{margin: 0, fontSize: '18px', fontWeight: 500}}>{paymentForm.editId ? (lang === 'id' ? 'Edit Pembayaran' : 'Edit Payment') : (lang === 'id' ? 'Catat Pembayaran' : 'Record Payment')}</h3>
+              <button onClick={() => setPaymentForm({ ...paymentForm, open: false, editId: null })} style={{background: 'transparent', border: 'none', cursor: 'pointer'}}><X size={18} /></button>
             </div>
             <div style={{padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '12px'}}>
               <div>
@@ -10132,8 +10218,8 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
               </div>
             </div>
             <div style={{padding: '14px 22px', borderTop: '1px solid #e8e1cc', background: '#f8f5ef', display: 'flex', justifyContent: 'flex-end', gap: '10px'}}>
-              <button onClick={() => setPaymentForm({ ...paymentForm, open: false })} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '8px 16px', fontSize: '12px', cursor: 'pointer', color: '#8a7d5c', fontFamily: 'inherit'}}>{lang === 'id' ? 'Batal' : 'Cancel'}</button>
-              <button onClick={recordPayment} style={{background: '#1a2942', border: 'none', padding: '8px 16px', fontSize: '12px', cursor: 'pointer', color: '#fff', fontFamily: 'inherit', fontWeight: 600}}>{lang === 'id' ? 'Simpan' : 'Save'}</button>
+              <button onClick={() => setPaymentForm({ ...paymentForm, open: false, editId: null })} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '8px 16px', fontSize: '12px', cursor: 'pointer', color: '#8a7d5c', fontFamily: 'inherit'}}>{lang === 'id' ? 'Batal' : 'Cancel'}</button>
+              <button onClick={recordPayment} style={{background: '#1a2942', border: 'none', padding: '8px 16px', fontSize: '12px', cursor: 'pointer', color: '#fff', fontFamily: 'inherit', fontWeight: 600}}>{paymentForm.editId ? (lang === 'id' ? 'Simpan Perubahan' : 'Save Changes') : (lang === 'id' ? 'Simpan' : 'Save')}</button>
             </div>
           </div>
         </div>
@@ -11851,7 +11937,7 @@ const SyncIndicator = React.memo(function SyncIndicator({ lastSync, onRefresh, t
   const [tick, setTick] = useState(0);
   // Re-render every 30s to update relative time
   useEffect(() => {
-    const id = setInterval(() => setTick(t => t + 1), 30000);
+    const id = setInterval(() => setTick(t => t + 1), 15000);
     return () => clearInterval(id);
   }, []);
   // Compute relative time
@@ -11888,7 +11974,7 @@ const Footer = React.memo(function Footer({ t, lastSync, onRefresh, lang }) {
           <span style={{fontSize: '11px', color: '#8a7d5c'}}>· {t.company}</span>
         </div>
         {lastSync !== undefined && onRefresh && <SyncIndicator lastSync={lastSync} onRefresh={onRefresh} t={t} lang={lang} />}
-        <div className="lbl-tag">Phase 37 · © 2026</div>
+        <div className="lbl-tag">Phase 38 · © 2026</div>
       </div>
     </footer>
   );

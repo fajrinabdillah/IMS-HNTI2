@@ -3953,11 +3953,8 @@ const PAYMENT_TERMS = {
   'kso_monthly': { label: 'pt_kso_monthly', installments: 60, dpRequired: false },
 };
 
-// ============== Refined Logo (3-layer diamond) ==============
-// React.memo wrapped - logo is pure presentational, no state, no parent re-render needed
 // ====== KODE LOGO GAMBAR BARU ======
 const IMSLogo = React.memo(function IMSLogo({ size = 'md', inverted = false, showTagline = false }) {
-  // Ukuran akan menyesuaikan otomatis antara halaman login dan dasbor
   const logoWidth = size === 'xl' ? '180px' : size === 'lg' ? '140px' : '100px';
 
   return (
@@ -3970,14 +3967,15 @@ const IMSLogo = React.memo(function IMSLogo({ size = 'md', inverted = false, sho
     </div>
   );
 });
-// ===================================const GlobalStyles = () => (
+
+// Global styles
+const GlobalStyles = () => (
   <style>{`
     @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
     * { box-sizing: border-box; }
     body { margin: 0; }
     .serif { font-family: 'Cormorant Garamond', Georgia, serif; }
     .mono { font-family: 'JetBrains Mono', monospace; }
-    /* Common label styles (replaces 38+ duplicated inline styles) */
     .lbl-tag { font-size: 10px; letter-spacing: 0.2em; color: #8a7d5c; text-transform: uppercase; }
     .lbl-tag-sm { font-size: 9px; letter-spacing: 0.15em; color: #8a7d5c; text-transform: uppercase; font-weight: 600; }
     .lbl-tag-md { font-size: 11px; letter-spacing: 0.15em; color: #8a7d5c; text-transform: uppercase; font-weight: 600; }
@@ -4013,7 +4011,6 @@ const IMSLogo = React.memo(function IMSLogo({ size = 'md', inverted = false, sho
     .mobile-menu-btn { display: none; }
   `}</style>
 );
-
 // Main App
 export default function App() {
   const [lang, setLang] = useState('id');

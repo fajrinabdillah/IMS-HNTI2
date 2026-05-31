@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { TrendingUp, FileText, Briefcase, Plus, Search, Edit2, Trash2, X, ArrowUpRight, ArrowDownRight, Activity, DollarSign, Users, Clock, Globe, LogOut, Shield, Wrench, Truck, Wallet, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, FileCheck, Menu, ChevronDown, ChevronRight, ChevronLeft, ClipboardList, Star, Settings, ShieldCheck, CalendarDays, AlertTriangle, FileSearch, UserPlus, UserCheck, UserX, Plane, Receipt, Hotel, RefreshCw, History, FolderOpen, Upload, MessageSquare, Download, Target, Layers, FileBarChart, Paperclip } from 'lucide-react';
+import { TrendingUp, FileText, Briefcase, Plus, Search, Edit2, Trash2, X, ArrowUpRight, ArrowDownRight, Activity, DollarSign, Users, Clock, Globe, LogOut, Shield, Wrench, Truck, Wallet, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, FileCheck, Menu, ChevronDown, ChevronRight, ChevronLeft, ClipboardList, Star, Settings, ShieldCheck, CalendarDays, AlertTriangle, FileSearch, UserPlus, UserCheck, UserX, Plane, Receipt, Hotel, RefreshCw, History, FolderOpen, Upload, MessageSquare, Download, Target, Layers, FileBarChart, Paperclip, Bell } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Area, ComposedChart } from 'recharts';
 
 const DEFAULT_USD_IDR = 18000;
@@ -1486,6 +1486,15 @@ Object.entries(USERS).forEach(([un, info]) => { if (info.name) SEED_NAME_TO_USER
 // Static technician order (from USERS seed) — used for positional fallback when a technician
 // username has been renamed in the live DB (e.g. 'teknisi' → 'teknisi1').
 const STATIC_TECH_ORDER = Object.entries(USERS).filter(([u, i]) => i.role === 'technician').map(([u, i]) => ({ un: u, name: i.name }));
+// Derive a 1-2 letter avatar initial from a name (always computed from the live name so it
+// stays correct after renames — never relies on a stored, possibly-stale, initial field).
+function initialOf(name) {
+  if (!name) return '?';
+  const parts = String(name).trim().replace(/\(.*?\)/g, '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '?';
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
 // Resolve ANY stored value (live username, original seed name/username, or custom text) to the
 // current live employee name. Resilient to renamed usernames via technician positional fallback.
 function resolveEmpName(employees, val) {
@@ -3253,7 +3262,7 @@ const SEED_INSTALL_RECORDS = [
   { id: 'inst_003', recordNo: 'BA-INST-2026-003', customer: 'RSUD Banyumas',
     modality: 'X-Ray', subModality: 'X-Ray Stationary Jumong General',
     installStart: '2026-04-25', installEnd: null, duration: null,
-    leadTechnician: 'Andi Pratama', teamSize: 2,
+    leadTechnician: 'Rudi Susanto', teamSize: 2,
     roomReady: true, electricalReady: true, calibrationDone: false,
     status: 'progress', notes: 'Sedang dalam tahap testing & calibration' },
   { id: 'inst_004', recordNo: 'BA-INST-2026-004', customer: 'RS Hermina Galaxy Bekasi',
@@ -3265,7 +3274,7 @@ const SEED_INSTALL_RECORDS = [
   { id: 'inst_005', recordNo: 'BA-INST-2026-005', customer: 'RS Husada Utama Surabaya',
     modality: 'C-Arm', subModality: 'C-Arm Garion',
     installStart: '2026-05-20', installEnd: null, duration: null,
-    leadTechnician: 'Bagus Iswahyudi', teamSize: 2,
+    leadTechnician: 'Eko Prasetyo', teamSize: 2,
     roomReady: false, electricalReady: false, calibrationDone: false,
     status: 'planning', notes: 'Survey lokasi sudah dilakukan, menunggu RS finalisasi ruangan' },
 ];
@@ -4343,7 +4352,7 @@ export default function App() {
         storeGet('ims_hnti:imp_v22'), storeGet('ims_hnti:pgl_v22'), storeGet('ims_hnti:pi_v22'),
         storeGet('ims_hnti:pm_v22'),
         storeGet('ims_hnti:mfst_v22'), storeGet('ims_hnti:cdoc_v22'),
-        storeGet('ims_hnti:inst_v22'), storeGet('ims_hnti:bast_v22'), storeGet('ims_hnti:train_v22'),
+        storeGet('ims_hnti:inst_v23'), storeGet('ims_hnti:bast_v22'), storeGet('ims_hnti:train_v22'),
         storeGet('ims_hnti:emp_v22'),
         storeGet('ims_hnti:bt_v22')
       ]);
@@ -4397,7 +4406,7 @@ export default function App() {
   useEffect(() => { if (!loading) storeSet('ims_hnti:pm_v22', JSON.stringify(pmSchedule)); }, [pmSchedule, loading]);
   useEffect(() => { if (!loading) storeSet('ims_hnti:mfst_v22', JSON.stringify(manifests)); }, [manifests, loading]);
   useEffect(() => { if (!loading) storeSet('ims_hnti:cdoc_v22', JSON.stringify(customsDocs)); }, [customsDocs, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:inst_v22', JSON.stringify(installRecords)); }, [installRecords, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:inst_v23', JSON.stringify(installRecords)); }, [installRecords, loading]);
   useEffect(() => { if (!loading) storeSet('ims_hnti:bast_v22', JSON.stringify(bastRecords)); }, [bastRecords, loading]);
   useEffect(() => { if (!loading) storeSet('ims_hnti:train_v22', JSON.stringify(trainingRecords)); }, [trainingRecords, loading]);
   useEffect(() => { if (!loading) storeSet('ims_hnti:emp_v22', JSON.stringify(employees)); }, [employees, loading]);
@@ -4412,8 +4421,8 @@ export default function App() {
   useEffect(() => {
     if (loading || !session) return;
     const emp = employees[session.username];
-    if (emp && (emp.name !== session.name || (emp.initial || '') !== (session.initial || ''))) {
-      setSession(s => ({ ...s, name: emp.name, initial: emp.initial || s.initial }));
+    if (emp && (emp.name !== session.name || initialOf(emp.name) !== (session.initial || ''))) {
+      setSession(s => ({ ...s, name: emp.name, initial: initialOf(emp.name) }));
     }
   }, [employees, loading]);
   useEffect(() => { if (!loading) storeSet(AUDIT_LOG_KEY, JSON.stringify(auditLog)); }, [auditLog, loading]);
@@ -4560,6 +4569,19 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
     return count;
   }, [businessTrips, realizations, session.role, session.username]);
 
+  // Weekly field-report notifications for CEO / GM / Manager Operasional (#new) —
+  // count of reports within the most recent 7 days of sales activity.
+  const navSrNotifCount = useMemo(() => {
+    if (!['super_admin', 'gm', 'manager_ops'].includes(session.role)) return 0;
+    if (!reports || !reports.length) return 0;
+    const dates = reports.map(r => r.date || '').filter(Boolean).sort();
+    const latest = dates[dates.length - 1];
+    if (!latest) return 0;
+    const cut = new Date(latest); cut.setDate(cut.getDate() - 7);
+    const cutStr = cut.toISOString().split('T')[0];
+    return reports.filter(r => (r.date || '') >= cutStr).length;
+  }, [reports, session.role]);
+
   useEffect(() => { if (!allowedNav.includes(view)) setView(allowedNav[0]); }, [session.role]);
 
   const canEdit = (mod) => perms[mod] === 'full' || perms[mod] === 'write';
@@ -4617,8 +4639,8 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
   return (
     <div style={{minHeight: '100vh', background: '#f8f5ef', fontFamily: 'Inter, sans-serif', color: '#1a2942'}}>
       <GlobalStyles />
-      <HoverSidebar allowedNav={allowedNav} view={view} setView={setView} t={t} lang={lang} btNotifCount={navBtNotifCount} />
-      <Header session={session} setSession={setSession} lang={lang} setLang={setLang} view={view} setView={setView} allowedNav={allowedNav} t={t} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} businessTrips={businessTrips} realizations={realizations} onChangePassword={() => setChangePwOpen(true)} />
+      <HoverSidebar allowedNav={allowedNav} view={view} setView={setView} t={t} lang={lang} btNotifCount={navBtNotifCount} srNotifCount={navSrNotifCount} />
+      <Header session={session} setSession={setSession} lang={lang} setLang={setLang} view={view} setView={setView} allowedNav={allowedNav} t={t} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} businessTrips={businessTrips} realizations={realizations} reports={reports} onChangePassword={() => setChangePwOpen(true)} />
 
       <main className="main-content fade-in" style={{maxWidth: '1440px', margin: '0 auto', padding: '32px 48px 60px'}}>
         {view === 'dashboard' && <Dashboard data={filteredData} reports={reports} products={products} t={t} lang={lang} session={session} fmt={fmt} employees={employees} />}
@@ -4748,7 +4770,7 @@ const WIBClock = React.memo(function WIBClock({ lang, compact = false }) {
   );
 });
 
-function Header({ session, setSession, lang, setLang, view, setView, allowedNav, t, mobileMenuOpen, setMobileMenuOpen, exchangeRate, setExchangeRate, businessTrips, realizations, onChangePassword }) {
+function Header({ session, setSession, lang, setLang, view, setView, allowedNav, t, mobileMenuOpen, setMobileMenuOpen, exchangeRate, setExchangeRate, businessTrips, realizations, reports, onChangePassword }) {
   const navIcons = { dashboard: Activity, sph: FileText, pipeline: Briefcase, sales: Users, sales_report: ClipboardList, incentive: DollarSign, finance: Wallet, operations: Truck, installation: Wrench, maintenance: Settings, regulatory: ShieldCheck, valuation: TrendingUp, employees: UserPlus, business_trip: Plane, audit_log: History, risk: Target, products: Layers, cohort: FileBarChart, cashflow: TrendingUp, annotations: MessageSquare, exec_summary: FileText };
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [rateMenuOpen, setRateMenuOpen] = useState(false);
@@ -4776,6 +4798,17 @@ function Header({ session, setSession, lang, setLang, view, setView, allowedNav,
     }
     return count;
   }, [businessTrips, realizations, session.role, session.username]);
+
+  const srNotifCount = useMemo(() => {
+    if (!['super_admin', 'gm', 'manager_ops'].includes(session.role)) return 0;
+    if (!reports || !reports.length) return 0;
+    const dates = reports.map(r => r.date || '').filter(Boolean).sort();
+    const latest = dates[dates.length - 1];
+    if (!latest) return 0;
+    const cut = new Date(latest); cut.setDate(cut.getDate() - 7);
+    const cutStr = cut.toISOString().split('T')[0];
+    return reports.filter(r => (r.date || '') >= cutStr).length;
+  }, [reports, session.role]);
 
   return (
     <header style={{borderBottom: '1px solid #d4cdb8', background: '#f8f5ef', position: 'sticky', top: 0, zIndex: 50}}>
@@ -4813,7 +4846,7 @@ function Header({ session, setSession, lang, setLang, view, setView, allowedNav,
           </button>
           <div style={{position: 'relative'}}>
             <button onClick={() => setUserMenuOpen(!userMenuOpen)} style={{background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', padding: '4px'}}>
-              <div style={{width: '32px', height: '32px', borderRadius: '50%', background: '#1a2942', color: '#f8f5ef', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 600}}>{session.initial}</div>
+              <div style={{width: '32px', height: '32px', borderRadius: '50%', background: '#1a2942', color: '#f8f5ef', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 600}}>{initialOf(session.name)}</div>
               <ChevronDown size={13} strokeWidth={1.5} />
             </button>
             {userMenuOpen && (
@@ -4842,7 +4875,7 @@ function Header({ session, setSession, lang, setLang, view, setView, allowedNav,
           {allowedNav.map(item => {
             const Icon = navIcons[item];
             const active = view === item;
-            const badge = item === 'business_trip' ? btNotifCount : 0;
+            const badge = item === 'business_trip' ? btNotifCount : (item === 'sales_report' ? srNotifCount : 0);
             return (
               <button key={item} onClick={() => { setView(item); setMobileMenuOpen(false); }} style={{width: '100%', background: active ? '#1a2942' : 'transparent', color: active ? '#f8f5ef' : '#1a2942', border: 'none', padding: '12px 16px', fontFamily: 'inherit', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px', textAlign: 'left'}}>
                 <Icon size={15} strokeWidth={1.5} />
@@ -4860,7 +4893,7 @@ function Header({ session, setSession, lang, setLang, view, setView, allowedNav,
 // ============== Hover Sidebar Navigation ==============
 // Navigasi modul di sisi kiri layar, muncul saat kursor digeser ke tepi kiri (atau diklik di mobile).
 // Membuat tampilan IMS lebih bersih — header tidak penuh tombol modul.
-function HoverSidebar({ allowedNav, view, setView, t, lang, btNotifCount }) {
+function HoverSidebar({ allowedNav, view, setView, t, lang, btNotifCount, srNotifCount = 0 }) {
   const navIcons = { dashboard: Activity, sph: FileText, pipeline: Briefcase, sales: Users, sales_report: ClipboardList, incentive: DollarSign, finance: Wallet, operations: Truck, installation: Wrench, maintenance: Settings, regulatory: ShieldCheck, valuation: TrendingUp, employees: UserPlus, business_trip: Plane, audit_log: History, risk: Target, products: Layers, cohort: FileBarChart, cashflow: TrendingUp, annotations: MessageSquare, exec_summary: FileText };
   const [open, setOpen] = useState(false);
 
@@ -4907,7 +4940,7 @@ function HoverSidebar({ allowedNav, view, setView, t, lang, btNotifCount }) {
           {allowedNav.map(item => {
             const Icon = navIcons[item] || Activity;
             const active = view === item;
-            const badge = item === 'business_trip' ? btNotifCount : 0;
+            const badge = item === 'business_trip' ? btNotifCount : (item === 'sales_report' ? srNotifCount : 0);
             return (
               <button key={item} onClick={() => { setView(item); setOpen(false); }} style={{width: '100%', background: active ? '#c8a96a' : 'transparent', color: active ? '#1a2942' : '#f8f5ef', border: 'none', borderLeft: active ? '3px solid #f8f5ef' : '3px solid transparent', padding: '11px 18px', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: active ? 600 : 400, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left', transition: 'background 0.15s', letterSpacing: '0.02em'}}
                 onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(248,245,239,0.08)'; }}
@@ -5368,7 +5401,7 @@ const Th = React.memo(function Th({ children, align = 'left' }) { return <th sty
 const Td = React.memo(function Td({ children, align = 'left' }) { return <td style={{padding: '12px 14px', textAlign: align, verticalAlign: 'middle'}}>{children}</td>; });
 
 function SPHManagement({ data, employees = {}, t, lang, canEdit, fmt, onAdd, onEdit, onDelete }) {
-  const salesTeam = SALES_TEAM.map(s => ({ ...s, name: resolveEmpName(employees, s.id) }));
+  const salesTeam = SALES_TEAM.map(s => { const _nm = resolveEmpName(employees, s.id); return { ...s, name: _nm, initial: initialOf(_nm) }; });
   const [search, setSearch] = useState('');
   const [filterPType, setFilterPType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -5514,7 +5547,7 @@ function SPHManagement({ data, employees = {}, t, lang, canEdit, fmt, onAdd, onE
 }
 
 function PipelineBoard({ data, allData, setData, employees = {}, session, logAction, t, lang, canEdit, fmt, onEdit }) {
-  const salesTeam = SALES_TEAM.map(s => ({ ...s, name: resolveEmpName(employees, s.id) }));
+  const salesTeam = SALES_TEAM.map(s => { const _nm = resolveEmpName(employees, s.id); return { ...s, name: _nm, initial: initialOf(_nm) }; });
   // For privileged roles, allow filtering by sales owner; sales role uses its own data
   const isPrivilegedRole = session && (session.role === 'super_admin' || session.role === 'gm' || session.role === 'manager_ops' || session.role === 'admin');
   // Sales owner filter — 'all' or specific sales id
@@ -5852,7 +5885,7 @@ function PipelineBoard({ data, allData, setData, employees = {}, session, logAct
 }
 
 function SalesModule({ data, reports, t, lang, fmt, employees = {} }) {
-  const salesTeam = SALES_TEAM.map(s => ({ ...s, name: resolveEmpName(employees, s.id) }));
+  const salesTeam = SALES_TEAM.map(s => { const _nm = resolveEmpName(employees, s.id); return { ...s, name: _nm, initial: initialOf(_nm) }; });
   // Filter: view all sales, or drill into one specific sales
   const [selectedSales, setSelectedSales] = useState('all');
   const stats = useMemo(() => salesTeam.map(sales => {
@@ -5996,6 +6029,7 @@ function SalesModule({ data, reports, t, lang, fmt, employees = {} }) {
 
 // =================== SALES REPORTING MODULE ===================
 function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {} }) {
+  const salesTeam = SALES_TEAM.map(s => { const _nm = resolveEmpName(employees, s.id); return { ...s, name: _nm, initial: initialOf(_nm) }; });
   const [tab, setTab] = useState('dashboard');
   const [filterSales, setFilterSales] = useState('all');
   const [editingReport, setEditingReport] = useState(null);
@@ -6047,20 +6081,20 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
       {session.role !== 'sales' && tab === 'history' && (
         <div style={{display: 'flex', gap: '6px', marginBottom: '16px', flexWrap: 'wrap'}}>
           <button onClick={() => setFilterSales('all')} style={{padding: '5px 11px', fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', background: filterSales === 'all' ? '#1a2942' : 'transparent', color: filterSales === 'all' ? '#c8a96a' : '#8a7d5c', border: '1px solid ' + (filterSales === 'all' ? '#1a2942' : '#d4cdb8'), cursor: 'pointer', fontFamily: 'inherit'}}>{lang === 'id' ? 'Semua' : 'All'}</button>
-          {SALES_TEAM.map(s => <button key={s.id} onClick={() => setFilterSales(s.id)} style={{padding: '5px 11px', fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', background: filterSales === s.id ? '#1a2942' : 'transparent', color: filterSales === s.id ? '#c8a96a' : '#8a7d5c', border: '1px solid ' + (filterSales === s.id ? '#1a2942' : '#d4cdb8'), cursor: 'pointer', fontFamily: 'inherit'}}>{s.name.split(' ')[0]}</button>)}
+          {salesTeam.map(s => <button key={s.id} onClick={() => setFilterSales(s.id)} style={{padding: '5px 11px', fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', background: filterSales === s.id ? '#1a2942' : 'transparent', color: filterSales === s.id ? '#c8a96a' : '#8a7d5c', border: '1px solid ' + (filterSales === s.id ? '#1a2942' : '#d4cdb8'), cursor: 'pointer', fontFamily: 'inherit'}}>{s.name.split(' ')[0]}</button>)}
         </div>
       )}
 
-      {tab === 'dashboard' && <SRDashboard reports={visibleReports} t={t} lang={lang} employees={employees} />}
-      {tab === 'new' && session.role === 'sales' && <SRForm reports={reports} setReports={setReports} t={t} lang={lang} session={session} editingReport={editingReport} onSaved={handleSaved} onCancel={() => { setEditingReport(null); setTab('history'); }} />}
+      {tab === 'dashboard' && <SRDashboard reports={visibleReports} t={t} lang={lang} employees={employees} session={session} />}
+      {tab === 'new' && session.role === 'sales' && <SRForm reports={reports} setReports={setReports} t={t} lang={lang} session={session} editingReport={editingReport} onSaved={handleSaved} onCancel={() => { setEditingReport(null); setTab('history'); }} employees={employees} />}
       {tab === 'history' && <SRHistory reports={visibleReports} t={t} lang={lang} fmt={fmt} canEdit={session.role === 'sales'} onEdit={handleEdit} onDelete={handleDelete} session={session} employees={employees} />}
       <ConfirmDialog open={!!deleteReportId} title={lang === 'id' ? 'Hapus Laporan?' : 'Delete Report?'} message={t.sr_confirm_delete || (lang === 'id' ? 'Yakin ingin menghapus laporan ini?' : 'Are you sure you want to delete this report?')} onConfirm={confirmDeleteReport} onCancel={() => setDeleteReportId(null)} danger lang={lang} />
     </div>
   );
 }
 
-function SRDashboard({ reports, t, lang, employees = {} }) {
-  const salesTeam = SALES_TEAM.map(s => ({ ...s, name: resolveEmpName(employees, s.id) }));
+function SRDashboard({ reports, t, lang, employees = {}, session = {} }) {
+  const salesTeam = SALES_TEAM.map(s => { const _nm = resolveEmpName(employees, s.id); return { ...s, name: _nm, initial: initialOf(_nm) }; });
   // PERFORMANCE: All stats memoized (hook must come before any early return)
   const stats = useMemo(() => {
     const totalVisits = reports.reduce((s, r) => s + (r.visits?.length || 0), 0);
@@ -6084,8 +6118,35 @@ function SRDashboard({ reports, t, lang, employees = {} }) {
 
   const { totalVisits, totalDays, totalDeals, totalPipeRS, bySales } = stats;
 
+  // Weekly report notification for CEO / GM / Manager Operasional
+  const isManager = ['super_admin', 'gm', 'manager_ops'].includes(session.role);
+  const recentReports = (() => {
+    if (!isManager || !reports.length) return [];
+    const dates = reports.map(r => r.date || '').filter(Boolean).sort();
+    const latest = dates[dates.length - 1];
+    if (!latest) return [];
+    const cut = new Date(latest); cut.setDate(cut.getDate() - 7);
+    const cutStr = cut.toISOString().split('T')[0];
+    return reports.filter(r => (r.date || '') >= cutStr).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  })();
+
   return (
     <div>
+      {isManager && recentReports.length > 0 && (
+        <div style={{background: '#1a2942', color: '#f8f5ef', padding: '14px 18px', marginBottom: '20px', borderRadius: '4px', display: 'flex', alignItems: 'flex-start', gap: '12px'}}>
+          <Bell size={18} strokeWidth={1.8} style={{color: '#c8a96a', flexShrink: 0, marginTop: '2px'}} />
+          <div style={{flex: 1}}>
+            <div style={{fontSize: '13px', fontWeight: 600, marginBottom: '6px'}}>{lang === 'id' ? `${recentReports.length} laporan lapangan masuk minggu ini` : `${recentReports.length} field reports submitted this week`}</div>
+            <div style={{display: 'flex', flexWrap: 'wrap', gap: '6px'}}>
+              {recentReports.slice(0, 8).map(r => {
+                const nm = resolveEmpName(employees, r.salesId);
+                return <span key={r.id} style={{fontSize: '11px', background: 'rgba(200,169,106,0.18)', color: '#e8dcc0', padding: '2px 9px', borderRadius: '10px'}}>{nm.split(' ')[0]} · {r.date}</span>;
+              })}
+              {recentReports.length > 8 && <span style={{fontSize: '11px', color: '#c8a96a', padding: '2px 4px'}}>+{recentReports.length - 8}</span>}
+            </div>
+          </div>
+        </div>
+      )}
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '24px', border: '1px solid #d4cdb8'}}>
         <KPICard label={t.sr_visits_count} value={totalVisits} sublabel={`${reports.length} ${lang === 'id' ? 'laporan' : 'reports'}`} trend={15.2} />
         <KPICard label={t.sr_field_days_total} value={totalDays} sublabel={lang === 'id' ? 'Hari lapangan' : 'Field days'} trend={8.4} />
@@ -6120,8 +6181,9 @@ function SRDashboard({ reports, t, lang, employees = {} }) {
   );
 }
 
-function SRForm({ reports, setReports, t, lang, session, editingReport, onSaved, onCancel }) {
-  const sales = SALES_TEAM.find(s => s.id === session.salesId);
+function SRForm({ reports, setReports, t, lang, session, editingReport, onSaved, onCancel, employees = {} }) {
+  const _base = SALES_TEAM.find(s => s.id === session.salesId);
+  const sales = _base ? { ..._base, name: resolveEmpName(employees, session.salesId) } : _base;
   const isEdit = !!editingReport;
   const [form, setForm] = useState(editingReport || {
     date: '2026-05-16', week: 'Minggu 1', days: 0, nights: 0, area: '',
@@ -6274,7 +6336,7 @@ function SRForm({ reports, setReports, t, lang, session, editingReport, onSaved,
 }
 
 function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, session, fmt, employees = {} }) {
-  const salesTeam = SALES_TEAM.map(s => ({ ...s, name: resolveEmpName(employees, s.id) }));
+  const salesTeam = SALES_TEAM.map(s => { const _nm = resolveEmpName(employees, s.id); return { ...s, name: _nm, initial: initialOf(_nm) }; });
   const [expanded, setExpanded] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc');
 
@@ -8044,7 +8106,7 @@ function EmployeesModule({ employees, setEmployees, t, lang, session, fmt }) {
                   <Td><span className="mono" style={{fontWeight: 600, color: '#1a2942'}}>{emp.username}</span></Td>
                   <Td>
                     <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                      <div style={{width: '26px', height: '26px', borderRadius: '50%', background: posColor, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 600, flexShrink: 0}}>{emp.initial}</div>
+                      <div style={{width: '26px', height: '26px', borderRadius: '50%', background: posColor, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 600, flexShrink: 0}}>{initialOf(emp.name)}</div>
                       <div>
                         <div style={{fontWeight: 500}}>{emp.name}</div>
                         {emp.salesId && <div style={{fontSize: '10px', color: '#8a7d5c'}}>Sales ID: {emp.salesId}</div>}
@@ -8121,7 +8183,7 @@ function EmployeeModal({ emp, employees, onSave, onClose, t, lang }) {
       setError(t.emp_duplicate_username);
       return;
     }
-    const finalForm = { ...form, initial: form.initial || autoInitial(form.name) };
+    const finalForm = { ...form, initial: autoInitial(form.name) };
     // Pass original username for rename handling
     if (isEdit && originalUsername && originalUsername !== form.username) {
       finalForm._renameFrom = originalUsername;
@@ -11312,7 +11374,7 @@ function InstallRecordsList({ records, setRecords, t, lang, canEdit, employees =
         );
       })}
       {records.length === 0 && <div className="empty-state">{t.no_data}</div>}
-      {modalOpen && <InstallRecordModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} employees={employees} liveTechnicians={liveTechnicians} />}
+      {modalOpen && <InstallRecordModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} employees={employees} />}
       <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Riwayat Instalasi?' : 'Delete Installation Record?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
   );
@@ -11482,14 +11544,14 @@ function TrainingCertList({ records, setRecords, t, lang, canEdit }) {
 }
 
 // ============== Install Record Modal ==============
-function InstallRecordModal({ record, onSave, onClose, t, lang, employees = {}, liveTechnicians = [] }) {
+function InstallRecordModal({ record, onSave, onClose, t, lang, employees = {} }) {
   const today = new Date().toISOString().split('T')[0];
   const [form, setForm] = useState(record || {
     id: 'inst_' + Date.now(),
     recordNo: 'BA-INST-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-3),
     customer: '', modality: 'CT Scan', subModality: '',
     installStart: today, installEnd: '', duration: null,
-    leadTechnician: 'Budi Hartono', teamSize: 2,
+    leadTechnician: (Object.keys(employees).find(u => employees[u].role === 'technician' && employees[u].active) || ''), teamSize: 2,
     roomReady: false, electricalReady: false, calibrationDone: false,
     status: 'planning', notes: '',
   });
@@ -11523,7 +11585,7 @@ function InstallRecordModal({ record, onSave, onClose, t, lang, employees = {}, 
           <Field label={t.inst_install_start}><input type="date" value={form.installStart} onChange={e => update('installStart', e.target.value)} /></Field>
           <Field label={t.inst_install_end}><input type="date" value={form.installEnd || ''} onChange={e => update('installEnd', e.target.value)} /></Field>
           <Field label={t.inst_duration}><input type="number" value={form.duration || ''} onChange={e => update('duration', parseInt(e.target.value) || null)} /></Field>
-          <Field label={t.inst_lead_technician}><select value={(liveTechnicians.length && employees) ? (Object.keys(employees).find(u => employees[u].name === resolveEmpName(employees, form.leadTechnician)) || '') : ''} onChange={e => update('leadTechnician', e.target.value)} style={{width:'100%'}}>{!liveTechnicians.length && <option value={form.leadTechnician}>{form.leadTechnician}</option>}{Object.entries(employees).filter(([u,inf]) => inf.role==='technician' && inf.active).map(([u,inf]) => <option key={u} value={u}>{inf.name}</option>)}</select></Field>
+          <Field label={t.inst_lead_technician}><select value={employees[form.leadTechnician] ? form.leadTechnician : (Object.entries(employees).find(([u, inf]) => inf.role === 'technician' && inf.active && inf.name === resolveEmpName(employees, form.leadTechnician)) || [''])[0]} onChange={e => update('leadTechnician', e.target.value)} style={{width:'100%'}}><option value="">{lang === 'id' ? '— Pilih Teknisi —' : '— Select Technician —'}</option>{Object.entries(employees).filter(([u, inf]) => inf.role === 'technician' && inf.active).map(([u, inf]) => <option key={u} value={u}>{inf.name}</option>)}</select></Field>
           <Field label={t.inst_team_size}><input type="number" min="1" value={form.teamSize} onChange={e => update('teamSize', parseInt(e.target.value) || 1)} /></Field>
           <Field label={t.inst_room_ready}>
             <select value={form.roomReady ? 'yes' : 'no'} onChange={e => update('roomReady', e.target.value === 'yes')}>
@@ -13863,7 +13925,7 @@ function RegulatoryRecordModal({ record, recordType, onSave, onClose, t, lang })
 
 // ============== Incentive Module ==============
 function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdit, employees = {} }) {
-  const salesTeam = SALES_TEAM.map(s => ({ ...s, name: resolveEmpName(employees, s.id) }));
+  const salesTeam = SALES_TEAM.map(s => { const _nm = resolveEmpName(employees, s.id); return { ...s, name: _nm, initial: initialOf(_nm) }; });
   const isSales = session.role === 'sales';
   const isOfficeAccount = session.salesId === 'office';
   // Catatan #1: per-sales filter for CEO/Finance to drill into each sales' incentive detail

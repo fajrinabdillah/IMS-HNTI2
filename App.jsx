@@ -1479,6 +1479,20 @@ const USERS = {
 // Technician roster derived from the employee DB (USERS) — keeps maintenance in sync (#5/#6)
 const TECHNICIAN_NAMES = Object.values(USERS).filter(u => u.role === 'technician' && u.active).map(u => u.name);
 
+// ===== Universal employee-name sync layer =====
+// Maps an original seed display-name → username, built from the static USERS seed.
+// Lets seed records that store a plain name string still resolve to the LIVE (renamed) employee.
+const SEED_NAME_TO_USERNAME = {};
+Object.entries(USERS).forEach(([un, info]) => { if (info.name) SEED_NAME_TO_USERNAME[info.name] = un; });
+// Resolve ANY stored value (username key, original seed name, or custom text) to the current live name.
+function resolveEmpName(employees, val) {
+  if (!val || !employees) return val || '';
+  if (employees[val]) return employees[val].name;            // value is a username key
+  const un = SEED_NAME_TO_USERNAME[val];
+  if (un && employees[un]) return employees[un].name;         // value is an original seed name
+  return val;                                                 // custom/manually-typed name
+}
+
 const PERMISSIONS = {
   super_admin:  { dashboard: 'full', sph: 'full', pipeline: 'full', sales: 'full', sales_report: 'full', finance: 'full', operations: 'full', installation: 'full', maintenance: 'full', regulatory: 'full', valuation: 'full', incentive: 'full', employees: 'full', business_trip: 'full' },
   gm:           { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'read', sales_report: 'read', finance: 'read', operations: 'read', installation: 'read', maintenance: 'read', regulatory: 'read', valuation: 'read', incentive: 'read', employees: 'full', business_trip: 'full' },
@@ -4589,17 +4603,17 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
       <Header session={session} setSession={setSession} lang={lang} setLang={setLang} view={view} setView={setView} allowedNav={allowedNav} t={t} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} businessTrips={businessTrips} realizations={realizations} onChangePassword={() => setChangePwOpen(true)} />
 
       <main className="main-content fade-in" style={{maxWidth: '1440px', margin: '0 auto', padding: '32px 48px 60px'}}>
-        {view === 'dashboard' && <Dashboard data={filteredData} reports={reports} products={products} t={t} lang={lang} session={session} fmt={fmt} />}
+        {view === 'dashboard' && <Dashboard data={filteredData} reports={reports} products={products} t={t} lang={lang} session={session} fmt={fmt} employees={employees} />}
         {view === 'sph' && canRead('sph') && <SPHManagement data={filteredData} t={t} lang={lang} canEdit={canEdit('sph')} fmt={fmt} onAdd={() => { setEditingSph(null); setModalOpen(true); }} onEdit={(s) => { setEditingSph(s); setModalOpen(true); }} onDelete={handleDelete} />}
         {view === 'pipeline' && canRead('pipeline') && <PipelineBoard data={filteredData} allData={data} setData={setData} session={session} logAction={logAction} t={t} lang={lang} canEdit={canEdit('pipeline')} fmt={fmt} onEdit={(s) => { setEditingSph(s); setModalOpen(true); }} />}
-        {view === 'sales' && canRead('sales') && <SalesModule data={data} reports={reports} t={t} lang={lang} fmt={fmt} />}
+        {view === 'sales' && canRead('sales') && <SalesModule data={data} reports={reports} t={t} lang={lang} fmt={fmt} employees={employees} />}
         {view === 'sales_report' && canRead('sales_report') && <SalesReport reports={reports} setReports={setReports} t={t} lang={lang} session={session} fmt={fmt} />}
         {view === 'finance' && canRead('finance') && <FinanceModule data={data} setData={setData} t={t} lang={lang} canEdit={canEdit('finance')} fmt={fmt} />}
         {view === 'operations' && canRead('operations') && <OperationsModule data={data} setData={setData} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} t={t} lang={lang} canEdit={canEdit('operations')} fmt={fmt} />}
-        {view === 'installation' && canRead('installation') && <InstallationModule data={data} setData={setData} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} t={t} lang={lang} canEdit={canEdit('installation')} fmt={fmt} />}
-        {view === 'maintenance' && canRead('maintenance') && <MaintenanceModule units={installedUnits} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} t={t} lang={lang} canEdit={canEdit('maintenance')} session={session} liveTechnicians={liveTechnicians} unitTechMap={unitTechMap} setUnitTechMap={setUnitTechMap} />}
+        {view === 'installation' && canRead('installation') && <InstallationModule data={data} setData={setData} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} t={t} lang={lang} canEdit={canEdit('installation')} fmt={fmt} employees={employees} liveTechnicians={liveTechnicians} />}
+        {view === 'maintenance' && canRead('maintenance') && <MaintenanceModule units={installedUnits} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} t={t} lang={lang} canEdit={canEdit('maintenance')} session={session} liveTechnicians={liveTechnicians} unitTechMap={unitTechMap} setUnitTechMap={setUnitTechMap} employees={employees} />}
         {view === 'regulatory' && canRead('regulatory') && <RegulatoryModule records={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} units={installedUnits} t={t} lang={lang} fmt={fmt} canEdit={canEdit('regulatory')} />}
-        {view === 'incentive' && canRead('incentive') && <IncentiveModule data={data} setData={setData} t={t} lang={lang} session={session} fmt={fmt} fmtFull={fmtFull} canEdit={canEdit('incentive')} />}
+        {view === 'incentive' && canRead('incentive') && <IncentiveModule data={data} setData={setData} t={t} lang={lang} session={session} fmt={fmt} fmtFull={fmtFull} canEdit={canEdit('incentive')} employees={employees} />}
         {view === 'valuation' && canRead('valuation') && <Valuation data={data} t={t} lang={lang} fmt={fmt} />}
         {view === 'employees' && canRead('employees') && <EmployeesModule employees={employees} setEmployees={setEmployees} t={t} lang={lang} session={session} fmt={fmt} />}
         {view === 'business_trip' && canRead('business_trip') && <BusinessTripModule businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} employees={employees} t={t} lang={lang} session={session} fmt={fmt} />}
@@ -4912,7 +4926,7 @@ const ChartTooltip = ({ active, payload, label, fmt }) => {
   );
 };
 
-function Dashboard({ data, reports, products, t, lang, session, fmt }) {
+function Dashboard({ data, reports, products, t, lang, session, fmt, employees = {} }) {
   // PERFORMANCE FIX: All filters/maps wrapped in useMemo to avoid recomputing on every render
   // (was causing scroll lag with 613 SPH records)
   const stats = useMemo(() => {
@@ -4973,8 +4987,8 @@ function Dashboard({ data, reports, products, t, lang, session, fmt }) {
 
   const salesPerformance = useMemo(() => SALES_TEAM.map(sales => {
     const sd = data.filter(s => s.salesOwner === sales.id);
-    return { name: sales.name.split(' ')[0], pipeline: sd.filter(s => s.status === 'active').reduce((s, p) => s + p.totalValue, 0), won: sd.filter(s => s.status === 'won').reduce((s, p) => s + p.totalValue, 0) };
-  }).sort((a, b) => (b.pipeline + b.won) - (a.pipeline + a.won)), [data]);
+    return { name: resolveEmpName(employees, sales.id).split(' ')[0], pipeline: sd.filter(s => s.status === 'active').reduce((s, p) => s + p.totalValue, 0), won: sd.filter(s => s.status === 'won').reduce((s, p) => s + p.totalValue, 0) };
+  }).sort((a, b) => (b.pipeline + b.won) - (a.pipeline + a.won)), [data, employees]);
 
   const fieldStats = useMemo(() => ({
     totalVisits: reports.reduce((s, r) => s + (r.visits?.length || 0), 0),
@@ -5817,10 +5831,11 @@ function PipelineBoard({ data, allData, setData, session, logAction, t, lang, ca
   );
 }
 
-function SalesModule({ data, reports, t, lang, fmt }) {
+function SalesModule({ data, reports, t, lang, fmt, employees = {} }) {
+  const salesTeam = SALES_TEAM.map(s => ({ ...s, name: resolveEmpName(employees, s.id) }));
   // Filter: view all sales, or drill into one specific sales
   const [selectedSales, setSelectedSales] = useState('all');
-  const stats = useMemo(() => SALES_TEAM.map(sales => {
+  const stats = useMemo(() => salesTeam.map(sales => {
     const sd = data.filter(s => s.salesOwner === sales.id);
     const sr = reports.filter(r => r.salesId === sales.id);
     const active = sd.filter(s => s.status === 'active');
@@ -5862,7 +5877,7 @@ function SalesModule({ data, reports, t, lang, fmt }) {
       <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', flexWrap: 'wrap'}}>
         <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{lang === 'id' ? 'Filter Sales' : 'Filter Sales'}:</span>
         <button onClick={() => setSelectedSales('all')} style={{padding: '6px 14px', fontSize: '11px', fontFamily: 'inherit', background: selectedSales === 'all' ? '#1a2942' : 'transparent', color: selectedSales === 'all' ? '#fff' : '#1a2942', border: '1px solid #1a2942', cursor: 'pointer', fontWeight: 600}}>{lang === 'id' ? 'Semua' : 'All'}</button>
-        {SALES_TEAM.map(s => (
+        {salesTeam.map(s => (
           <button key={s.id} onClick={() => setSelectedSales(s.id)} style={{padding: '6px 14px', fontSize: '11px', fontFamily: 'inherit', background: selectedSales === s.id ? s.accent : 'transparent', color: selectedSales === s.id ? '#fff' : s.accent, border: `1px solid ${s.accent}`, cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px'}}>
             <span style={{width: '16px', height: '16px', borderRadius: '50%', background: selectedSales === s.id ? 'rgba(255,255,255,0.3)' : s.accent, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700}}>{s.initial}</span>
             {s.name.split(' ')[0]}
@@ -5912,7 +5927,7 @@ function SalesModule({ data, reports, t, lang, fmt }) {
       {selectedSales !== 'all' && (
         <div style={{background: '#fefcf7', border: '1px solid #e8e1cc', overflowX: 'auto'}}>
           <div style={{padding: '14px 16px', borderBottom: '1px solid #e8e1cc', fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>
-            {lang === 'id' ? `Semua Deal — ${SALES_TEAM.find(x => x.id === selectedSales)?.name} (${selectedDeals.length})` : `All Deals — ${SALES_TEAM.find(x => x.id === selectedSales)?.name} (${selectedDeals.length})`}
+            {lang === 'id' ? `Semua Deal — ${salesTeam.find(x => x.id === selectedSales)?.name} (${selectedDeals.length})` : `All Deals — ${salesTeam.find(x => x.id === selectedSales)?.name} (${selectedDeals.length})`}
           </div>
           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11.5px', minWidth: '700px'}}>
             <thead>
@@ -8185,7 +8200,11 @@ function BusinessTripModule({ businessTrips, setBusinessTrips, realizations, set
 
   // Filter trips based on user
   const visibleTrips = useMemo(() => {
-    let arr = [...businessTrips];
+    let arr = businessTrips.map(t => ({
+      ...t,
+      travelerName: resolveEmpName(employees, t.travelerUsername || t.travelerName),
+      approvalHistory: Array.isArray(t.approvalHistory) ? t.approvalHistory.map(h => ({ ...h, byName: resolveEmpName(employees, h.by || h.byName) })) : t.approvalHistory,
+    }));
     if (!canManageAll) {
       // Regular employees only see their own
       arr = arr.filter(t => t.travelerUsername === session.username);
@@ -8200,7 +8219,7 @@ function BusinessTripModule({ businessTrips, setBusinessTrips, realizations, set
     }
     // Sort: newest first
     return arr.sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''));
-  }, [businessTrips, session, filterView, canManageAll]);
+  }, [businessTrips, session, filterView, canManageAll, employees]);
 
   // Stats
   const totalTrips = businessTrips.length;
@@ -8332,7 +8351,11 @@ function BusinessTripModule({ businessTrips, setBusinessTrips, realizations, set
 
   // Visible realizations based on user role
   const visibleRealizations = useMemo(() => {
-    let arr = [...realizations];
+    let arr = realizations.map(r => ({
+      ...r,
+      travelerName: resolveEmpName(employees, r.travelerUsername || r.travelerName),
+      approvalHistory: Array.isArray(r.approvalHistory) ? r.approvalHistory.map(h => ({ ...h, byName: resolveEmpName(employees, h.by || h.byName) })) : r.approvalHistory,
+    }));
     if (!canManageAll) {
       arr = arr.filter(r => r.travelerUsername === session.username);
     } else if (filterView === 'my') {
@@ -8344,7 +8367,7 @@ function BusinessTripModule({ businessTrips, setBusinessTrips, realizations, set
       else arr = arr.filter(r => ['pending_finance', 'pending_mops', 'pending_gm'].includes(r.status));
     }
     return arr.sort((a, b) => (b.submittedAt || b.updatedAt || '').localeCompare(a.submittedAt || a.updatedAt || ''));
-  }, [realizations, session, filterView, canManageAll]);
+  }, [realizations, session, filterView, canManageAll, employees]);
 
   // Stats for realization tab
   const pendingRealizationsForMe = useMemo(() => {
@@ -9527,7 +9550,8 @@ function BusinessTripDashboard({ businessTrips, realizations, employees, t, lang
     const map = {};
     filtered.forEach(t => {
       if (!map[t.travelerUsername]) {
-        map[t.travelerUsername] = { name: t.travelerName.split(' ')[0], full: t.travelerName, position: t.position, count: 0, total: 0 };
+        const liveName = resolveEmpName(employees, t.travelerUsername || t.travelerName);
+        map[t.travelerUsername] = { name: liveName.split(' ')[0], full: liveName, position: t.position, count: 0, total: 0 };
       }
       map[t.travelerUsername].count++;
       map[t.travelerUsername].total += (t.totalAdvance || 0) + (t.officeBooked?.ticketPP || 0) + (t.officeBooked?.hotelTotal || 0);
@@ -10926,7 +10950,7 @@ function CustomsDocModal({ record, manifests, onSave, onClose, t, lang }) {
   );
 }
 
-function InstallationModule({ data, setData, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, t, lang, canEdit, fmt }) {
+function InstallationModule({ data, setData, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, t, lang, canEdit, fmt, employees = {}, liveTechnicians = [] }) {
   const [tab, setTab] = useState('progress');
   // Default to current year (2026) — sync with SPH module behavior
   const [filterYear, setFilterYear] = useState('2026');
@@ -11123,7 +11147,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
                   <span style={{color: '#8a7d5c', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '9px', fontWeight: 600}}>{t.inst_prog_end}: </span>
                   <span className="mono" style={{color: '#1a2942', fontWeight: 600}}>{rec?.installEnd || (lang === 'id' ? 'Sedang berjalan' : 'In progress')}</span>
                 </div>
-                {rec?.leadTechnician && <div><span style={{color: '#8a7d5c', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '9px', fontWeight: 600}}>{lang === 'id' ? 'Teknisi' : 'Technician'}: </span><span style={{color: '#1a2942'}}>{rec.leadTechnician}</span></div>}
+                {rec?.leadTechnician && <div><span style={{color: '#8a7d5c', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '9px', fontWeight: 600}}>{lang === 'id' ? 'Teknisi' : 'Technician'}: </span><span style={{color: '#1a2942'}}>{resolveEmpName(employees, rec.leadTechnician)}</span></div>}
                 {!rec && <span style={{color: '#c8a96a', fontStyle: 'italic'}}>⚠ {t.inst_prog_no_record}</span>}
               </div>
 
@@ -11237,7 +11261,7 @@ function InstallRecordsList({ records, setRecords, t, lang, canEdit }) {
                   <span style={{fontSize: '11px', color: '#8a7d5c'}}>· {r.customer}</span>
                 </div>
                 <div style={{fontSize: '12px', fontWeight: 500, marginTop: '4px'}}>{r.modality} · {r.subModality}</div>
-                <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px'}}>👷 {r.leadTechnician} (Team: {r.teamSize})</div>
+                <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px'}}>👷 {resolveEmpName(employees, r.leadTechnician)} (Team: {r.teamSize})</div>
               </div>
               <div style={{textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px'}}>
                 <span style={{padding: '4px 10px', fontSize: '10px', background: statusColor + '25', color: statusColor, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{t[`inst_status_${r.status}`]}</span>
@@ -11264,7 +11288,7 @@ function InstallRecordsList({ records, setRecords, t, lang, canEdit }) {
         );
       })}
       {records.length === 0 && <div className="empty-state">{t.no_data}</div>}
-      {modalOpen && <InstallRecordModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
+      {modalOpen && <InstallRecordModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} employees={employees} liveTechnicians={liveTechnicians} />}
       <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Riwayat Instalasi?' : 'Delete Installation Record?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
   );
@@ -11434,7 +11458,7 @@ function TrainingCertList({ records, setRecords, t, lang, canEdit }) {
 }
 
 // ============== Install Record Modal ==============
-function InstallRecordModal({ record, onSave, onClose, t, lang }) {
+function InstallRecordModal({ record, onSave, onClose, t, lang, employees = {}, liveTechnicians = [] }) {
   const today = new Date().toISOString().split('T')[0];
   const [form, setForm] = useState(record || {
     id: 'inst_' + Date.now(),
@@ -11475,7 +11499,7 @@ function InstallRecordModal({ record, onSave, onClose, t, lang }) {
           <Field label={t.inst_install_start}><input type="date" value={form.installStart} onChange={e => update('installStart', e.target.value)} /></Field>
           <Field label={t.inst_install_end}><input type="date" value={form.installEnd || ''} onChange={e => update('installEnd', e.target.value)} /></Field>
           <Field label={t.inst_duration}><input type="number" value={form.duration || ''} onChange={e => update('duration', parseInt(e.target.value) || null)} /></Field>
-          <Field label={t.inst_lead_technician}><input value={form.leadTechnician} onChange={e => update('leadTechnician', e.target.value)} /></Field>
+          <Field label={t.inst_lead_technician}><select value={(liveTechnicians.length && employees) ? (Object.keys(employees).find(u => employees[u].name === resolveEmpName(employees, form.leadTechnician)) || '') : ''} onChange={e => update('leadTechnician', e.target.value)} style={{width:'100%'}}>{!liveTechnicians.length && <option value={form.leadTechnician}>{form.leadTechnician}</option>}{Object.entries(employees).filter(([u,inf]) => inf.role==='technician' && inf.active).map(([u,inf]) => <option key={u} value={u}>{inf.name}</option>)}</select></Field>
           <Field label={t.inst_team_size}><input type="number" min="1" value={form.teamSize} onChange={e => update('teamSize', parseInt(e.target.value) || 1)} /></Field>
           <Field label={t.inst_room_ready}>
             <select value={form.roomReady ? 'yes' : 'no'} onChange={e => update('roomReady', e.target.value === 'yes')}>
@@ -12128,7 +12152,7 @@ const Footer = React.memo(function Footer({ t, lastSync, onRefresh, lang }) {
 });
 
 // ============== Maintenance Module ==============
-function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule, t, lang, canEdit, session, liveTechnicians = [], unitTechMap = {}, setUnitTechMap }) {
+function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule, t, lang, canEdit, session, liveTechnicians = [], unitTechMap = {}, setUnitTechMap, employees = {} }) {
   const [tab, setTab] = useState('schedule');
   const [issueModalOpen, setIssueModalOpen] = useState(false);
   const [editingIssue, setEditingIssue] = useState(null);
@@ -12422,7 +12446,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
                         </Td>
                         <Td><span className="mono" style={{fontSize: '11px'}}>{pm.lastPmDate || '—'}</span></Td>
                         <Td><span className="mono" style={{fontSize: '11px', fontWeight: 600}}>{pm.nextPmDate || '—'}</span></Td>
-                        <Td><span style={{fontSize: '11px'}}>{pm.technician}</span></Td>
+                        <Td><span style={{fontSize: '11px'}}>{resolveEmpName(employees, pm.technician)}</span></Td>
                         <Td><span style={{padding: '3px 8px', fontSize: '10px', background: statusColor + '25', color: statusColor, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{t[`mt_pm_status_${pm.status}`]}</span></Td>
                         {canEdit && (
                           <Td align="right">
@@ -12547,7 +12571,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
               <div style={{fontSize: '13px', marginBottom: '6px', lineHeight: 1.5}}>{r.issue}</div>
               <div style={{display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '11px', color: '#8a7d5c'}}>
                 <span><strong>{t.mt_reported_date}:</strong> <span className="mono">{r.reportedDate}</span></span>
-                <span><strong>{t.mt_technician}:</strong> {r.technician}</span>
+                <span><strong>{t.mt_technician}:</strong> {resolveEmpName(employees, r.technician)}</span>
               </div>
               {r.note && <div style={{marginTop: '8px', padding: '8px 10px', background: '#f0ebe0', fontSize: '11px', fontStyle: 'italic', color: '#1a2942'}}>📝 {r.note}</div>}
             </div>
@@ -13814,7 +13838,8 @@ function RegulatoryRecordModal({ record, recordType, onSave, onClose, t, lang })
 }
 
 // ============== Incentive Module ==============
-function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdit }) {
+function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdit, employees = {} }) {
+  const salesTeam = SALES_TEAM.map(s => ({ ...s, name: resolveEmpName(employees, s.id) }));
   const isSales = session.role === 'sales';
   const isOfficeAccount = session.salesId === 'office';
   // Catatan #1: per-sales filter for CEO/Finance to drill into each sales' incentive detail
@@ -13841,7 +13866,7 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
     const totalKsoSplit = dealsWithIncentive.filter(d => d._stat?.status === 'kso_prorata').reduce((sum, d) => sum + d._calc.incentive * (d._stat.progress || 0), 0);
     const ytdTotal = totalEstimated + totalReady + totalPaid + totalKsoSplit;
     // Leaderboard (for CEO/Finance only) — always full team regardless of filter
-    const leaderboard = !isSales ? SALES_TEAM.map(sales => {
+    const leaderboard = !isSales ? salesTeam.map(sales => {
       const salesDeals = data.filter(s => s.salesOwner === sales.id && s.poStatus === 'issued');
       const total = salesDeals.reduce((sum, s) => sum + calcIncentive(s).incentive, 0);
       return { ...sales, total, dealsCount: salesDeals.length };
@@ -13880,7 +13905,7 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
         <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', flexWrap: 'wrap'}}>
           <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{lang === 'id' ? 'Filter Sales' : 'Filter Sales'}:</span>
           <button onClick={() => setIncFilterSales('all')} style={{padding: '6px 14px', fontSize: '11px', fontFamily: 'inherit', background: incFilterSales === 'all' ? '#1a2942' : 'transparent', color: incFilterSales === 'all' ? '#fff' : '#1a2942', border: '1px solid #1a2942', cursor: 'pointer', fontWeight: 600}}>{lang === 'id' ? 'Semua Tim' : 'All Team'}</button>
-          {SALES_TEAM.map(s => (
+          {salesTeam.map(s => (
             <button key={s.id} onClick={() => setIncFilterSales(s.id)} style={{padding: '6px 14px', fontSize: '11px', fontFamily: 'inherit', background: incFilterSales === s.id ? s.accent : 'transparent', color: incFilterSales === s.id ? '#fff' : s.accent, border: `1px solid ${s.accent}`, cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px'}}>
               <span style={{width: '16px', height: '16px', borderRadius: '50%', background: incFilterSales === s.id ? 'rgba(255,255,255,0.3)' : s.accent, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700}}>{s.initial}</span>
               {s.name.split(' ')[0]}
@@ -13890,7 +13915,7 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
       )}
       {!isSales && incFilterSales !== 'all' && (
         <div style={{padding: '10px 14px', marginBottom: '18px', background: 'rgba(26,41,66,0.04)', borderLeft: '3px solid #1a2942', fontSize: '12px', color: '#1a2942'}}>
-          {lang === 'id' ? 'Menampilkan detail insentif & perhitungan untuk' : 'Showing incentive detail & calculation for'} <strong>{SALES_TEAM.find(s => s.id === incFilterSales)?.name}</strong> · {poDeals.length} {lang === 'id' ? 'deal PO' : 'PO deals'} · {lang === 'id' ? 'Total insentif' : 'Total incentive'}: <strong>{fmt(ytdTotal)}</strong>
+          {lang === 'id' ? 'Menampilkan detail insentif & perhitungan untuk' : 'Showing incentive detail & calculation for'} <strong>{salesTeam.find(s => s.id === incFilterSales)?.name}</strong> · {poDeals.length} {lang === 'id' ? 'deal PO' : 'PO deals'} · {lang === 'id' ? 'Total insentif' : 'Total incentive'}: <strong>{fmt(ytdTotal)}</strong>
         </div>
       )}
 
@@ -13970,7 +13995,7 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
           </thead>
           <tbody>
             {dealsWithIncentive.map(d => {
-              const sales = SALES_TEAM.find(s => s.id === d.salesOwner);
+              const sales = salesTeam.find(s => s.id === d.salesOwner);
               return (
                 <tr key={d.id} className="hover-row" style={{borderTop: '1px solid #e8e1cc'}}>
                   <Td>

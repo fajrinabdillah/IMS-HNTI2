@@ -4230,6 +4230,7 @@ export default function App() {
   const [products, setProducts] = useState(PRODUCT_MASTER_SEED);
   const [annotations, setAnnotations] = useState([]);
   const [unitTechMap, setUnitTechMap] = useState({}); // per-unit manual technician override (maintenance #1)
+  const [reportsSeen, setReportsSeen] = useState({}); // per-user last-read date for weekly field reports (notif dismissal)
   const [exchangeRate, setExchangeRate] = useState(DEFAULT_USD_IDR);
   const [auditLog, setAuditLog] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -4384,6 +4385,8 @@ export default function App() {
       if (annStored) try { setAnnotations(JSON.parse(annStored)); } catch {}
       const utStored = await storeGet('ims_hnti:unittech_v1');
       if (utStored) try { setUnitTechMap(JSON.parse(utStored)); } catch {}
+      const rsStored = await storeGet('ims_hnti:reports_seen_v1');
+      if (rsStored) try { setReportsSeen(JSON.parse(rsStored)); } catch {}
       // Generate reg records on first load from current data
       if (reg) {
         try { setRegRecords(JSON.parse(reg)); } catch {}
@@ -4429,6 +4432,7 @@ export default function App() {
   useEffect(() => { if (!loading) storeSet(PRODUCT_KEY, JSON.stringify(products)); }, [products, loading]);
   useEffect(() => { if (!loading) storeSet(ANNOTATIONS_KEY, JSON.stringify(annotations)); }, [annotations, loading]);
   useEffect(() => { if (!loading) storeSet('ims_hnti:unittech_v1', JSON.stringify(unitTechMap)); }, [unitTechMap, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:reports_seen_v1', JSON.stringify(reportsSeen)); }, [reportsSeen, loading]);
 
   // Live technician roster from the employee DB (re-derives when employees are edited)
   const liveTechnicians = useMemo(() => Object.values(employees).filter(e => e.role === 'technician' && e.active).map(e => e.name), [employees]);
@@ -4453,7 +4457,7 @@ export default function App() {
     });
   };
   if (!session) return <><LoginScreen t={t} lang={lang} setLang={setLang} onLogin={handleLogin} employees={employees} /><ToastContainer /></>;
-  return <><AuthApp session={session} setSession={setSession} lang={lang} setLang={setLang} t={t} data={data} setData={setData} reports={reports} setReports={setReports} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} regRecords={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} employees={employees} setEmployees={setEmployees} businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} installedUnits={installedUnits} fmt={fmt} fmtFull={fmtFull} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} lastSync={lastSync} onRefresh={handleRefresh} auditLog={auditLog} setAuditLog={setAuditLog} logAction={logAction} products={products} setProducts={setProducts} annotations={annotations} setAnnotations={setAnnotations} liveTechnicians={liveTechnicians} unitTechMap={unitTechMap} setUnitTechMap={setUnitTechMap} /><ToastContainer /></>;
+  return <><AuthApp session={session} setSession={setSession} lang={lang} setLang={setLang} t={t} data={data} setData={setData} reports={reports} setReports={setReports} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} regRecords={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} employees={employees} setEmployees={setEmployees} businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} installedUnits={installedUnits} fmt={fmt} fmtFull={fmtFull} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} lastSync={lastSync} onRefresh={handleRefresh} auditLog={auditLog} setAuditLog={setAuditLog} logAction={logAction} products={products} setProducts={setProducts} annotations={annotations} setAnnotations={setAnnotations} liveTechnicians={liveTechnicians} unitTechMap={unitTechMap} setUnitTechMap={setUnitTechMap} reportsSeen={reportsSeen} setReportsSeen={setReportsSeen} /><ToastContainer /></>;
 }
 
 function LoginScreen({ t, lang, setLang, onLogin, employees }) {
@@ -4532,7 +4536,7 @@ function LoginScreen({ t, lang, setLang, onLogin, employees }) {
   );
 }
 
-function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports, setReports, issues, setIssues, pmSchedule, setPmSchedule, manifests, setManifests, customsDocs, setCustomsDocs, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, regRecords, setRegRecords, aklRecords, setAklRecords, importRecords, setImportRecords, pengalihanRecords, setPengalihanRecords, piRecords, setPiRecords, employees, setEmployees, businessTrips, setBusinessTrips, realizations, setRealizations, installedUnits, fmt, fmtFull, exchangeRate, setExchangeRate, lastSync, onRefresh, auditLog, setAuditLog, logAction, products, setProducts, annotations, setAnnotations, liveTechnicians, unitTechMap, setUnitTechMap }) {
+function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports, setReports, issues, setIssues, pmSchedule, setPmSchedule, manifests, setManifests, customsDocs, setCustomsDocs, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, regRecords, setRegRecords, aklRecords, setAklRecords, importRecords, setImportRecords, pengalihanRecords, setPengalihanRecords, piRecords, setPiRecords, employees, setEmployees, businessTrips, setBusinessTrips, realizations, setRealizations, installedUnits, fmt, fmtFull, exchangeRate, setExchangeRate, lastSync, onRefresh, auditLog, setAuditLog, logAction, products, setProducts, annotations, setAnnotations, liveTechnicians, unitTechMap, setUnitTechMap, reportsSeen = {}, setReportsSeen }) {
   const [view, setView] = useState(session.role === 'sales' ? 'sales_report' : session.role === 'regulatory' ? 'regulatory' : 'dashboard');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSph, setEditingSph] = useState(null);
@@ -4570,17 +4574,19 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
   }, [businessTrips, realizations, session.role, session.username]);
 
   // Weekly field-report notifications for CEO / GM / Manager Operasional (#new) —
-  // count of reports within the most recent 7 days of sales activity.
+  // count of reports newer than what the user has marked read (or recent 7 days if never read).
   const navSrNotifCount = useMemo(() => {
     if (!['super_admin', 'gm', 'manager_ops'].includes(session.role)) return 0;
     if (!reports || !reports.length) return 0;
     const dates = reports.map(r => r.date || '').filter(Boolean).sort();
     const latest = dates[dates.length - 1];
     if (!latest) return 0;
-    const cut = new Date(latest); cut.setDate(cut.getDate() - 7);
-    const cutStr = cut.toISOString().split('T')[0];
-    return reports.filter(r => (r.date || '') >= cutStr).length;
-  }, [reports, session.role]);
+    const seen = reportsSeen[session.username];
+    let cutStr;
+    if (seen) cutStr = seen;
+    else { const cut = new Date(latest); cut.setDate(cut.getDate() - 7); cutStr = cut.toISOString().split('T')[0]; }
+    return reports.filter(r => (r.date || '') > cutStr).length;
+  }, [reports, session.role, session.username, reportsSeen]);
 
   useEffect(() => { if (!allowedNav.includes(view)) setView(allowedNav[0]); }, [session.role]);
 
@@ -4640,14 +4646,14 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
     <div style={{minHeight: '100vh', background: '#f8f5ef', fontFamily: 'Inter, sans-serif', color: '#1a2942'}}>
       <GlobalStyles />
       <HoverSidebar allowedNav={allowedNav} view={view} setView={setView} t={t} lang={lang} btNotifCount={navBtNotifCount} srNotifCount={navSrNotifCount} />
-      <Header session={session} setSession={setSession} lang={lang} setLang={setLang} view={view} setView={setView} allowedNav={allowedNav} t={t} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} businessTrips={businessTrips} realizations={realizations} reports={reports} onChangePassword={() => setChangePwOpen(true)} />
+      <Header session={session} setSession={setSession} lang={lang} setLang={setLang} view={view} setView={setView} allowedNav={allowedNav} t={t} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} businessTrips={businessTrips} realizations={realizations} reports={reports} reportsSeen={reportsSeen} onChangePassword={() => setChangePwOpen(true)} />
 
       <main className="main-content fade-in" style={{maxWidth: '1440px', margin: '0 auto', padding: '32px 48px 60px'}}>
         {view === 'dashboard' && <Dashboard data={filteredData} reports={reports} products={products} t={t} lang={lang} session={session} fmt={fmt} employees={employees} />}
         {view === 'sph' && canRead('sph') && <SPHManagement data={filteredData} employees={employees} t={t} lang={lang} canEdit={canEdit('sph')} fmt={fmt} onAdd={() => { setEditingSph(null); setModalOpen(true); }} onEdit={(s) => { setEditingSph(s); setModalOpen(true); }} onDelete={handleDelete} />}
         {view === 'pipeline' && canRead('pipeline') && <PipelineBoard data={filteredData} allData={data} setData={setData} employees={employees} session={session} logAction={logAction} t={t} lang={lang} canEdit={canEdit('pipeline')} fmt={fmt} onEdit={(s) => { setEditingSph(s); setModalOpen(true); }} />}
         {view === 'sales' && canRead('sales') && <SalesModule data={data} reports={reports} t={t} lang={lang} fmt={fmt} employees={employees} />}
-        {view === 'sales_report' && canRead('sales_report') && <SalesReport reports={reports} setReports={setReports} t={t} lang={lang} session={session} fmt={fmt} employees={employees} />}
+        {view === 'sales_report' && canRead('sales_report') && <SalesReport reports={reports} setReports={setReports} t={t} lang={lang} session={session} fmt={fmt} employees={employees} reportsSeen={reportsSeen} setReportsSeen={setReportsSeen} />}
         {view === 'finance' && canRead('finance') && <FinanceModule data={data} setData={setData} t={t} lang={lang} canEdit={canEdit('finance')} fmt={fmt} />}
         {view === 'operations' && canRead('operations') && <OperationsModule data={data} setData={setData} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} t={t} lang={lang} canEdit={canEdit('operations')} fmt={fmt} />}
         {view === 'installation' && canRead('installation') && <InstallationModule data={data} setData={setData} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} t={t} lang={lang} canEdit={canEdit('installation')} fmt={fmt} employees={employees} liveTechnicians={liveTechnicians} />}
@@ -4663,10 +4669,10 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
         {view === 'cohort' && <CohortAnalysis data={data} t={t} lang={lang} fmt={fmt} />}
         {view === 'cashflow' && <CashFlowProjection data={data} t={t} lang={lang} fmt={fmt} />}
         {view === 'annotations' && <AnnotatedSnapshotModule annotations={annotations} setAnnotations={setAnnotations} t={t} lang={lang} logAction={logAction} session={session} fmt={fmt} data={data} reports={reports} />}
-        {view === 'exec_summary' && <ExecutiveSummary data={data} reports={reports} annotations={annotations} products={products} t={t} lang={lang} fmt={fmt} session={session} exchangeRate={exchangeRate} />}
+        {view === 'exec_summary' && <ExecutiveSummary data={data} reports={reports} annotations={annotations} products={products} t={t} lang={lang} fmt={fmt} session={session} exchangeRate={exchangeRate} employees={employees} />}
       </main>
 
-      {modalOpen && <SPHModal sph={editingSph} t={t} lang={lang} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingSph(null); }} fmtFull={fmtFull} existingData={data} products={products} />}
+      {modalOpen && <SPHModal sph={editingSph} t={t} lang={lang} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingSph(null); }} fmtFull={fmtFull} existingData={data} products={products} employees={employees} />}
       <ConfirmDialog open={!!deleteSphId} title={lang === 'id' ? 'Hapus SPH?' : 'Delete SPH?'} message={t.confirm_delete || (lang === 'id' ? 'Yakin ingin menghapus SPH ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this SPH? This action cannot be undone.')} onConfirm={confirmDeleteSph} onCancel={() => setDeleteSphId(null)} danger lang={lang} />
       {changePwOpen && <ChangePasswordModal session={session} employees={employees} onSave={handleChangePassword} onClose={() => setChangePwOpen(false)} t={t} lang={lang} />}
       <Footer t={t} lastSync={lastSync} onRefresh={onRefresh} lang={lang} />
@@ -4770,7 +4776,7 @@ const WIBClock = React.memo(function WIBClock({ lang, compact = false }) {
   );
 });
 
-function Header({ session, setSession, lang, setLang, view, setView, allowedNav, t, mobileMenuOpen, setMobileMenuOpen, exchangeRate, setExchangeRate, businessTrips, realizations, reports, onChangePassword }) {
+function Header({ session, setSession, lang, setLang, view, setView, allowedNav, t, mobileMenuOpen, setMobileMenuOpen, exchangeRate, setExchangeRate, businessTrips, realizations, reports, reportsSeen = {}, onChangePassword }) {
   const navIcons = { dashboard: Activity, sph: FileText, pipeline: Briefcase, sales: Users, sales_report: ClipboardList, incentive: DollarSign, finance: Wallet, operations: Truck, installation: Wrench, maintenance: Settings, regulatory: ShieldCheck, valuation: TrendingUp, employees: UserPlus, business_trip: Plane, audit_log: History, risk: Target, products: Layers, cohort: FileBarChart, cashflow: TrendingUp, annotations: MessageSquare, exec_summary: FileText };
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [rateMenuOpen, setRateMenuOpen] = useState(false);
@@ -4805,10 +4811,12 @@ function Header({ session, setSession, lang, setLang, view, setView, allowedNav,
     const dates = reports.map(r => r.date || '').filter(Boolean).sort();
     const latest = dates[dates.length - 1];
     if (!latest) return 0;
-    const cut = new Date(latest); cut.setDate(cut.getDate() - 7);
-    const cutStr = cut.toISOString().split('T')[0];
-    return reports.filter(r => (r.date || '') >= cutStr).length;
-  }, [reports, session.role]);
+    const seen = reportsSeen[session.username];
+    let cutStr;
+    if (seen) cutStr = seen;
+    else { const cut = new Date(latest); cut.setDate(cut.getDate() - 7); cutStr = cut.toISOString().split('T')[0]; }
+    return reports.filter(r => (r.date || '') > cutStr).length;
+  }, [reports, session.role, session.username, reportsSeen]);
 
   return (
     <header style={{borderBottom: '1px solid #d4cdb8', background: '#f8f5ef', position: 'sticky', top: 0, zIndex: 50}}>
@@ -6028,8 +6036,14 @@ function SalesModule({ data, reports, t, lang, fmt, employees = {} }) {
 }
 
 // =================== SALES REPORTING MODULE ===================
-function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {} }) {
+function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {}, reportsSeen = {}, setReportsSeen }) {
   const salesTeam = SALES_TEAM.map(s => { const _nm = resolveEmpName(employees, s.id); return { ...s, name: _nm, initial: initialOf(_nm) }; });
+  const markReportsRead = () => {
+    if (!setReportsSeen || !reports.length) return;
+    const dates = reports.map(r => r.date || '').filter(Boolean).sort();
+    const latest = dates[dates.length - 1] || '';
+    setReportsSeen(prev => ({ ...prev, [session.username]: latest }));
+  };
   const [tab, setTab] = useState('dashboard');
   const [filterSales, setFilterSales] = useState('all');
   const [editingReport, setEditingReport] = useState(null);
@@ -6085,7 +6099,7 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
         </div>
       )}
 
-      {tab === 'dashboard' && <SRDashboard reports={visibleReports} t={t} lang={lang} employees={employees} session={session} />}
+      {tab === 'dashboard' && <SRDashboard reports={visibleReports} t={t} lang={lang} employees={employees} session={session} onMarkRead={markReportsRead} reportsSeen={reportsSeen} />}
       {tab === 'new' && session.role === 'sales' && <SRForm reports={reports} setReports={setReports} t={t} lang={lang} session={session} editingReport={editingReport} onSaved={handleSaved} onCancel={() => { setEditingReport(null); setTab('history'); }} employees={employees} />}
       {tab === 'history' && <SRHistory reports={visibleReports} t={t} lang={lang} fmt={fmt} canEdit={session.role === 'sales'} onEdit={handleEdit} onDelete={handleDelete} session={session} employees={employees} />}
       <ConfirmDialog open={!!deleteReportId} title={lang === 'id' ? 'Hapus Laporan?' : 'Delete Report?'} message={t.sr_confirm_delete || (lang === 'id' ? 'Yakin ingin menghapus laporan ini?' : 'Are you sure you want to delete this report?')} onConfirm={confirmDeleteReport} onCancel={() => setDeleteReportId(null)} danger lang={lang} />
@@ -6093,7 +6107,7 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
   );
 }
 
-function SRDashboard({ reports, t, lang, employees = {}, session = {} }) {
+function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRead, reportsSeen = {} }) {
   const salesTeam = SALES_TEAM.map(s => { const _nm = resolveEmpName(employees, s.id); return { ...s, name: _nm, initial: initialOf(_nm) }; });
   // PERFORMANCE: All stats memoized (hook must come before any early return)
   const stats = useMemo(() => {
@@ -6125,9 +6139,11 @@ function SRDashboard({ reports, t, lang, employees = {}, session = {} }) {
     const dates = reports.map(r => r.date || '').filter(Boolean).sort();
     const latest = dates[dates.length - 1];
     if (!latest) return [];
-    const cut = new Date(latest); cut.setDate(cut.getDate() - 7);
-    const cutStr = cut.toISOString().split('T')[0];
-    return reports.filter(r => (r.date || '') >= cutStr).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const seen = reportsSeen[session.username];
+    let cutStr;
+    if (seen) cutStr = seen;
+    else { const cut = new Date(latest); cut.setDate(cut.getDate() - 7); cutStr = cut.toISOString().split('T')[0]; }
+    return reports.filter(r => (r.date || '') > cutStr).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   })();
 
   return (
@@ -6136,7 +6152,7 @@ function SRDashboard({ reports, t, lang, employees = {}, session = {} }) {
         <div style={{background: '#1a2942', color: '#f8f5ef', padding: '14px 18px', marginBottom: '20px', borderRadius: '4px', display: 'flex', alignItems: 'flex-start', gap: '12px'}}>
           <Bell size={18} strokeWidth={1.8} style={{color: '#c8a96a', flexShrink: 0, marginTop: '2px'}} />
           <div style={{flex: 1}}>
-            <div style={{fontSize: '13px', fontWeight: 600, marginBottom: '6px'}}>{lang === 'id' ? `${recentReports.length} laporan lapangan masuk minggu ini` : `${recentReports.length} field reports submitted this week`}</div>
+            <div style={{fontSize: '13px', fontWeight: 600, marginBottom: '6px'}}>{lang === 'id' ? `${recentReports.length} laporan lapangan baru belum dibaca` : `${recentReports.length} new field reports unread`}</div>
             <div style={{display: 'flex', flexWrap: 'wrap', gap: '6px'}}>
               {recentReports.slice(0, 8).map(r => {
                 const nm = resolveEmpName(employees, r.salesId);
@@ -6145,6 +6161,7 @@ function SRDashboard({ reports, t, lang, employees = {}, session = {} }) {
               {recentReports.length > 8 && <span style={{fontSize: '11px', color: '#c8a96a', padding: '2px 4px'}}>+{recentReports.length - 8}</span>}
             </div>
           </div>
+          {onMarkRead && <button onClick={onMarkRead} style={{background: '#c8a96a', color: '#1a2942', border: 'none', padding: '7px 14px', fontSize: '11px', fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', borderRadius: '4px', flexShrink: 0, alignSelf: 'center', display: 'flex', alignItems: 'center', gap: '6px'}}><CheckCircle2 size={13} />{lang === 'id' ? 'Tandai Sudah Dibaca' : 'Mark as Read'}</button>}
         </div>
       )}
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '24px', border: '1px solid #d4cdb8'}}>
@@ -6432,7 +6449,8 @@ function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, session, fmt, 
 // ============== Executive Summary / Investor Pack (PDF Export) ==============
 // One-click investor-ready summary. Reuses IDENTICAL KPI logic as Dashboard (no desync).
 // Uses window.print() with a dedicated print stylesheet → high-quality PDF via browser print dialog.
-function ExecutiveSummary({ data, reports, annotations, products, t, lang, fmt, session, exchangeRate }) {
+function ExecutiveSummary({ data, reports, annotations, products, t, lang, fmt, session, exchangeRate, employees = {} }) {
+  const salesTeam = SALES_TEAM.map(s => { const _nm = resolveEmpName(employees, s.id); return { ...s, name: _nm, initial: initialOf(_nm) }; });
   const today = new Date();
   // === KPIs — identical formulas to Dashboard ===
   const k = useMemo(() => {
@@ -6451,7 +6469,7 @@ function ExecutiveSummary({ data, reports, annotations, products, t, lang, fmt, 
   }, [data]);
 
   // Sales performance — identical to SalesModule
-  const salesPerf = useMemo(() => SALES_TEAM.filter(s => !s.isOffice || data.some(d => d.salesOwner === s.id)).map(sales => {
+  const salesPerf = useMemo(() => salesTeam.filter(s => !s.isOffice || data.some(d => d.salesOwner === s.id)).map(sales => {
     const sd = data.filter(s => s.salesOwner === sales.id);
     const won = sd.filter(s => s.status === 'won');
     const lost = sd.filter(s => s.status === 'lost');
@@ -11124,14 +11142,18 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
     { id: 'bast', label: t.inst_step_bast, icon: FileCheck, syncSrc: 'bast' },
   ], [t]);
 
-  // PERFORMANCE: KPI calculations memoized
-  const kpis = useMemo(() => ({
-    totalRecords: installRecords.length,
-    inProgressCount: installRecords.filter(r => r.status === 'progress').length,
-    completedCount: installRecords.filter(r => r.status === 'completed').length,
-    bastSignedCount: bastRecords.filter(b => b.status === 'signed').length,
-    trainingDoneCount: trainingRecords.filter(tr => tr.status === 'completed').length,
-  }), [installRecords, bastRecords, trainingRecords]);
+  // PERFORMANCE: KPI calculations memoized — now scoped to the YEAR-FILTERED installProjects
+  // so the dashboard numbers + record list stay consistent with the PO Year selector.
+  const kpis = useMemo(() => {
+    let inProg = 0, comp = 0, bastS = 0, trainD = 0;
+    installProjects.forEach(p => {
+      const st = getStepStatus(p);
+      if (st.installation_done) comp++; else inProg++;
+      if (st.bast) bastS++;
+      if (st.trainingCert) trainD++;
+    });
+    return { totalRecords: installProjects.length, inProgressCount: inProg, completedCount: comp, bastSignedCount: bastS, trainingDoneCount: trainD };
+  }, [installProjects, recordsByCustomer, bastByCustomer, trainingByCustomer]);
   const { totalRecords, inProgressCount, completedCount, bastSignedCount, trainingDoneCount } = kpis;
 
   return (
@@ -11856,7 +11878,7 @@ function Valuation({ data, t, lang, fmt }) {
   );
 }
 
-function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, products }) {
+function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, products, employees = {} }) {
   const [form, setForm] = useState(sph || {
     sphNo: `SPH/2026/${String(Date.now()).slice(-3)}`,
     customer: '', customerType: 'hospital', projectType: 'private',
@@ -12006,7 +12028,7 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
           <div>
             <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '6px'}}>{t.sales_owner}</label>
             <select value={form.salesOwner} onChange={e => update('salesOwner', e.target.value)}>
-              {SALES_TEAM.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              {SALES_TEAM.map(s => <option key={s.id} value={s.id}>{resolveEmpName(employees, s.id)}</option>)}
             </select>
           </div>
           <div>

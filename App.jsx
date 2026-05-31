@@ -1481,16 +1481,34 @@ const TECHNICIAN_NAMES = Object.values(USERS).filter(u => u.role === 'technician
 
 // ===== Universal employee-name sync layer =====
 // Maps an original seed display-name → username, built from the static USERS seed.
-// Lets seed records that store a plain name string still resolve to the LIVE (renamed) employee.
 const SEED_NAME_TO_USERNAME = {};
 Object.entries(USERS).forEach(([un, info]) => { if (info.name) SEED_NAME_TO_USERNAME[info.name] = un; });
-// Resolve ANY stored value (username key, original seed name, or custom text) to the current live name.
+// Static technician order (from USERS seed) — used for positional fallback when a technician
+// username has been renamed in the live DB (e.g. 'teknisi' → 'teknisi1').
+const STATIC_TECH_ORDER = Object.entries(USERS).filter(([u, i]) => i.role === 'technician').map(([u, i]) => ({ un: u, name: i.name }));
+// Resolve ANY stored value (live username, original seed name/username, or custom text) to the
+// current live employee name. Resilient to renamed usernames via technician positional fallback.
 function resolveEmpName(employees, val) {
   if (!val || !employees) return val || '';
-  if (employees[val]) return employees[val].name;            // value is a username key
+  if (employees[val]) return employees[val].name;                 // value is a current live username
   const un = SEED_NAME_TO_USERNAME[val];
-  if (un && employees[un]) return employees[un].name;         // value is an original seed name
-  return val;                                                 // custom/manually-typed name
+  if (un && employees[un]) return employees[un].name;              // seed name → username still present
+  // Rename-alias lookup: find a live employee whose _prevUsernames recorded the old key.
+  for (const e of Object.values(employees)) {
+    if (e && Array.isArray(e._prevUsernames) && (e._prevUsernames.includes(val) || (un && e._prevUsernames.includes(un)))) return e.name;
+  }
+  // Technician positional fallback (sorted by username) — keeps display synced even after the
+  // technician username was renamed (e.g. 'teknisi' → 'teknisi1') without alias tracking.
+  const liveTechs = Object.entries(employees)
+    .filter(([u, e]) => e && e.role === 'technician' && e.active)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([u, e]) => e.name);
+  if (liveTechs.length) {
+    const staticSorted = [...STATIC_TECH_ORDER].sort((a, b) => a.un.localeCompare(b.un));
+    const idx = staticSorted.findIndex(s => s.un === val || s.name === val);
+    if (idx >= 0) return liveTechs[idx % liveTechs.length];
+  }
+  return val;                                                      // custom/manually-typed name
 }
 
 const PERMISSIONS = {
@@ -4604,10 +4622,10 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
 
       <main className="main-content fade-in" style={{maxWidth: '1440px', margin: '0 auto', padding: '32px 48px 60px'}}>
         {view === 'dashboard' && <Dashboard data={filteredData} reports={reports} products={products} t={t} lang={lang} session={session} fmt={fmt} employees={employees} />}
-        {view === 'sph' && canRead('sph') && <SPHManagement data={filteredData} t={t} lang={lang} canEdit={canEdit('sph')} fmt={fmt} onAdd={() => { setEditingSph(null); setModalOpen(true); }} onEdit={(s) => { setEditingSph(s); setModalOpen(true); }} onDelete={handleDelete} />}
-        {view === 'pipeline' && canRead('pipeline') && <PipelineBoard data={filteredData} allData={data} setData={setData} session={session} logAction={logAction} t={t} lang={lang} canEdit={canEdit('pipeline')} fmt={fmt} onEdit={(s) => { setEditingSph(s); setModalOpen(true); }} />}
+        {view === 'sph' && canRead('sph') && <SPHManagement data={filteredData} employees={employees} t={t} lang={lang} canEdit={canEdit('sph')} fmt={fmt} onAdd={() => { setEditingSph(null); setModalOpen(true); }} onEdit={(s) => { setEditingSph(s); setModalOpen(true); }} onDelete={handleDelete} />}
+        {view === 'pipeline' && canRead('pipeline') && <PipelineBoard data={filteredData} allData={data} setData={setData} employees={employees} session={session} logAction={logAction} t={t} lang={lang} canEdit={canEdit('pipeline')} fmt={fmt} onEdit={(s) => { setEditingSph(s); setModalOpen(true); }} />}
         {view === 'sales' && canRead('sales') && <SalesModule data={data} reports={reports} t={t} lang={lang} fmt={fmt} employees={employees} />}
-        {view === 'sales_report' && canRead('sales_report') && <SalesReport reports={reports} setReports={setReports} t={t} lang={lang} session={session} fmt={fmt} />}
+        {view === 'sales_report' && canRead('sales_report') && <SalesReport reports={reports} setReports={setReports} t={t} lang={lang} session={session} fmt={fmt} employees={employees} />}
         {view === 'finance' && canRead('finance') && <FinanceModule data={data} setData={setData} t={t} lang={lang} canEdit={canEdit('finance')} fmt={fmt} />}
         {view === 'operations' && canRead('operations') && <OperationsModule data={data} setData={setData} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} t={t} lang={lang} canEdit={canEdit('operations')} fmt={fmt} />}
         {view === 'installation' && canRead('installation') && <InstallationModule data={data} setData={setData} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} t={t} lang={lang} canEdit={canEdit('installation')} fmt={fmt} employees={employees} liveTechnicians={liveTechnicians} />}
@@ -5349,7 +5367,8 @@ const SortToggle = React.memo(function SortToggle({ value, onChange, options, la
 const Th = React.memo(function Th({ children, align = 'left' }) { return <th style={{padding: '12px 14px', textAlign: align, fontSize: '9px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, borderBottom: '1px solid #d4cdb8', whiteSpace: 'nowrap'}}>{children}</th>; });
 const Td = React.memo(function Td({ children, align = 'left' }) { return <td style={{padding: '12px 14px', textAlign: align, verticalAlign: 'middle'}}>{children}</td>; });
 
-function SPHManagement({ data, t, lang, canEdit, fmt, onAdd, onEdit, onDelete }) {
+function SPHManagement({ data, employees = {}, t, lang, canEdit, fmt, onAdd, onEdit, onDelete }) {
+  const salesTeam = SALES_TEAM.map(s => ({ ...s, name: resolveEmpName(employees, s.id) }));
   const [search, setSearch] = useState('');
   const [filterPType, setFilterPType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -5361,7 +5380,7 @@ function SPHManagement({ data, t, lang, canEdit, fmt, onAdd, onEdit, onDelete })
   const lookupMaps = useMemo(() => ({
     stageMap: new Map(STAGES.map(s => [s.id, s])),
     projectTypeMap: new Map(PROJECT_TYPES.map(p => [p.id, p])),
-    salesMap: new Map(SALES_TEAM.map(sa => [sa.id, sa])),
+    salesMap: new Map(salesTeam.map(sa => [sa.id, sa])),
   }), []);
   const { stageMap, projectTypeMap, salesMap } = lookupMaps;
 
@@ -5494,7 +5513,8 @@ function SPHManagement({ data, t, lang, canEdit, fmt, onAdd, onEdit, onDelete })
   );
 }
 
-function PipelineBoard({ data, allData, setData, session, logAction, t, lang, canEdit, fmt, onEdit }) {
+function PipelineBoard({ data, allData, setData, employees = {}, session, logAction, t, lang, canEdit, fmt, onEdit }) {
+  const salesTeam = SALES_TEAM.map(s => ({ ...s, name: resolveEmpName(employees, s.id) }));
   // For privileged roles, allow filtering by sales owner; sales role uses its own data
   const isPrivilegedRole = session && (session.role === 'super_admin' || session.role === 'gm' || session.role === 'manager_ops' || session.role === 'admin');
   // Sales owner filter — 'all' or specific sales id
@@ -5614,11 +5634,11 @@ function PipelineBoard({ data, allData, setData, session, logAction, t, lang, ca
             <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginLeft: '8px'}}>{lang === 'id' ? '👤 Sales' : '👤 Sales'}:</span>
             <select value={filterSales} onChange={e => setFilterSales(e.target.value)} style={{width: 'auto', minWidth: '170px'}}>
               <option value="all">{lang === 'id' ? 'Semua Sales' : 'All Sales'}</option>
-              {SALES_TEAM.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              {salesTeam.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </>
         )}
-        <span style={{fontSize: '11px', color: '#8a7d5c', fontStyle: 'italic'}}>{lang === 'id' ? `Menampilkan ${pipelineData.length} deal` : `Showing ${pipelineData.length} deals`}{filterSales !== 'all' && ` · ${SALES_TEAM.find(s => s.id === filterSales)?.name}`}</span>
+        <span style={{fontSize: '11px', color: '#8a7d5c', fontStyle: 'italic'}}>{lang === 'id' ? `Menampilkan ${pipelineData.length} deal` : `Showing ${pipelineData.length} deals`}{filterSales !== 'all' && ` · ${salesTeam.find(s => s.id === filterSales)?.name}`}</span>
       </div>
 
       {/* Probability filter + Sort */}
@@ -5722,7 +5742,7 @@ function PipelineBoard({ data, allData, setData, session, logAction, t, lang, ca
               <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
                 {projects.map(p => {
                   const pt = projectTypeMap.get(p.projectType);
-                  const owner = SALES_TEAM.find(s => s.id === p.salesOwner);
+                  const owner = salesTeam.find(s => s.id === p.salesOwner);
                   return (
                     <div key={p.id} className="card-hover" style={{padding: '13px', background: '#fefcf7', border: '1px solid #e8e1cc', opacity: isLostCol ? 0.75 : 1}}>
                       <div onClick={() => canEdit && onEdit(p)} style={{cursor: canEdit ? 'pointer' : 'default'}}>
@@ -5789,7 +5809,7 @@ function PipelineBoard({ data, allData, setData, session, logAction, t, lang, ca
 
             <Field label={lang === 'id' ? 'Owner Sales Baru' : 'New Sales Owner'}>
               <select value={reassignDeal.newOwner} onChange={e => setReassignDeal(r => ({ ...r, newOwner: e.target.value }))}>
-                {SALES_TEAM.map(s => (
+                {salesTeam.map(s => (
                   <option key={s.id} value={s.id}>{s.name} · {lang === 'id' ? s.territory : s.territoryEn}</option>
                 ))}
               </select>
@@ -5797,7 +5817,7 @@ function PipelineBoard({ data, allData, setData, session, logAction, t, lang, ca
 
             {reassignDeal.deal.salesOwner !== reassignDeal.newOwner && (
               <div style={{marginTop: '10px', padding: '8px 12px', background: '#e8f4ed', border: '1px solid #3a6b3a', fontSize: '11px', color: '#1a4d2a'}}>
-                {lang === 'id' ? 'Pindah dari' : 'Reassigning from'} <strong>{SALES_TEAM.find(s => s.id === reassignDeal.deal.salesOwner)?.name || '—'}</strong> → <strong>{SALES_TEAM.find(s => s.id === reassignDeal.newOwner)?.name}</strong>
+                {lang === 'id' ? 'Pindah dari' : 'Reassigning from'} <strong>{salesTeam.find(s => s.id === reassignDeal.deal.salesOwner)?.name || '—'}</strong> → <strong>{salesTeam.find(s => s.id === reassignDeal.newOwner)?.name}</strong>
               </div>
             )}
 
@@ -5816,8 +5836,8 @@ function PipelineBoard({ data, allData, setData, session, logAction, t, lang, ca
                     entityId: reassignDeal.deal.id,
                     entityLabel: `${reassignDeal.deal.sphNo} · ${reassignDeal.deal.customer}`,
                     field: 'salesOwner',
-                    before: SALES_TEAM.find(s => s.id === oldOwner)?.name || oldOwner,
-                    after: SALES_TEAM.find(s => s.id === newOwner)?.name || newOwner,
+                    before: salesTeam.find(s => s.id === oldOwner)?.name || oldOwner,
+                    after: salesTeam.find(s => s.id === newOwner)?.name || newOwner,
                     note: 'Reassigned via Pipeline board',
                   });
                 }
@@ -5975,7 +5995,7 @@ function SalesModule({ data, reports, t, lang, fmt, employees = {} }) {
 }
 
 // =================== SALES REPORTING MODULE ===================
-function SalesReport({ reports, setReports, t, lang, session, fmt }) {
+function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {} }) {
   const [tab, setTab] = useState('dashboard');
   const [filterSales, setFilterSales] = useState('all');
   const [editingReport, setEditingReport] = useState(null);
@@ -6031,15 +6051,16 @@ function SalesReport({ reports, setReports, t, lang, session, fmt }) {
         </div>
       )}
 
-      {tab === 'dashboard' && <SRDashboard reports={visibleReports} t={t} lang={lang} />}
+      {tab === 'dashboard' && <SRDashboard reports={visibleReports} t={t} lang={lang} employees={employees} />}
       {tab === 'new' && session.role === 'sales' && <SRForm reports={reports} setReports={setReports} t={t} lang={lang} session={session} editingReport={editingReport} onSaved={handleSaved} onCancel={() => { setEditingReport(null); setTab('history'); }} />}
-      {tab === 'history' && <SRHistory reports={visibleReports} t={t} lang={lang} fmt={fmt} canEdit={session.role === 'sales'} onEdit={handleEdit} onDelete={handleDelete} session={session} />}
+      {tab === 'history' && <SRHistory reports={visibleReports} t={t} lang={lang} fmt={fmt} canEdit={session.role === 'sales'} onEdit={handleEdit} onDelete={handleDelete} session={session} employees={employees} />}
       <ConfirmDialog open={!!deleteReportId} title={lang === 'id' ? 'Hapus Laporan?' : 'Delete Report?'} message={t.sr_confirm_delete || (lang === 'id' ? 'Yakin ingin menghapus laporan ini?' : 'Are you sure you want to delete this report?')} onConfirm={confirmDeleteReport} onCancel={() => setDeleteReportId(null)} danger lang={lang} />
     </div>
   );
 }
 
-function SRDashboard({ reports, t, lang }) {
+function SRDashboard({ reports, t, lang, employees = {} }) {
+  const salesTeam = SALES_TEAM.map(s => ({ ...s, name: resolveEmpName(employees, s.id) }));
   // PERFORMANCE: All stats memoized (hook must come before any early return)
   const stats = useMemo(() => {
     const totalVisits = reports.reduce((s, r) => s + (r.visits?.length || 0), 0);
@@ -6077,7 +6098,7 @@ function SRDashboard({ reports, t, lang }) {
           <div className="card">
             <div className="card-title">{lang === 'id' ? 'Kunjungan per Sales' : 'Visits per Sales'}</div>
             {Object.entries(bySales).map(([id, st]) => {
-              const sales = SALES_TEAM.find(s => s.id === id);
+              const sales = salesTeam.find(s => s.id === id);
               if (!sales) return null;
               const pct = Math.min(st.count / 100 * 100, 100);
               return (
@@ -6252,7 +6273,8 @@ function SRForm({ reports, setReports, t, lang, session, editingReport, onSaved,
   );
 }
 
-function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, session, fmt }) {
+function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, session, fmt, employees = {} }) {
+  const salesTeam = SALES_TEAM.map(s => ({ ...s, name: resolveEmpName(employees, s.id) }));
   const [expanded, setExpanded] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc');
 
@@ -6282,7 +6304,7 @@ function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, session, fmt }
       </div>
       <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
         {sortedReports.map(r => {
-        const sales = SALES_TEAM.find(s => s.id === r.salesId);
+        const sales = salesTeam.find(s => s.id === r.salesId);
         const isOpen = expanded === r.id;
         // Only the report owner (sales) can edit/delete their own report
         const isOwner = canEdit && session?.salesId === r.salesId;
@@ -7890,6 +7912,8 @@ function EmployeesModule({ employees, setEmployees, t, lang, session, fmt }) {
       delete cleanEmp._renameFrom;
       setEmployees(prev => {
         const next = { ...prev };
+        const prevAliases = (prev[renameFrom] && prev[renameFrom]._prevUsernames) || [];
+        cleanEmp._prevUsernames = [...prevAliases, renameFrom]; // remember old key so references stay synced
         delete next[renameFrom];
         next[emp.username] = cleanEmp;
         return next;
@@ -11201,7 +11225,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
         </div>
       )}
 
-      {tab === 'records' && <InstallRecordsList records={installRecords} setRecords={setInstallRecords} t={t} lang={lang} canEdit={canEdit} />}
+      {tab === 'records' && <InstallRecordsList records={installRecords} setRecords={setInstallRecords} t={t} lang={lang} canEdit={canEdit} employees={employees} />}
       {tab === 'bast' && <BASTList records={bastRecords} setRecords={setBastRecords} t={t} lang={lang} canEdit={canEdit} />}
       {tab === 'training' && <TrainingCertList records={trainingRecords} setRecords={setTrainingRecords} t={t} lang={lang} canEdit={canEdit} />}
     </div>
@@ -11209,7 +11233,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
 }
 
 // ============== Install Records List ==============
-function InstallRecordsList({ records, setRecords, t, lang, canEdit }) {
+function InstallRecordsList({ records, setRecords, t, lang, canEdit, employees = {} }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc');

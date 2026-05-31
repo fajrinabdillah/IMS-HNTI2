@@ -11075,16 +11075,26 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
   // = PO delivered tapi belum installed, ATAU yang punya install record
   // Filter by year (PO issue year) + search by customer/SPH/modality
   const installProjects = useMemo(() => {
-    return data.filter(s => {
+    const inScope = data.filter(s => {
       if (s.poStatus !== 'issued') return false;
+      // Full installation scope = unit TERPASANG (installed) + unit yang masih dalam proses instalasi
+      // (sudah delivered tapi belum installed, atau punya install record). Tersinkron dari data SPH.
+      const isInstalled = s.installationStatus === 'installed';
       const inPipeline = (s.shippingStatus === 'delivered' && s.installationStatus !== 'installed') || installRecordCustomers.has(s.customer);
-      if (!inPipeline) return false;
+      if (!(isInstalled || inPipeline)) return false;
       if (filterYear !== 'all' && !s.issuedDate?.startsWith(filterYear)) return false;
       if (search) {
         const q = search.toLowerCase();
         if (!s.customer?.toLowerCase().includes(q) && !s.sphNo?.toLowerCase().includes(q) && !s.subModality?.toLowerCase().includes(q)) return false;
       }
       return true;
+    });
+    // Tampilkan yang sedang berlangsung (belum terpasang) di atas, lalu yang sudah terpasang (terbaru dulu)
+    return inScope.sort((a, b) => {
+      const aDone = a.installationStatus === 'installed' ? 1 : 0;
+      const bDone = b.installationStatus === 'installed' ? 1 : 0;
+      if (aDone !== bDone) return aDone - bDone;
+      return (b.issuedDate || '').localeCompare(a.issuedDate || '');
     });
   }, [data, installRecordCustomers, filterYear, search]);
 
@@ -11120,8 +11130,8 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
     const bast = bastByCustomer.get(p.customer);
     const training = trainingByCustomer.get(p.customer);
     return {
-      // Installation done: auto-green if install record is completed, OR manual toggle
-      installation_done: (rec && rec.status === 'completed') || !!p.installation_done,
+      // Installation done: TERPASANG di level SPH, ATAU install record completed, ATAU manual toggle
+      installation_done: p.installationStatus === 'installed' || (rec && rec.status === 'completed') || !!p.installation_done,
       functionTest: (rec && rec.calibrationDone) || !!p.functionTest,
       exposureTest: !!p.exposureTest,
       trainingCert: (training && training.status === 'completed') || !!p.trainingCert,
@@ -11148,7 +11158,8 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
     let inProg = 0, comp = 0, bastS = 0, trainD = 0;
     installProjects.forEach(p => {
       const st = getStepStatus(p);
-      if (st.installation_done) comp++; else inProg++;
+      // SELESAI = unit TERPASANG (installed); SEDANG = belum terpasang. Sumber kebenaran: installationStatus SPH.
+      if (p.installationStatus === 'installed') comp++; else inProg++;
       if (st.bast) bastS++;
       if (st.trainingCert) trainD++;
     });
@@ -11169,8 +11180,8 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '22px', border: '1px solid #d4cdb8'}}>
         <div style={{padding: '16px 18px', background: '#fefcf7'}}>
           <div className="lbl-tag">{t.inst_total_records}</div>
-          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px'}}>{totalRecords}</div>
-          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{lang === 'id' ? `${installedThisYear} unit terpasang ${filterYear === 'all' ? '(kumulatif)' : `(${filterYear})`}` : `${installedThisYear} units installed ${filterYear === 'all' ? '(cumulative)' : `(${filterYear})`}`}</div>
+          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px'}}>{installedThisYear}</div>
+          <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{lang === 'id' ? `unit terpasang ${filterYear === 'all' ? '(kumulatif)' : `(${filterYear})`}${inProgressCount > 0 ? ` · ${inProgressCount} dalam proses` : ''}` : `units installed ${filterYear === 'all' ? '(cumulative)' : `(${filterYear})`}${inProgressCount > 0 ? ` · ${inProgressCount} in progress` : ''}`}</div>
         </div>
         <div style={{padding: '16px 18px', background: '#fefcf7'}}>
           <div className="lbl-tag">{t.inst_in_progress}</div>
@@ -11203,8 +11214,8 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
         </select>
         <span style={{fontSize: '11px', color: '#8a7d5c', fontStyle: 'italic'}}>
           {lang === 'id'
-            ? `${installedThisYear} unit terpasang${filterYear !== 'all' ? ` di ${filterYear}` : ' (kumulatif)'} · ${installProjects.length} dalam pipeline aktif`
-            : `${installedThisYear} units installed${filterYear !== 'all' ? ` in ${filterYear}` : ' (cumulative)'} · ${installProjects.length} in active pipeline`}
+            ? `${installedThisYear} unit terpasang${filterYear !== 'all' ? ` di ${filterYear}` : ' (kumulatif)'} · ${inProgressCount} dalam proses instalasi`
+            : `${installedThisYear} units installed${filterYear !== 'all' ? ` in ${filterYear}` : ' (cumulative)'} · ${inProgressCount} in installation`}
         </span>
       </div>
 
@@ -11242,7 +11253,10 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
                   <div style={{fontSize: '14px', fontWeight: 600}}>{p.customer}</div>
                   <div style={{fontSize: '11px', color: '#8a7d5c', marginTop: '2px'}}>{p.subModality} · <span className="mono">{p.sphNo}</span></div>
                 </div>
-                <div className="mono" style={{fontSize: '13px', fontWeight: 500}}>{fmt(p.totalValue)}</div>
+                <div style={{display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap'}}>
+                  <span style={{padding: '3px 9px', borderRadius: '10px', fontSize: '9px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', background: p.installationStatus === 'installed' ? '#3a6b3a' : '#c8a96a', color: '#fff'}}>{p.installationStatus === 'installed' ? (lang === 'id' ? 'Terpasang' : 'Installed') : (lang === 'id' ? 'Sedang Proses' : 'In Progress')}</span>
+                  <div className="mono" style={{fontSize: '13px', fontWeight: 500}}>{fmt(p.totalValue)}</div>
+                </div>
               </div>
 
               {/* Work dates from install record */}
@@ -11253,10 +11267,11 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
                 </div>
                 <div>
                   <span style={{color: '#8a7d5c', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '9px', fontWeight: 600}}>{t.inst_prog_end}: </span>
-                  <span className="mono" style={{color: '#1a2942', fontWeight: 600}}>{rec?.installEnd || (lang === 'id' ? 'Sedang berjalan' : 'In progress')}</span>
+                  <span className="mono" style={{color: '#1a2942', fontWeight: 600}}>{rec?.installEnd || (p.installationStatus === 'installed' ? (lang === 'id' ? 'Terpasang' : 'Installed') : (lang === 'id' ? 'Sedang berjalan' : 'In progress'))}</span>
                 </div>
                 {rec?.leadTechnician && <div><span style={{color: '#8a7d5c', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '9px', fontWeight: 600}}>{lang === 'id' ? 'Teknisi' : 'Technician'}: </span><span style={{color: '#1a2942'}}>{resolveEmpName(employees, rec.leadTechnician)}</span></div>}
-                {!rec && <span style={{color: '#c8a96a', fontStyle: 'italic'}}>⚠ {t.inst_prog_no_record}</span>}
+                {!rec && p.installationStatus === 'installed' && <span style={{color: '#3a6b3a', fontStyle: 'italic'}}>✓ {lang === 'id' ? 'Terpasang (BA-INST detail belum diunggah)' : 'Installed (BA-INST detail not uploaded)'}</span>}
+                {!rec && p.installationStatus !== 'installed' && <span style={{color: '#c8a96a', fontStyle: 'italic'}}>⚠ {t.inst_prog_no_record}</span>}
               </div>
 
               {/* Step buttons - auto-synced where applicable */}

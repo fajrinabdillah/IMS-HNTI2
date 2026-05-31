@@ -22,15 +22,15 @@ const translations = {
     nav_sales: 'Tim Sales', nav_sales_report: 'Laporan Lapangan', nav_finance: 'Finance',
     nav_operations: 'Operasional', nav_installation: 'Instalasi', nav_valuation: 'Valuasi',
     nav_employees: 'Manajemen Karyawan', nav_business_trip: 'Perjalanan Dinas',
-    nav_audit_log: 'Audit Trail',
+    nav_audit_log: 'Jejak Audit',
     nav_risk: 'Konsentrasi Risiko',
     nav_products: 'Master Produk',
-    nav_cohort: 'Cohort Analysis',
+    nav_cohort: 'Analisis Kohort',
     nav_cashflow: 'Proyeksi 5 Tahun',
     nav_annotations: 'Komentar CEO',
     nav_exec_summary: 'Ringkasan Eksekutif',
     pipeline_value: 'Nilai Pipeline', weighted_pipeline: 'Pipeline Tertimbang',
-    revenue_ytd: 'Pendapatan YTD', win_rate: 'Win Rate',
+    revenue_ytd: 'Pendapatan YTD', win_rate: 'Tingkat Kemenangan',
     active_projects: 'Proyek Aktif', avg_deal_size: 'Rata-rata Deal',
     days: 'hari',
     funnel_title: 'Funnel Pipeline', funnel_subtitle: 'Distribusi proyek per tahapan',
@@ -121,7 +121,7 @@ const translations = {
     sr_total_reports: 'Total Laporan',
     sr_total_cost: 'Total Biaya',
     // Maintenance
-    nav_maintenance: 'Maintenance',
+    nav_maintenance: 'Pemeliharaan',
     mt_title: 'Preventive Maintenance System',
     mt_subtitle: 'Jadwal maintenance, perbaikan, dan keluhan pelanggan',
     mt_tab_schedule: 'Jadwal PM', mt_tab_repair: 'Perbaikan', mt_tab_complaint: 'Keluhan Pelanggan',
@@ -1462,6 +1462,8 @@ const USERS = {
   'manager_ops': { password: 'hnti2026', role: 'manager_ops', name: 'Novan Restu Pradana', initial: 'NR', position: 'Manager Operasional', allowancePerDay: 175000, active: true },
   'admin': { password: 'hnti2026', role: 'admin', name: 'Siti Rahayu', initial: 'SR', position: 'Manager', allowancePerDay: 175000, active: true },
   'teknisi': { password: 'hnti2026', role: 'technician', name: 'Budi Hartono', initial: 'BH', position: 'Supervisor', allowancePerDay: 150000, active: true },
+  'teknisi2': { password: 'hnti2026', role: 'technician', name: 'Rudi Susanto', initial: 'RS', position: 'Teknisi', allowancePerDay: 130000, active: true },
+  'teknisi3': { password: 'hnti2026', role: 'technician', name: 'Eko Prasetyo', initial: 'EP', position: 'Teknisi', allowancePerDay: 130000, active: true },
   'ops': { password: 'hnti2026', role: 'operations', name: 'Andi Pratama', initial: 'AP', position: 'Supervisor', allowancePerDay: 150000, active: true },
   'finance': { password: 'hnti2026', role: 'finance', name: 'Maya Sari Wijayanti', initial: 'MS', position: 'Manager', allowancePerDay: 175000, active: true },
   'regulatory': { password: 'hnti2026', role: 'regulatory', name: 'Rini Wahyuni', initial: 'RW', position: 'Supervisor', allowancePerDay: 150000, active: true },
@@ -1474,6 +1476,9 @@ const USERS = {
   'office': { password: 'hnti2026', role: 'sales', name: 'HNT Indonesia (Office)', initial: 'HO', salesId: 'office', isOffice: true, position: '-', allowancePerDay: 0, active: true },
 };
 
+// Technician roster derived from the employee DB (USERS) — keeps maintenance in sync (#5/#6)
+const TECHNICIAN_NAMES = Object.values(USERS).filter(u => u.role === 'technician' && u.active).map(u => u.name);
+
 const PERMISSIONS = {
   super_admin:  { dashboard: 'full', sph: 'full', pipeline: 'full', sales: 'full', sales_report: 'full', finance: 'full', operations: 'full', installation: 'full', maintenance: 'full', regulatory: 'full', valuation: 'full', incentive: 'full', employees: 'full', business_trip: 'full' },
   gm:           { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'read', sales_report: 'read', finance: 'read', operations: 'read', installation: 'read', maintenance: 'read', regulatory: 'read', valuation: 'read', incentive: 'read', employees: 'full', business_trip: 'full' },
@@ -1484,12 +1489,12 @@ const PERMISSIONS = {
   finance:      { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'read', sales_report: 'read', finance: 'full', operations: 'read', installation: 'read', maintenance: 'none', regulatory: 'none', valuation: 'none', incentive: 'full', employees: 'none', business_trip: 'full' },
   regulatory:   { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'none', sales_report: 'none', finance: 'none', operations: 'read', installation: 'read', maintenance: 'read', regulatory: 'full', valuation: 'none', incentive: 'none', employees: 'none', business_trip: 'self' },
   sales:        { dashboard: 'read', sph: 'write', pipeline: 'write', sales: 'read', sales_report: 'full', finance: 'none', operations: 'none', installation: 'none', maintenance: 'none', regulatory: 'none', valuation: 'none', incentive: 'self', employees: 'none', business_trip: 'self' },
-  // Product Specialist: supports sales (technical demos) — read SPH/pipeline, full sales_report
-  product_specialist: { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'read', sales_report: 'write', finance: 'none', operations: 'none', installation: 'read', maintenance: 'read', regulatory: 'read', valuation: 'none', incentive: 'none', employees: 'none', business_trip: 'self' },
-  // Security: minimal access, only business_trip self (jadwal jaga)
-  security:     { dashboard: 'none', sph: 'none', pipeline: 'none', sales: 'none', sales_report: 'none', finance: 'none', operations: 'none', installation: 'none', maintenance: 'none', regulatory: 'none', valuation: 'none', incentive: 'none', employees: 'none', business_trip: 'self' },
-  // Office Support (OB): minimal — hanya business_trip self (kalau OB ikut perjalanan)
-  office_support: { dashboard: 'none', sph: 'none', pipeline: 'none', sales: 'none', sales_report: 'none', finance: 'none', operations: 'none', installation: 'none', maintenance: 'none', regulatory: 'none', valuation: 'none', incentive: 'none', employees: 'none', business_trip: 'self' },
+  // Product Specialist (#8): dashboard, SPH, pipeline, field report, business trip, product master
+  product_specialist: { dashboard: 'read', sph: 'write', pipeline: 'read', sales: 'none', sales_report: 'full', finance: 'none', operations: 'none', installation: 'none', maintenance: 'none', regulatory: 'none', valuation: 'none', incentive: 'none', employees: 'none', business_trip: 'self', products: 'read' },
+  // Security (#8): only main dashboard + business trip
+  security:     { dashboard: 'read', sph: 'none', pipeline: 'none', sales: 'none', sales_report: 'none', finance: 'none', operations: 'none', installation: 'none', maintenance: 'none', regulatory: 'none', valuation: 'none', incentive: 'none', employees: 'none', business_trip: 'self' },
+  // Office Support (#8): only main dashboard + business trip
+  office_support: { dashboard: 'read', sph: 'none', pipeline: 'none', sales: 'none', sales_report: 'none', finance: 'none', operations: 'none', installation: 'none', maintenance: 'none', regulatory: 'none', valuation: 'none', incentive: 'none', employees: 'none', business_trip: 'self' },
 };
 
 const NAV_BY_ROLE = {
@@ -1502,9 +1507,9 @@ const NAV_BY_ROLE = {
   finance:      ['dashboard', 'pipeline', 'sales_report', 'business_trip', 'incentive', 'finance', 'risk', 'cohort', 'cashflow'],
   regulatory:   ['dashboard', 'pipeline', 'business_trip', 'installation', 'regulatory', 'products'],
   sales:        ['sales_report', 'sph', 'pipeline', 'business_trip', 'incentive', 'dashboard', 'products'],
-  product_specialist: ['dashboard', 'sph', 'pipeline', 'sales', 'sales_report', 'business_trip', 'installation', 'maintenance', 'regulatory', 'products'],
-  security:     ['business_trip'],
-  office_support: ['business_trip'],
+  product_specialist: ['dashboard', 'sph', 'pipeline', 'sales_report', 'business_trip', 'products'],
+  security:     ['dashboard', 'business_trip'],
+  office_support: ['dashboard', 'business_trip'],
 };
 
 // Translation key for new regulatory role
@@ -2924,27 +2929,36 @@ const SEED_FIELD_REPORTS = [
 // 58 units installed in 2025 from won SPHs + new installations from 2026
 function generateInstalledUnits() {
   const wonProjects = ALL_SPH.filter(s => s.status === 'won' && s.installationStatus === 'installed');
+  // Helper: add N calendar months to a YYYY-MM-DD date (clean, no 30-day drift)
+  const addMonths = (dateStr, n) => {
+    const d = new Date(dateStr + 'T00:00:00');
+    const day = d.getDate();
+    d.setMonth(d.getMonth() + n);
+    // guard month overflow (e.g. Aug 31 + 6mo)
+    if (d.getDate() < day) d.setDate(0);
+    return d.toISOString().split('T')[0];
+  };
   return wonProjects.map((s, i) => {
     const installDate = s.issuedDate < '2026-01-01' ? `2025-${String(Math.floor(i / 5) % 12 + 1).padStart(2, '0')}-${String((i % 28) + 1).padStart(2, '0')}` : `2026-${String(Math.floor(i / 5) % 5 + 1).padStart(2, '0')}-${String((i % 28) + 1).padStart(2, '0')}`;
     const installYear = parseInt(installDate.substring(0, 4));
     const installMonth = parseInt(installDate.substring(5, 7));
-    // Warranty 2 years
     const warrantyEnd = `${installYear + 2}-${String(installMonth).padStart(2, '0')}-${installDate.substring(8)}`;
-    // PM every 6 months, calculate last PM
-    const today = new Date('2026-05-16');
-    const installD = new Date(installDate);
-    const monthsSince = Math.floor((today - installD) / (1000 * 60 * 60 * 24 * 30));
-    const pmsDone = Math.floor(monthsSince / 6);
-    const lastPmMonths = pmsDone * 6;
-    const lastPmDate = new Date(installD.getTime() + lastPmMonths * 30 * 24 * 60 * 60 * 1000);
-    const nextPmDate = new Date(installD.getTime() + (lastPmMonths + 6) * 30 * 24 * 60 * 60 * 1000);
+    // PM SCHEDULE (#7): first PM exactly 6 calendar months after install, then every 6 months.
+    const today = new Date('2026-05-31');
+    const installD = new Date(installDate + 'T00:00:00');
+    // Count completed 6-month cycles since install (first PM is at +6 months)
+    let pmsDone = 0;
+    while (new Date(addMonths(installDate, (pmsDone + 1) * 6) + 'T00:00:00') <= today) pmsDone++;
+    const lastPmDate = pmsDone > 0 ? addMonths(installDate, pmsDone * 6) : null;
+    const nextPmDate = addMonths(installDate, (pmsDone + 1) * 6);
     return {
       id: `unit_${s.id}`, sphRef: s.sphNo, customer: s.customer,
       modality: s.modality, subModality: s.subModality, partner: s.partner,
       installDate, warrantyEnd,
-      lastPmDate: pmsDone > 0 ? lastPmDate.toISOString().split('T')[0] : null,
-      nextPmDate: nextPmDate.toISOString().split('T')[0],
-      technician: ['Budi Hartono', 'Rudi Susanto', 'Eko Prasetyo'][i % 3],
+      lastPmDate,
+      nextPmDate,
+      pmCompleted: false,
+      technician: TECHNICIAN_NAMES[i % TECHNICIAN_NAMES.length],
       qty: s.qty,
     };
   });
@@ -4481,7 +4495,7 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
   };
 
   const perms = PERMISSIONS[session.role];
-  const allowedNav = NAV_BY_ROLE[session.role];
+  const allowedNav = NAV_BY_ROLE[session.role] || ['dashboard'];
 
   // Business-trip notification count (shared by HoverSidebar + Header)
   const navBtNotifCount = useMemo(() => {
@@ -4573,7 +4587,7 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
         {view === 'operations' && canRead('operations') && <OperationsModule data={data} setData={setData} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} t={t} lang={lang} canEdit={canEdit('operations')} fmt={fmt} />}
         {view === 'installation' && canRead('installation') && <InstallationModule data={data} setData={setData} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} t={t} lang={lang} canEdit={canEdit('installation')} fmt={fmt} />}
         {view === 'maintenance' && canRead('maintenance') && <MaintenanceModule units={installedUnits} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} t={t} lang={lang} canEdit={canEdit('maintenance')} session={session} />}
-        {view === 'regulatory' && canRead('regulatory') && <RegulatoryModule records={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} units={installedUnits} t={t} lang={lang} canEdit={canEdit('regulatory')} />}
+        {view === 'regulatory' && canRead('regulatory') && <RegulatoryModule records={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} units={installedUnits} t={t} lang={lang} fmt={fmt} canEdit={canEdit('regulatory')} />}
         {view === 'incentive' && canRead('incentive') && <IncentiveModule data={data} setData={setData} t={t} lang={lang} session={session} fmt={fmt} fmtFull={fmtFull} canEdit={canEdit('incentive')} />}
         {view === 'valuation' && canRead('valuation') && <Valuation data={data} t={t} lang={lang} fmt={fmt} />}
         {view === 'employees' && canRead('employees') && <EmployeesModule employees={employees} setEmployees={setEmployees} t={t} lang={lang} session={session} fmt={fmt} />}
@@ -5644,7 +5658,7 @@ function PipelineBoard({ data, allData, setData, session, logAction, t, lang, ca
         </div>
         <div style={{padding: '14px 16px', background: '#1a2942', color: '#f8f5ef', position: 'relative'}}>
           <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px', flexWrap: 'wrap'}}>
-            <div style={{fontSize: '9px', letterSpacing: '0.2em', color: '#c8a96a', textTransform: 'uppercase'}}>Win Rate</div>
+            <div style={{fontSize: '9px', letterSpacing: '0.2em', color: '#c8a96a', textTransform: 'uppercase'}}>{t.win_rate}</div>
             <select value={winRateMode} onChange={e => setWinRateMode(e.target.value)} style={{fontSize: '9px', padding: '2px 4px', background: '#0f1a30', border: '1px solid #c8a96a', color: '#c8a96a', fontFamily: 'inherit', cursor: 'pointer', width: 'auto', textTransform: 'uppercase', letterSpacing: '0.05em'}} title={lang === 'id' ? 'Pilih metode perhitungan' : 'Choose calculation method'}>
               <option value="ttm">{lang === 'id' ? 'TTM (12 Bln)' : 'TTM (12mo)'}</option>
               <option value="current">{filterYear === 'all' ? (lang === 'id' ? 'Semua' : 'All') : filterYear}</option>
@@ -5870,7 +5884,7 @@ function SalesModule({ data, reports, t, lang, fmt }) {
                 <div className="mono" style={{fontSize: '13px', fontWeight: 600, marginTop: '2px'}}>{s.activeCount}</div>
               </div>
               <div>
-                <div style={{fontSize: '9px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase'}}>Win Rate</div>
+                <div style={{fontSize: '9px', letterSpacing: '0.15em', color: '#8a7d5c', textTransform: 'uppercase'}}>{t.win_rate}</div>
                 <div className="mono" style={{fontSize: '13px', fontWeight: 600, marginTop: '2px'}}>{s.winRate.toFixed(0)}%</div>
               </div>
             </div>
@@ -6422,7 +6436,7 @@ function ExecutiveSummary({ data, reports, annotations, products, t, lang, fmt, 
             { label: lang === 'id' ? 'Total Pipeline' : 'Total Pipeline', value: fmt(k.totalPipeline), sub: `${k.active.length} ${lang === 'id' ? 'deal aktif' : 'active deals'}`, color: '#1a4d8a' },
             { label: lang === 'id' ? 'Pipeline Tertimbang' : 'Weighted Pipeline', value: fmt(k.weightedPipeline), sub: lang === 'id' ? 'probabilitas × nilai' : 'probability × value', color: '#c8a96a' },
             { label: lang === 'id' ? 'Pendapatan (Menang)' : 'Revenue (Won)', value: fmt(k.revenueYTD), sub: `${k.won.length} ${lang === 'id' ? 'deal menang' : 'won deals'}`, color: '#3a6b3a' },
-            { label: 'Win Rate', value: `${k.winRate.toFixed(1)}%`, sub: `${k.won.length}/${k.won.length + k.lost.length} ${lang === 'id' ? 'closing' : 'closed'}`, color: '#7b3fb5' },
+            { label: t.win_rate, value: `${k.winRate.toFixed(1)}%`, sub: `${k.won.length}/${k.won.length + k.lost.length} ${lang === 'id' ? 'closing' : 'closed'}`, color: '#7b3fb5' },
           ].map((kpi, i) => (
             <div key={i} className="exec-card" style={{padding: '16px', background: '#fefcf7', border: '1px solid #e8e1cc'}}>
               <div style={{fontSize: '9px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{kpi.label}</div>
@@ -6456,7 +6470,7 @@ function ExecutiveSummary({ data, reports, annotations, products, t, lang, fmt, 
               <th style={{padding: '8px 10px', textAlign: 'left'}}>Sales</th>
               <th style={{padding: '8px 10px', textAlign: 'right'}}>Pipeline</th>
               <th style={{padding: '8px 10px', textAlign: 'right'}}>{lang === 'id' ? 'Menang' : 'Won'}</th>
-              <th style={{padding: '8px 10px', textAlign: 'right'}}>Win Rate</th>
+              <th style={{padding: '8px 10px', textAlign: 'right'}}>{t.win_rate}</th>
               <th style={{padding: '8px 10px', textAlign: 'right'}}>PO</th>
             </tr>
           </thead>
@@ -6656,8 +6670,8 @@ function CohortAnalysis({ data, t, lang, fmt }) {
   return (
     <div>
       <div style={{marginBottom: '22px'}}>
-        <div style={{fontSize: '11px', letterSpacing: '0.3em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '6px'}}>{lang === 'id' ? 'Analytics' : 'Analytics'}</div>
-        <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{lang === 'id' ? 'Cohort Analysis' : 'Cohort Analysis'}</h1>
+        <div style={{fontSize: '11px', letterSpacing: '0.3em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '6px'}}>{lang === 'id' ? 'Analitik' : 'Analytics'}</div>
+        <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{lang === 'id' ? 'Analisis Kohort' : 'Cohort Analysis'}</h1>
         <div style={{fontSize: '13px', color: '#8a7d5c', marginTop: '6px'}}>{lang === 'id' ? 'Pola repeat purchase per kohort akuisisi — standar valuasi investor sophisticated' : 'Repeat purchase pattern per acquisition cohort — sophisticated investor metric'}</div>
       </div>
 
@@ -6674,7 +6688,7 @@ function CohortAnalysis({ data, t, lang, fmt }) {
         </div>
         {retentionInsights.length > 0 && retentionInsights[0] && (
           <div className="card-pad">
-            <div className="lbl-tag">{lang === 'id' ? 'Y1 Retention 2025' : 'Y1 Retention 2025'}</div>
+            <div className="lbl-tag">{lang === 'id' ? 'Retensi Tahun-1 (2025)' : 'Y1 Retention 2025'}</div>
             <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: retentionInsights[0].rate >= 30 ? '#3a6b3a' : retentionInsights[0].rate >= 15 ? '#c8a96a' : '#c03030'}}>{retentionInsights[0].rate.toFixed(0)}%</div>
             <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>{retentionInsights[0].yearOneReturned} {lang === 'id' ? 'dari' : 'of'} {retentionInsights[0].totalCohort}</div>
           </div>
@@ -6693,7 +6707,7 @@ function CohortAnalysis({ data, t, lang, fmt }) {
         {[
           { id: 'revenue', label: lang === 'id' ? '💰 Pendapatan' : '💰 Revenue' },
           { id: 'count', label: lang === 'id' ? '🔢 Jumlah Deal' : '🔢 Deal Count' },
-          { id: 'retention', label: lang === 'id' ? '🔁 Retention Rate' : '🔁 Retention Rate' },
+          { id: 'retention', label: lang === 'id' ? '🔁 Tingkat Retensi' : '🔁 Retention Rate' },
         ].map(opt => (
           <button key={opt.id} onClick={() => setView(opt.id)} style={{padding: '6px 12px', fontSize: '11px', fontFamily: 'inherit', background: view === opt.id ? '#1a2942' : 'transparent', color: view === opt.id ? '#fff' : '#1a2942', border: '1px solid #1a2942', cursor: 'pointer', fontWeight: 500}}>{opt.label}</button>
         ))}
@@ -6857,7 +6871,7 @@ function CashFlowProjection({ data, t, lang, fmt }) {
   return (
     <div>
       <div style={{marginBottom: '22px'}}>
-        <div style={{fontSize: '11px', letterSpacing: '0.3em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '6px'}}>{lang === 'id' ? 'Forecast' : 'Forecast'}</div>
+        <div style={{fontSize: '11px', letterSpacing: '0.3em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '6px'}}>{lang === 'id' ? 'Proyeksi' : 'Forecast'}</div>
         <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{lang === 'id' ? 'Proyeksi Pendapatan 5 Tahun' : '5-Year Revenue Projection'}</h1>
         <div style={{fontSize: '13px', color: '#8a7d5c', marginTop: '6px'}}>{lang === 'id' ? 'Berbasis tren pertumbuhan majemuk, dilandasi data historis + baseline pasar + tailwind regulasi' : 'Compound growth model grounded in historical data + market baseline + regulatory tailwind'}</div>
       </div>
@@ -6980,16 +6994,16 @@ function AnnotatedSnapshotModule({ annotations, setAnnotations, t, lang, logActi
   // Available "anchors" — chart/KPI keys that user can annotate
   const ANCHORS = useMemo(() => [
     { id: 'kpi_pipeline', label: lang === 'id' ? 'KPI: Nilai Pipeline' : 'KPI: Pipeline Value' },
-    { id: 'kpi_winrate', label: lang === 'id' ? 'KPI: Win Rate' : 'KPI: Win Rate' },
+    { id: 'kpi_winrate', label: lang === 'id' ? 'KPI: Tingkat Kemenangan' : 'KPI: Win Rate' },
     { id: 'kpi_revenue_ytd', label: lang === 'id' ? 'KPI: Pendapatan YTD' : 'KPI: Revenue YTD' },
-    { id: 'kpi_weighted', label: lang === 'id' ? 'KPI: Weighted Pipeline' : 'KPI: Weighted Pipeline' },
-    { id: 'chart_funnel', label: lang === 'id' ? 'Chart: Sales Funnel' : 'Chart: Sales Funnel' },
+    { id: 'kpi_weighted', label: lang === 'id' ? 'KPI: Pipeline Tertimbang' : 'KPI: Weighted Pipeline' },
+    { id: 'chart_funnel', label: lang === 'id' ? 'Grafik: Corong Penjualan' : 'Chart: Sales Funnel' },
     { id: 'chart_trend', label: lang === 'id' ? 'Chart: Tren Pipeline' : 'Chart: Pipeline Trend' },
     { id: 'chart_sales_team', label: lang === 'id' ? 'Chart: Performa Tim Sales' : 'Chart: Sales Team Performance' },
     { id: 'chart_modality', label: lang === 'id' ? 'Chart: Distribusi Modalitas' : 'Chart: Modality Distribution' },
-    { id: 'risk_top1_customer', label: lang === 'id' ? 'Risk: Top 1 Customer' : 'Risk: Top 1 Customer' },
-    { id: 'cohort_retention', label: lang === 'id' ? 'Cohort: Retention Rate' : 'Cohort: Retention Rate' },
-    { id: 'cashflow_5y', label: lang === 'id' ? 'Cash Flow: 5-Year Projection' : 'Cash Flow: 5-Year Projection' },
+    { id: 'risk_top1_customer', label: lang === 'id' ? 'Risiko: Top 1 Pelanggan' : 'Risk: Top 1 Customer' },
+    { id: 'cohort_retention', label: lang === 'id' ? 'Kohort: Tingkat Retensi' : 'Cohort: Retention Rate' },
+    { id: 'cashflow_5y', label: lang === 'id' ? 'Arus Kas: Proyeksi 5 Tahun' : 'Cash Flow: 5-Year Projection' },
   ], [lang]);
 
   const addAnnotation = () => {
@@ -7020,7 +7034,7 @@ function AnnotatedSnapshotModule({ annotations, setAnnotations, t, lang, logActi
   return (
     <div>
       <div style={{marginBottom: '22px'}}>
-        <div style={{fontSize: '11px', letterSpacing: '0.3em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '6px'}}>{lang === 'id' ? 'Narrative' : 'Narrative'}</div>
+        <div style={{fontSize: '11px', letterSpacing: '0.3em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '6px'}}>{lang === 'id' ? 'Narasi' : 'Narrative'}</div>
         <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{lang === 'id' ? 'Komentar CEO' : 'CEO Commentary'}</h1>
         <div style={{fontSize: '13px', color: '#8a7d5c', marginTop: '6px'}}>{lang === 'id' ? 'Tambahkan narasi pada KPI/chart sebelum di-share ke investor' : 'Add narrative to KPIs/charts before sharing with investors'}</div>
       </div>
@@ -7030,7 +7044,7 @@ function AnnotatedSnapshotModule({ annotations, setAnnotations, t, lang, logActi
         <div style={{fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '12px'}}>{lang === 'id' ? '✍ Tambah Komentar Baru' : '✍ Add New Annotation'}</div>
         <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px'}}>
           <div>
-            <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '6px'}}>{lang === 'id' ? 'Target (KPI / Chart)' : 'Target (KPI / Chart)'}</label>
+            <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '6px'}}>{lang === 'id' ? 'Target (KPI / Grafik)' : 'Target (KPI / Chart)'}</label>
             <select value={newAnnotation.target} onChange={e => setNewAnnotation(a => ({ ...a, target: e.target.value }))}>
               <option value="">— {lang === 'id' ? 'Pilih anchor' : 'Select anchor'} —</option>
               {ANCHORS.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}
@@ -7575,7 +7589,7 @@ function RiskConcentration({ data, products, t, lang, fmt }) {
   return (
     <div>
       <div style={{marginBottom: '22px'}}>
-        <div style={{fontSize: '11px', letterSpacing: '0.3em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '6px'}}>{lang === 'id' ? 'Risk Management' : 'Risk Management'}</div>
+        <div style={{fontSize: '11px', letterSpacing: '0.3em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '6px'}}>{lang === 'id' ? 'Manajemen Risiko' : 'Risk Management'}</div>
         <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{lang === 'id' ? 'Konsentrasi Risiko' : 'Risk Concentration'}</h1>
         <div style={{fontSize: '13px', color: '#8a7d5c', marginTop: '6px'}}>{lang === 'id' ? 'Identifikasi single point of failure — investor-grade governance' : 'Identify single points of failure — investor-grade governance'}</div>
       </div>
@@ -7614,7 +7628,7 @@ function RiskConcentration({ data, products, t, lang, fmt }) {
           <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>HHI: {hhiCustomer.toFixed(0)}</div>
         </div>
         <div className="card-pad">
-          <div className="lbl-tag">{lang === 'id' ? 'Top 1 Principal' : 'Top 1 Principal'}</div>
+          <div className="lbl-tag">{lang === 'id' ? 'Principal Teratas' : 'Top 1 Principal'}</div>
           <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px', color: top1PartnerLvl.color}}>{concentrationStats.top1Partner.toFixed(1)}%</div>
           <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '2px'}}>HHI: {hhiPartner.toFixed(0)}</div>
         </div>
@@ -7703,7 +7717,7 @@ function AuditLogModule({ auditLog, employees, t, lang }) {
   return (
     <div>
       <div style={{marginBottom: '22px'}}>
-        <div style={{fontSize: '11px', letterSpacing: '0.3em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '6px'}}>{lang === 'id' ? 'Audit Trail' : 'Audit Trail'}</div>
+        <div style={{fontSize: '11px', letterSpacing: '0.3em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '6px'}}>{lang === 'id' ? 'Jejak Audit' : 'Audit Trail'}</div>
         <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{lang === 'id' ? 'Log Perubahan Sistem' : 'System Change Log'}</h1>
         <div style={{fontSize: '13px', color: '#8a7d5c', marginTop: '6px'}}>{lang === 'id' ? 'Setiap aksi di sistem terekam — SOX compliance ready' : 'Every action is logged — SOX compliance ready'}</div>
       </div>
@@ -8019,7 +8033,7 @@ function EmployeesModule({ employees, setEmployees, t, lang, session, fmt }) {
       <ConfirmDialog open={!!confirmDeactivateUser} title={lang === 'id' ? 'Non-aktifkan Karyawan?' : 'Deactivate Employee?'} message={t.emp_confirm_deactivate} confirmText={lang === 'id' ? 'Ya, Non-aktifkan' : 'Yes, Deactivate'} onConfirm={() => handleDeactivate(confirmDeactivateUser)} onCancel={() => setConfirmDeactivateUser(null)} danger lang={lang} />
       <ConfirmDialog open={!!confirmActivateUser} title={lang === 'id' ? 'Aktifkan Karyawan?' : 'Activate Employee?'} message={t.emp_confirm_activate} confirmText={lang === 'id' ? 'Ya, Aktifkan' : 'Yes, Activate'} onConfirm={() => handleActivate(confirmActivateUser)} onCancel={() => setConfirmActivateUser(null)} lang={lang} />
       <ConfirmDialog open={!!confirmDeleteUser} title={lang === 'id' ? 'Hapus Akun Permanen?' : 'Delete Account Permanently?'} message={lang === 'id' ? `Akun "${confirmDeleteUser}" akan dihapus permanen dan tidak bisa dikembalikan. Semua histori login akun ini akan hilang. Lanjutkan?` : `Account "${confirmDeleteUser}" will be permanently deleted and cannot be recovered. Continue?`} confirmText={lang === 'id' ? 'Ya, Hapus Permanen' : 'Yes, Delete Permanently'} onConfirm={() => handleDelete(confirmDeleteUser)} onCancel={() => setConfirmDeleteUser(null)} danger lang={lang} />
-      <ConfirmDialog open={!!resetPwUser} title={lang === 'id' ? 'Reset Password?' : 'Reset Password?'} message={lang === 'id' ? `Password akun "${resetPwUser}" akan direset ke default (hnti2026). Karyawan wajib menggantinya saat login berikutnya. Lanjutkan?` : `Password for "${resetPwUser}" will be reset to default (hnti2026). The employee must change it on next login. Continue?`} confirmText={lang === 'id' ? 'Ya, Reset' : 'Yes, Reset'} onConfirm={() => handleResetPassword(resetPwUser)} onCancel={() => setResetPwUser(null)} lang={lang} />
+      <ConfirmDialog open={!!resetPwUser} title={lang === 'id' ? 'Atur Ulang Kata Sandi?' : 'Reset Password?'} message={lang === 'id' ? `Password akun "${resetPwUser}" akan direset ke default (hnti2026). Karyawan wajib menggantinya saat login berikutnya. Lanjutkan?` : `Password for "${resetPwUser}" will be reset to default (hnti2026). The employee must change it on next login. Continue?`} confirmText={lang === 'id' ? 'Ya, Reset' : 'Yes, Reset'} onConfirm={() => handleResetPassword(resetPwUser)} onCancel={() => setResetPwUser(null)} lang={lang} />
     </div>
   );
 }
@@ -8455,7 +8469,7 @@ function BusinessTripModule({ businessTrips, setBusinessTrips, realizations, set
           <div style={{padding: '14px 16px', background: '#1a2942', color: '#f8f5ef'}}>
             <div style={{fontSize: '9px', letterSpacing: '0.2em', color: '#c8a96a', textTransform: 'uppercase'}}>{t.bt_total_advance_label}</div>
             <div className="serif mono" style={{fontSize: '18px', fontWeight: 500, marginTop: '3px', color: '#fff'}}>{fmt(totalAdvance)}</div>
-            <div style={{fontSize: '9px', color: 'rgba(255,255,255,0.6)', marginTop: '2px'}}>{lang === 'id' ? 'approved & paid' : 'approved & paid'}</div>
+            <div style={{fontSize: '9px', color: 'rgba(255,255,255,0.6)', marginTop: '2px'}}>{lang === 'id' ? 'disetujui & dibayar' : 'approved & paid'}</div>
           </div>
         )}
       </div>
@@ -9528,7 +9542,7 @@ function BusinessTripDashboard({ businessTrips, realizations, employees, t, lang
       totals.hotel += t.officeBooked?.hotelTotal || 0;
     });
     const data = [
-      { name: lang === 'id' ? 'Allowance' : 'Allowance', value: totals.allowance, color: '#1a4d8a' },
+      { name: lang === 'id' ? 'Tunjangan' : 'Allowance', value: totals.allowance, color: '#1a4d8a' },
       { name: lang === 'id' ? 'Tiket Pesawat' : 'Flight Tickets', value: totals.ticket, color: '#5b87b8' },
       { name: lang === 'id' ? 'Hotel' : 'Hotel', value: totals.hotel, color: '#c8a96a' },
       { name: lang === 'id' ? 'Makan' : 'Meals', value: totals.meals, color: '#b8935a' },
@@ -9603,7 +9617,7 @@ function BusinessTripDashboard({ businessTrips, realizations, employees, t, lang
           <div style={{fontSize: '9px', color: 'rgba(255,255,255,0.6)', marginTop: '2px'}}>{lang === 'id' ? 'Cash + Office' : 'Cash + Office'}</div>
         </div>
         <div style={{padding: '16px 18px', background: '#fefcf7'}}>
-          <div style={{fontSize: '9px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{lang === 'id' ? 'Cash Advance' : 'Cash Advance'}</div>
+          <div style={{fontSize: '9px', letterSpacing: '0.2em', color: '#8a7d5c', textTransform: 'uppercase'}}>{lang === 'id' ? 'Uang Muka' : 'Cash Advance'}</div>
           <div className="serif mono" style={{fontSize: '20px', fontWeight: 500, marginTop: '4px'}}>{fmtRpShort(stats.total)}</div>
           <div style={{fontSize: '9px', color: '#8a7d5c', marginTop: '2px'}}>{lang === 'id' ? 'transfer ke karyawan' : 'transferred to employees'}</div>
         </div>
@@ -9631,7 +9645,7 @@ function BusinessTripDashboard({ businessTrips, realizations, employees, t, lang
               <YAxis stroke="#8a7d5c" style={{fontSize: 10}} tickFormatter={v => v >= 1e9 ? `${(v/1e9).toFixed(1)}M` : v >= 1e6 ? `${(v/1e6).toFixed(0)}Jt` : v >= 1e3 ? `${(v/1e3).toFixed(0)}rb` : v} />
               <Tooltip formatter={(v, name) => [fmtRp(v), name]} labelStyle={{color: '#1a2942', fontSize: 11}} contentStyle={{background: '#fefcf7', border: '1px solid #d4cdb8', fontSize: 11}} />
               <Legend wrapperStyle={{fontSize: 11}} />
-              <Bar dataKey="cashAdvance" name={lang === 'id' ? 'Cash Advance' : 'Cash Advance'} fill="#1a4d8a" stackId="a" />
+              <Bar dataKey="cashAdvance" name={lang === 'id' ? 'Uang Muka' : 'Cash Advance'} fill="#1a4d8a" stackId="a" />
               <Bar dataKey="officeBooked" name={lang === 'id' ? 'Tiket + Hotel' : 'Office-Booked'} fill="#c8a96a" stackId="a" />
               <Area type="monotone" dataKey="total" name={lang === 'id' ? 'Total' : 'Total'} fill="transparent" stroke="#c03030" strokeWidth={2} dot={{ r: 3, fill: '#c03030' }} />
             </ComposedChart>
@@ -9916,7 +9930,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
       lang === 'id' ? 'Nilai PO' : 'PO Value',
       'DP%', lang === 'id' ? 'Cicilan (bulan)' : 'Installments (months)',
       lang === 'id' ? 'Total Diterima' : 'Total Received',
-      lang === 'id' ? 'Outstanding' : 'Outstanding',
+      lang === 'id' ? 'Tertunggak' : 'Outstanding',
       '% Lunas / Paid %',
       lang === 'id' ? 'Tanggal PO' : 'PO Date',
       lang === 'id' ? 'Keterangan' : 'Notes',
@@ -10040,7 +10054,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
               <Th>{lang === 'id' ? 'Skema' : 'Scheme'}</Th>
               <Th align="right">{t.value}</Th>
               <Th align="right">{lang === 'id' ? 'Diterima' : 'Received'}</Th>
-              <Th align="right">{lang === 'id' ? 'Outstanding' : 'Outstanding'}</Th>
+              <Th align="right">{lang === 'id' ? 'Tertunggak' : 'Outstanding'}</Th>
               <Th align="center">{lang === 'id' ? 'Progress' : 'Progress'}</Th>
               {canEdit && <Th align="center">{lang === 'id' ? 'Aksi' : 'Action'}</Th>}
             </tr>
@@ -10077,7 +10091,14 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
                     </Td>
                     {canEdit && (
                       <Td align="center">
-                        <button onClick={() => setPaymentForm({ open: true, sphId: p.id, amount: '', type: sch === 'kso' ? 'revenue_share' : sch === 'after_bast' ? 'full_after_bast' : 'installment', date: new Date().toISOString().split('T')[0], note: '' })} style={{background: '#1a2942', border: 'none', color: '#fff', padding: '4px 9px', fontSize: '10px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500}} title={lang === 'id' ? 'Catat Pembayaran' : 'Record Payment'}>+ {lang === 'id' ? 'Bayar' : 'Pay'}</button>
+                        <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px'}}>
+                          <button onClick={() => setPaymentForm({ open: true, sphId: p.id, amount: '', type: sch === 'kso' ? 'revenue_share' : sch === 'after_bast' ? 'full_after_bast' : 'installment', date: new Date().toISOString().split('T')[0], note: '', editId: null })} style={{background: '#1a2942', border: 'none', color: '#fff', padding: '4px 9px', fontSize: '10px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500, width: '100%'}} title={lang === 'id' ? 'Catat Pembayaran baru' : 'Record new payment'}>+ {lang === 'id' ? 'Bayar' : 'Pay'}</button>
+                          {(p.paymentHistory || []).length > 0 && (
+                            <button onClick={() => setExpandedPo(isExpanded ? null : p.id)} style={{background: isExpanded ? '#1a4d8a' : 'transparent', border: '1px solid #1a4d8a', color: isExpanded ? '#fff' : '#1a4d8a', padding: '3px 8px', fontSize: '9px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px'}} title={lang === 'id' ? 'Kelola: edit / hapus pembayaran' : 'Manage: edit / delete payments'}>
+                              <Edit2 size={9} />{lang === 'id' ? 'Kelola' : 'Manage'} ({(p.paymentHistory || []).length})
+                            </button>
+                          )}
+                        </div>
                       </Td>
                     )}
                   </tr>
@@ -10160,9 +10181,9 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
                                       <Td><span style={{fontSize: '11px', color: '#1a2942'}}>{h.note || '—'}</span></Td>
                                       {canEdit && (
                                         <Td align="center">
-                                          <div style={{display: 'flex', gap: '5px', justifyContent: 'center'}}>
-                                            <button onClick={() => openEditPayment(p.id, h)} style={{background: 'transparent', border: '1px solid #1a4d8a', padding: '3px 7px', fontSize: '10px', cursor: 'pointer', color: '#1a4d8a', fontFamily: 'inherit'}} title={lang === 'id' ? 'Edit catatan ini' : 'Edit this record'}><Edit2 size={10} /></button>
-                                            <button onClick={() => setConfirmDeletePayment({ sphId: p.id, paymentId: h.id })} style={{background: 'transparent', border: '1px solid #c03030', padding: '3px 7px', fontSize: '10px', cursor: 'pointer', color: '#c03030', fontFamily: 'inherit'}} title={lang === 'id' ? 'Hapus catatan ini' : 'Delete this record'}><Trash2 size={10} /></button>
+                                          <div style={{display: 'flex', gap: '6px', justifyContent: 'center'}}>
+                                            <button onClick={() => openEditPayment(p.id, h)} style={{background: '#1a4d8a', border: 'none', padding: '4px 10px', fontSize: '10px', cursor: 'pointer', color: '#fff', fontFamily: 'inherit', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px'}} title={lang === 'id' ? 'Edit pembayaran ini' : 'Edit this payment'}><Edit2 size={10} />{lang === 'id' ? 'Edit' : 'Edit'}</button>
+                                            <button onClick={() => setConfirmDeletePayment({ sphId: p.id, paymentId: h.id })} style={{background: 'transparent', border: '1px solid #c03030', padding: '4px 10px', fontSize: '10px', cursor: 'pointer', color: '#c03030', fontFamily: 'inherit', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px'}} title={lang === 'id' ? 'Hapus pembayaran ini' : 'Delete this payment'}><Trash2 size={10} />{lang === 'id' ? 'Hapus' : 'Delete'}</button>
                                           </div>
                                         </Td>
                                       )}
@@ -11541,13 +11562,43 @@ function TrainingCertModal({ record, onSave, onClose, t, lang }) {
 }
 
 function Valuation({ data, t, lang, fmt }) {
-  const activeData = data.filter(s => s.status === 'active');
-  const wonData = data.filter(s => s.status === 'won');
-  const weightedPipeline = activeData.reduce((s, p) => s + (p.totalValue * p.probability / 100), 0);
-  const revenueYTD = wonData.reduce((s, p) => s + p.totalValue, 0);
-  const projectedAnnualRevenue = revenueYTD * 3 + weightedPipeline * 0.6;
-  const revenueMultiplier = 1.8;
-  const currentValuation = projectedAnnualRevenue * revenueMultiplier;
+  // ============== Valuation Methodology (Catatan #2) ==============
+  // Conservative, defensible valuation for a PRIVATE Indonesian medical-device DISTRIBUTOR.
+  // Synced with all modules: uses the same `data` (SPH) as Dashboard/Finance/Pipeline.
+  //
+  // STEP 1 — Realized revenue, properly annualized.
+  //   revenueYTD = sum of won deals (status 'won' = PO issued), Jan–May 2026 (5 months).
+  //   Annualized = revenueYTD × (12/5). (Previously ×3, which overstated.)
+  // STEP 2 — EBITDA estimate.
+  //   Distributors run thin margins. Conservative EBITDA margin 10% (medical-device
+  //   distribution typically 8–12%).
+  // STEP 3 — Two market-based methods, distributor-appropriate multiples:
+  //   (a) EV/Revenue 0.6× — distributors trade far below manufacturers. Capital IQ
+  //       comparables (Seale & Assoc. Q2-2025): Medtronic 4.0×, Baxter 2.7×, ICU Medical
+  //       1.9×, JMS 0.4×. Pure distributors + Indonesian SME illiquidity/country discount → ~0.6×.
+  //   (b) EV/EBITDA 8× — healthcare services median EV/EBITDA ~11.5× in 2025 (FOCUS IB),
+  //       down from 14.5× in 2024; apply SME + emerging-market discount → ~8×.
+  //   Blended valuation = average of (a) and (b). This is the conservative base.
+  // STEP 4 — Forward upside (shown separately, NOT in base): weighted pipeline × 0.6× EV/Rev.
+  const activeData = useMemo(() => data.filter(s => s.status === 'active'), [data]);
+  const wonData = useMemo(() => data.filter(s => s.status === 'won'), [data]);
+  const weightedPipeline = useMemo(() => activeData.reduce((s, p) => s + (Number(p.totalValue) || 0) * (Number(p.probability) || 0) / 100, 0), [activeData]);
+  const revenueYTD = useMemo(() => wonData.reduce((s, p) => s + (Number(p.totalValue) || 0), 0), [wonData]);
+
+  // Methodology constants (sourced — see panel below)
+  const MONTHS_ELAPSED = 5; // Jan–May 2026
+  const EBITDA_MARGIN = 0.10; // 10% conservative for distribution
+  const EV_REVENUE_MULT = 0.6; // distributor + SME discount
+  const EV_EBITDA_MULT = 8; // healthcare SME, post emerging-market discount
+
+  const annualizedRevenue = revenueYTD * (12 / MONTHS_ELAPSED);
+  const estimatedEBITDA = annualizedRevenue * EBITDA_MARGIN;
+  const valByRevenue = annualizedRevenue * EV_REVENUE_MULT;
+  const valByEBITDA = estimatedEBITDA * EV_EBITDA_MULT;
+  const blendedValuation = (valByRevenue + valByEBITDA) / 2;
+  // Forward upside from weighted pipeline (separate, optional)
+  const pipelineUpside = weightedPipeline * EV_REVENUE_MULT;
+  const currentValuation = blendedValuation;
 
   const ipoScore = Math.min(100, Math.round(
     (activeData.length >= 10 ? 25 : activeData.length * 2.5) +
@@ -11556,10 +11607,11 @@ function Valuation({ data, t, lang, fmt }) {
     (wonData.length >= 1 ? 15 : 0) + 15
   ));
 
-  const monthlyProjection = Array.from({length: 12}, (_, i) => {
+  const monthlyProjection = useMemo(() => Array.from({length: 12}, (_, i) => {
     const month = new Date(2026, 4 + i, 1).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { month: 'short' });
-    return { month, valuation: currentValuation * (1 + i * 0.08), revenue: projectedAnnualRevenue * (1 + i * 0.05) / 12 };
-  });
+    // Modest 1.5%/month compounding (≈19.6%/yr) — consistent with the 5-Year Projection's realistic scenario
+    return { month, valuation: currentValuation * Math.pow(1.015, i) };
+  }), [currentValuation, lang]);
 
   return (
     <div>
@@ -11571,14 +11623,33 @@ function Valuation({ data, t, lang, fmt }) {
 
       <div style={{padding: '12px 16px', background: 'rgba(200,169,106,0.12)', borderLeft: '3px solid #c8a96a', marginBottom: '24px', fontSize: '12px', display: 'flex', alignItems: 'flex-start', gap: '10px'}}>
         <AlertCircle size={16} style={{flexShrink: 0, marginTop: '1px'}} />
-        <span>{lang === 'id' ? 'Estimasi valuasi bersifat indikatif. Untuk valuasi resmi diperlukan due diligence oleh financial advisor.' : 'Valuation estimate is indicative. Official valuation requires due diligence by a financial advisor.'}</span>
+        <span>{lang === 'id' ? 'Estimasi valuasi bersifat indikatif & konservatif. Untuk valuasi resmi diperlukan due diligence oleh penilai/financial advisor independen.' : 'Valuation estimate is indicative & conservative. Official valuation requires due diligence by an independent appraiser/financial advisor.'}</span>
       </div>
 
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '24px', border: '1px solid #d4cdb8'}}>
-        <KPICard label={t.current_valuation} value={fmt(currentValuation)} sublabel={`@ ${revenueMultiplier}x revenue`} trend={14.2} />
-        <KPICard label={t.projected_revenue} value={fmt(projectedAnnualRevenue)} sublabel={lang === 'id' ? 'Tahunan' : 'Annualized'} trend={18.5} />
-        <KPICard label={t.pipeline_multiplier} value={`${revenueMultiplier}x`} sublabel="Medical device" trend={2.1} />
-        <KPICard label={t.ipo_readiness} value={`${ipoScore}%`} sublabel={ipoScore >= 70 ? 'Pre-IPO ready' : 'Building'} trend={ipoScore >= 70 ? 8.0 : 12.5} />
+        <KPICard label={t.current_valuation} value={fmt(currentValuation)} sublabel={lang === 'id' ? 'Blended (Rev + EBITDA)' : 'Blended (Rev + EBITDA)'} trend={14.2} />
+        <KPICard label={t.projected_revenue} value={fmt(annualizedRevenue)} sublabel={lang === 'id' ? 'Disetahunkan (×12/5)' : 'Annualized (×12/5)'} trend={18.5} />
+        <KPICard label={lang === 'id' ? 'Estimasi EBITDA' : 'Estimated EBITDA'} value={fmt(estimatedEBITDA)} sublabel={lang === 'id' ? `Margin ${(EBITDA_MARGIN*100).toFixed(0)}%` : `${(EBITDA_MARGIN*100).toFixed(0)}% margin`} trend={2.1} />
+        <KPICard label={t.ipo_readiness} value={`${ipoScore}%`} sublabel={ipoScore >= 70 ? (lang === 'id' ? 'Siap Pra-IPO' : 'Pre-IPO ready') : (lang === 'id' ? 'Membangun' : 'Building')} trend={ipoScore >= 70 ? 8.0 : 12.5} />
+      </div>
+
+      {/* Two-method breakdown */}
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px', marginBottom: '22px'}}>
+        <div style={{padding: '16px', background: '#fefcf7', border: '1px solid #e8e1cc'}}>
+          <div style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{lang === 'id' ? 'Metode 1: EV/Pendapatan' : 'Method 1: EV/Revenue'}</div>
+          <div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px', color: '#1a4d8a'}}>{fmt(valByRevenue)}</div>
+          <div style={{fontSize: '11px', color: '#8a7d5c', marginTop: '4px'}}>{fmt(annualizedRevenue)} × {EV_REVENUE_MULT}×</div>
+        </div>
+        <div style={{padding: '16px', background: '#fefcf7', border: '1px solid #e8e1cc'}}>
+          <div style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{lang === 'id' ? 'Metode 2: EV/EBITDA' : 'Method 2: EV/EBITDA'}</div>
+          <div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px', color: '#3a6b3a'}}>{fmt(valByEBITDA)}</div>
+          <div style={{fontSize: '11px', color: '#8a7d5c', marginTop: '4px'}}>{fmt(estimatedEBITDA)} × {EV_EBITDA_MULT}×</div>
+        </div>
+        <div style={{padding: '16px', background: '#1a2942', color: '#fff'}}>
+          <div style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#c8a96a', fontWeight: 600}}>{lang === 'id' ? 'Valuasi Blended (Rata-rata)' : 'Blended Valuation (Average)'}</div>
+          <div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px'}}>{fmt(blendedValuation)}</div>
+          <div style={{fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginTop: '4px'}}>{lang === 'id' ? `+ potensi pipeline ${fmt(pipelineUpside)}` : `+ pipeline upside ${fmt(pipelineUpside)}`}</div>
+        </div>
       </div>
 
       <div className="card">
@@ -11594,6 +11665,33 @@ function Valuation({ data, t, lang, fmt }) {
             <Area type="monotone" dataKey="valuation" name={t.current_valuation} stroke="#c8a96a" strokeWidth={2.5} fill="url(#vg1)" />
           </ComposedChart>
         </ResponsiveContainer>
+      </div>
+
+      {/* Methodology + sources */}
+      <div style={{padding: '18px 20px', background: 'rgba(123,63,181,0.05)', borderLeft: '3px solid #7b3fb5', fontSize: '12px', color: '#1a2942', lineHeight: 1.75, marginTop: '20px'}}>
+        <div style={{fontWeight: 700, fontSize: '13px', marginBottom: '10px'}}>📐 {lang === 'id' ? 'Dasar Logika, Matematika & Sumber' : 'Methodology, Math & Sources'}</div>
+        <div style={{marginBottom: '8px'}}>
+          <strong>{lang === 'id' ? '1. Pendapatan disetahunkan:' : '1. Annualized revenue:'}</strong>{' '}
+          <span style={{fontFamily: 'monospace', background: '#fff', padding: '1px 6px', border: '1px solid #e8e1cc'}}>{fmt(revenueYTD)} × (12/5) = {fmt(annualizedRevenue)}</span>{' '}
+          {lang === 'id' ? '— dari deal menang (PO terbit) Jan–Mei, sinkron dengan Dashboard & Finance.' : '— from won deals (PO issued) Jan–May, synced with Dashboard & Finance.'}
+        </div>
+        <div style={{marginBottom: '8px'}}>
+          <strong>{lang === 'id' ? '2. EBITDA:' : '2. EBITDA:'}</strong>{' '}<span style={{fontFamily: 'monospace', background: '#fff', padding: '1px 6px', border: '1px solid #e8e1cc'}}>{fmt(annualizedRevenue)} × 10% = {fmt(estimatedEBITDA)}</span>{' '}{lang === 'id' ? '— margin distributor alkes konservatif 8–12%.' : '— conservative medical-device distributor margin 8–12%.'}
+        </div>
+        <div style={{marginBottom: '8px'}}>
+          <strong>{lang === 'id' ? '3. Dua metode pasar (multiple khusus distributor):' : '3. Two market methods (distributor-specific multiples):'}</strong>
+          <ul style={{margin: '4px 0 0', paddingLeft: '18px', fontSize: '11.5px', color: '#5a4a6a'}}>
+            <li>EV/Pendapatan <strong>0.6×</strong> — {lang === 'id' ? 'distributor diperdagangkan jauh di bawah produsen. Komparabel Capital IQ (Seale & Assoc. Q2-2025): Medtronic 4.0×, Baxter 2.7×, ICU Medical 1.9×, JMS 0.4×. Distributor murni + diskon SME/illikuiditas Indonesia → ~0.6×.' : 'distributors trade far below manufacturers. Capital IQ comparables (Seale & Assoc. Q2-2025): Medtronic 4.0×, Baxter 2.7×, ICU Medical 1.9×, JMS 0.4×. Pure distributor + Indonesian SME/illiquidity discount → ~0.6×.'}</li>
+            <li>EV/EBITDA <strong>8×</strong> — {lang === 'id' ? 'median EV/EBITDA jasa kesehatan ~11.5× (2025, turun dari 14.5× di 2024 — FOCUS IB); diskon SME + emerging-market → ~8×.' : 'healthcare services median EV/EBITDA ~11.5× (2025, down from 14.5× in 2024 — FOCUS IB); SME + emerging-market discount → ~8×.'}</li>
+          </ul>
+        </div>
+        <div style={{marginBottom: '8px'}}>
+          <strong>{lang === 'id' ? '4. Valuasi blended:' : '4. Blended valuation:'}</strong>{' '}<span style={{fontFamily: 'monospace', background: '#fff', padding: '1px 6px', border: '1px solid #e8e1cc'}}>({fmt(valByRevenue)} + {fmt(valByEBITDA)}) / 2 = {fmt(blendedValuation)}</span>
+        </div>
+        <div style={{fontSize: '10.5px', color: '#8a7d5c', marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #d4cdb8'}}>
+          <strong>{lang === 'id' ? 'Sumber:' : 'Sources:'}</strong> Seale & Associates "Healthcare Industry Valuation Update Q2 2025" (Capital IQ comparables) · FOCUS Investment Banking "Healthcare EBITDA Multiples 2025/2026" · First Page Sage "Healthcare EBITDA & Valuation Multiples 2025" · Damodaran/NYU Stern (EV/EBITDA health & pharma).{' '}
+          {lang === 'id' ? 'Pendekatan ini sengaja konservatif — bila realisasi terkoreksi lebih rendah, angkanya tetap dapat dipertanggungjawabkan.' : 'This approach is intentionally conservative — if realized value corrects lower, the figures remain defensible.'}
+        </div>
       </div>
     </div>
   );
@@ -12099,22 +12197,56 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
     setDeletePmId(null);
   };
 
-  const markPmDone = (unitId) => {
+  const markPmDone = (unit) => {
     if (!canEdit) return;
-    // Add to PM schedule as a "done" record
+    const uid = typeof unit === 'string' ? unit : unit.id;
+    const dueDate = typeof unit === 'string' ? null : unit.nextPmDate;
     const today = new Date().toISOString().split('T')[0];
-    const nextDate = new Date();
-    nextDate.setMonth(nextDate.getMonth() + 6);
+    // next PM = 6 calendar months after the due date (or today if unknown)
+    const base = dueDate ? new Date(dueDate + 'T00:00:00') : new Date();
+    const nd = new Date(base); nd.setMonth(nd.getMonth() + 6);
     const newPm = {
       id: 'pm_' + Date.now(),
-      unitId,
+      unitId: uid,
+      dueDate, // the cycle this completion satisfies — used to dismiss its notification
       lastPmDate: today,
-      nextPmDate: nextDate.toISOString().split('T')[0],
-      technician: session?.name || 'Budi Hartono',
+      nextPmDate: nd.toISOString().split('T')[0],
+      technician: session?.name || (TECHNICIAN_NAMES[0] || 'Teknisi'),
       status: 'done',
-      notes: 'PM rutin selesai 6 bulan'
+      notes: lang === 'id' ? 'PM rutin 6 bulan selesai' : 'Routine 6-month PM completed'
     };
     setPmSchedule(prev => [...prev, newPm]);
+  };
+
+  // PM Notifications (#7) — 4 grades, dismissed after "Tandai Selesai".
+  // Visible only to: technician, admin, manager_ops, gm, super_admin (CEO).
+  const canSeePmNotif = ['technician', 'admin', 'manager_ops', 'gm', 'super_admin'].includes(session?.role);
+  const pmNotifications = useMemo(() => {
+    if (!canSeePmNotif) return [];
+    const today = new Date('2026-05-31T00:00:00');
+    const MS = 24 * 60 * 60 * 1000;
+    const doneCycles = new Set((pmSchedule || []).filter(p => p.status === 'done' && p.unitId && p.dueDate).map(p => p.unitId + '|' + p.dueDate));
+    const notifs = [];
+    units.forEach(u => {
+      if (!u.nextPmDate) return;
+      if (doneCycles.has(u.id + '|' + u.nextPmDate)) return; // completed → no notification
+      const due = new Date(u.nextPmDate + 'T00:00:00');
+      const daysUntil = Math.round((due - today) / MS);
+      let grade = null;
+      if (daysUntil < 0) grade = 'overdue';
+      else if (daysUntil <= 7) grade = 'week';
+      else if (daysUntil <= 14) grade = 'twoweeks';
+      else if (daysUntil <= 30) grade = 'month';
+      if (grade) notifs.push({ ...u, daysUntil, grade });
+    });
+    return notifs.sort((a, b) => a.daysUntil - b.daysUntil);
+  }, [units, pmSchedule, canSeePmNotif]);
+
+  const PM_GRADE = {
+    overdue:  { color: '#7b1f1f', bg: 'rgba(123,31,31,0.10)', label: lang === 'id' ? 'TERLEWAT' : 'OVERDUE' },
+    week:     { color: '#c03030', bg: 'rgba(192,48,48,0.10)', label: lang === 'id' ? '≤ 1 MINGGU' : '≤ 1 WEEK' },
+    twoweeks: { color: '#d4780a', bg: 'rgba(212,120,10,0.10)', label: lang === 'id' ? '≤ 2 MINGGU' : '≤ 2 WEEKS' },
+    month:    { color: '#c8a96a', bg: 'rgba(200,169,106,0.12)', label: lang === 'id' ? '≤ 1 BULAN' : '≤ 1 MONTH' },
   };
 
   const priorityColors = { low: '#5b87b8', medium: '#c8a96a', high: '#c03030', critical: '#7b1f1f' };
@@ -12129,6 +12261,36 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
       </div>
 
       {!canEdit && <ReadOnlyBanner t={t} />}
+
+      {/* PM Notifications (#7) — 4 grades, dismissed via "Tandai Selesai" */}
+      {canSeePmNotif && pmNotifications.length > 0 && (
+        <div style={{marginBottom: '22px', border: '1px solid #e8e1cc', background: '#fefcf7'}}>
+          <div style={{padding: '12px 16px', borderBottom: '1px solid #e8e1cc', display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(192,48,48,0.04)'}}>
+            <AlertTriangle size={16} color="#c03030" strokeWidth={2} />
+            <span style={{fontSize: '12px', fontWeight: 700, color: '#1a2942', letterSpacing: '0.02em'}}>{lang === 'id' ? `Notifikasi Jadwal PM (${pmNotifications.length})` : `PM Schedule Alerts (${pmNotifications.length})`}</span>
+            <span style={{fontSize: '10.5px', color: '#8a7d5c', marginLeft: 'auto'}}>{lang === 'id' ? 'Hilang setelah "Tandai Selesai"' : 'Cleared after "Mark Done"'}</span>
+          </div>
+          <div style={{maxHeight: '260px', overflowY: 'auto'}}>
+            {pmNotifications.map(n => {
+              const g = PM_GRADE[n.grade];
+              return (
+                <div key={n.id} style={{display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 16px', borderBottom: '1px solid #f0ebe0', background: g.bg}}>
+                  <span style={{flexShrink: 0, padding: '2px 8px', fontSize: '9px', fontWeight: 700, letterSpacing: '0.08em', background: g.color, color: '#fff', minWidth: '78px', textAlign: 'center'}}>{g.label}</span>
+                  <div style={{flex: 1, minWidth: 0}}>
+                    <div style={{fontSize: '12px', fontWeight: 600, color: '#1a2942'}}>{n.customer}</div>
+                    <div style={{fontSize: '10.5px', color: '#8a7d5c'}}>{n.modality} · {n.subModality} · {lang === 'id' ? 'Teknisi' : 'Tech'}: {n.technician}</div>
+                  </div>
+                  <div style={{textAlign: 'right', flexShrink: 0}}>
+                    <div style={{fontSize: '11px', fontWeight: 600, color: g.color}}>{n.daysUntil < 0 ? (lang === 'id' ? `Lewat ${Math.abs(n.daysUntil)} hari` : `${Math.abs(n.daysUntil)}d overdue`) : (lang === 'id' ? `${n.daysUntil} hari lagi` : `in ${n.daysUntil}d`)}</div>
+                    <div className="mono" style={{fontSize: '10px', color: '#8a7d5c'}}>{n.nextPmDate}</div>
+                  </div>
+                  {canEdit && <button onClick={() => markPmDone(n)} style={{flexShrink: 0, padding: '5px 10px', fontSize: '10px', background: '#3a6b3a', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600}}>{t.mt_mark_done}</button>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '22px', border: '1px solid #d4cdb8'}}>
         <div className="card-pad">
@@ -12269,7 +12431,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
                     <Td><span style={{fontSize: '11px'}}>{u.technician}</span></Td>
                     {canEdit && (
                       <Td align="right">
-                        <button onClick={() => markPmDone(u.id)} style={{padding: '4px 8px', fontSize: '10px', background: '#3a6b3a', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.05em'}}>{t.mt_mark_done}</button>
+                        <button onClick={() => markPmDone(u)} style={{padding: '4px 8px', fontSize: '10px', background: '#3a6b3a', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.05em'}}>{t.mt_mark_done}</button>
                       </Td>
                     )}
                   </tr>
@@ -12462,7 +12624,7 @@ function MaintenanceIssueModal({ record, onSave, onClose, t, lang, units, sessio
             </select>
           </Field>
           <Field label={t.mt_reported_date}><input type="date" value={form.reportedDate} onChange={e => update('reportedDate', e.target.value)} /></Field>
-          <Field label={t.mt_assigned_to}><input value={form.technician} onChange={e => update('technician', e.target.value)} /></Field>
+          <Field label={t.mt_assigned_to}><input list="tech-roster" value={form.technician} onChange={e => update('technician', e.target.value)} /><datalist id="tech-roster">{TECHNICIAN_NAMES.map(n => <option key={n} value={n} />)}</datalist></Field>
           <Field label={t.mt_estimated_cost}><input type="number" value={form.estimatedCost} onChange={e => update('estimatedCost', parseFloat(e.target.value) || 0)} placeholder="Rp" /></Field>
           {form.status === 'resolved' && (
             <>
@@ -12511,7 +12673,7 @@ function PMScheduleModal({ record, onSave, onClose, t, lang, units, session }) {
           </Field>
           <Field label={t.mt_pm_last_date}><input type="date" value={form.lastPmDate} onChange={e => update('lastPmDate', e.target.value)} /></Field>
           <Field label={t.mt_pm_next_date}><input type="date" value={form.nextPmDate} onChange={e => update('nextPmDate', e.target.value)} /></Field>
-          <Field label={t.mt_pm_technician}><input value={form.technician} onChange={e => update('technician', e.target.value)} /></Field>
+          <Field label={t.mt_pm_technician}><input list="tech-roster-pm" value={form.technician} onChange={e => update('technician', e.target.value)} /><datalist id="tech-roster-pm">{TECHNICIAN_NAMES.map(n => <option key={n} value={n} />)}</datalist></Field>
           <Field label={t.mt_pm_status}>
             <select value={form.status} onChange={e => update('status', e.target.value)}>
               <option value="scheduled">{t.mt_pm_status_scheduled}</option>
@@ -12531,7 +12693,7 @@ function PMScheduleModal({ record, onSave, onClose, t, lang, units, session }) {
 }
 
 // ============== Regulatory Module ==============
-function RegulatoryModule({ records, setRegRecords, aklRecords, setAklRecords, importRecords, setImportRecords, pengalihanRecords, setPengalihanRecords, piRecords, setPiRecords, units, t, lang, canEdit }) {
+function RegulatoryModule({ records, setRegRecords, aklRecords, setAklRecords, importRecords, setImportRecords, pengalihanRecords, setPengalihanRecords, piRecords, setPiRecords, units, t, lang, fmt, canEdit }) {
   const [tab, setTab] = useState('import');
   const titleByTab = {
     import: t.imp_title, akl: t.akl_title, bapeten: t.reg_tab_bapeten,
@@ -12591,8 +12753,8 @@ function RegulatoryModule({ records, setRegRecords, aklRecords, setAklRecords, i
       </div>
 
       {tab === 'import' && <ImportPipeline records={importRecords} setImportRecords={setImportRecords} t={t} lang={lang} canEdit={canEdit} />}
-      {tab === 'akl' && <AKLPipeline aklRecords={aklRecords} setAklRecords={setAklRecords} t={t} lang={lang} canEdit={canEdit} />}
-      {tab === 'bapeten' && <BAPETENPipeline records={records} setRegRecords={setRegRecords} t={t} lang={lang} canEdit={canEdit} />}
+      {tab === 'akl' && <AKLPipeline aklRecords={aklRecords} setAklRecords={setAklRecords} t={t} lang={lang} fmt={fmt} canEdit={canEdit} />}
+      {tab === 'bapeten' && <BAPETENPipeline records={records} setRegRecords={setRegRecords} t={t} lang={lang} fmt={fmt} canEdit={canEdit} />}
       {tab === 'pengalihan' && <PengalihanPipeline records={pengalihanRecords} setRecords={setPengalihanRecords} t={t} lang={lang} canEdit={canEdit} />}
       {tab === 'pi' && <PIPipeline records={piRecords} setRecords={setPiRecords} t={t} lang={lang} canEdit={canEdit} />}
     </div>
@@ -13045,7 +13207,7 @@ function PIPipeline({ records, setRecords, t, lang, canEdit }) {
 }
 
 // ============== BAPETEN Pipeline Sub-Component ==============
-function BAPETENPipeline({ records, setRegRecords, t, lang, canEdit }) {
+function BAPETENPipeline({ records, setRegRecords, t, lang, fmt, canEdit }) {
   const stages = ['docs', 'submit', 'eval', 'pnbp', 'issued'];
   const stageColors = { docs: '#94a3b8', submit: '#7d9cc5', eval: '#c8a96a', pnbp: '#b8935a', issued: '#3a6b3a' };
   const [modalOpen, setModalOpen] = useState(false);
@@ -13199,7 +13361,7 @@ function BAPETENPipeline({ records, setRegRecords, t, lang, canEdit }) {
 }
 
 // ============== AKL Kemenkes Pipeline Sub-Component ==============
-function AKLPipeline({ aklRecords, setAklRecords, t, lang, canEdit }) {
+function AKLPipeline({ aklRecords, setAklRecords, t, lang, fmt, canEdit }) {
   const stages = AKL_STAGES;
   const stageColors = {
     preregist: '#94a3b8', docs: '#7d9cc5', submit: '#5b87b8',

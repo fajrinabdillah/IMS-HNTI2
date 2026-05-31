@@ -88,7 +88,7 @@ const translations = {
     sales_subtitle: 'KPI dan ranking tim sales',
     territory: 'Wilayah', deals_won: 'Menang', deals_active: 'Aktif',
     contribution: 'Kontribusi',
-    valuation_title: 'Valuation Tracker',
+    valuation_title: 'Pelacak Valuasi',
     valuation_subtitle: 'Estimasi valuasi & IPO readiness',
     current_valuation: 'Estimasi Valuasi',
     projected_revenue: 'Proyeksi Revenue',
@@ -4188,6 +4188,7 @@ export default function App() {
   const [realizations, setRealizations] = useState(ALL_BT_REALIZATIONS);
   const [products, setProducts] = useState(PRODUCT_MASTER_SEED);
   const [annotations, setAnnotations] = useState([]);
+  const [unitTechMap, setUnitTechMap] = useState({}); // per-unit manual technician override (maintenance #1)
   const [exchangeRate, setExchangeRate] = useState(DEFAULT_USD_IDR);
   const [auditLog, setAuditLog] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -4340,6 +4341,8 @@ export default function App() {
       if (productStored) try { setProducts(JSON.parse(productStored)); } catch {}
       const annStored = await storeGet(ANNOTATIONS_KEY);
       if (annStored) try { setAnnotations(JSON.parse(annStored)); } catch {}
+      const utStored = await storeGet('ims_hnti:unittech_v1');
+      if (utStored) try { setUnitTechMap(JSON.parse(utStored)); } catch {}
       // Generate reg records on first load from current data
       if (reg) {
         try { setRegRecords(JSON.parse(reg)); } catch {}
@@ -4384,9 +4387,17 @@ export default function App() {
   useEffect(() => { if (!loading) storeSet(AUDIT_LOG_KEY, JSON.stringify(auditLog)); }, [auditLog, loading]);
   useEffect(() => { if (!loading) storeSet(PRODUCT_KEY, JSON.stringify(products)); }, [products, loading]);
   useEffect(() => { if (!loading) storeSet(ANNOTATIONS_KEY, JSON.stringify(annotations)); }, [annotations, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:unittech_v1', JSON.stringify(unitTechMap)); }, [unitTechMap, loading]);
 
-  // Derive installed units from current data (always fresh)
-  const installedUnits = useMemo(() => generateInstalledUnits(), [data]);
+  // Live technician roster from the employee DB (re-derives when employees are edited)
+  const liveTechnicians = useMemo(() => Object.values(employees).filter(e => e.role === 'technician' && e.active).map(e => e.name), [employees]);
+
+  // Derive installed units; technician resolved from LIVE employee DB (or manual per-unit override)
+  const installedUnits = useMemo(() => {
+    const base = generateInstalledUnits();
+    const techs = liveTechnicians.length ? liveTechnicians : TECHNICIAN_NAMES;
+    return base.map((u, i) => ({ ...u, technician: unitTechMap[u.id] || techs[i % techs.length] }));
+  }, [data, liveTechnicians, unitTechMap]);
 
   const t = translations[lang];
   const fmt = (n) => formatCurrency(n, lang, exchangeRate);
@@ -4401,7 +4412,7 @@ export default function App() {
     });
   };
   if (!session) return <><LoginScreen t={t} lang={lang} setLang={setLang} onLogin={handleLogin} employees={employees} /><ToastContainer /></>;
-  return <><AuthApp session={session} setSession={setSession} lang={lang} setLang={setLang} t={t} data={data} setData={setData} reports={reports} setReports={setReports} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} regRecords={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} employees={employees} setEmployees={setEmployees} businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} installedUnits={installedUnits} fmt={fmt} fmtFull={fmtFull} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} lastSync={lastSync} onRefresh={handleRefresh} auditLog={auditLog} setAuditLog={setAuditLog} logAction={logAction} products={products} setProducts={setProducts} annotations={annotations} setAnnotations={setAnnotations} /><ToastContainer /></>;
+  return <><AuthApp session={session} setSession={setSession} lang={lang} setLang={setLang} t={t} data={data} setData={setData} reports={reports} setReports={setReports} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} regRecords={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} employees={employees} setEmployees={setEmployees} businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} installedUnits={installedUnits} fmt={fmt} fmtFull={fmtFull} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} lastSync={lastSync} onRefresh={handleRefresh} auditLog={auditLog} setAuditLog={setAuditLog} logAction={logAction} products={products} setProducts={setProducts} annotations={annotations} setAnnotations={setAnnotations} liveTechnicians={liveTechnicians} unitTechMap={unitTechMap} setUnitTechMap={setUnitTechMap} /><ToastContainer /></>;
 }
 
 function LoginScreen({ t, lang, setLang, onLogin, employees }) {
@@ -4480,7 +4491,7 @@ function LoginScreen({ t, lang, setLang, onLogin, employees }) {
   );
 }
 
-function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports, setReports, issues, setIssues, pmSchedule, setPmSchedule, manifests, setManifests, customsDocs, setCustomsDocs, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, regRecords, setRegRecords, aklRecords, setAklRecords, importRecords, setImportRecords, pengalihanRecords, setPengalihanRecords, piRecords, setPiRecords, employees, setEmployees, businessTrips, setBusinessTrips, realizations, setRealizations, installedUnits, fmt, fmtFull, exchangeRate, setExchangeRate, lastSync, onRefresh, auditLog, setAuditLog, logAction, products, setProducts, annotations, setAnnotations }) {
+function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports, setReports, issues, setIssues, pmSchedule, setPmSchedule, manifests, setManifests, customsDocs, setCustomsDocs, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, regRecords, setRegRecords, aklRecords, setAklRecords, importRecords, setImportRecords, pengalihanRecords, setPengalihanRecords, piRecords, setPiRecords, employees, setEmployees, businessTrips, setBusinessTrips, realizations, setRealizations, installedUnits, fmt, fmtFull, exchangeRate, setExchangeRate, lastSync, onRefresh, auditLog, setAuditLog, logAction, products, setProducts, annotations, setAnnotations, liveTechnicians, unitTechMap, setUnitTechMap }) {
   const [view, setView] = useState(session.role === 'sales' ? 'sales_report' : session.role === 'regulatory' ? 'regulatory' : 'dashboard');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSph, setEditingSph] = useState(null);
@@ -4586,7 +4597,7 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
         {view === 'finance' && canRead('finance') && <FinanceModule data={data} setData={setData} t={t} lang={lang} canEdit={canEdit('finance')} fmt={fmt} />}
         {view === 'operations' && canRead('operations') && <OperationsModule data={data} setData={setData} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} t={t} lang={lang} canEdit={canEdit('operations')} fmt={fmt} />}
         {view === 'installation' && canRead('installation') && <InstallationModule data={data} setData={setData} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} t={t} lang={lang} canEdit={canEdit('installation')} fmt={fmt} />}
-        {view === 'maintenance' && canRead('maintenance') && <MaintenanceModule units={installedUnits} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} t={t} lang={lang} canEdit={canEdit('maintenance')} session={session} />}
+        {view === 'maintenance' && canRead('maintenance') && <MaintenanceModule units={installedUnits} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} t={t} lang={lang} canEdit={canEdit('maintenance')} session={session} liveTechnicians={liveTechnicians} unitTechMap={unitTechMap} setUnitTechMap={setUnitTechMap} />}
         {view === 'regulatory' && canRead('regulatory') && <RegulatoryModule records={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} units={installedUnits} t={t} lang={lang} fmt={fmt} canEdit={canEdit('regulatory')} />}
         {view === 'incentive' && canRead('incentive') && <IncentiveModule data={data} setData={setData} t={t} lang={lang} session={session} fmt={fmt} fmtFull={fmtFull} canEdit={canEdit('incentive')} />}
         {view === 'valuation' && canRead('valuation') && <Valuation data={data} t={t} lang={lang} fmt={fmt} />}
@@ -9885,15 +9896,17 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
     if (!canEdit || !paymentForm.amount) return;
     const amt = parseFloat(paymentForm.amount);
     if (!amt || amt <= 0) return;
-    // EDIT mode: update existing payment entry (Catatan #1 — fix wrong amount/date/type)
+    const sphId = paymentForm.sphId;
+    const resetFields = { open: true, sphId, amount: '', type: 'installment', date: new Date().toISOString().split('T')[0], note: '', editId: null };
+    // EDIT mode: update existing payment entry (fix wrong amount/date/type)
     if (paymentForm.editId) {
-      setData(prev => prev.map(s => s.id === paymentForm.sphId ? {
+      setData(prev => prev.map(s => s.id === sphId ? {
         ...s,
         paymentHistory: (s.paymentHistory || []).map(h => h.id === paymentForm.editId
           ? { ...h, date: paymentForm.date || h.date, amount: amt, type: paymentForm.type, note: paymentForm.note || '', editedAt: new Date().toISOString() }
           : h)
       } : s));
-      setPaymentForm({ open: false, sphId: null, amount: '', type: 'installment', date: '', note: '', editId: null });
+      setPaymentForm(resetFields); // stay open so the updated list is visible
       return;
     }
     const payment = {
@@ -9904,8 +9917,8 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
       note: paymentForm.note || '',
       recordedAt: new Date().toISOString(),
     };
-    setData(prev => prev.map(s => s.id === paymentForm.sphId ? { ...s, paymentHistory: [...(s.paymentHistory || []), payment] } : s));
-    setPaymentForm({ open: false, sphId: null, amount: '', type: 'installment', date: '', note: '', editId: null });
+    setData(prev => prev.map(s => s.id === sphId ? { ...s, paymentHistory: [...(s.paymentHistory || []), payment] } : s));
+    setPaymentForm(resetFields); // stay open so the new payment appears in the list
   };
   // Open modal in EDIT mode pre-filled with an existing payment
   const openEditPayment = (sphId, h) => {
@@ -10091,14 +10104,9 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
                     </Td>
                     {canEdit && (
                       <Td align="center">
-                        <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px'}}>
-                          <button onClick={() => setPaymentForm({ open: true, sphId: p.id, amount: '', type: sch === 'kso' ? 'revenue_share' : sch === 'after_bast' ? 'full_after_bast' : 'installment', date: new Date().toISOString().split('T')[0], note: '', editId: null })} style={{background: '#1a2942', border: 'none', color: '#fff', padding: '4px 9px', fontSize: '10px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500, width: '100%'}} title={lang === 'id' ? 'Catat Pembayaran baru' : 'Record new payment'}>+ {lang === 'id' ? 'Bayar' : 'Pay'}</button>
-                          {(p.paymentHistory || []).length > 0 && (
-                            <button onClick={() => setExpandedPo(isExpanded ? null : p.id)} style={{background: isExpanded ? '#1a4d8a' : 'transparent', border: '1px solid #1a4d8a', color: isExpanded ? '#fff' : '#1a4d8a', padding: '3px 8px', fontSize: '9px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px'}} title={lang === 'id' ? 'Kelola: edit / hapus pembayaran' : 'Manage: edit / delete payments'}>
-                              <Edit2 size={9} />{lang === 'id' ? 'Kelola' : 'Manage'} ({(p.paymentHistory || []).length})
-                            </button>
-                          )}
-                        </div>
+                        <button onClick={() => setPaymentForm({ open: true, sphId: p.id, amount: '', type: sch === 'kso' ? 'revenue_share' : sch === 'after_bast' ? 'full_after_bast' : 'installment', date: new Date().toISOString().split('T')[0], note: '', editId: null })} style={{background: '#1a2942', border: 'none', color: '#fff', padding: '5px 11px', fontSize: '10px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap'}} title={lang === 'id' ? 'Kelola pembayaran: tambah / edit / hapus' : 'Manage payments: add / edit / delete'}>
+                          <Wallet size={11} />{lang === 'id' ? 'Kelola Bayar' : 'Manage Pay'}{(p.paymentHistory || []).length > 0 ? ` (${(p.paymentHistory || []).length})` : ''}
+                        </button>
                       </Td>
                     )}
                   </tr>
@@ -10205,15 +10213,50 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
         {filteredPoProjects.length === 0 && <div className="empty-state">{t.no_data}</div>}
       </div>
 
-      {/* Record / Edit Payment Modal */}
-      {paymentForm.open && (
+      {/* Manage Payments Modal — list + inline edit/delete + add form (Catatan #3) */}
+      {paymentForm.open && (() => {
+        const modalSph = data.find(s => s.id === paymentForm.sphId);
+        const history = modalSph && Array.isArray(modalSph.paymentHistory) ? modalSph.paymentHistory : [];
+        const typeLabel = (ty) => ({ dp: 'DP', deposit: 'Deposit (KSO)', installment: lang === 'id' ? 'Cicilan' : 'Installment', revenue_share: lang === 'id' ? 'Bagi Hasil' : 'Rev. Share', full_after_bast: lang === 'id' ? 'Pelunasan (BAST)' : 'Full (BAST)', other: lang === 'id' ? 'Lainnya' : 'Other' }[ty] || ty);
+        return (
         <div className="modal-overlay" onClick={() => setPaymentForm({ ...paymentForm, open: false, editId: null })} style={{zIndex: 9999}}>
-          <div onClick={e => e.stopPropagation()} style={{background: '#fefcf7', maxWidth: '460px', width: '90%', border: '1px solid #d4cdb8', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'}}>
-            <div style={{padding: '18px 22px', borderBottom: '1px solid #e8e1cc', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-              <h3 className="serif" style={{margin: 0, fontSize: '18px', fontWeight: 500}}>{paymentForm.editId ? (lang === 'id' ? 'Edit Pembayaran' : 'Edit Payment') : (lang === 'id' ? 'Catat Pembayaran' : 'Record Payment')}</h3>
+          <div onClick={e => e.stopPropagation()} style={{background: '#fefcf7', maxWidth: '620px', width: '94%', maxHeight: '88vh', overflowY: 'auto', border: '1px solid #d4cdb8', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'}}>
+            <div style={{padding: '18px 22px', borderBottom: '1px solid #e8e1cc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: '#fefcf7', zIndex: 2}}>
+              <div>
+                <h3 className="serif" style={{margin: 0, fontSize: '18px', fontWeight: 500}}>{lang === 'id' ? 'Kelola Pembayaran' : 'Manage Payments'}</h3>
+                {modalSph && <div style={{fontSize: '11px', color: '#8a7d5c', marginTop: '2px'}}>{modalSph.customer} · {modalSph.sphNo}</div>}
+              </div>
               <button onClick={() => setPaymentForm({ ...paymentForm, open: false, editId: null })} style={{background: 'transparent', border: 'none', cursor: 'pointer'}}><X size={18} /></button>
             </div>
-            <div style={{padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '12px'}}>
+
+            {/* Existing payments with inline EDIT + DELETE */}
+            <div style={{padding: '16px 22px 4px'}}>
+              <div style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '8px'}}>{lang === 'id' ? `Riwayat Pembayaran (${history.length})` : `Payment History (${history.length})`}</div>
+              {history.length === 0 ? (
+                <div style={{padding: '14px', background: '#f8f5ef', border: '1px dashed #d4cdb8', fontSize: '12px', color: '#8a7d5c', textAlign: 'center'}}>{lang === 'id' ? 'Belum ada pembayaran. Tambahkan di bawah.' : 'No payments yet. Add one below.'}</div>
+              ) : (
+                <div style={{border: '1px solid #e8e1cc'}}>
+                  {history.map((h, idx) => (
+                    <div key={h.id} style={{display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', borderBottom: idx < history.length - 1 ? '1px solid #f0ebe0' : 'none', background: paymentForm.editId === h.id ? 'rgba(26,77,138,0.07)' : 'transparent'}}>
+                      <div style={{flex: 1, minWidth: 0}}>
+                        <div style={{fontSize: '12.5px', fontWeight: 600, color: '#1a2942'}}>{fmt(h.amount)}</div>
+                        <div style={{fontSize: '10.5px', color: '#8a7d5c'}}>{h.date} · {typeLabel(h.type)}{h.note ? ` · ${h.note}` : ''}</div>
+                      </div>
+                      {canEdit && <>
+                        <button onClick={() => setPaymentForm({ open: true, sphId: modalSph.id, editId: h.id, amount: String(h.amount), type: h.type, date: h.date, note: h.note || '' })} style={{flexShrink: 0, background: '#1a4d8a', border: 'none', padding: '4px 10px', fontSize: '10px', cursor: 'pointer', color: '#fff', fontFamily: 'inherit', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px'}}><Edit2 size={10} />{lang === 'id' ? 'Edit' : 'Edit'}</button>
+                        <button onClick={() => setConfirmDeletePayment({ sphId: modalSph.id, paymentId: h.id })} style={{flexShrink: 0, background: 'transparent', border: '1px solid #c03030', padding: '4px 10px', fontSize: '10px', cursor: 'pointer', color: '#c03030', fontFamily: 'inherit', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px'}}><Trash2 size={10} />{lang === 'id' ? 'Hapus' : 'Delete'}</button>
+                      </>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Add / Edit form */}
+            <div style={{padding: '8px 22px 4px'}}>
+              <div style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: paymentForm.editId ? '#1a4d8a' : '#3a6b3a', fontWeight: 700, marginTop: '10px', marginBottom: '6px'}}>{paymentForm.editId ? (lang === 'id' ? '✎ Edit Pembayaran Terpilih' : '✎ Editing Selected Payment') : (lang === 'id' ? '+ Tambah Pembayaran Baru' : '+ Add New Payment')}</div>
+            </div>
+            <div style={{padding: '4px 22px 20px', display: 'flex', flexDirection: 'column', gap: '12px'}}>
               <div>
                 <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600, marginBottom: '4px'}}>{lang === 'id' ? 'Tanggal Pembayaran' : 'Payment Date'}</label>
                 <input type="date" value={paymentForm.date} onChange={e => setPaymentForm({ ...paymentForm, date: e.target.value })} style={{width: '100%'}} />
@@ -10238,13 +10281,19 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt }) {
                 <textarea value={paymentForm.note} onChange={e => setPaymentForm({ ...paymentForm, note: e.target.value })} rows={2} placeholder={lang === 'id' ? 'Contoh: Transfer BCA 6011***, no. ref XYZ' : 'E.g.: BCA transfer 6011***, ref no XYZ'} style={{width: '100%'}} />
               </div>
             </div>
-            <div style={{padding: '14px 22px', borderTop: '1px solid #e8e1cc', background: '#f8f5ef', display: 'flex', justifyContent: 'flex-end', gap: '10px'}}>
-              <button onClick={() => setPaymentForm({ ...paymentForm, open: false, editId: null })} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '8px 16px', fontSize: '12px', cursor: 'pointer', color: '#8a7d5c', fontFamily: 'inherit'}}>{lang === 'id' ? 'Batal' : 'Cancel'}</button>
-              <button onClick={recordPayment} style={{background: '#1a2942', border: 'none', padding: '8px 16px', fontSize: '12px', cursor: 'pointer', color: '#fff', fontFamily: 'inherit', fontWeight: 600}}>{paymentForm.editId ? (lang === 'id' ? 'Simpan Perubahan' : 'Save Changes') : (lang === 'id' ? 'Simpan' : 'Save')}</button>
+            <div style={{padding: '14px 22px', borderTop: '1px solid #e8e1cc', background: '#f8f5ef', display: 'flex', justifyContent: 'space-between', gap: '10px', position: 'sticky', bottom: 0}}>
+              {paymentForm.editId
+                ? <button onClick={() => setPaymentForm({ ...paymentForm, editId: null, amount: '', type: 'installment', date: new Date().toISOString().split('T')[0], note: '' })} style={{background: 'transparent', border: '1px solid #8a7d5c', padding: '8px 14px', fontSize: '12px', cursor: 'pointer', color: '#8a7d5c', fontFamily: 'inherit'}}>{lang === 'id' ? '↩ Batal Edit' : '↩ Cancel Edit'}</button>
+                : <span />}
+              <div style={{display: 'flex', gap: '10px'}}>
+                <button onClick={() => setPaymentForm({ ...paymentForm, open: false, editId: null })} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '8px 16px', fontSize: '12px', cursor: 'pointer', color: '#8a7d5c', fontFamily: 'inherit'}}>{lang === 'id' ? 'Tutup' : 'Close'}</button>
+                <button onClick={recordPayment} style={{background: paymentForm.editId ? '#1a4d8a' : '#1a2942', border: 'none', padding: '8px 16px', fontSize: '12px', cursor: 'pointer', color: '#fff', fontFamily: 'inherit', fontWeight: 600}}>{paymentForm.editId ? (lang === 'id' ? 'Simpan Perubahan' : 'Save Changes') : (lang === 'id' ? 'Tambah Pembayaran' : 'Add Payment')}</button>
+              </div>
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       <ConfirmDialog open={!!confirmDeletePayment} title={lang === 'id' ? 'Hapus Catatan Pembayaran?' : 'Delete Payment Record?'} message={lang === 'id' ? 'Catatan pembayaran ini akan dihapus permanen.' : 'This payment record will be permanently deleted.'} confirmText={lang === 'id' ? 'Ya, Hapus' : 'Yes, Delete'} onConfirm={deletePayment} onCancel={() => setConfirmDeletePayment(null)} danger lang={lang} />
       </>
@@ -12079,7 +12128,7 @@ const Footer = React.memo(function Footer({ t, lastSync, onRefresh, lang }) {
 });
 
 // ============== Maintenance Module ==============
-function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule, t, lang, canEdit, session }) {
+function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule, t, lang, canEdit, session, liveTechnicians = [], unitTechMap = {}, setUnitTechMap }) {
   const [tab, setTab] = useState('schedule');
   const [issueModalOpen, setIssueModalOpen] = useState(false);
   const [editingIssue, setEditingIssue] = useState(null);
@@ -12428,7 +12477,16 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
                     <Td><span className="mono" style={{fontSize: '11px', color: '#8a7d5c'}}>{u.lastPmDate || '—'}</span></Td>
                     <Td><span className="mono" style={{fontSize: '11px', fontWeight: 500}}>{u.nextPmDate}</span></Td>
                     <Td><span style={{display: 'inline-block', padding: '3px 8px', fontSize: '10px', background: pmColor + '25', color: pmColor, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{pmLabel}</span></Td>
-                    <Td><span style={{fontSize: '11px'}}>{u.technician}</span></Td>
+                    <Td>
+                      {canEdit && liveTechnicians.length > 0 ? (
+                        <select value={liveTechnicians.includes(u.technician) ? u.technician : ''} onChange={e => setUnitTechMap && setUnitTechMap(prev => ({ ...prev, [u.id]: e.target.value }))} style={{fontSize: '11px', padding: '3px 6px', border: '1px solid #d4cdb8', background: '#fff', fontFamily: 'inherit', maxWidth: '150px', cursor: 'pointer'}} title={lang === 'id' ? 'Ubah teknisi (tersinkron dengan Manajemen Karyawan)' : 'Change technician (synced with Employee Management)'}>
+                          {!liveTechnicians.includes(u.technician) && <option value="">{u.technician}</option>}
+                          {liveTechnicians.map(name => <option key={name} value={name}>{name}</option>)}
+                        </select>
+                      ) : (
+                        <span style={{fontSize: '11px'}}>{u.technician}</span>
+                      )}
+                    </Td>
                     {canEdit && (
                       <Td align="right">
                         <button onClick={() => markPmDone(u)} style={{padding: '4px 8px', fontSize: '10px', background: '#3a6b3a', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.05em'}}>{t.mt_mark_done}</button>
@@ -12550,8 +12608,8 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
           {complaints.length === 0 && <div className="empty-state">{t.no_data}</div>}
         </div>
       )}
-      {issueModalOpen && <MaintenanceIssueModal record={editingIssue} onSave={handleSaveIssue} onClose={() => { setIssueModalOpen(false); setEditingIssue(null); }} t={t} lang={lang} units={units} session={session} />}
-      {pmModalOpen && <PMScheduleModal record={editingPm} onSave={handleSavePm} onClose={() => { setPmModalOpen(false); setEditingPm(null); }} t={t} lang={lang} units={units} session={session} />}
+      {issueModalOpen && <MaintenanceIssueModal record={editingIssue} onSave={handleSaveIssue} onClose={() => { setIssueModalOpen(false); setEditingIssue(null); }} t={t} lang={lang} units={units} session={session} liveTechnicians={liveTechnicians} />}
+      {pmModalOpen && <PMScheduleModal record={editingPm} onSave={handleSavePm} onClose={() => { setPmModalOpen(false); setEditingPm(null); }} t={t} lang={lang} units={units} session={session} liveTechnicians={liveTechnicians} />}
       <ConfirmDialog open={!!deleteIssueId} title={lang === 'id' ? 'Hapus Catatan?' : 'Delete Record?'} message={lang === 'id' ? 'Yakin ingin menghapus catatan perbaikan/keluhan ini?' : 'Are you sure you want to delete this issue/complaint?'} onConfirm={confirmDeleteIssue} onCancel={() => setDeleteIssueId(null)} danger lang={lang} />
       <ConfirmDialog open={!!deletePmId} title={lang === 'id' ? 'Hapus Jadwal PM?' : 'Delete PM Schedule?'} message={lang === 'id' ? 'Yakin ingin menghapus jadwal preventive maintenance ini?' : 'Are you sure you want to delete this PM schedule?'} onConfirm={confirmDeletePm} onCancel={() => setDeletePmId(null)} danger lang={lang} />
     </div>
@@ -12559,7 +12617,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
 }
 
 // ============== Maintenance Issue Modal (Repair/Complaint CRUD) ==============
-function MaintenanceIssueModal({ record, onSave, onClose, t, lang, units, session }) {
+function MaintenanceIssueModal({ record, onSave, onClose, t, lang, units, session, liveTechnicians = [] }) {
   const [form, setForm] = useState(record?.id ? record : {
     id: 'iss_' + Date.now(),
     type: record?.type || 'repair',
@@ -12624,7 +12682,7 @@ function MaintenanceIssueModal({ record, onSave, onClose, t, lang, units, sessio
             </select>
           </Field>
           <Field label={t.mt_reported_date}><input type="date" value={form.reportedDate} onChange={e => update('reportedDate', e.target.value)} /></Field>
-          <Field label={t.mt_assigned_to}><input list="tech-roster" value={form.technician} onChange={e => update('technician', e.target.value)} /><datalist id="tech-roster">{TECHNICIAN_NAMES.map(n => <option key={n} value={n} />)}</datalist></Field>
+          <Field label={t.mt_assigned_to}><input list="tech-roster" value={form.technician} onChange={e => update('technician', e.target.value)} /><datalist id="tech-roster">{(liveTechnicians.length ? liveTechnicians : TECHNICIAN_NAMES).map(n => <option key={n} value={n} />)}</datalist></Field>
           <Field label={t.mt_estimated_cost}><input type="number" value={form.estimatedCost} onChange={e => update('estimatedCost', parseFloat(e.target.value) || 0)} placeholder="Rp" /></Field>
           {form.status === 'resolved' && (
             <>
@@ -12644,7 +12702,7 @@ function MaintenanceIssueModal({ record, onSave, onClose, t, lang, units, sessio
 }
 
 // ============== PM Schedule Modal ==============
-function PMScheduleModal({ record, onSave, onClose, t, lang, units, session }) {
+function PMScheduleModal({ record, onSave, onClose, t, lang, units, session, liveTechnicians = [] }) {
   const [form, setForm] = useState(record?.id ? record : {
     id: 'pm_' + Date.now(),
     unitId: '',
@@ -12673,7 +12731,7 @@ function PMScheduleModal({ record, onSave, onClose, t, lang, units, session }) {
           </Field>
           <Field label={t.mt_pm_last_date}><input type="date" value={form.lastPmDate} onChange={e => update('lastPmDate', e.target.value)} /></Field>
           <Field label={t.mt_pm_next_date}><input type="date" value={form.nextPmDate} onChange={e => update('nextPmDate', e.target.value)} /></Field>
-          <Field label={t.mt_pm_technician}><input list="tech-roster-pm" value={form.technician} onChange={e => update('technician', e.target.value)} /><datalist id="tech-roster-pm">{TECHNICIAN_NAMES.map(n => <option key={n} value={n} />)}</datalist></Field>
+          <Field label={t.mt_pm_technician}><input list="tech-roster-pm" value={form.technician} onChange={e => update('technician', e.target.value)} /><datalist id="tech-roster-pm">{(liveTechnicians.length ? liveTechnicians : TECHNICIAN_NAMES).map(n => <option key={n} value={n} />)}</datalist></Field>
           <Field label={t.mt_pm_status}>
             <select value={form.status} onChange={e => update('status', e.target.value)}>
               <option value="scheduled">{t.mt_pm_status_scheduled}</option>

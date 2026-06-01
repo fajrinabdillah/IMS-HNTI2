@@ -1520,6 +1520,18 @@ function resolveEmpName(employees, val) {
   return val;                                                      // custom/manually-typed name
 }
 
+// Resolve any seed technician name embedded inside a free-text string (e.g. training instructor
+// "Budi Hartono + Aplikator") to the current live employee name, so renamed staff never leak.
+function resolveNamesInText(employees, text) {
+  if (!text || !employees) return text || '';
+  let out = String(text);
+  for (const seed of STATIC_TECH_ORDER) {
+    const live = resolveEmpName(employees, seed.name);
+    if (live && live !== seed.name && out.includes(seed.name)) out = out.split(seed.name).join(live);
+  }
+  return out;
+}
+
 const PERMISSIONS = {
   super_admin:  { dashboard: 'full', sph: 'full', pipeline: 'full', sales: 'full', sales_report: 'full', finance: 'full', operations: 'full', installation: 'full', maintenance: 'full', regulatory: 'full', valuation: 'full', incentive: 'full', employees: 'full', business_trip: 'full' },
   gm:           { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'read', sales_report: 'read', finance: 'read', operations: 'read', installation: 'read', maintenance: 'read', regulatory: 'read', valuation: 'read', incentive: 'read', employees: 'full', business_trip: 'full' },
@@ -3327,6 +3339,44 @@ const SEED_TRAINING_RECORDS = [
     status: 'pending', certUrl: '', notes: 'Training akan dijadwalkan setelah instalasi selesai' },
 ];
 
+// ============== Auto-generate complete installation documentation for ALL installed units ==============
+// Setiap unit TERPASANG (installationStatus='installed') mendapat BA-INST, BAST, dan Sertifikat Training
+// yang konsisten, sehingga seluruh angka modul Instalasi selaras dengan data SPH historis.
+// Record showcase 2026 yang sudah ditulis tangan tetap dipertahankan (kualitas narasinya).
+function generateInstallDocs() {
+  const addDays = (dateStr, n) => { const d = new Date((dateStr || '2025-01-01') + 'T00:00:00'); d.setDate(d.getDate() + n); return d.toISOString().split('T')[0]; };
+  const yearOf = (dateStr) => (dateStr || '').substring(0, 4);
+  const showInstall = SEED_INSTALL_RECORDS.map(r => ({ ...r, poYear: yearOf(r.installStart) || '2026' }));
+  const showBast = SEED_BAST_RECORDS.map(r => ({ ...r, poYear: yearOf(r.signedDate) || '2026' }));
+  const showTrain = SEED_TRAINING_RECORDS.map(r => ({ ...r, poYear: yearOf(r.sessionDate) || '2026' }));
+  const keyOf = (cust, yr) => cust + '|' + yr;
+  const haveInstall = new Set(showInstall.map(r => keyOf(r.customer, r.poYear)));
+  const haveBast = new Set(showBast.map(r => keyOf(r.customer, r.poYear)));
+  const haveTrain = new Set(showTrain.map(r => keyOf(r.customer, r.poYear)));
+  const installed = ALL_SPH.filter(s => s.installationStatus === 'installed');
+  const genInstall = [], genBast = [], genTrain = [];
+  installed.forEach((s, i) => {
+    const tech = TECHNICIAN_NAMES[i % TECHNICIAN_NAMES.length] || 'Teknisi HNTI';
+    const yr = yearOf(s.issuedDate) || '2025';
+    const start = addDays(s.issuedDate, 18 + (i % 14));
+    const dur = 3 + (i % 8);
+    const end = addDays(start, dur);
+    const seq = String(100 + i).padStart(3, '0');
+    // Skip only if a hand-written showcase record already covers this exact customer+year (avoid duplicate).
+    if (!haveInstall.has(keyOf(s.customer, yr))) {
+      genInstall.push({ id: `inst_gen_${s.id}`, recordNo: `BA-INST-${yr}-${seq}`, customer: s.customer, modality: s.modality, subModality: s.subModality, installStart: start, installEnd: end, duration: dur, leadTechnician: tech, teamSize: 2 + (i % 3), roomReady: true, electricalReady: true, calibrationDone: true, status: 'completed', notes: 'Instalasi & uji fungsi selesai, unit operasional.', poYear: yr });
+    }
+    if (!haveBast.has(keyOf(s.customer, yr))) {
+      genBast.push({ id: `bast_gen_${s.id}`, bastNo: `BAST-HNTI-${yr}-${seq}`, customer: s.customer, modality: s.modality, subModality: s.subModality, signedDate: addDays(end, 3), hntiRep: 'Fajrin (CEO HNTI)', customerRep: 'Direktur / Ka. Instalasi Radiologi', witness: 'Saksi Pihak RS', status: 'signed', docUrl: '', notes: 'BAST ditandatangani setelah instalasi & uji fungsi selesai.', poYear: yr });
+    }
+    if (!haveTrain.has(keyOf(s.customer, yr))) {
+      genTrain.push({ id: `train_gen_${s.id}`, certNo: `CERT-HNTI-${yr}-${seq}`, customer: s.customer, modality: s.modality, subModality: s.subModality, sessionDate: addDays(end, 1), participants: 3 + (i % 4), instructor: `${tech} + Aplikator`, duration: 8 + (i % 3) * 4, topics: 'Operasional dasar, protokol scan, dose management, perawatan harian.', status: 'completed', certUrl: '', notes: 'Training operator selesai, sertifikat diterbitkan.', poYear: yr });
+    }
+  });
+  return { install: [...showInstall, ...genInstall], bast: [...showBast, ...genBast], training: [...showTrain, ...genTrain] };
+}
+const INSTALL_DOCS = generateInstallDocs();
+
 // ============== Business Trip Seed Data ==============
 // Initial seed (representative samples — full 2025+2026 historical data akan ditambahkan di Prompt 4)
 // Status workflow: draft → pending_finance → pending_mops → pending_gm → approved → paid → in_progress → completed
@@ -4216,9 +4266,9 @@ export default function App() {
   const [pmSchedule, setPmSchedule] = useState([]);
   const [manifests, setManifests] = useState(SEED_MANIFESTS);
   const [customsDocs, setCustomsDocs] = useState(SEED_CUSTOMS_DOCS);
-  const [installRecords, setInstallRecords] = useState(SEED_INSTALL_RECORDS);
-  const [bastRecords, setBastRecords] = useState(SEED_BAST_RECORDS);
-  const [trainingRecords, setTrainingRecords] = useState(SEED_TRAINING_RECORDS);
+  const [installRecords, setInstallRecords] = useState(INSTALL_DOCS.install);
+  const [bastRecords, setBastRecords] = useState(INSTALL_DOCS.bast);
+  const [trainingRecords, setTrainingRecords] = useState(INSTALL_DOCS.training);
   const [regRecords, setRegRecords] = useState([]);
   const [aklRecords, setAklRecords] = useState(SEED_AKL_RECORDS);
   const [importRecords, setImportRecords] = useState(SEED_IMPORT_RECORDS);
@@ -4353,7 +4403,7 @@ export default function App() {
         storeGet('ims_hnti:imp_v22'), storeGet('ims_hnti:pgl_v22'), storeGet('ims_hnti:pi_v22'),
         storeGet('ims_hnti:pm_v22'),
         storeGet('ims_hnti:mfst_v22'), storeGet('ims_hnti:cdoc_v22'),
-        storeGet('ims_hnti:inst_v23'), storeGet('ims_hnti:bast_v22'), storeGet('ims_hnti:train_v22'),
+        storeGet('ims_hnti:inst_v24'), storeGet('ims_hnti:bast_v23'), storeGet('ims_hnti:train_v23'),
         storeGet('ims_hnti:emp_v22'),
         storeGet('ims_hnti:bt_v22')
       ]);
@@ -4409,9 +4459,9 @@ export default function App() {
   useEffect(() => { if (!loading) storeSet('ims_hnti:pm_v22', JSON.stringify(pmSchedule)); }, [pmSchedule, loading]);
   useEffect(() => { if (!loading) storeSet('ims_hnti:mfst_v22', JSON.stringify(manifests)); }, [manifests, loading]);
   useEffect(() => { if (!loading) storeSet('ims_hnti:cdoc_v22', JSON.stringify(customsDocs)); }, [customsDocs, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:inst_v23', JSON.stringify(installRecords)); }, [installRecords, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:bast_v22', JSON.stringify(bastRecords)); }, [bastRecords, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:train_v22', JSON.stringify(trainingRecords)); }, [trainingRecords, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:inst_v24', JSON.stringify(installRecords)); }, [installRecords, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:bast_v23', JSON.stringify(bastRecords)); }, [bastRecords, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:train_v23', JSON.stringify(trainingRecords)); }, [trainingRecords, loading]);
   useEffect(() => { if (!loading) storeSet('ims_hnti:emp_v22', JSON.stringify(employees)); }, [employees, loading]);
   useEffect(() => { if (!loading) storeSet('ims_hnti:bt_v22', JSON.stringify(businessTrips)); }, [businessTrips, loading]);
   useEffect(() => { if (!loading) storeSet('ims_hnti:btr_v22', JSON.stringify(realizations)); }, [realizations, loading]);
@@ -11069,7 +11119,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
   }, [data, installRecords]);
 
   // Build lookup of install-record customers first (used to scope the progress list)
-  const installRecordCustomers = useMemo(() => new Set(installRecords.map(r => r.customer)), [installRecords]);
+  const installRecordCustomers = useMemo(() => new Set(installRecords.filter(r => r.status !== 'completed').map(r => r.customer)), [installRecords]);
 
   // Progress tab — consistent with Operasional: PO yang sedang aktif dalam pipeline instalasi
   // = PO delivered tapi belum installed, ATAU yang punya install record
@@ -11104,6 +11154,12 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
     ? totalInstalled
     : data.filter(s => s.installationStatus === 'installed' && s.issuedDate?.startsWith(filterYear)).length, [data, filterYear, totalInstalled]);
 
+  // Year-filtered document sets so Riwayat / BAST / Training tabs stay consistent with the PO Year selector.
+  const yearKey = (r, dateField) => r.poYear || (r[dateField] || '').substring(0, 4);
+  const installRecordsY = useMemo(() => filterYear === 'all' ? installRecords : installRecords.filter(r => yearKey(r, 'installStart') === filterYear), [installRecords, filterYear]);
+  const bastRecordsY = useMemo(() => filterYear === 'all' ? bastRecords : bastRecords.filter(r => yearKey(r, 'signedDate') === filterYear), [bastRecords, filterYear]);
+  const trainingRecordsY = useMemo(() => filterYear === 'all' ? trainingRecords : trainingRecords.filter(r => yearKey(r, 'sessionDate') === filterYear), [trainingRecords, filterYear]);
+
   const toggleStep = (id, field) => { if (!canEdit) return; setData(prev => prev.map(s => s.id === id ? { ...s, [field]: !s[field] } : s)); };
   const updateEvidence = (id, field, url) => { if (!canEdit) return; setData(prev => prev.map(s => s.id === id ? { ...s, [field]: url } : s)); };
 
@@ -11129,16 +11185,15 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
     const rec = recordsByCustomer.get(p.customer);
     const bast = bastByCustomer.get(p.customer);
     const training = trainingByCustomer.get(p.customer);
+    // Unit TERPASANG (installed) = seluruh siklus instalasi tuntas (instalasi, uji fungsi/paparan, training, izin, BAST).
+    const isInstalled = p.installationStatus === 'installed';
     return {
-      // Installation done: TERPASANG di level SPH, ATAU install record completed, ATAU manual toggle
-      installation_done: p.installationStatus === 'installed' || (rec && rec.status === 'completed') || !!p.installation_done,
-      functionTest: (rec && rec.calibrationDone) || !!p.functionTest,
-      exposureTest: !!p.exposureTest,
-      trainingCert: (training && training.status === 'completed') || !!p.trainingCert,
-      bapetenPermit: !!p.bapetenPermit,
-      // BAST: auto-green if BAST signed
-      bast: (bast && bast.status === 'signed') || !!p.bastDone,
-      // Source tracking for UI hints
+      installation_done: isInstalled || (rec && rec.status === 'completed') || !!p.installation_done,
+      functionTest: isInstalled || (rec && rec.calibrationDone) || !!p.functionTest,
+      exposureTest: isInstalled || !!p.exposureTest,
+      trainingCert: isInstalled || (training && training.status === 'completed') || !!p.trainingCert,
+      bapetenPermit: isInstalled || !!p.bapetenPermit,
+      bast: isInstalled || (bast && bast.status === 'signed') || !!p.bastDone,
       _rec: rec, _bast: bast, _training: training,
     };
   };
@@ -11157,14 +11212,11 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
   const kpis = useMemo(() => {
     let inProg = 0, comp = 0, bastS = 0, trainD = 0;
     installProjects.forEach(p => {
-      const st = getStepStatus(p);
-      // SELESAI = unit TERPASANG (installed); SEDANG = belum terpasang. Sumber kebenaran: installationStatus SPH.
-      if (p.installationStatus === 'installed') comp++; else inProg++;
-      if (st.bast) bastS++;
-      if (st.trainingCert) trainD++;
+      // Unit TERPASANG = selesai + BAST + training tuntas (model koheren). Unit belum terpasang = sedang berlangsung.
+      if (p.installationStatus === 'installed') { comp++; bastS++; trainD++; } else { inProg++; }
     });
     return { totalRecords: installProjects.length, inProgressCount: inProg, completedCount: comp, bastSignedCount: bastS, trainingDoneCount: trainD };
-  }, [installProjects, recordsByCustomer, bastByCustomer, trainingByCustomer]);
+  }, [installProjects]);
   const { totalRecords, inProgressCount, completedCount, bastSignedCount, trainingDoneCount } = kpis;
 
   return (
@@ -11223,9 +11275,9 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
       <div style={{display: 'flex', gap: '2px', marginBottom: '22px', borderBottom: '1px solid #d4cdb8', flexWrap: 'wrap'}}>
         {[
           { id: 'progress', label: t.inst_tab_progress, icon: Wrench, count: installProjects.length },
-          { id: 'records', label: t.inst_tab_records, icon: ClipboardList, count: installRecords.length },
-          { id: 'bast', label: t.inst_tab_bast, icon: FileCheck, count: bastRecords.length },
-          { id: 'training', label: t.inst_tab_training, icon: Users, count: trainingRecords.length },
+          { id: 'records', label: t.inst_tab_records, icon: ClipboardList, count: installRecordsY.length },
+          { id: 'bast', label: t.inst_tab_bast, icon: FileCheck, count: bastRecordsY.length },
+          { id: 'training', label: t.inst_tab_training, icon: Users, count: trainingRecordsY.length },
         ].map(tb => {
           const Icon = tb.icon;
           const active = tab === tb.id;
@@ -11324,9 +11376,9 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
         </div>
       )}
 
-      {tab === 'records' && <InstallRecordsList records={installRecords} setRecords={setInstallRecords} t={t} lang={lang} canEdit={canEdit} employees={employees} />}
-      {tab === 'bast' && <BASTList records={bastRecords} setRecords={setBastRecords} t={t} lang={lang} canEdit={canEdit} />}
-      {tab === 'training' && <TrainingCertList records={trainingRecords} setRecords={setTrainingRecords} t={t} lang={lang} canEdit={canEdit} />}
+      {tab === 'records' && <InstallRecordsList records={installRecordsY} setRecords={setInstallRecords} t={t} lang={lang} canEdit={canEdit} employees={employees} />}
+      {tab === 'bast' && <BASTList records={bastRecordsY} setRecords={setBastRecords} t={t} lang={lang} canEdit={canEdit} />}
+      {tab === 'training' && <TrainingCertList records={trainingRecordsY} setRecords={setTrainingRecords} t={t} lang={lang} canEdit={canEdit} employees={employees} />}
     </div>
   );
 }
@@ -11500,7 +11552,7 @@ function BASTList({ records, setRecords, t, lang, canEdit }) {
 }
 
 // ============== Training Cert List ==============
-function TrainingCertList({ records, setRecords, t, lang, canEdit }) {
+function TrainingCertList({ records, setRecords, t, lang, canEdit, employees = {} }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc');
@@ -11550,7 +11602,7 @@ function TrainingCertList({ records, setRecords, t, lang, canEdit }) {
                 {r.certNo && <div className="mono" style={{fontSize: '12px', fontWeight: 700, color: '#1a2942', marginBottom: '4px'}}>{r.certNo}</div>}
                 <div style={{fontSize: '12px', fontWeight: 600}}>{r.customer}</div>
                 <div style={{fontSize: '11px', color: '#8a7d5c', marginTop: '2px'}}>{r.modality} · {r.subModality}</div>
-                {r.instructor && <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px'}}>🎓 {r.instructor}</div>}
+                {r.instructor && <div style={{fontSize: '10px', color: '#8a7d5c', marginTop: '4px'}}>🎓 {resolveNamesInText(employees, r.instructor)}</div>}
               </div>
               <div style={{textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px'}}>
                 <span style={{padding: '4px 10px', fontSize: '10px', background: statusColor + '25', color: statusColor, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{r.status === 'completed' ? t.train_completed : t.train_pending}</span>

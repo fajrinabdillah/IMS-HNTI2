@@ -4147,13 +4147,21 @@ const GlobalStyles = () => (
     .card { background: #fefcf7; border: 1px solid #e8e1cc; padding: 22px; }
     .card-title { font-size: 10px; letter-spacing: 0.2em; color: #8a7d5c; text-transform: uppercase; font-weight: 600; margin-bottom: 18px; }
     @media (max-width: 900px) {
-      .main-content { padding: 20px !important; }
-      .header-content { padding: 14px 20px !important; }
+      .main-content { padding: 16px !important; }
+      .header-content { padding: 12px 16px !important; }
       .desktop-nav { display: none !important; }
       .mobile-menu-btn { display: flex !important; }
       .kpi-grid-4 { grid-template-columns: repeat(2, 1fr) !important; }
       .two-col, .three-col { grid-template-columns: 1fr !important; }
-      .hero-title { font-size: 28px !important; }
+      .hero-title { font-size: 24px !important; }
+    }
+
+    /* ATURAN KHUSUS HP (Layar Sangat Sempit) */
+    @media (max-width: 600px) {
+      .kpi-grid-4 { grid-template-columns: 1fr !important; gap: 8px !important; }
+      table { display: block; overflow-x: auto; white-space: nowrap; }
+      .card { padding: 14px !important; }
+      .card-pad { padding: 12px !important; }
     }
     .mobile-menu-btn { display: none; }
   `}</style>

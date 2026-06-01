@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { TrendingUp, FileText, Briefcase, Plus, Search, Edit2, Trash2, X, ArrowUpRight, ArrowDownRight, Activity, DollarSign, Users, Clock, Globe, LogOut, Shield, Wrench, Truck, Wallet, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, FileCheck, Menu, ChevronDown, ChevronRight, ChevronLeft, ClipboardList, Star, Settings, ShieldCheck, CalendarDays, AlertTriangle, FileSearch, UserPlus, UserCheck, UserX, Plane, Receipt, Hotel, RefreshCw, History, FolderOpen, Upload, MessageSquare, Download, Target, Layers, FileBarChart, Paperclip, Bell } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Area, ComposedChart } from 'recharts';
-
+import logoFull from ‘./logo.png';
 const DEFAULT_USD_IDR = 18000;
 
 // ============== i18n ==============
@@ -4538,17 +4538,14 @@ function LoginScreen({ t, lang, setLang, onLogin, employees }) {
   return (
     <div style={{minHeight: '100vh', background: '#f8f5ef', fontFamily: 'Inter, sans-serif', color: '#1a2942', display: 'flex'}}>
       <GlobalStyles />
-      <div className="login-left" style={{flex: 1, background: 'linear-gradient(135deg, #1a2942 0%, #2a3f5f 100%)', padding: '60px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', color: '#f8f5ef', position: 'relative', overflow: 'hidden'}}>
-        <div style={{position: 'absolute', top: '-100px', right: '-100px', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(200,169,106,0.13) 0%, transparent 70%)'}} />
-        <div style={{position: 'absolute', bottom: '-150px', left: '-150px', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(74,149,64,0.08) 0%, transparent 70%)'}} />
-        <div style={{position: 'relative', zIndex: 1}}><IMSLogo size="xl" inverted showTagline /></div>
-        <div style={{position: 'relative', zIndex: 1}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.25em', color: '#c8a96a', textTransform: 'uppercase', marginBottom: '16px', fontWeight: 500, lineHeight: 1.6}}>{t.motto}</div>
-          <h1 className="serif" style={{fontSize: '42px', fontWeight: 400, lineHeight: 1.15, margin: 0, letterSpacing: '-0.02em'}}>
-            {lang === 'id' ? 'Sistem terpadu untuk monitoring operasional perusahaan' : 'Integrated platform for enterprise operations monitoring'}
-          </h1>
-        </div>
-        <div style={{position: 'relative', zIndex: 1, fontSize: '10px', letterSpacing: '0.2em', color: 'rgba(248,245,239,0.5)', textTransform: 'uppercase'}}>© 2026 {t.company} · Confidential</div>
+      <div className="login-left" style={{
+        flex: 1,
+        backgroundImage: `url(${logoFull})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundColor: '#1a2942'
+      }}>
       </div>
 
       <div className="login-right" style={{flex: '0 0 460px', padding: '60px 48px', display: 'flex', flexDirection: 'column', justifyContent: 'center', overflowY: 'auto'}}>

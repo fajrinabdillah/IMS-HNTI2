@@ -81,7 +81,7 @@ const translations = {
     plan_order_to_factory: 'Plan Order', ready_to_ship: 'Siap Kirim',
     on_shipment: 'Pengiriman', customs_released: 'Released', customs_ongoing: 'Proses', customs_hold: 'On Hold',
     delivery_to_site: 'Diterima', installation_done: 'Instalasi Selesai',
-    function_test: 'Uji Fungsi', exposure_test: 'Uji Paparan', training_cert: 'Sertifikat Training',
+    function_test: 'Uji Fungsi', exposure_test: 'Uji Paparan', compliance_test: 'Uji Kesesuaian', training_cert: 'Sertifikat Training',
     bapeten_permit: 'Izin BAPETEN',
     view_only_notice: 'Mode baca-saja: Anda tidak dapat mengubah data ini',
     sales_title: 'Performa Tim Sales',
@@ -763,7 +763,7 @@ const translations = {
     plan_order_to_factory: 'Plan Order', ready_to_ship: 'Ready to Ship',
     on_shipment: 'On Shipment', customs_released: 'Released', customs_ongoing: 'Processing', customs_hold: 'On Hold',
     delivery_to_site: 'Delivered', installation_done: 'Installation Done',
-    function_test: 'Function Test', exposure_test: 'Exposure Test', training_cert: 'Training Cert',
+    function_test: 'Function Test', exposure_test: 'Exposure Test', compliance_test: 'Compliance Test', training_cert: 'Training Cert',
     bapeten_permit: 'BAPETEN Permit',
     view_only_notice: 'Read-only mode: you cannot modify this data',
     sales_title: 'Sales Team Performance',
@@ -4281,6 +4281,7 @@ export default function App() {
   const [annotations, setAnnotations] = useState([]);
   const [unitTechMap, setUnitTechMap] = useState({}); // per-unit manual technician override (maintenance #1)
   const [reportsSeen, setReportsSeen] = useState({}); // per-user last-read date for weekly field reports (notif dismissal)
+  const [moduleAccess, setModuleAccess] = useState({}); // CEO-managed per-user module access override { username: [moduleIds] }
   const [exchangeRate, setExchangeRate] = useState(DEFAULT_USD_IDR);
   const [auditLog, setAuditLog] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -4437,6 +4438,8 @@ export default function App() {
       if (utStored) try { setUnitTechMap(JSON.parse(utStored)); } catch {}
       const rsStored = await storeGet('ims_hnti:reports_seen_v1');
       if (rsStored) try { setReportsSeen(JSON.parse(rsStored)); } catch {}
+      const maStored = await storeGet('ims_hnti:access_v1');
+      if (maStored) try { setModuleAccess(JSON.parse(maStored)); } catch {}
       // Generate reg records on first load from current data
       if (reg) {
         try { setRegRecords(JSON.parse(reg)); } catch {}
@@ -4483,6 +4486,7 @@ export default function App() {
   useEffect(() => { if (!loading) storeSet(ANNOTATIONS_KEY, JSON.stringify(annotations)); }, [annotations, loading]);
   useEffect(() => { if (!loading) storeSet('ims_hnti:unittech_v1', JSON.stringify(unitTechMap)); }, [unitTechMap, loading]);
   useEffect(() => { if (!loading) storeSet('ims_hnti:reports_seen_v1', JSON.stringify(reportsSeen)); }, [reportsSeen, loading]);
+  useEffect(() => { if (!loading) storeSet('ims_hnti:access_v1', JSON.stringify(moduleAccess)); }, [moduleAccess, loading]);
 
   // Live technician roster from the employee DB (re-derives when employees are edited)
   const liveTechnicians = useMemo(() => Object.values(employees).filter(e => e.role === 'technician' && e.active).map(e => e.name), [employees]);
@@ -4507,7 +4511,7 @@ export default function App() {
     });
   };
   if (!session) return <><LoginScreen t={t} lang={lang} setLang={setLang} onLogin={handleLogin} employees={employees} /><ToastContainer /></>;
-  return <><AuthApp session={session} setSession={setSession} lang={lang} setLang={setLang} t={t} data={data} setData={setData} reports={reports} setReports={setReports} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} regRecords={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} employees={employees} setEmployees={setEmployees} businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} installedUnits={installedUnits} fmt={fmt} fmtFull={fmtFull} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} lastSync={lastSync} onRefresh={handleRefresh} auditLog={auditLog} setAuditLog={setAuditLog} logAction={logAction} products={products} setProducts={setProducts} annotations={annotations} setAnnotations={setAnnotations} liveTechnicians={liveTechnicians} unitTechMap={unitTechMap} setUnitTechMap={setUnitTechMap} reportsSeen={reportsSeen} setReportsSeen={setReportsSeen} /><ToastContainer /></>;
+  return <><AuthApp session={session} setSession={setSession} lang={lang} setLang={setLang} t={t} data={data} setData={setData} reports={reports} setReports={setReports} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} regRecords={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} employees={employees} setEmployees={setEmployees} businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} installedUnits={installedUnits} fmt={fmt} fmtFull={fmtFull} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} lastSync={lastSync} onRefresh={handleRefresh} auditLog={auditLog} setAuditLog={setAuditLog} logAction={logAction} products={products} setProducts={setProducts} annotations={annotations} setAnnotations={setAnnotations} liveTechnicians={liveTechnicians} unitTechMap={unitTechMap} setUnitTechMap={setUnitTechMap} reportsSeen={reportsSeen} setReportsSeen={setReportsSeen} moduleAccess={moduleAccess} setModuleAccess={setModuleAccess} /><ToastContainer /></>;
 }
 
 function LoginScreen({ t, lang, setLang, onLogin, employees }) {
@@ -4586,7 +4590,7 @@ function LoginScreen({ t, lang, setLang, onLogin, employees }) {
   );
 }
 
-function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports, setReports, issues, setIssues, pmSchedule, setPmSchedule, manifests, setManifests, customsDocs, setCustomsDocs, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, regRecords, setRegRecords, aklRecords, setAklRecords, importRecords, setImportRecords, pengalihanRecords, setPengalihanRecords, piRecords, setPiRecords, employees, setEmployees, businessTrips, setBusinessTrips, realizations, setRealizations, installedUnits, fmt, fmtFull, exchangeRate, setExchangeRate, lastSync, onRefresh, auditLog, setAuditLog, logAction, products, setProducts, annotations, setAnnotations, liveTechnicians, unitTechMap, setUnitTechMap, reportsSeen = {}, setReportsSeen }) {
+function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports, setReports, issues, setIssues, pmSchedule, setPmSchedule, manifests, setManifests, customsDocs, setCustomsDocs, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, regRecords, setRegRecords, aklRecords, setAklRecords, importRecords, setImportRecords, pengalihanRecords, setPengalihanRecords, piRecords, setPiRecords, employees, setEmployees, businessTrips, setBusinessTrips, realizations, setRealizations, installedUnits, fmt, fmtFull, exchangeRate, setExchangeRate, lastSync, onRefresh, auditLog, setAuditLog, logAction, products, setProducts, annotations, setAnnotations, liveTechnicians, unitTechMap, setUnitTechMap, reportsSeen = {}, setReportsSeen, moduleAccess = {}, setModuleAccess }) {
   const [view, setView] = useState(session.role === 'sales' ? 'sales_report' : session.role === 'regulatory' ? 'regulatory' : 'dashboard');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSph, setEditingSph] = useState(null);
@@ -4601,7 +4605,19 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
   };
 
   const perms = PERMISSIONS[session.role];
-  const allowedNav = NAV_BY_ROLE[session.role] || ['dashboard'];
+  // CEO-managed module access: per-user override of which modules are open. Default = role's nav.
+  // super_admin (CEO) always retains full access so the authorization panel can never lock itself out.
+  const allowedNav = useMemo(() => {
+    const FULL = NAV_BY_ROLE.super_admin;
+    if (session.role === 'super_admin') return FULL;
+    const ov = moduleAccess[session.username];
+    if (ov && Array.isArray(ov)) {
+      const set = new Set(ov);
+      const ordered = FULL.filter(id => set.has(id));
+      return ordered.length ? ordered : ['dashboard'];
+    }
+    return NAV_BY_ROLE[session.role] || ['dashboard'];
+  }, [session.role, session.username, moduleAccess]);
 
   // Business-trip notification count (shared by HoverSidebar + Header)
   const navBtNotifCount = useMemo(() => {
@@ -4638,10 +4654,10 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
     return reports.filter(r => (r.date || '') > cutStr).length;
   }, [reports, session.role, session.username, reportsSeen]);
 
-  useEffect(() => { if (!allowedNav.includes(view)) setView(allowedNav[0]); }, [session.role]);
+  useEffect(() => { if (!allowedNav.includes(view)) setView(allowedNav[0]); }, [session.role, session.username, allowedNav]);
 
   const canEdit = (mod) => perms[mod] === 'full' || perms[mod] === 'write';
-  const canRead = (mod) => perms[mod] !== 'none';
+  const canRead = (mod) => perms[mod] !== 'none' || allowedNav.includes(mod);
 
   const filteredData = session.role === 'sales' && session.salesId ? data.filter(s => s.salesOwner === session.salesId) : data;
 
@@ -4711,9 +4727,9 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
         {view === 'regulatory' && canRead('regulatory') && <RegulatoryModule records={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} units={installedUnits} t={t} lang={lang} fmt={fmt} canEdit={canEdit('regulatory')} />}
         {view === 'incentive' && canRead('incentive') && <IncentiveModule data={data} setData={setData} t={t} lang={lang} session={session} fmt={fmt} fmtFull={fmtFull} canEdit={canEdit('incentive')} employees={employees} />}
         {view === 'valuation' && canRead('valuation') && <Valuation data={data} t={t} lang={lang} fmt={fmt} />}
-        {view === 'employees' && canRead('employees') && <EmployeesModule employees={employees} setEmployees={setEmployees} t={t} lang={lang} session={session} fmt={fmt} />}
+        {view === 'employees' && canRead('employees') && <EmployeesModule employees={employees} setEmployees={setEmployees} t={t} lang={lang} session={session} fmt={fmt} moduleAccess={moduleAccess} setModuleAccess={setModuleAccess} logAction={logAction} />}
         {view === 'business_trip' && canRead('business_trip') && <BusinessTripModule businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} employees={employees} t={t} lang={lang} session={session} fmt={fmt} />}
-        {view === 'audit_log' && (session.role === 'super_admin' || session.role === 'gm') && <AuditLogModule auditLog={auditLog} employees={employees} t={t} lang={lang} />}
+        {view === 'audit_log' && (session.role === 'super_admin' || session.role === 'gm' || allowedNav.includes('audit_log')) && <AuditLogModule auditLog={auditLog} employees={employees} t={t} lang={lang} />}
         {view === 'risk' && <RiskConcentration data={data} products={products} t={t} lang={lang} fmt={fmt} />}
         {view === 'products' && <ProductMasterModule products={products} setProducts={setProducts} t={t} lang={lang} canEdit={session.role === 'super_admin' || session.role === 'gm' || session.role === 'manager_ops' || session.role === 'admin'} logAction={logAction} data={data} />}
         {view === 'cohort' && <CohortAnalysis data={data} t={t} lang={lang} fmt={fmt} />}
@@ -8008,8 +8024,83 @@ function AuditLogModule({ auditLog, employees, t, lang }) {
   );
 }
 
-function EmployeesModule({ employees, setEmployees, t, lang, session, fmt }) {
+// ============== Module Access Authorization Panel (CEO/super_admin only) ==============
+// Lets the CEO grant/revoke which modules each employee can open. Default = role's nav set.
+function ModuleAccessPanel({ employees, moduleAccess, setModuleAccess, t, lang, empView, setEmpView, logAction }) {
+  const ALL_MODULES = NAV_BY_ROLE.super_admin; // canonical ordered list of 21 modules
+  const emps = useMemo(() => Object.entries(employees)
+    .filter(([u, e]) => e && e.role !== 'super_admin') // CEO always retains full access — not editable here
+    .map(([username, e]) => ({ username, ...e }))
+    .sort((a, b) => ((a.active === false) - (b.active === false)) || (a.name || '').localeCompare(b.name || '')), [employees]);
+  const effSet = (username, role) => {
+    const ov = moduleAccess[username];
+    return new Set(Array.isArray(ov) ? ov : (NAV_BY_ROLE[role] || ['dashboard']));
+  };
+  const toggle = (username, role, mod) => {
+    if (mod === 'dashboard') return; // dashboard always on (prevents empty nav / lockout)
+    setModuleAccess(prev => {
+      const cur = new Set(Array.isArray(prev[username]) ? prev[username] : (NAV_BY_ROLE[role] || ['dashboard']));
+      if (cur.has(mod)) cur.delete(mod); else cur.add(mod);
+      cur.add('dashboard');
+      const ordered = ALL_MODULES.filter(id => cur.has(id));
+      if (logAction) logAction({ module: 'employees', action: 'update', entityId: username, entityLabel: `${lang === 'id' ? 'Akses modul' : 'Module access'}: ${username}`, field: mod, note: cur.has(mod) ? 'grant' : 'revoke' });
+      return { ...prev, [username]: ordered };
+    });
+  };
+  const resetDefault = (username) => {
+    setModuleAccess(prev => { const c = { ...prev }; delete c[username]; return c; });
+    if (logAction) logAction({ module: 'employees', action: 'update', entityId: username, entityLabel: `${lang === 'id' ? 'Akses modul' : 'Module access'}: ${username}`, note: 'reset to role default' });
+  };
+  return (
+    <div>
+      <div style={{marginBottom: '22px'}}>
+        <div style={{fontSize: '11px', letterSpacing: '0.3em', color: '#8a7d5c', textTransform: 'uppercase', marginBottom: '6px'}}>{t.nav_employees}</div>
+        <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{t.emp_title}</h1>
+        <div style={{fontSize: '13px', color: '#8a7d5c', marginTop: '6px'}}>{lang === 'id' ? 'Atur modul yang dapat diakses tiap karyawan. Default mengikuti perannya — Anda bisa menambah atau mengurangi. Dasbor selalu aktif.' : 'Configure which modules each employee can open. Defaults follow their role — you may add or remove. Dashboard is always on.'}</div>
+      </div>
+      <div style={{display: 'flex', gap: '2px', marginBottom: '22px', borderBottom: '1px solid #d4cdb8'}}>
+        <button onClick={() => setEmpView('list')} style={{background: 'transparent', border: 'none', padding: '10px 16px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 500, color: '#8a7d5c', borderBottom: '2px solid transparent', marginBottom: '-1px', display: 'flex', alignItems: 'center', gap: '7px'}}><Users size={14} strokeWidth={1.5} />{lang === 'id' ? 'Daftar Karyawan' : 'Employee List'}</button>
+        <button onClick={() => setEmpView('access')} style={{background: 'transparent', border: 'none', padding: '10px 16px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 500, color: '#1a2942', borderBottom: '2px solid #1a2942', marginBottom: '-1px', display: 'flex', alignItems: 'center', gap: '7px'}}><Lock size={14} strokeWidth={1.5} />{lang === 'id' ? 'Otorisasi Akses Modul' : 'Module Authorization'}</button>
+      </div>
+      <div style={{padding: '10px 14px', background: '#eef3ee', borderLeft: '3px solid #3a6b3a', fontSize: '11px', color: '#1a4d2a', marginBottom: '16px'}}>
+        🔒 {lang === 'id' ? 'Panel ini hanya dapat diakses oleh Anda (CEO). Perubahan langsung tersimpan dan berlaku saat karyawan login berikutnya.' : 'This panel is accessible only by you (CEO). Changes save instantly and apply on the employee next login.'}
+      </div>
+      {emps.map(emp => {
+        const set = effSet(emp.username, emp.role);
+        const hasOverride = Array.isArray(moduleAccess[emp.username]);
+        const inactive = emp.active === false;
+        return (
+          <div key={emp.username} style={{background: '#fefcf7', border: '1px solid #e8e1cc', padding: '16px 18px', marginBottom: '14px', opacity: inactive ? 0.6 : 1}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px'}}>
+              <div>
+                <div style={{fontSize: '14px', fontWeight: 600}}>{emp.name}{inactive && <span style={{fontSize: '10px', color: '#c8a96a', marginLeft: '8px'}}>({lang === 'id' ? 'nonaktif' : 'inactive'})</span>}</div>
+                <div style={{fontSize: '11px', color: '#8a7d5c', marginTop: '2px'}}>{emp.position || emp.role} · <span className="mono">@{emp.username}</span> · {set.size} {lang === 'id' ? 'modul' : 'modules'} · {hasOverride ? (lang === 'id' ? 'kustom' : 'custom') : (lang === 'id' ? 'default peran' : 'role default')}</div>
+              </div>
+              <button onClick={() => resetDefault(emp.username)} disabled={!hasOverride} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '6px 12px', fontSize: '11px', fontFamily: 'inherit', cursor: hasOverride ? 'pointer' : 'default', color: hasOverride ? '#1a2942' : '#c4bca8', borderRadius: '4px'}}>{lang === 'id' ? 'Reset ke Default' : 'Reset to Default'}</button>
+            </div>
+            <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))', gap: '6px'}}>
+              {ALL_MODULES.map(mod => {
+                const on = set.has(mod);
+                const locked = mod === 'dashboard';
+                return (
+                  <button key={mod} onClick={() => toggle(emp.username, emp.role, mod)} disabled={locked} title={locked ? (lang === 'id' ? 'Dasbor selalu aktif' : 'Dashboard always on') : ''} style={{padding: '8px 10px', fontSize: '11px', fontFamily: 'inherit', textAlign: 'left', cursor: locked ? 'default' : 'pointer', background: on ? '#1a4d2a' : '#fff', color: on ? '#fff' : '#8a7d5c', border: `1px solid ${on ? '#1a4d2a' : '#d4cdb8'}`, display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '4px'}}>
+                    <span style={{fontSize: '12px', fontWeight: 700}}>{on ? '✓' : '○'}</span>{t[`nav_${mod}`] || mod}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+      {emps.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c', background: '#fefcf7', border: '1px solid #e8e1cc'}}>{t.no_data}</div>}
+    </div>
+  );
+}
+
+function EmployeesModule({ employees, setEmployees, t, lang, session, fmt, moduleAccess = {}, setModuleAccess, logAction }) {
   const canManage = ['super_admin', 'gm', 'manager_ops'].includes(session.role);
+  const isCEO = session.role === 'super_admin';
+  const [empView, setEmpView] = useState('list');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEmp, setEditingEmp] = useState(null);
   const [confirmDeactivateUser, setConfirmDeactivateUser] = useState(null);
@@ -8104,6 +8195,10 @@ function EmployeesModule({ employees, setEmployees, t, lang, session, fmt }) {
     );
   }
 
+  if (isCEO && empView === 'access') {
+    return <ModuleAccessPanel employees={employees} moduleAccess={moduleAccess} setModuleAccess={setModuleAccess} t={t} lang={lang} empView={empView} setEmpView={setEmpView} logAction={logAction} />;
+  }
+
   return (
     <div>
       <div style={{marginBottom: '22px'}}>
@@ -8111,6 +8206,13 @@ function EmployeesModule({ employees, setEmployees, t, lang, session, fmt }) {
         <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{t.emp_title}</h1>
         <div style={{fontSize: '13px', color: '#8a7d5c', marginTop: '6px'}}>{t.emp_subtitle}</div>
       </div>
+
+      {isCEO && (
+        <div style={{display: 'flex', gap: '2px', marginBottom: '22px', borderBottom: '1px solid #d4cdb8'}}>
+          <button onClick={() => setEmpView('list')} style={{background: 'transparent', border: 'none', padding: '10px 16px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 500, color: '#1a2942', borderBottom: '2px solid #1a2942', marginBottom: '-1px', display: 'flex', alignItems: 'center', gap: '7px'}}><Users size={14} strokeWidth={1.5} />{lang === 'id' ? 'Daftar Karyawan' : 'Employee List'}</button>
+          <button onClick={() => setEmpView('access')} style={{background: 'transparent', border: 'none', padding: '10px 16px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 500, color: '#8a7d5c', borderBottom: '2px solid transparent', marginBottom: '-1px', display: 'flex', alignItems: 'center', gap: '7px'}}><Lock size={14} strokeWidth={1.5} />{lang === 'id' ? 'Otorisasi Akses Modul' : 'Module Authorization'}</button>
+        </div>
+      )}
 
       {/* KPI Strip */}
       <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1px', background: '#d4cdb8', marginBottom: '22px', border: '1px solid #d4cdb8'}}>
@@ -11191,6 +11293,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
       installation_done: isInstalled || (rec && rec.status === 'completed') || !!p.installation_done,
       functionTest: isInstalled || (rec && rec.calibrationDone) || !!p.functionTest,
       exposureTest: isInstalled || !!p.exposureTest,
+      complianceTest: isInstalled || !!p.complianceTest,
       trainingCert: isInstalled || (training && training.status === 'completed') || !!p.trainingCert,
       bapetenPermit: isInstalled || !!p.bapetenPermit,
       bast: isInstalled || (bast && bast.status === 'signed') || !!p.bastDone,
@@ -11202,9 +11305,10 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
     { id: 'installation_done', label: t.installation_done, icon: Wrench, syncSrc: 'record' },
     { id: 'functionTest', label: t.function_test, icon: CheckCircle2, syncSrc: 'record' },
     { id: 'exposureTest', label: t.exposure_test, icon: CheckCircle2, syncSrc: null },
+    { id: 'complianceTest', label: t.compliance_test, icon: CheckCircle2, syncSrc: null },
     { id: 'trainingCert', label: t.training_cert, icon: FileCheck, syncSrc: 'training' },
-    { id: 'bapetenPermit', label: t.bapeten_permit, icon: Shield, syncSrc: null },
     { id: 'bast', label: t.inst_step_bast, icon: FileCheck, syncSrc: 'bast' },
+    { id: 'bapetenPermit', label: t.bapeten_permit, icon: Shield, syncSrc: null },
   ], [t]);
 
   // PERFORMANCE: KPI calculations memoized — now scoped to the YEAR-FILTERED installProjects

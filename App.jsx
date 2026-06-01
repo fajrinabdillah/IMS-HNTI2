@@ -1462,7 +1462,7 @@ const USERS = {
   'gm': { password: 'hnti2026', role: 'gm', name: 'Endah Purwitasari', initial: 'EP', position: 'General Manager', allowancePerDay: 175000, active: true },
   'manager_ops': { password: 'hnti2026', role: 'manager_ops', name: 'Novan Restu Pradana', initial: 'NR', position: 'Manager Operasional', allowancePerDay: 175000, active: true },
   'admin': { password: 'hnti2026', role: 'admin', name: 'Siti Rahayu', initial: 'SR', position: 'Manager', allowancePerDay: 175000, active: true },
-  'teknisi': { password: 'hnti2026', role: 'technician', name: 'Budi Hartono', initial: 'BH', position: 'Supervisor', allowancePerDay: 150000, active: true },
+  'teknisi': { password: 'hnti2026', role: 'technician', name: 'Robby Dwi Setiawan', initial: 'BH', position: 'Supervisor', allowancePerDay: 150000, active: true },
   'teknisi2': { password: 'hnti2026', role: 'technician', name: 'Rudi Susanto', initial: 'RS', position: 'Teknisi', allowancePerDay: 130000, active: true },
   'teknisi3': { password: 'hnti2026', role: 'technician', name: 'Eko Prasetyo', initial: 'EP', position: 'Teknisi', allowancePerDay: 130000, active: true },
   'ops': { password: 'hnti2026', role: 'operations', name: 'Andi Pratama', initial: 'AP', position: 'Supervisor', allowancePerDay: 150000, active: true },
@@ -1522,7 +1522,7 @@ function resolveEmpName(employees, val) {
 }
 
 // Resolve any seed technician name embedded inside a free-text string (e.g. training instructor
-// "Budi Hartono + Aplikator") to the current live employee name, so renamed staff never leak.
+// "Robby Dwi Setiawan + Aplikator") to the current live employee name, so renamed staff never leak.
 function resolveNamesInText(employees, text) {
   if (!text || !employees) return text || '';
   let out = String(text);
@@ -1593,13 +1593,13 @@ const PRODUCT_MASTER_SEED = [
   // === MRI (ANKE / Shenzhen Anke High-Tech, China) ===
   { id: 'prod_mri_15t_hfm', name: 'MRI 1.5 Tesla', modality: 'MRI', brand: 'ANKE', type: 'Supermark 1.5T HFM', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Non-Helium 1.5Tesla MRI System' },
   { id: 'prod_mri_15t_art', name: 'MRI 1.5 Tesla', modality: 'MRI', brand: 'ANKE', type: 'Supermark 1.5T ART', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Less-Helium 1.5Tesla MRI System (700 Liter)' },
-  { id: 'prod_mri_30t', name: 'MRI 3.0T Supermark', modality: 'MRI', brand: 'ANKE', type: 'Supermark 590D', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Premium 3.0T research-grade' },
+  { id: 'prod_mri_30t', name: 'MRI 3.0T Supermark', modality: 'MRI', brand: 'ANKE', type: 'Supermark S900', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Premium 3.0T research-grade' },
   // === CT Scan (ANKE, China) ===
   { id: 'prod_ct64_cardiac', name: 'CT 64 Slice Cardiac', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom Clarity', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'CT 64-slice cardiac' },
   { id: 'prod_ct128_premium', name: 'CT 128 Slice Premium', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom Precision', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'High-end diagnostic CT' },
   { id: 'prod_ct32', name: 'CT 32 Slice', modality: 'CT Scan', brand: 'Supermark', type: 'Anatom C201', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'Budget-friendly entry CT' },
   { id: 'prod_ct64_noncardiac', name: 'CT 64 Slice Non-Cardiac', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom C206', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'CT 64-slice non-cardiac' },
-  { id: 'prod_ct128_basic', name: 'CT 128 Slice Basic', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom C408', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'CT 128-slice budget-friendly' },
+  { id: 'prod_ct128_basic', name: 'CT 128 Slice Basic', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom C409', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'CT 128-slice budget-friendly' },
   // === C-Arm (SG Healthcare, Korea) ===
   { id: 'prod_carm_5kw', name: 'Mobile C-Arm', modality: 'C-Arm', brand: 'SG Healthcare', type: 'Garion 5kW', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Standard surgical C-Arm' },
   { id: 'prod_carm_15kw', name: 'Mobile C-Arm', modality: 'C-Arm', brand: 'SG Healthcare', type: 'Garion 15kW', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Advance surgical C-Arm' },
@@ -1607,7 +1607,7 @@ const PRODUCT_MASTER_SEED = [
   { id: 'prod_xray_stat500', name: 'X-Ray Stationary 500mA', modality: 'X-Ray Stationer', brand: 'SG Healthcare', type: 'Jumong General', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'General X-Ray floor mounted 500mA' },
   { id: 'prod_xray_ceiling500', name: 'X-Ray Ceiling 500mA', modality: 'X-Ray Ceiling', brand: 'SG Healthcare', type: 'Jumong General', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'General X-Ray ceiling mounted 500mA' },
   { id: 'prod_xray_mobile100', name: 'X-ray Mobile 100mA', modality: 'X-Ray Mobile', brand: 'SG Healthcare', type: 'Jumong Mobile 5kW', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Entry Level X-Ray machine' },
-  { id: 'prod_xray_portable', name: 'X-Ray Portable', modality: 'X-Ray Portable', brand: 'Precision', type: 'DJPS5DR', origin: 'China', principal: 'Daeji Medical Equipment', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Portable X-Ray for ICU/ER/TB screening use' },
+  { id: 'prod_xray_portable', name: 'X-Ray Portable', modality: 'X-Ray Portable', brand: 'Precision', type: 'DJP05DR', origin: 'China', principal: 'Daoji Medical Equipment', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Portable X-Ray for ICU/ER/TB screening use' },
   // === Mammography (SINO MDT, China) ===
   { id: 'prod_mammo_3d', name: 'Mammography 3D Tomosynthesis', modality: 'Mammography', brand: 'SINO MDT', type: 'Navigator 1000A', origin: 'China', principal: 'SINO MDT', tkdn: 0, akl: 'KEMENKES RI AKL 10303550XXX', active: true, notes: '3D digital mammography with tomosynthesis' },
   { id: 'prod_mammo_2d', name: 'Mammography 2D Digital', modality: 'Mammography', brand: 'SINO MDT', type: 'Navigator DRCare', origin: 'China', principal: 'SINO MDT', tkdn: 0, akl: 'KEMENKES RI AKL 10303550XXX', active: true, notes: '2D digital mammography' },
@@ -2274,12 +2274,12 @@ const SPH_PRODUCT_NORMALIZATION = {
   'MRI::MRI 1.5T Supermark': { modality: 'MRI', subModality: 'Supermark 1.5T HFM' },
   'MRI::MRI 1.5T': { modality: 'MRI', subModality: 'Supermark 1.5T HFM' },
   'MRI::MRI 0.5T Opemark 5000': { modality: 'MRI', subModality: 'Supermark 1.5T ART' },
-  'MRI::MRI 3.0T': { modality: 'MRI', subModality: 'Supermark 590D' },
+  'MRI::MRI 3.0T': { modality: 'MRI', subModality: 'Supermark S900' },
   'CT Scan::CT 64 Slice Anatom Clarity': { modality: 'CT Scan', subModality: 'Anatom Clarity' },
   'CT Scan::CT 128 Slice Anatom Precision': { modality: 'CT Scan', subModality: 'Anatom Precision' },
   'CT Scan::CT 32 Slice C201': { modality: 'CT Scan', subModality: 'Anatom C201' },
   'CT Scan::CT 32 Slice': { modality: 'CT Scan', subModality: 'Anatom C201' },
-  'CT Scan::CT 128 Slice': { modality: 'CT Scan', subModality: 'Anatom C408' },
+  'CT Scan::CT 128 Slice': { modality: 'CT Scan', subModality: 'Anatom C409' },
   'CT Scan::CT 64 Slice': { modality: 'CT Scan', subModality: 'Anatom C206' },
   'C-Arm::C-Arm Garion': { modality: 'C-Arm', subModality: 'Garion 5kW' },
   'C-Arm::C-Arm Surgical': { modality: 'C-Arm', subModality: 'Garion 5kW' },
@@ -2291,7 +2291,7 @@ const SPH_PRODUCT_NORMALIZATION = {
   'X-Ray::X-Ray Digital DR': { modality: 'X-Ray Stationer', subModality: 'Jumong General' },
   'X-Ray::X-Ray Ceiling 500mA': { modality: 'X-Ray Ceiling', subModality: 'Jumong General' },
   'X-Ray::Flat Panel Detector': { modality: 'Flat Panel Detector', subModality: 'V17C' },
-  'X-Ray::X-Ray Portable': { modality: 'X-Ray Portable', subModality: 'DJPS5DR' },
+  'X-Ray::X-Ray Portable': { modality: 'X-Ray Portable', subModality: 'DJP05DR' },
   'Mammography::Mammo 3D': { modality: 'Mammography', subModality: 'Navigator 1000A' },
   'Mammography::Mammo Tomosynthesis': { modality: 'Mammography', subModality: 'Navigator 1000A' },
   'Mammography::Mammo 2D Navigator': { modality: 'Mammography', subModality: 'Navigator DRCare' },
@@ -3020,10 +3020,10 @@ function generateInstalledUnits() {
 
 // ============== Maintenance Issues (Repairs & Complaints) ==============
 const SEED_ISSUES = [
-  { id: 'iss1', type: 'repair', unitId: null, customer: 'RS Husada Utama Surabaya', modality: 'CT Scan', subModality: 'CT 64 Slice Anatom Clarity', issue: 'Image artifact pada slice tipis, kalibrasi diperlukan', priority: 'high', status: 'progress', reportedDate: '2026-05-08', technician: 'Budi Hartono', note: 'Spare part dipesan dari ANKE, ETA 5 hari' },
+  { id: 'iss1', type: 'repair', unitId: null, customer: 'RS Husada Utama Surabaya', modality: 'CT Scan', subModality: 'CT 64 Slice Anatom Clarity', issue: 'Image artifact pada slice tipis, kalibrasi diperlukan', priority: 'high', status: 'progress', reportedDate: '2026-05-08', technician: 'Robby Dwi Setiawan', note: 'Spare part dipesan dari ANKE, ETA 5 hari' },
   { id: 'iss2', type: 'repair', unitId: null, customer: 'RSUD Banyumas', modality: 'X-Ray', subModality: 'X-Ray Stationary 500mA', issue: 'Tube X-Ray tidak emit, suspect tube failure', priority: 'critical', status: 'open', reportedDate: '2026-05-12', technician: 'Rudi Susanto', note: 'Klaim garansi SG Healthcare diajukan' },
   { id: 'iss3', type: 'complaint', unitId: null, customer: 'RS Premier Bintaro', modality: 'MRI', subModality: 'MRI 1.5T Supermark', issue: 'Antrian pasien lama, request training operator lanjutan', priority: 'medium', status: 'progress', reportedDate: '2026-05-05', technician: 'Eko Prasetyo', note: 'Training scheduled minggu depan' },
-  { id: 'iss4', type: 'complaint', unitId: null, customer: 'RSUD Tarakan Jakarta', modality: 'C-Arm', subModality: 'C-Arm Garion', issue: 'Software update request untuk workflow OK', priority: 'low', status: 'resolved', reportedDate: '2026-04-20', technician: 'Budi Hartono', note: 'Update v2.3 terinstall, training done' },
+  { id: 'iss4', type: 'complaint', unitId: null, customer: 'RSUD Tarakan Jakarta', modality: 'C-Arm', subModality: 'C-Arm Garion', issue: 'Software update request untuk workflow OK', priority: 'low', status: 'resolved', reportedDate: '2026-04-20', technician: 'Robby Dwi Setiawan', note: 'Update v2.3 terinstall, training done' },
   { id: 'iss5', type: 'repair', unitId: null, customer: 'RS Hermina Galaxy', modality: 'CT Scan', subModality: 'CT 128 Slice Anatom Precision', issue: 'Console PC hang berkala', priority: 'medium', status: 'resolved', reportedDate: '2026-04-15', technician: 'Rudi Susanto', note: 'Re-image OS dan firmware update' },
   { id: 'iss6', type: 'complaint', unitId: null, customer: 'RSUD Banyuwangi', modality: 'Mammography', subModality: 'Mammo 2D Navigator', issue: 'Kualitas film print kurang tajam', priority: 'medium', status: 'open', reportedDate: '2026-05-14', technician: 'Eko Prasetyo', note: 'Check printer cartridge dan kalibrasi' },
 ];
@@ -3263,13 +3263,13 @@ const SEED_INSTALL_RECORDS = [
   { id: 'inst_001', recordNo: 'BA-INST-2026-001', customer: 'RS Bhakti Wira Tamtama',
     modality: 'CT Scan', subModality: 'CT 128 Slice Anatom Precision',
     installStart: '2026-04-15', installEnd: '2026-04-20', duration: 5,
-    leadTechnician: 'Budi Hartono', teamSize: 3,
+    leadTechnician: 'Robby Dwi Setiawan', teamSize: 3,
     roomReady: true, electricalReady: true, calibrationDone: true,
     status: 'completed', notes: 'Instalasi lancar, kalibrasi sesuai spesifikasi pabrik' },
   { id: 'inst_002', recordNo: 'BA-INST-2026-002', customer: 'RS Premier Bintaro',
     modality: 'MRI', subModality: 'MRI 1.5T Supermark',
     installStart: '2026-03-10', installEnd: '2026-03-25', duration: 15,
-    leadTechnician: 'Budi Hartono', teamSize: 4,
+    leadTechnician: 'Robby Dwi Setiawan', teamSize: 4,
     roomReady: true, electricalReady: true, calibrationDone: true,
     status: 'completed', notes: 'MRI 1.5T butuh shielding khusus, sudah handle dengan baik' },
   { id: 'inst_003', recordNo: 'BA-INST-2026-003', customer: 'RSUD Banyumas',
@@ -3281,7 +3281,7 @@ const SEED_INSTALL_RECORDS = [
   { id: 'inst_004', recordNo: 'BA-INST-2026-004', customer: 'RS Hermina Galaxy Bekasi',
     modality: 'CT Scan', subModality: 'CT 64 Slice Anatom Clarity',
     installStart: '2026-05-08', installEnd: null, duration: null,
-    leadTechnician: 'Budi Hartono', teamSize: 3,
+    leadTechnician: 'Robby Dwi Setiawan', teamSize: 3,
     roomReady: true, electricalReady: false, calibrationDone: false,
     status: 'delayed', notes: 'Tertunda karena instalasi panel listrik dari pihak RS belum selesai' },
   { id: 'inst_005', recordNo: 'BA-INST-2026-005', customer: 'RS Husada Utama Surabaya',
@@ -3320,7 +3320,7 @@ const SEED_BAST_RECORDS = [
 const SEED_TRAINING_RECORDS = [
   { id: 'train_001', certNo: 'CERT-HNTI-2026-001', customer: 'RS Bhakti Wira Tamtama',
     modality: 'CT Scan', subModality: 'CT 128 Slice Anatom Precision',
-    sessionDate: '2026-04-21', participants: 4, instructor: 'Budi Hartono + Engineer ANKE',
+    sessionDate: '2026-04-21', participants: 4, instructor: 'Robby Dwi Setiawan + Engineer ANKE',
     duration: 16, topics: 'Operasional dasar, scan protocol, dose management, troubleshooting basic',
     status: 'completed', certUrl: '', notes: 'Training 2 hari, 4 radiografer + 1 dokter spesialis' },
   { id: 'train_002', certNo: 'CERT-HNTI-2026-002', customer: 'RS Premier Bintaro',
@@ -3330,7 +3330,7 @@ const SEED_TRAINING_RECORDS = [
     status: 'completed', certUrl: '', notes: 'Training intensif 3 hari, sertifikat dari ANKE Headquarters' },
   { id: 'train_003', certNo: 'CERT-HNTI-2026-003', customer: 'RSUD Cibinong',
     modality: 'CT Scan', subModality: 'CT 32 Slice C201',
-    sessionDate: '2026-02-12', participants: 3, instructor: 'Budi Hartono',
+    sessionDate: '2026-02-12', participants: 3, instructor: 'Robby Dwi Setiawan',
     duration: 12, topics: 'Operasional, scan protocol dasar, perawatan harian',
     status: 'completed', certUrl: '', notes: 'Training 1.5 hari' },
   { id: 'train_004', certNo: '', customer: 'RSUD Banyumas',
@@ -3460,7 +3460,7 @@ const SEED_BUSINESS_TRIPS = [
 
   // 4. Budi (Teknisi) — PENDING REVIEW GM (sudah approve finance & manager_ops)
   { id: 'bt_2026_004', requestNo: 'BT-2026-004',
-    travelerUsername: 'teknisi', travelerName: 'Budi Hartono', position: 'Supervisor', allowancePerDay: 150000,
+    travelerUsername: 'teknisi', travelerName: 'Robby Dwi Setiawan', position: 'Supervisor', allowancePerDay: 150000,
     destination: 'Banyumas + Cilacap', destinationCity: 'Purwokerto',
     purpose: 'Instalasi X-Ray RSUD Banyumas (lanjutan) + PM CT Scan RSUD Cilacap',
     dateStart: '2026-05-26', dateEnd: '2026-05-30', duration: 5,
@@ -3471,11 +3471,11 @@ const SEED_BUSINESS_TRIPS = [
     },
     officeBooked: { ticketPP: 0, hotelTotal: 1600000, ticketNote: '-', hotelNote: 'Hotel Java Heritage Purwokerto 4 malam' },
     totalAdvance: 100000 + 0 + 300000 + 700000 + 600000 + 200000 + 750000, // 2650000
-    bankAccount: { bankName: 'BRI', accountNo: '003901123456', holderName: 'Budi Hartono' },
+    bankAccount: { bankName: 'BRI', accountNo: '003901123456', holderName: 'Robby Dwi Setiawan' },
     status: 'pending_gm', tripStatus: 'planned', paymentStatus: 'pending',
     paidDate: null, paidAmount: 0, paidProof: '',
     approvalHistory: [
-      { level: 'submit', by: 'teknisi', byName: 'Budi Hartono', date: '2026-05-15', action: 'submitted', note: '' },
+      { level: 'submit', by: 'teknisi', byName: 'Robby Dwi Setiawan', date: '2026-05-15', action: 'submitted', note: '' },
       { level: 'finance', by: 'finance', byName: 'Maya Sari', date: '2026-05-16', action: 'approved', note: 'Estimasi biaya wajar untuk teknisi field 5 hari' },
       { level: 'manager_ops', by: 'manager_ops', byName: 'Novan Restu', date: '2026-05-17', action: 'approved', note: 'Instalasi RSUD Banyumas urgent harus selesai' },
     ],
@@ -3694,7 +3694,7 @@ function generateHistoricalBusinessTrips() {
       ],
       purposes: ['Visit RSUD Tugurejo Semarang', 'Follow up RS Mardi Rahayu Kudus', 'Demo C-Arm RSUD Pekalongan'] },
     // Teknisi - Budi (banyak trip untuk install + PM)
-    { un: 'teknisi', name: 'Budi Hartono', pos: 'Supervisor', allow: 150000, freq: 4.2,
+    { un: 'teknisi', name: 'Robby Dwi Setiawan', pos: 'Supervisor', allow: 150000, freq: 4.2,
       dests: [
         { city: 'Surabaya', area: 'Jatim instalasi', flight: [2200000, 2600000], hotel: [2000000, 2500000] },
         { city: 'Solo', area: 'Jateng PM', flight: 0, hotel: [1400000, 1800000] },
@@ -8277,7 +8277,7 @@ function EmployeeModal({ emp, employees, onSave, onClose, t, lang }) {
             </div>
           </Field>
           <Field label={t.emp_name}>
-            <input value={form.name} onChange={e => update('name', e.target.value)} placeholder="contoh: Budi Hartono" />
+            <input value={form.name} onChange={e => update('name', e.target.value)} placeholder="contoh: Robby Dwi Setiawan" />
           </Field>
           <Field label={t.emp_position}>
             <select value={form.position} onChange={e => updatePosition(e.target.value)}>
@@ -12830,7 +12830,7 @@ function MaintenanceIssueModal({ record, onSave, onClose, t, lang, units, sessio
     priority: 'medium',
     status: 'open',
     reportedDate: new Date().toISOString().split('T')[0],
-    technician: session?.name || 'Budi Hartono',
+    technician: session?.name || 'Robby Dwi Setiawan',
     note: '',
     estimatedCost: 0,
     resolvedDate: null,
@@ -12909,7 +12909,7 @@ function PMScheduleModal({ record, onSave, onClose, t, lang, units, session, liv
     unitId: '',
     lastPmDate: new Date().toISOString().split('T')[0],
     nextPmDate: '',
-    technician: session?.name || 'Budi Hartono',
+    technician: session?.name || 'Robby Dwi Setiawan',
     status: 'scheduled',
     notes: '',
   });

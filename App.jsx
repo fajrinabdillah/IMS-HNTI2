@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { TrendingUp, FileText, Briefcase, Plus, Search, Edit2, Trash2, X, ArrowUpRight, ArrowDownRight, Activity, DollarSign, Users, Clock, Globe, LogOut, Shield, Wrench, Truck, Wallet, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, FileCheck, Menu, ChevronDown, ChevronRight, ChevronLeft, ClipboardList, Star, Settings, ShieldCheck, CalendarDays, AlertTriangle, FileSearch, UserPlus, UserCheck, UserX, Plane, Receipt, Hotel, RefreshCw, History, FolderOpen, Upload, MessageSquare, Download, Target, Layers, FileBarChart, Paperclip, Bell } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Area, ComposedChart } from 'recharts';
-import logoFull from './logo.png';
-import logoKecil from './logo3.png';
+
 const DEFAULT_USD_IDR = 18000;
 
 // ============== i18n ==============
@@ -1462,7 +1461,7 @@ const USERS = {
   'gm': { password: 'hnti2026', role: 'gm', name: 'Endah Purwitasari', initial: 'EP', position: 'General Manager', allowancePerDay: 175000, active: true },
   'manager_ops': { password: 'hnti2026', role: 'manager_ops', name: 'Novan Restu Pradana', initial: 'NR', position: 'Manager Operasional', allowancePerDay: 175000, active: true },
   'admin': { password: 'hnti2026', role: 'admin', name: 'Siti Rahayu', initial: 'SR', position: 'Manager', allowancePerDay: 175000, active: true },
-  'teknisi': { password: 'hnti2026', role: 'technician', name: 'Robby Dwi Setiawan', initial: 'BH', position: 'Supervisor', allowancePerDay: 150000, active: true },
+  'teknisi': { password: 'hnti2026', role: 'technician', name: 'Budi Hartono', initial: 'BH', position: 'Supervisor', allowancePerDay: 150000, active: true },
   'teknisi2': { password: 'hnti2026', role: 'technician', name: 'Rudi Susanto', initial: 'RS', position: 'Teknisi', allowancePerDay: 130000, active: true },
   'teknisi3': { password: 'hnti2026', role: 'technician', name: 'Eko Prasetyo', initial: 'EP', position: 'Teknisi', allowancePerDay: 130000, active: true },
   'ops': { password: 'hnti2026', role: 'operations', name: 'Andi Pratama', initial: 'AP', position: 'Supervisor', allowancePerDay: 150000, active: true },
@@ -1500,9 +1499,10 @@ function initialOf(name) {
 // current live employee name. Resilient to renamed usernames via technician positional fallback.
 function resolveEmpName(employees, val) {
   if (!val || !employees) return val || '';
-  if (employees[val]) return employees[val].name;                 // value is a current live username
+  // value is a current live username — but only trust a real name (not empty, not the username itself)
+  if (employees[val] && employees[val].name && employees[val].name !== val) return employees[val].name;
   const un = SEED_NAME_TO_USERNAME[val];
-  if (un && employees[un]) return employees[un].name;              // seed name → username still present
+  if (un && employees[un] && employees[un].name && employees[un].name !== un) return employees[un].name; // seed name → username still present
   // Rename-alias lookup: find a live employee whose _prevUsernames recorded the old key.
   for (const e of Object.values(employees)) {
     if (e && Array.isArray(e._prevUsernames) && (e._prevUsernames.includes(val) || (un && e._prevUsernames.includes(un)))) return e.name;
@@ -1522,7 +1522,7 @@ function resolveEmpName(employees, val) {
 }
 
 // Resolve any seed technician name embedded inside a free-text string (e.g. training instructor
-// "Robby Dwi Setiawan + Aplikator") to the current live employee name, so renamed staff never leak.
+// "Budi Hartono + Aplikator") to the current live employee name, so renamed staff never leak.
 function resolveNamesInText(employees, text) {
   if (!text || !employees) return text || '';
   let out = String(text);
@@ -1593,21 +1593,21 @@ const PRODUCT_MASTER_SEED = [
   // === MRI (ANKE / Shenzhen Anke High-Tech, China) ===
   { id: 'prod_mri_15t_hfm', name: 'MRI 1.5 Tesla', modality: 'MRI', brand: 'ANKE', type: 'Supermark 1.5T HFM', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Non-Helium 1.5Tesla MRI System' },
   { id: 'prod_mri_15t_art', name: 'MRI 1.5 Tesla', modality: 'MRI', brand: 'ANKE', type: 'Supermark 1.5T ART', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Less-Helium 1.5Tesla MRI System (700 Liter)' },
-  { id: 'prod_mri_30t', name: 'MRI 3.0T Supermark', modality: 'MRI', brand: 'ANKE', type: 'Supermark S900', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Premium 3.0T research-grade' },
+  { id: 'prod_mri_30t', name: 'MRI 3.0T Supermark', modality: 'MRI', brand: 'ANKE', type: 'Supermark 590D', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Premium 3.0T research-grade' },
   // === CT Scan (ANKE, China) ===
   { id: 'prod_ct64_cardiac', name: 'CT 64 Slice Cardiac', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom Clarity', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'CT 64-slice cardiac' },
   { id: 'prod_ct128_premium', name: 'CT 128 Slice Premium', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom Precision', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'High-end diagnostic CT' },
   { id: 'prod_ct32', name: 'CT 32 Slice', modality: 'CT Scan', brand: 'Supermark', type: 'Anatom C201', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'Budget-friendly entry CT' },
   { id: 'prod_ct64_noncardiac', name: 'CT 64 Slice Non-Cardiac', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom C206', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'CT 64-slice non-cardiac' },
-  { id: 'prod_ct128_basic', name: 'CT 128 Slice Basic', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom C409', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'CT 128-slice budget-friendly' },
-  // === C-Arm (SG Healthcare, Korea) ===
-  { id: 'prod_carm_5kw', name: 'Mobile C-Arm', modality: 'C-Arm', brand: 'SG Healthcare', type: 'Garion 5kW', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Standard surgical C-Arm' },
-  { id: 'prod_carm_15kw', name: 'Mobile C-Arm', modality: 'C-Arm', brand: 'SG Healthcare', type: 'Garion 15kW', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Advance surgical C-Arm' },
-  // === X-Ray (SG Healthcare Korea + Precision China) ===
-  { id: 'prod_xray_stat500', name: 'X-Ray Stationary 500mA', modality: 'X-Ray Stationer', brand: 'SG Healthcare', type: 'Jumong General', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'General X-Ray floor mounted 500mA' },
-  { id: 'prod_xray_ceiling500', name: 'X-Ray Ceiling 500mA', modality: 'X-Ray Ceiling', brand: 'SG Healthcare', type: 'Jumong General', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'General X-Ray ceiling mounted 500mA' },
-  { id: 'prod_xray_mobile100', name: 'X-ray Mobile 100mA', modality: 'X-Ray Mobile', brand: 'SG Healthcare', type: 'Jumong Mobile 5kW', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Entry Level X-Ray machine' },
-  { id: 'prod_xray_portable', name: 'X-Ray Portable', modality: 'X-Ray Portable', brand: 'Precision', type: 'DJP05DR', origin: 'China', principal: 'Daoji Medical Equipment', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Portable X-Ray for ICU/ER/TB screening use' },
+  { id: 'prod_ct128_basic', name: 'CT 128 Slice Basic', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom C408', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'CT 128-slice budget-friendly' },
+  // === C-Arm (5G Healthcare, Korea) ===
+  { id: 'prod_carm_5kw', name: 'Mobile C-Arm', modality: 'C-Arm', brand: '5G Healthcare', type: 'Garion 5kW', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Standard surgical C-Arm' },
+  { id: 'prod_carm_15kw', name: 'Mobile C-Arm', modality: 'C-Arm', brand: '5G Healthcare', type: 'Garion 15kW', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Advance surgical C-Arm' },
+  // === X-Ray (5G Healthcare Korea + Precision China) ===
+  { id: 'prod_xray_stat500', name: 'X-Ray Stationary 500mA', modality: 'X-Ray Stationer', brand: '5G Healthcare', type: 'Jumong General', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'General X-Ray floor mounted 500mA' },
+  { id: 'prod_xray_ceiling500', name: 'X-Ray Ceiling 500mA', modality: 'X-Ray Ceiling', brand: '5G Healthcare', type: 'Jumong General', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'General X-Ray ceiling mounted 500mA' },
+  { id: 'prod_xray_mobile100', name: 'X-ray Mobile 100mA', modality: 'X-Ray Mobile', brand: '5G Healthcare', type: 'Jumong Mobile 5kW', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Entry Level X-Ray machine' },
+  { id: 'prod_xray_portable', name: 'X-Ray Portable', modality: 'X-Ray Portable', brand: 'Precision', type: 'DJPS5DR', origin: 'China', principal: 'Daeji Medical Equipment', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Portable X-Ray for ICU/ER/TB screening use' },
   // === Mammography (SINO MDT, China) ===
   { id: 'prod_mammo_3d', name: 'Mammography 3D Tomosynthesis', modality: 'Mammography', brand: 'SINO MDT', type: 'Navigator 1000A', origin: 'China', principal: 'SINO MDT', tkdn: 0, akl: 'KEMENKES RI AKL 10303550XXX', active: true, notes: '3D digital mammography with tomosynthesis' },
   { id: 'prod_mammo_2d', name: 'Mammography 2D Digital', modality: 'Mammography', brand: 'SINO MDT', type: 'Navigator DRCare', origin: 'China', principal: 'SINO MDT', tkdn: 0, akl: 'KEMENKES RI AKL 10303550XXX', active: true, notes: '2D digital mammography' },
@@ -1762,7 +1762,7 @@ const SEED_SPH = [
 // Catatan #4: product chips are DERIVED from the Product Master (by brand match) so they always
 // stay in sync. Each partner lists the master brand(s) it represents; products auto-populate.
 const BUSINESS_PARTNERS = [
-  { id: 'sg', name: 'SG Healthcare', country: 'Korea', flag: '🇰🇷', color: '#1a4d8a', status: 'active', brands: ['SG Healthcare'] },
+  { id: 'sg', name: 'SG Healthcare', country: 'Korea', flag: '🇰🇷', color: '#1a4d8a', status: 'active', brands: ['5G Healthcare'] },
   { id: 'anke', name: 'ANKE', country: 'China', flag: '🇨🇳', color: '#c03030', status: 'active', brands: ['ANKE', 'Supermark'] },
   { id: 'sino', name: 'SINO MDT', country: 'China', flag: '🇨🇳', color: '#d4780a', status: 'active', brands: ['SINO MDT'] },
   { id: 'hyde', name: 'Hyde Medical', country: 'China', flag: '🇨🇳', color: '#7b3fb5', status: 'active', brands: ['Hyde Medical (HAMSKI XR)'] },
@@ -2274,12 +2274,12 @@ const SPH_PRODUCT_NORMALIZATION = {
   'MRI::MRI 1.5T Supermark': { modality: 'MRI', subModality: 'Supermark 1.5T HFM' },
   'MRI::MRI 1.5T': { modality: 'MRI', subModality: 'Supermark 1.5T HFM' },
   'MRI::MRI 0.5T Opemark 5000': { modality: 'MRI', subModality: 'Supermark 1.5T ART' },
-  'MRI::MRI 3.0T': { modality: 'MRI', subModality: 'Supermark S900' },
+  'MRI::MRI 3.0T': { modality: 'MRI', subModality: 'Supermark 590D' },
   'CT Scan::CT 64 Slice Anatom Clarity': { modality: 'CT Scan', subModality: 'Anatom Clarity' },
   'CT Scan::CT 128 Slice Anatom Precision': { modality: 'CT Scan', subModality: 'Anatom Precision' },
   'CT Scan::CT 32 Slice C201': { modality: 'CT Scan', subModality: 'Anatom C201' },
   'CT Scan::CT 32 Slice': { modality: 'CT Scan', subModality: 'Anatom C201' },
-  'CT Scan::CT 128 Slice': { modality: 'CT Scan', subModality: 'Anatom C409' },
+  'CT Scan::CT 128 Slice': { modality: 'CT Scan', subModality: 'Anatom C408' },
   'CT Scan::CT 64 Slice': { modality: 'CT Scan', subModality: 'Anatom C206' },
   'C-Arm::C-Arm Garion': { modality: 'C-Arm', subModality: 'Garion 5kW' },
   'C-Arm::C-Arm Surgical': { modality: 'C-Arm', subModality: 'Garion 5kW' },
@@ -2291,7 +2291,7 @@ const SPH_PRODUCT_NORMALIZATION = {
   'X-Ray::X-Ray Digital DR': { modality: 'X-Ray Stationer', subModality: 'Jumong General' },
   'X-Ray::X-Ray Ceiling 500mA': { modality: 'X-Ray Ceiling', subModality: 'Jumong General' },
   'X-Ray::Flat Panel Detector': { modality: 'Flat Panel Detector', subModality: 'V17C' },
-  'X-Ray::X-Ray Portable': { modality: 'X-Ray Portable', subModality: 'DJP05DR' },
+  'X-Ray::X-Ray Portable': { modality: 'X-Ray Portable', subModality: 'DJPS5DR' },
   'Mammography::Mammo 3D': { modality: 'Mammography', subModality: 'Navigator 1000A' },
   'Mammography::Mammo Tomosynthesis': { modality: 'Mammography', subModality: 'Navigator 1000A' },
   'Mammography::Mammo 2D Navigator': { modality: 'Mammography', subModality: 'Navigator DRCare' },
@@ -3020,10 +3020,10 @@ function generateInstalledUnits() {
 
 // ============== Maintenance Issues (Repairs & Complaints) ==============
 const SEED_ISSUES = [
-  { id: 'iss1', type: 'repair', unitId: null, customer: 'RS Husada Utama Surabaya', modality: 'CT Scan', subModality: 'CT 64 Slice Anatom Clarity', issue: 'Image artifact pada slice tipis, kalibrasi diperlukan', priority: 'high', status: 'progress', reportedDate: '2026-05-08', technician: 'Robby Dwi Setiawan', note: 'Spare part dipesan dari ANKE, ETA 5 hari' },
+  { id: 'iss1', type: 'repair', unitId: null, customer: 'RS Husada Utama Surabaya', modality: 'CT Scan', subModality: 'CT 64 Slice Anatom Clarity', issue: 'Image artifact pada slice tipis, kalibrasi diperlukan', priority: 'high', status: 'progress', reportedDate: '2026-05-08', technician: 'Budi Hartono', note: 'Spare part dipesan dari ANKE, ETA 5 hari' },
   { id: 'iss2', type: 'repair', unitId: null, customer: 'RSUD Banyumas', modality: 'X-Ray', subModality: 'X-Ray Stationary 500mA', issue: 'Tube X-Ray tidak emit, suspect tube failure', priority: 'critical', status: 'open', reportedDate: '2026-05-12', technician: 'Rudi Susanto', note: 'Klaim garansi SG Healthcare diajukan' },
   { id: 'iss3', type: 'complaint', unitId: null, customer: 'RS Premier Bintaro', modality: 'MRI', subModality: 'MRI 1.5T Supermark', issue: 'Antrian pasien lama, request training operator lanjutan', priority: 'medium', status: 'progress', reportedDate: '2026-05-05', technician: 'Eko Prasetyo', note: 'Training scheduled minggu depan' },
-  { id: 'iss4', type: 'complaint', unitId: null, customer: 'RSUD Tarakan Jakarta', modality: 'C-Arm', subModality: 'C-Arm Garion', issue: 'Software update request untuk workflow OK', priority: 'low', status: 'resolved', reportedDate: '2026-04-20', technician: 'Robby Dwi Setiawan', note: 'Update v2.3 terinstall, training done' },
+  { id: 'iss4', type: 'complaint', unitId: null, customer: 'RSUD Tarakan Jakarta', modality: 'C-Arm', subModality: 'C-Arm Garion', issue: 'Software update request untuk workflow OK', priority: 'low', status: 'resolved', reportedDate: '2026-04-20', technician: 'Budi Hartono', note: 'Update v2.3 terinstall, training done' },
   { id: 'iss5', type: 'repair', unitId: null, customer: 'RS Hermina Galaxy', modality: 'CT Scan', subModality: 'CT 128 Slice Anatom Precision', issue: 'Console PC hang berkala', priority: 'medium', status: 'resolved', reportedDate: '2026-04-15', technician: 'Rudi Susanto', note: 'Re-image OS dan firmware update' },
   { id: 'iss6', type: 'complaint', unitId: null, customer: 'RSUD Banyuwangi', modality: 'Mammography', subModality: 'Mammo 2D Navigator', issue: 'Kualitas film print kurang tajam', priority: 'medium', status: 'open', reportedDate: '2026-05-14', technician: 'Eko Prasetyo', note: 'Check printer cartridge dan kalibrasi' },
 ];
@@ -3263,13 +3263,13 @@ const SEED_INSTALL_RECORDS = [
   { id: 'inst_001', recordNo: 'BA-INST-2026-001', customer: 'RS Bhakti Wira Tamtama',
     modality: 'CT Scan', subModality: 'CT 128 Slice Anatom Precision',
     installStart: '2026-04-15', installEnd: '2026-04-20', duration: 5,
-    leadTechnician: 'Robby Dwi Setiawan', teamSize: 3,
+    leadTechnician: 'Budi Hartono', teamSize: 3,
     roomReady: true, electricalReady: true, calibrationDone: true,
     status: 'completed', notes: 'Instalasi lancar, kalibrasi sesuai spesifikasi pabrik' },
   { id: 'inst_002', recordNo: 'BA-INST-2026-002', customer: 'RS Premier Bintaro',
     modality: 'MRI', subModality: 'MRI 1.5T Supermark',
     installStart: '2026-03-10', installEnd: '2026-03-25', duration: 15,
-    leadTechnician: 'Robby Dwi Setiawan', teamSize: 4,
+    leadTechnician: 'Budi Hartono', teamSize: 4,
     roomReady: true, electricalReady: true, calibrationDone: true,
     status: 'completed', notes: 'MRI 1.5T butuh shielding khusus, sudah handle dengan baik' },
   { id: 'inst_003', recordNo: 'BA-INST-2026-003', customer: 'RSUD Banyumas',
@@ -3281,7 +3281,7 @@ const SEED_INSTALL_RECORDS = [
   { id: 'inst_004', recordNo: 'BA-INST-2026-004', customer: 'RS Hermina Galaxy Bekasi',
     modality: 'CT Scan', subModality: 'CT 64 Slice Anatom Clarity',
     installStart: '2026-05-08', installEnd: null, duration: null,
-    leadTechnician: 'Robby Dwi Setiawan', teamSize: 3,
+    leadTechnician: 'Budi Hartono', teamSize: 3,
     roomReady: true, electricalReady: false, calibrationDone: false,
     status: 'delayed', notes: 'Tertunda karena instalasi panel listrik dari pihak RS belum selesai' },
   { id: 'inst_005', recordNo: 'BA-INST-2026-005', customer: 'RS Husada Utama Surabaya',
@@ -3320,7 +3320,7 @@ const SEED_BAST_RECORDS = [
 const SEED_TRAINING_RECORDS = [
   { id: 'train_001', certNo: 'CERT-HNTI-2026-001', customer: 'RS Bhakti Wira Tamtama',
     modality: 'CT Scan', subModality: 'CT 128 Slice Anatom Precision',
-    sessionDate: '2026-04-21', participants: 4, instructor: 'Robby Dwi Setiawan + Engineer ANKE',
+    sessionDate: '2026-04-21', participants: 4, instructor: 'Budi Hartono + Engineer ANKE',
     duration: 16, topics: 'Operasional dasar, scan protocol, dose management, troubleshooting basic',
     status: 'completed', certUrl: '', notes: 'Training 2 hari, 4 radiografer + 1 dokter spesialis' },
   { id: 'train_002', certNo: 'CERT-HNTI-2026-002', customer: 'RS Premier Bintaro',
@@ -3330,7 +3330,7 @@ const SEED_TRAINING_RECORDS = [
     status: 'completed', certUrl: '', notes: 'Training intensif 3 hari, sertifikat dari ANKE Headquarters' },
   { id: 'train_003', certNo: 'CERT-HNTI-2026-003', customer: 'RSUD Cibinong',
     modality: 'CT Scan', subModality: 'CT 32 Slice C201',
-    sessionDate: '2026-02-12', participants: 3, instructor: 'Robby Dwi Setiawan',
+    sessionDate: '2026-02-12', participants: 3, instructor: 'Budi Hartono',
     duration: 12, topics: 'Operasional, scan protocol dasar, perawatan harian',
     status: 'completed', certUrl: '', notes: 'Training 1.5 hari' },
   { id: 'train_004', certNo: '', customer: 'RSUD Banyumas',
@@ -3460,7 +3460,7 @@ const SEED_BUSINESS_TRIPS = [
 
   // 4. Budi (Teknisi) — PENDING REVIEW GM (sudah approve finance & manager_ops)
   { id: 'bt_2026_004', requestNo: 'BT-2026-004',
-    travelerUsername: 'teknisi', travelerName: 'Robby Dwi Setiawan', position: 'Supervisor', allowancePerDay: 150000,
+    travelerUsername: 'teknisi', travelerName: 'Budi Hartono', position: 'Supervisor', allowancePerDay: 150000,
     destination: 'Banyumas + Cilacap', destinationCity: 'Purwokerto',
     purpose: 'Instalasi X-Ray RSUD Banyumas (lanjutan) + PM CT Scan RSUD Cilacap',
     dateStart: '2026-05-26', dateEnd: '2026-05-30', duration: 5,
@@ -3471,11 +3471,11 @@ const SEED_BUSINESS_TRIPS = [
     },
     officeBooked: { ticketPP: 0, hotelTotal: 1600000, ticketNote: '-', hotelNote: 'Hotel Java Heritage Purwokerto 4 malam' },
     totalAdvance: 100000 + 0 + 300000 + 700000 + 600000 + 200000 + 750000, // 2650000
-    bankAccount: { bankName: 'BRI', accountNo: '003901123456', holderName: 'Robby Dwi Setiawan' },
+    bankAccount: { bankName: 'BRI', accountNo: '003901123456', holderName: 'Budi Hartono' },
     status: 'pending_gm', tripStatus: 'planned', paymentStatus: 'pending',
     paidDate: null, paidAmount: 0, paidProof: '',
     approvalHistory: [
-      { level: 'submit', by: 'teknisi', byName: 'Robby Dwi Setiawan', date: '2026-05-15', action: 'submitted', note: '' },
+      { level: 'submit', by: 'teknisi', byName: 'Budi Hartono', date: '2026-05-15', action: 'submitted', note: '' },
       { level: 'finance', by: 'finance', byName: 'Maya Sari', date: '2026-05-16', action: 'approved', note: 'Estimasi biaya wajar untuk teknisi field 5 hari' },
       { level: 'manager_ops', by: 'manager_ops', byName: 'Novan Restu', date: '2026-05-17', action: 'approved', note: 'Instalasi RSUD Banyumas urgent harus selesai' },
     ],
@@ -3694,7 +3694,7 @@ function generateHistoricalBusinessTrips() {
       ],
       purposes: ['Visit RSUD Tugurejo Semarang', 'Follow up RS Mardi Rahayu Kudus', 'Demo C-Arm RSUD Pekalongan'] },
     // Teknisi - Budi (banyak trip untuk install + PM)
-    { un: 'teknisi', name: 'Robby Dwi Setiawan', pos: 'Supervisor', allow: 150000, freq: 4.2,
+    { un: 'teknisi', name: 'Budi Hartono', pos: 'Supervisor', allow: 150000, freq: 4.2,
       dests: [
         { city: 'Surabaya', area: 'Jatim instalasi', flight: [2200000, 2600000], hotel: [2000000, 2500000] },
         { city: 'Solo', area: 'Jateng PM', flight: 0, hotel: [1400000, 1800000] },
@@ -4096,22 +4096,122 @@ const PAYMENT_TERMS = {
 
 // ============== Refined Logo (3-layer diamond) ==============
 // React.memo wrapped - logo is pure presentational, no state, no parent re-render needed
-// ====== KODE LOGO KECIL DASBOR ======
-const IMSLogo = React.memo(function IMSLogo({ size = 'md' }) {
-  // Mengatur ukuran lebar logo secara proporsional sesuai kebutuhan komponen
-  const logoWidth = size === 'xl' ? '180px' : size === 'lg' ? '140px' : size === 'sm' ? '80px' : '100px';
+const IMSLogo = React.memo(function IMSLogo({ size = 'md', inverted = false, showTagline = false }) {
+  const sizes = {
+    sm: { layer: 24, txt: 22, tag: 8, gap: 4, sub: 10 },
+    md: { layer: 36, txt: 32, tag: 10, gap: 5, sub: 12 },
+    lg: { layer: 64, txt: 56, tag: 14, gap: 8, sub: 18 },
+    xl: { layer: 96, txt: 84, tag: 20, gap: 12, sub: 28 },
+  };
+  const s = sizes[size] || sizes.md;
+  const txtColor = inverted ? '#f8f5ef' : '#1a2942';
+  const subColor = inverted ? '#f0e6c8' : '#1a2942';
+  const goldColor = '#c8a96a';
+  const goldLight = '#e8c98a';
+  const goldDark = '#a88a4a';
+  const silverColor = '#b8bcc4';
+  const silverLight = '#d8dce4';
+  const silverDark = '#8a8e96';
+  const blueColor = '#1e5aa8';
+  const blueLight = '#4a8ad8';
+  const blueDark = '#0a3a78';
+  const navyDark = '#0a1a35';
+
+  // Layer SVG size: width = 1.5x layer height; viewBox 90x80 for stacked chevrons
+  const svgW = s.layer * 1.15;
+  const svgH = s.layer * 1.05;
 
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center' }}>
-      <img 
-        src={logoKecil} 
-        alt="Logo IMS HNTI" 
-        style={{ width: logoWidth, height: 'auto', objectFit: 'contain' }} 
-      />
+    <div style={{display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1}}>
+      <div style={{display: 'flex', alignItems: 'center', gap: `${s.gap + 3}px`}}>
+        {/* 3-layer stacked chevron logo: silver pyramid + gold chevron + blue chevron */}
+        <svg width={svgW} height={svgH} viewBox="0 0 90 80" style={{flexShrink: 0}}>
+          <defs>
+            {/* Silver gradient - top layer (pyramid/diamond) */}
+            <linearGradient id="ims-silver" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={silverLight} />
+              <stop offset="50%" stopColor={silverColor} />
+              <stop offset="100%" stopColor={silverDark} />
+            </linearGradient>
+            {/* Gold gradient - middle layer */}
+            <linearGradient id="ims-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={goldLight} />
+              <stop offset="50%" stopColor={goldColor} />
+              <stop offset="100%" stopColor={goldDark} />
+            </linearGradient>
+            {/* Blue gradient - bottom layer */}
+            <linearGradient id="ims-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={blueLight} />
+              <stop offset="50%" stopColor={blueColor} />
+              <stop offset="100%" stopColor={blueDark} />
+            </linearGradient>
+            {/* Inner face shading (darker side of chevron) */}
+            <linearGradient id="ims-silver-dark" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={silverColor} />
+              <stop offset="100%" stopColor={silverDark} />
+            </linearGradient>
+            <linearGradient id="ims-gold-dark" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={goldColor} />
+              <stop offset="100%" stopColor={goldDark} />
+            </linearGradient>
+            <linearGradient id="ims-blue-dark" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={blueColor} />
+              <stop offset="100%" stopColor={blueDark} />
+            </linearGradient>
+          </defs>
+
+          {/* Top: Silver pyramid/diamond (solid) */}
+          <polygon points="45,3 80,22 45,28 10,22" fill="url(#ims-silver)" stroke={silverDark} strokeWidth="0.5" />
+          {/* Silver face shading (right side darker) */}
+          <polygon points="45,3 80,22 45,28" fill="url(#ims-silver-dark)" opacity="0.35" />
+
+          {/* Middle: Gold chevron (pointing down) */}
+          <polygon points="10,30 45,49 80,30 80,38 45,57 10,38" fill="url(#ims-gold)" stroke={goldDark} strokeWidth="0.5" />
+          <polygon points="45,49 80,30 80,38 45,57" fill="url(#ims-gold-dark)" opacity="0.3" />
+
+          {/* Bottom: Blue chevron (pointing down) */}
+          <polygon points="10,46 45,65 80,46 80,55 45,75 10,55" fill="url(#ims-blue)" stroke={blueDark} strokeWidth="0.5" />
+          <polygon points="45,65 80,46 80,55 45,75" fill="url(#ims-blue-dark)" opacity="0.3" />
+        </svg>
+
+        {/* iMS text - navy with gold outline */}
+        <div style={{display: 'flex', alignItems: 'baseline', fontFamily: 'Inter, sans-serif', position: 'relative'}}>
+          <span style={{
+            fontSize: `${s.txt}px`,
+            fontWeight: 800,
+            color: txtColor,
+            letterSpacing: '-0.04em',
+            lineHeight: 0.9,
+            WebkitTextStroke: size === 'xl' || size === 'lg' ? `1px ${goldColor}` : `0.5px ${goldColor}`,
+            textShadow: inverted ? 'none' : `1px 1px 0 ${goldColor}40`,
+          }}>
+            <span style={{fontStyle: 'normal'}}>i</span>MS
+          </span>
+        </div>
+      </div>
+
+      {showTagline && (
+        <div style={{marginTop: `${s.gap * 1.2}px`, width: '100%'}}>
+          {/* Gold underline */}
+          <div style={{height: '2px', background: `linear-gradient(90deg, ${goldDark}, ${goldLight}, ${goldDark})`, marginBottom: `${s.gap}px`}} />
+          {/* Main subtitle */}
+          <div style={{
+            fontFamily: 'Inter, sans-serif',
+            fontSize: `${s.sub}px`,
+            fontWeight: 700,
+            color: subColor,
+            letterSpacing: '0.02em',
+            textTransform: 'uppercase',
+            WebkitTextStroke: (size === 'xl' || size === 'lg') ? `0.3px ${goldColor}` : 'none',
+          }}>
+            Integrated Monitoring System
+          </div>
+        </div>
+      )}
     </div>
   );
 });
-// ====================================
+
 // Global styles
 const GlobalStyles = () => (
   <style>{`
@@ -4439,14 +4539,17 @@ function LoginScreen({ t, lang, setLang, onLogin, employees }) {
   return (
     <div style={{minHeight: '100vh', background: '#f8f5ef', fontFamily: 'Inter, sans-serif', color: '#1a2942', display: 'flex'}}>
       <GlobalStyles />
-      <div className="login-left" style={{
-        flex: 1,
-        backgroundImage: `url(${logoFull})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        backgroundColor: '#1a2942'
-      }}>
+      <div className="login-left" style={{flex: 1, background: 'linear-gradient(135deg, #1a2942 0%, #2a3f5f 100%)', padding: '60px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', color: '#f8f5ef', position: 'relative', overflow: 'hidden'}}>
+        <div style={{position: 'absolute', top: '-100px', right: '-100px', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(200,169,106,0.13) 0%, transparent 70%)'}} />
+        <div style={{position: 'absolute', bottom: '-150px', left: '-150px', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(74,149,64,0.08) 0%, transparent 70%)'}} />
+        <div style={{position: 'relative', zIndex: 1}}><IMSLogo size="xl" inverted showTagline /></div>
+        <div style={{position: 'relative', zIndex: 1}}>
+          <div style={{fontSize: '10px', letterSpacing: '0.25em', color: '#c8a96a', textTransform: 'uppercase', marginBottom: '16px', fontWeight: 500, lineHeight: 1.6}}>{t.motto}</div>
+          <h1 className="serif" style={{fontSize: '42px', fontWeight: 400, lineHeight: 1.15, margin: 0, letterSpacing: '-0.02em'}}>
+            {lang === 'id' ? 'Sistem terpadu untuk monitoring operasional perusahaan' : 'Integrated platform for enterprise operations monitoring'}
+          </h1>
+        </div>
+        <div style={{position: 'relative', zIndex: 1, fontSize: '10px', letterSpacing: '0.2em', color: 'rgba(248,245,239,0.5)', textTransform: 'uppercase'}}>© 2026 {t.company} · Confidential</div>
       </div>
 
       <div className="login-right" style={{flex: '0 0 460px', padding: '60px 48px', display: 'flex', flexDirection: 'column', justifyContent: 'center', overflowY: 'auto'}}>
@@ -6905,7 +7008,7 @@ function CashFlowProjection({ data, t, lang, fmt }) {
     realistic: { rate: 0.18, label: lang === 'id' ? 'Realistis' : 'Realistic', color: '#1a2942',
       basis: lang === 'id' ? '≈2× pertumbuhan pasar. Didorong siklus upgrade radiologi akibat reklasifikasi RS berbasis kompetensi (UU 17/2023) + ekspansi model KSO.' : '≈2× market growth. Driven by radiology upgrade cycle from competency-based hospital reclassification (Law 17/2023) + KSO expansion.' },
     optimistic: { rate: 0.25, label: lang === 'id' ? 'Optimis' : 'Optimistic', color: '#3a6b3a',
-      basis: lang === 'id' ? 'Rebut pangsa agresif + recurring KSO + kemitraan principal baru (ANKE, SG Healthcare, SINO MDT) + KRIS & Program Transformasi Kesehatan Rp20T.' : 'Aggressive share capture + KSO recurring + new principals + KRIS & Rp20T Health Transformation Program.' },
+      basis: lang === 'id' ? 'Rebut pangsa agresif + recurring KSO + kemitraan principal baru (ANKE, 5G Healthcare, SINO MDT) + KRIS & Program Transformasi Kesehatan Rp20T.' : 'Aggressive share capture + KSO recurring + new principals + KRIS & Rp20T Health Transformation Program.' },
   };
   const g = SCENARIOS[scenario].rate;
 
@@ -7849,7 +7952,7 @@ function AuditLogModule({ auditLog, employees, t, lang }) {
         </div>
         <select value={filterUser} onChange={e => setFilterUser(e.target.value)} style={{width: 'auto', minWidth: '120px'}}>
           <option value="all">{lang === 'id' ? 'Semua Pengguna' : 'All Users'}</option>
-          {uniqueUsers.map(u => <option key={u} value={u}>{employees?.[u]?.name || u}</option>)}
+          {uniqueUsers.map(u => <option key={u} value={u}>{resolveEmpName(employees, u)}</option>)}
         </select>
         <select value={filterModule} onChange={e => setFilterModule(e.target.value)} style={{width: 'auto', minWidth: '120px'}}>
           <option value="all">{lang === 'id' ? 'Semua Modul' : 'All Modules'}</option>
@@ -8277,7 +8380,7 @@ function EmployeeModal({ emp, employees, onSave, onClose, t, lang }) {
             </div>
           </Field>
           <Field label={t.emp_name}>
-            <input value={form.name} onChange={e => update('name', e.target.value)} placeholder="contoh: Robby Dwi Setiawan" />
+            <input value={form.name} onChange={e => update('name', e.target.value)} placeholder="contoh: Budi Hartono" />
           </Field>
           <Field label={t.emp_position}>
             <select value={form.position} onChange={e => updatePosition(e.target.value)}>
@@ -9639,7 +9742,7 @@ function BusinessTripDashboard({ businessTrips, realizations, employees, t, lang
   // Travelers list
   const travelers = useMemo(() => {
     const arr = [...new Set(visibleTrips.map(t => t.travelerUsername))];
-    return arr.map(un => ({ un, name: employees[un]?.name || un }));
+    return arr.map(un => ({ un, name: resolveEmpName(employees, un) }));
   }, [visibleTrips, employees]);
 
   // Apply filters
@@ -12830,7 +12933,7 @@ function MaintenanceIssueModal({ record, onSave, onClose, t, lang, units, sessio
     priority: 'medium',
     status: 'open',
     reportedDate: new Date().toISOString().split('T')[0],
-    technician: session?.name || 'Robby Dwi Setiawan',
+    technician: session?.name || 'Budi Hartono',
     note: '',
     estimatedCost: 0,
     resolvedDate: null,
@@ -12909,7 +13012,7 @@ function PMScheduleModal({ record, onSave, onClose, t, lang, units, session, liv
     unitId: '',
     lastPmDate: new Date().toISOString().split('T')[0],
     nextPmDate: '',
-    technician: session?.name || 'Robby Dwi Setiawan',
+    technician: session?.name || 'Budi Hartono',
     status: 'scheduled',
     notes: '',
   });

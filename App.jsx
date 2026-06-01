@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { TrendingUp, FileText, Briefcase, Plus, Search, Edit2, Trash2, X, ArrowUpRight, ArrowDownRight, Activity, DollarSign, Users, Clock, Globe, LogOut, Shield, Wrench, Truck, Wallet, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, FileCheck, Menu, ChevronDown, ChevronRight, ChevronLeft, ClipboardList, Star, Settings, ShieldCheck, CalendarDays, AlertTriangle, FileSearch, UserPlus, UserCheck, UserX, Plane, Receipt, Hotel, RefreshCw, History, FolderOpen, Upload, MessageSquare, Download, Target, Layers, FileBarChart, Paperclip, Bell } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Area, ComposedChart } from 'recharts';
 import logoFull from './logo.png';
+import logoKecil from './logo2.jpg';
 const DEFAULT_USD_IDR = 18000;
 
 // ============== i18n ==============
@@ -4095,122 +4096,22 @@ const PAYMENT_TERMS = {
 
 // ============== Refined Logo (3-layer diamond) ==============
 // React.memo wrapped - logo is pure presentational, no state, no parent re-render needed
-const IMSLogo = React.memo(function IMSLogo({ size = 'md', inverted = false, showTagline = false }) {
-  const sizes = {
-    sm: { layer: 24, txt: 22, tag: 8, gap: 4, sub: 10 },
-    md: { layer: 36, txt: 32, tag: 10, gap: 5, sub: 12 },
-    lg: { layer: 64, txt: 56, tag: 14, gap: 8, sub: 18 },
-    xl: { layer: 96, txt: 84, tag: 20, gap: 12, sub: 28 },
-  };
-  const s = sizes[size] || sizes.md;
-  const txtColor = inverted ? '#f8f5ef' : '#1a2942';
-  const subColor = inverted ? '#f0e6c8' : '#1a2942';
-  const goldColor = '#c8a96a';
-  const goldLight = '#e8c98a';
-  const goldDark = '#a88a4a';
-  const silverColor = '#b8bcc4';
-  const silverLight = '#d8dce4';
-  const silverDark = '#8a8e96';
-  const blueColor = '#1e5aa8';
-  const blueLight = '#4a8ad8';
-  const blueDark = '#0a3a78';
-  const navyDark = '#0a1a35';
-
-  // Layer SVG size: width = 1.5x layer height; viewBox 90x80 for stacked chevrons
-  const svgW = s.layer * 1.15;
-  const svgH = s.layer * 1.05;
+// ====== KODE LOGO KECIL DASBOR ======
+const IMSLogo = React.memo(function IMSLogo({ size = 'md' }) {
+  // Mengatur ukuran lebar logo secara proporsional sesuai kebutuhan komponen
+  const logoWidth = size === 'xl' ? '180px' : size === 'lg' ? '140px' : size === 'sm' ? '80px' : '100px';
 
   return (
-    <div style={{display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1}}>
-      <div style={{display: 'flex', alignItems: 'center', gap: `${s.gap + 3}px`}}>
-        {/* 3-layer stacked chevron logo: silver pyramid + gold chevron + blue chevron */}
-        <svg width={svgW} height={svgH} viewBox="0 0 90 80" style={{flexShrink: 0}}>
-          <defs>
-            {/* Silver gradient - top layer (pyramid/diamond) */}
-            <linearGradient id="ims-silver" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor={silverLight} />
-              <stop offset="50%" stopColor={silverColor} />
-              <stop offset="100%" stopColor={silverDark} />
-            </linearGradient>
-            {/* Gold gradient - middle layer */}
-            <linearGradient id="ims-gold" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor={goldLight} />
-              <stop offset="50%" stopColor={goldColor} />
-              <stop offset="100%" stopColor={goldDark} />
-            </linearGradient>
-            {/* Blue gradient - bottom layer */}
-            <linearGradient id="ims-blue" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor={blueLight} />
-              <stop offset="50%" stopColor={blueColor} />
-              <stop offset="100%" stopColor={blueDark} />
-            </linearGradient>
-            {/* Inner face shading (darker side of chevron) */}
-            <linearGradient id="ims-silver-dark" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor={silverColor} />
-              <stop offset="100%" stopColor={silverDark} />
-            </linearGradient>
-            <linearGradient id="ims-gold-dark" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor={goldColor} />
-              <stop offset="100%" stopColor={goldDark} />
-            </linearGradient>
-            <linearGradient id="ims-blue-dark" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor={blueColor} />
-              <stop offset="100%" stopColor={blueDark} />
-            </linearGradient>
-          </defs>
-
-          {/* Top: Silver pyramid/diamond (solid) */}
-          <polygon points="45,3 80,22 45,28 10,22" fill="url(#ims-silver)" stroke={silverDark} strokeWidth="0.5" />
-          {/* Silver face shading (right side darker) */}
-          <polygon points="45,3 80,22 45,28" fill="url(#ims-silver-dark)" opacity="0.35" />
-
-          {/* Middle: Gold chevron (pointing down) */}
-          <polygon points="10,30 45,49 80,30 80,38 45,57 10,38" fill="url(#ims-gold)" stroke={goldDark} strokeWidth="0.5" />
-          <polygon points="45,49 80,30 80,38 45,57" fill="url(#ims-gold-dark)" opacity="0.3" />
-
-          {/* Bottom: Blue chevron (pointing down) */}
-          <polygon points="10,46 45,65 80,46 80,55 45,75 10,55" fill="url(#ims-blue)" stroke={blueDark} strokeWidth="0.5" />
-          <polygon points="45,65 80,46 80,55 45,75" fill="url(#ims-blue-dark)" opacity="0.3" />
-        </svg>
-
-        {/* iMS text - navy with gold outline */}
-        <div style={{display: 'flex', alignItems: 'baseline', fontFamily: 'Inter, sans-serif', position: 'relative'}}>
-          <span style={{
-            fontSize: `${s.txt}px`,
-            fontWeight: 800,
-            color: txtColor,
-            letterSpacing: '-0.04em',
-            lineHeight: 0.9,
-            WebkitTextStroke: size === 'xl' || size === 'lg' ? `1px ${goldColor}` : `0.5px ${goldColor}`,
-            textShadow: inverted ? 'none' : `1px 1px 0 ${goldColor}40`,
-          }}>
-            <span style={{fontStyle: 'normal'}}>i</span>MS
-          </span>
-        </div>
-      </div>
-
-      {showTagline && (
-        <div style={{marginTop: `${s.gap * 1.2}px`, width: '100%'}}>
-          {/* Gold underline */}
-          <div style={{height: '2px', background: `linear-gradient(90deg, ${goldDark}, ${goldLight}, ${goldDark})`, marginBottom: `${s.gap}px`}} />
-          {/* Main subtitle */}
-          <div style={{
-            fontFamily: 'Inter, sans-serif',
-            fontSize: `${s.sub}px`,
-            fontWeight: 700,
-            color: subColor,
-            letterSpacing: '0.02em',
-            textTransform: 'uppercase',
-            WebkitTextStroke: (size === 'xl' || size === 'lg') ? `0.3px ${goldColor}` : 'none',
-          }}>
-            Integrated Monitoring System
-          </div>
-        </div>
-      )}
+    <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+      <img 
+        src={logoKecil} 
+        alt="Logo IMS HNTI" 
+        style={{ width: logoWidth, height: 'auto', objectFit: 'contain' }} 
+      />
     </div>
   );
 });
-
+// ====================================
 // Global styles
 const GlobalStyles = () => (
   <style>{`

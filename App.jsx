@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { TrendingUp, FileText, Briefcase, Plus, Search, Edit2, Trash2, X, ArrowUpRight, ArrowDownRight, Activity, DollarSign, Users, Clock, Globe, LogOut, Shield, Wrench, Truck, Wallet, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, FileCheck, Menu, ChevronDown, ChevronRight, ChevronLeft, ClipboardList, Star, Settings, ShieldCheck, CalendarDays, AlertTriangle, FileSearch, UserPlus, UserCheck, UserX, Plane, Receipt, Hotel, RefreshCw, History, FolderOpen, Upload, MessageSquare, Download, Target, Layers, FileBarChart, Paperclip, Bell } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Area, ComposedChart } from 'recharts';
-
+import logoFull from './logo.png';
+import logoKecil from './logo3.jpg';
 const DEFAULT_USD_IDR = 18000;
 
 // ============== i18n ==============
@@ -656,7 +657,7 @@ const translations = {
     btr_proof_help: 'Upload struk/bill ke Google Drive, lalu paste URL share-nya',
     btr_no_proof_allowance: 'Allowance tidak perlu bukti (hak karyawan)',
     btr_actual_allowance: 'Allowance Aktual',
-    btr_actual_allowance_help: 'Otomatis = hari aktual × tarif harian (di-prorate jika pulang lebih cepat)',
+    btr_actual_allowance_help: 'Otomatis = hari aktual × tarif harian (di-prorate jIka Aprianipulang lebih cepat)',
     btr_total_actual: 'Total Realisasi',
     btr_difference: 'Selisih',
     btr_difference_return: 'Kelebihan (karyawan kembalikan)',
@@ -1362,11 +1363,11 @@ const translations = {
 // ============== 5 Sales Team — synced with user spec ==============
 const SALES_TEAM = [
   { id: 'lukman', name: 'Lukman Effendi', initial: 'LE', territory: 'Jateng + DIY B', territoryEn: 'Central Java + DIY B', accent: '#1a6bb0' },
-  { id: 'hatim', name: 'Hatim Tirmidzi', initial: 'HT', territory: 'Jateng A', territoryEn: 'Central Java A', accent: '#d4780a' },
+  { id: 'hatim', name: 'Ahmad Hatim Ashshidiqmidzi', initial: 'HT', territory: 'Jateng A', territoryEn: 'Central Java A', accent: '#d4780a' },
   { id: 'dwi', name: 'Dwi Wahyudianto', initial: 'DW', territory: 'Jabodetabek + Jabar', territoryEn: 'Jabodetabek + West Java', accent: '#c03030' },
   { id: 'tri', name: 'Tri Sutjahjono', initial: 'TS', territory: 'Jatim 1', territoryEn: 'East Java 1', accent: '#12855a' },
   { id: 'bagus', name: 'Bagus Iswahyudi', initial: 'BI', territory: 'Jatim 2', territoryEn: 'East Java 2', accent: '#7b3fb5' },
-  { id: 'icha', name: 'Ika Apriani Pratiwi', initial: 'IA', territory: 'Jabodetabek + Jabar (bawah Dwi)', territoryEn: 'Jabodetabek + West Java (under Dwi)', accent: '#d4a8c8', supervisedBy: 'dwi' },
+  { id: 'icha', name: 'Ika Apriani', initial: 'IA', territory: 'Jabodetabek + Jabar (bawah Dwi)', territoryEn: 'Jabodetabek + West Java (under Dwi)', accent: '#d4a8c8', supervisedBy: 'dwi' },
   { id: 'office', name: 'HNT Indonesia (Office)', initial: 'HO', territory: 'Nasional', territoryEn: 'Nationwide', accent: '#1a2942', isOffice: true },
 ];
 
@@ -1459,20 +1460,20 @@ const POSITION_ALLOWANCE = {
 const USERS = {
   'ceo': { password: 'hnti2026', role: 'super_admin', name: 'Fajrin Abdillah', initial: 'F', position: 'Direksi', allowancePerDay: 500000, active: true },
   'gm': { password: 'hnti2026', role: 'gm', name: 'Endah Purwitasari', initial: 'EP', position: 'General Manager', allowancePerDay: 175000, active: true },
-  'manager_ops': { password: 'hnti2026', role: 'manager_ops', name: 'Novan Restu Pradana', initial: 'NR', position: 'Manager Operasional', allowancePerDay: 175000, active: true },
-  'admin': { password: 'hnti2026', role: 'admin', name: 'Siti Rahayu', initial: 'SR', position: 'Manager', allowancePerDay: 175000, active: true },
-  'teknisi': { password: 'hnti2026', role: 'technician', name: 'Budi Hartono', initial: 'BH', position: 'Supervisor', allowancePerDay: 150000, active: true },
-  'teknisi2': { password: 'hnti2026', role: 'technician', name: 'Rudi Susanto', initial: 'RS', position: 'Teknisi', allowancePerDay: 130000, active: true },
-  'teknisi3': { password: 'hnti2026', role: 'technician', name: 'Eko Prasetyo', initial: 'EP', position: 'Teknisi', allowancePerDay: 130000, active: true },
-  'ops': { password: 'hnti2026', role: 'operations', name: 'Andi Pratama', initial: 'AP', position: 'Supervisor', allowancePerDay: 150000, active: true },
-  'finance': { password: 'hnti2026', role: 'finance', name: 'Maya Sari Wijayanti', initial: 'MS', position: 'Manager', allowancePerDay: 175000, active: true },
-  'regulatory': { password: 'hnti2026', role: 'regulatory', name: 'Rini Wahyuni', initial: 'RW', position: 'Supervisor', allowancePerDay: 150000, active: true },
+  'manager_ops': { password: 'hnti2026', role: 'manager_ops', name: 'Novan Restu Aryanto', initial: 'NR', position: 'Manager Operasional', allowancePerDay: 175000, active: true },
+  'admin': { password: 'hnti2026', role: 'admin', name: 'Tria Mailawati', initial: 'SR', position: 'Manager', allowancePerDay: 175000, active: true },
+  'teknisi': { password: 'hnti2026', role: 'technician', name: 'Robby Dwi Setiawan', initial: 'BH', position: 'Supervisor', allowancePerDay: 150000, active: true },
+  'teknisi2': { password: 'hnti2026', role: 'technician', name: 'Muhammad Yusuf', initial: 'RS', position: 'Teknisi', allowancePerDay: 130000, active: true },
+  'teknisi3': { password: 'hnti2026', role: 'technician', name: 'Muh. Nur Ichsan', initial: 'EP', position: 'Teknisi', allowancePerDay: 130000, active: true },
+  'ops': { password: 'hnti2026', role: 'operations', name: 'Fahmi Alifudin', initial: 'AP', position: 'Supervisor', allowancePerDay: 150000, active: true },
+  'finance': { password: 'hnti2026', role: 'finance', name: 'Riris Elia', initial: 'MS', position: 'Manager', allowancePerDay: 175000, active: true },
+  'regulatory': { password: 'hnti2026', role: 'regulatory', name: 'Ananda Rifki Bayu Saputra', initial: 'RW', position: 'Supervisor', allowancePerDay: 150000, active: true },
   'lukman': { password: 'hnti2026', role: 'sales', name: 'Lukman Effendi', initial: 'LE', salesId: 'lukman', position: 'Staff', allowancePerDay: 130000, active: true },
-  'hatim': { password: 'hnti2026', role: 'sales', name: 'Hatim Tirmidzi', initial: 'HT', salesId: 'hatim', position: 'Staff', allowancePerDay: 130000, active: true },
+  'hatim': { password: 'hnti2026', role: 'sales', name: 'Ahmad Hatim Ashshidiqmidzi', initial: 'HT', salesId: 'hatim', position: 'Staff', allowancePerDay: 130000, active: true },
   'dwi': { password: 'hnti2026', role: 'sales', name: 'Dwi Wahyudianto', initial: 'DW', salesId: 'dwi', position: 'Manager', allowancePerDay: 175000, active: true },
   'tri': { password: 'hnti2026', role: 'sales', name: 'Tri Sutjahjono', initial: 'TS', salesId: 'tri', position: 'Manager', allowancePerDay: 175000, active: true },
   'bagus': { password: 'hnti2026', role: 'sales', name: 'Bagus Iswahyudi', initial: 'BI', salesId: 'bagus', position: 'Manager', allowancePerDay: 175000, active: true },
-  'icha': { password: 'hnti2026', role: 'sales', name: 'Ika Apriani Pratiwi', initial: 'IA', salesId: 'icha', position: 'Staff', allowancePerDay: 130000, active: true },
+  'icha': { password: 'hnti2026', role: 'sales', name: 'Ika Apriani', initial: 'IA', salesId: 'icha', position: 'Staff', allowancePerDay: 130000, active: true },
   'office': { password: 'hnti2026', role: 'sales', name: 'HNT Indonesia (Office)', initial: 'HO', salesId: 'office', isOffice: true, position: '-', allowancePerDay: 0, active: true },
 };
 
@@ -1522,7 +1523,7 @@ function resolveEmpName(employees, val) {
 }
 
 // Resolve any seed technician name embedded inside a free-text string (e.g. training instructor
-// "Budi Hartono + Aplikator") to the current live employee name, so renamed staff never leak.
+// "Robby Dwi Setiawan + Aplikator") to the current live employee name, so renamed staff never leak.
 function resolveNamesInText(employees, text) {
   if (!text || !employees) return text || '';
   let out = String(text);
@@ -1593,21 +1594,21 @@ const PRODUCT_MASTER_SEED = [
   // === MRI (ANKE / Shenzhen Anke High-Tech, China) ===
   { id: 'prod_mri_15t_hfm', name: 'MRI 1.5 Tesla', modality: 'MRI', brand: 'ANKE', type: 'Supermark 1.5T HFM', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Non-Helium 1.5Tesla MRI System' },
   { id: 'prod_mri_15t_art', name: 'MRI 1.5 Tesla', modality: 'MRI', brand: 'ANKE', type: 'Supermark 1.5T ART', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Less-Helium 1.5Tesla MRI System (700 Liter)' },
-  { id: 'prod_mri_30t', name: 'MRI 3.0T Supermark', modality: 'MRI', brand: 'ANKE', type: 'Supermark 590D', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Premium 3.0T research-grade' },
+  { id: 'prod_mri_30t', name: 'MRI 3.0T Supermark', modality: 'MRI', brand: 'ANKE', type: 'Supermark S900', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Premium 3.0T research-grade' },
   // === CT Scan (ANKE, China) ===
   { id: 'prod_ct64_cardiac', name: 'CT 64 Slice Cardiac', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom Clarity', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'CT 64-slice cardiac' },
   { id: 'prod_ct128_premium', name: 'CT 128 Slice Premium', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom Precision', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'High-end diagnostic CT' },
   { id: 'prod_ct32', name: 'CT 32 Slice', modality: 'CT Scan', brand: 'Supermark', type: 'Anatom C201', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'Budget-friendly entry CT' },
   { id: 'prod_ct64_noncardiac', name: 'CT 64 Slice Non-Cardiac', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom C206', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'CT 64-slice non-cardiac' },
-  { id: 'prod_ct128_basic', name: 'CT 128 Slice Basic', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom C408', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'CT 128-slice budget-friendly' },
-  // === C-Arm (5G Healthcare, Korea) ===
-  { id: 'prod_carm_5kw', name: 'Mobile C-Arm', modality: 'C-Arm', brand: '5G Healthcare', type: 'Garion 5kW', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Standard surgical C-Arm' },
-  { id: 'prod_carm_15kw', name: 'Mobile C-Arm', modality: 'C-Arm', brand: '5G Healthcare', type: 'Garion 15kW', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Advance surgical C-Arm' },
-  // === X-Ray (5G Healthcare Korea + Precision China) ===
-  { id: 'prod_xray_stat500', name: 'X-Ray Stationary 500mA', modality: 'X-Ray Stationer', brand: '5G Healthcare', type: 'Jumong General', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'General X-Ray floor mounted 500mA' },
-  { id: 'prod_xray_ceiling500', name: 'X-Ray Ceiling 500mA', modality: 'X-Ray Ceiling', brand: '5G Healthcare', type: 'Jumong General', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'General X-Ray ceiling mounted 500mA' },
-  { id: 'prod_xray_mobile100', name: 'X-ray Mobile 100mA', modality: 'X-Ray Mobile', brand: '5G Healthcare', type: 'Jumong Mobile 5kW', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Entry Level X-Ray machine' },
-  { id: 'prod_xray_portable', name: 'X-Ray Portable', modality: 'X-Ray Portable', brand: 'Precision', type: 'DJPS5DR', origin: 'China', principal: 'Daeji Medical Equipment', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Portable X-Ray for ICU/ER/TB screening use' },
+  { id: 'prod_ct128_basic', name: 'CT 128 Slice Basic', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom C409', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'CT 128-slice budget-friendly' },
+  // === C-Arm (SG Healthcare, Korea) ===
+  { id: 'prod_carm_5kw', name: 'Mobile C-Arm', modality: 'C-Arm', brand: 'SG Healthcare', type: 'Garion 5kW', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Standard surgical C-Arm' },
+  { id: 'prod_carm_15kw', name: 'Mobile C-Arm', modality: 'C-Arm', brand: 'SG Healthcare', type: 'Garion 15kW', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Advance surgical C-Arm' },
+  // === X-Ray (SG Healthcare Korea + Precision China) ===
+  { id: 'prod_xray_stat500', name: 'X-Ray Stationary 500mA', modality: 'X-Ray Stationer', brand: 'SG Healthcare', type: 'Jumong General', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'General X-Ray floor mounted 500mA' },
+  { id: 'prod_xray_ceiling500', name: 'X-Ray Ceiling 500mA', modality: 'X-Ray Ceiling', brand: 'SG Healthcare', type: 'Jumong General', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'General X-Ray ceiling mounted 500mA' },
+  { id: 'prod_xray_mobile100', name: 'X-ray Mobile 100mA', modality: 'X-Ray Mobile', brand: 'SG Healthcare', type: 'Jumong Mobile 5kW', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Entry Level X-Ray machine' },
+  { id: 'prod_xray_portable', name: 'X-Ray Portable', modality: 'X-Ray Portable', brand: 'Precision', type: 'DJP05DR', origin: 'China', principal: 'Daoji Medical Equipment', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Portable X-Ray for ICU/ER/TB screening use' },
   // === Mammography (SINO MDT, China) ===
   { id: 'prod_mammo_3d', name: 'Mammography 3D Tomosynthesis', modality: 'Mammography', brand: 'SINO MDT', type: 'Navigator 1000A', origin: 'China', principal: 'SINO MDT', tkdn: 0, akl: 'KEMENKES RI AKL 10303550XXX', active: true, notes: '3D digital mammography with tomosynthesis' },
   { id: 'prod_mammo_2d', name: 'Mammography 2D Digital', modality: 'Mammography', brand: 'SINO MDT', type: 'Navigator DRCare', origin: 'China', principal: 'SINO MDT', tkdn: 0, akl: 'KEMENKES RI AKL 10303550XXX', active: true, notes: '2D digital mammography' },
@@ -1692,7 +1693,7 @@ const SEED_SPH = [
   mk('p21b','SPH/2026/P21B','RS Panti Rapih Yogyakarta','hospital','private','C-Arm','C-Arm Garion',1,2400000000,'lukman','DIY','po_issued',{status:'won',dpPaid:true,manifestId:'mfst_001',customsStatus:'ongoing'}),
   mk('p21c','SPH/2026/P21C','RS Telogorejo Semarang','hospital','private','ESWL','ESWL Tipe 109X',1,5200000000,'hatim','Jateng A','po_issued',{status:'won',dpPaid:true,manifestId:'mfst_003',customsStatus:'hold',customsStatusNote:'Tertahan di Bea Cukai Tanjung Priok — menunggu dokumen COO (Certificate of Origin) dari principal Hyde Medical. Estimasi rilis 3-5 hari kerja.'}),
   mk('p22','SPH/2026/P22','RS Permata Hati Yogyakarta','hospital','private','MRI','MRI 1.5T',1,13800000000,'lukman','DIY','lost',{status:'lost',probability:0}),
-  mk('p23','SPH/2026/P23','RS Pertamedika Sentul','hospital','private','X-Ray','X-Ray Digital DR',1,1850000000,'dwi','Jabodetabek','sph_sent'),
+  mk('p23','SPH/2026/P23','RS PertamedIka AprianiSentul','hospital','private','X-Ray','X-Ray Digital DR',1,1850000000,'dwi','Jabodetabek','sph_sent'),
   mk('p24','SPH/2026/P24','RS Sari Asih Tangerang','hospital','private','C-Arm','C-Arm Surgical',1,2300000000,'dwi','Jabodetabek','sph_sent'),
   mk('p25','SPH/2026/P25','RS Lavalette Malang','hospital','private','CT Scan','CT 64 Slice',1,6000000000,'tri','Jatim 1','presentation_scheduled'),
   mk('p26','SPH/2026/P26','RS Permata Bunda Medan','hospital','private','Mammography','Mammo Digital',1,3700000000,'dwi','Jabodetabek','sph_sent'),
@@ -1702,14 +1703,14 @@ const SEED_SPH = [
   mk('c2','SPH/2026/C02','Klinik Imaging Solo','clinic','private','X-Ray','X-Ray Konvensional',1,1200000000,'lukman','Solo','presentation_done'),
   mk('c3','SPH/2026/C03','Klinik Radiologi Hermina Bekasi','clinic','private','X-Ray','X-Ray Digital DR',1,1700000000,'dwi','Jabodetabek','sph_sent'),
   mk('c4','SPH/2026/C04','Klinik Imaging Bandung','clinic','private','CT Scan','CT 16 Slice',1,3500000000,'dwi','Jabar','sph_sent'),
-  mk('c5','SPH/2026/C05','Klinik Diagnostika Surabaya','clinic','private','Mammography','Mammo Digital',1,3700000000,'bagus','Jatim 2','sph_sent'),
+  mk('c5','SPH/2026/C05','Klinik DiagnostIka AprianiSurabaya','clinic','private','Mammography','Mammo Digital',1,3700000000,'bagus','Jatim 2','sph_sent'),
   mk('c6','SPH/2026/C06','Klinik Pratama Yogya','clinic','private','X-Ray','X-Ray Mobile',1,1500000000,'lukman','DIY','sph_sent'),
   mk('c7','SPH/2026/C07','Klinik Radiologi Cikarang','clinic','private','CT Scan','CT 16 Slice',1,3400000000,'dwi','Jabodetabek','sph_sent'),
   mk('c8','SPH/2026/C08','Klinik Imaging Malang','clinic','private','X-Ray','X-Ray Digital DR',1,1750000000,'tri','Jatim 1','sph_sent'),
   // 3 sub-dealers
   mk('sd1','SPH/2026/SD1','PT Mitra Radiologi Nusantara','subdistributor','private','X-Ray','X-Ray Mobile',3,1850000000,'dwi','Jabodetabek','negotiation',{probability:70}),
-  mk('sd2','SPH/2026/SD2','PT Sentra Medika Surabaya','subdistributor','private','C-Arm','C-Arm Surgical',2,2250000000,'bagus','Jatim 2','sph_sent'),
-  mk('sd3','SPH/2026/SD3','PT Radindo Medika Bandung','subdistributor','private','X-Ray','X-Ray Digital DR',2,1750000000,'dwi','Jabar','sph_sent'),
+  mk('sd2','SPH/2026/SD2','PT Sentra MedIka AprianiSurabaya','subdistributor','private','C-Arm','C-Arm Surgical',2,2250000000,'bagus','Jatim 2','sph_sent'),
+  mk('sd3','SPH/2026/SD3','PT Radindo MedIka AprianiBandung','subdistributor','private','X-Ray','X-Ray Digital DR',2,1750000000,'dwi','Jabar','sph_sent'),
 
   // ===== BUMN/TENDER 7 SPH (3 in tender, 4 earlier stage) =====
   mk('t1','SPH/2026/T01','RS Pertamina Jaya','hospital','tender','CT Scan','CT 128 Slice',1,8500000000,'dwi','Jabodetabek','tender',{tenderSubStage:'bid_opening',probability:55}),
@@ -1755,14 +1756,14 @@ const SEED_SPH = [
   mk('k8','SPH/2026/K08','RS Urologi Surabaya','hospital','kso','ESWL','ESWL Compact',1,4500000000,'bagus','Jatim 2','negotiation',{probability:65}),
   mk('k9','SPH/2026/K09','RS Sumber Waras Cirebon','hospital','kso','ESWL','ESWL Compact',1,4500000000,'dwi','Jabar','presentation_scheduled'),
   mk('k10','SPH/2026/K10','RS PMI Bogor','hospital','kso','ESWL','ESWL Compact',1,4400000000,'dwi','Jabodetabek','sph_sent'),
-  mk('k11','SPH/2026/K11','RS Krakatau Medika Cilegon','hospital','kso','ESWL','ESWL Compact',1,4400000000,'dwi','Jabodetabek','sph_sent'),
+  mk('k11','SPH/2026/K11','RS Krakatau MedIka AprianiCilegon','hospital','kso','ESWL','ESWL Compact',1,4400000000,'dwi','Jabodetabek','sph_sent'),
 ];
 
 // ============== Business Partners ==============
 // Catatan #4: product chips are DERIVED from the Product Master (by brand match) so they always
 // stay in sync. Each partner lists the master brand(s) it represents; products auto-populate.
 const BUSINESS_PARTNERS = [
-  { id: 'sg', name: 'SG Healthcare', country: 'Korea', flag: '🇰🇷', color: '#1a4d8a', status: 'active', brands: ['5G Healthcare'] },
+  { id: 'sg', name: 'SG Healthcare', country: 'Korea', flag: '🇰🇷', color: '#1a4d8a', status: 'active', brands: ['SG Healthcare'] },
   { id: 'anke', name: 'ANKE', country: 'China', flag: '🇨🇳', color: '#c03030', status: 'active', brands: ['ANKE', 'Supermark'] },
   { id: 'sino', name: 'SINO MDT', country: 'China', flag: '🇨🇳', color: '#d4780a', status: 'active', brands: ['SINO MDT'] },
   { id: 'hyde', name: 'Hyde Medical', country: 'China', flag: '🇨🇳', color: '#7b3fb5', status: 'active', brands: ['Hyde Medical (HAMSKI XR)'] },
@@ -1821,7 +1822,7 @@ function generateBulkSPH() {
     'RSUD Madiun', 'RSUD Ngawi', 'RS PHC Surabaya', 'RS Bhayangkara Surabaya',
     'RS Brawijaya Tangerang', 'RS Mayapada Jakarta', 'RS Pondok Indah Jakarta',
     'RSUD Pasar Minggu', 'RSUD Koja', 'RS Jantung Harapan Kita',
-    'RSUD Cibinong', 'RS Pertamedika Jakarta', 'RS Mitra Keluarga Kelapa Gading',
+    'RSUD Cibinong', 'RS PertamedIka AprianiJakarta', 'RS Mitra Keluarga Kelapa Gading',
     'RSUD Karawang', 'RS Hermina Bekasi', 'RSUD Depok',
     'RS Hermina Solo', 'RS Indriati Solo', 'RSUD Karanganyar',
     'RSUD Sragen', 'RS PKU Muhammadiyah Yogyakarta', 'RS Panti Rapih Yogyakarta',
@@ -1872,7 +1873,7 @@ function generateBulkSPH() {
     'RSUD Wonosari', 'RSUD Bantul', 'RSUD Sleman', 'RS JIH Yogyakarta',
     'RS Permata Hati Tuban', 'RS Mitra Sehat Klaten', 'RS Charlie Madiun',
     'RS Annisa Tangerang', 'RS Pertamina Cilacap', 'RS Pelni Jakarta',
-    'RS Krakatau Medika Cilegon', 'RS PMI Bogor', 'RS Sumber Waras Cirebon',
+    'RS Krakatau MedIka AprianiCilegon', 'RS PMI Bogor', 'RS Sumber Waras Cirebon',
     'RS Urologi Surabaya', 'RS Margono Purwokerto', 'RS Mardi Rahayu Kudus',
     'RS Pondok Indah Bintaro', 'Klinik Imaging Solo', 'Klinik Radiologi Prima',
     'RSUD Cirebon', 'RSUD Tegal', 'RSUD Pati', 'RSUD Pasuruan',
@@ -2193,7 +2194,7 @@ const HNTI_OFFICE_SPH = [
     paymentTerm: 'dp_6', paymentReceivedPct: 0 },
 ];
 
-// ============== Icha (Ika Apriani) SPH — Sales Staff baru bawah Dwi, Apr-Mei 2026 ==============
+// ============== Icha (Ika AprianiApriyaniani) SPH — Sales Staff baru bawah Dwi, Apr-Mei 2026 ==============
 // Belum ada PO menang. Semua status: 'active'. Sesuai konsep: masih dalam proses penjualan.
 const ICHA_SPH = [
   { id: 'icha_2026_001', sphNo: 'SPH/2026/IC-01',
@@ -2274,12 +2275,12 @@ const SPH_PRODUCT_NORMALIZATION = {
   'MRI::MRI 1.5T Supermark': { modality: 'MRI', subModality: 'Supermark 1.5T HFM' },
   'MRI::MRI 1.5T': { modality: 'MRI', subModality: 'Supermark 1.5T HFM' },
   'MRI::MRI 0.5T Opemark 5000': { modality: 'MRI', subModality: 'Supermark 1.5T ART' },
-  'MRI::MRI 3.0T': { modality: 'MRI', subModality: 'Supermark 590D' },
+  'MRI::MRI 3.0T': { modality: 'MRI', subModality: 'Supermark S900' },
   'CT Scan::CT 64 Slice Anatom Clarity': { modality: 'CT Scan', subModality: 'Anatom Clarity' },
   'CT Scan::CT 128 Slice Anatom Precision': { modality: 'CT Scan', subModality: 'Anatom Precision' },
   'CT Scan::CT 32 Slice C201': { modality: 'CT Scan', subModality: 'Anatom C201' },
   'CT Scan::CT 32 Slice': { modality: 'CT Scan', subModality: 'Anatom C201' },
-  'CT Scan::CT 128 Slice': { modality: 'CT Scan', subModality: 'Anatom C408' },
+  'CT Scan::CT 128 Slice': { modality: 'CT Scan', subModality: 'Anatom C409' },
   'CT Scan::CT 64 Slice': { modality: 'CT Scan', subModality: 'Anatom C206' },
   'C-Arm::C-Arm Garion': { modality: 'C-Arm', subModality: 'Garion 5kW' },
   'C-Arm::C-Arm Surgical': { modality: 'C-Arm', subModality: 'Garion 5kW' },
@@ -2291,7 +2292,7 @@ const SPH_PRODUCT_NORMALIZATION = {
   'X-Ray::X-Ray Digital DR': { modality: 'X-Ray Stationer', subModality: 'Jumong General' },
   'X-Ray::X-Ray Ceiling 500mA': { modality: 'X-Ray Ceiling', subModality: 'Jumong General' },
   'X-Ray::Flat Panel Detector': { modality: 'Flat Panel Detector', subModality: 'V17C' },
-  'X-Ray::X-Ray Portable': { modality: 'X-Ray Portable', subModality: 'DJPS5DR' },
+  'X-Ray::X-Ray Portable': { modality: 'X-Ray Portable', subModality: 'DJP05DR' },
   'Mammography::Mammo 3D': { modality: 'Mammography', subModality: 'Navigator 1000A' },
   'Mammography::Mammo Tomosynthesis': { modality: 'Mammography', subModality: 'Navigator 1000A' },
   'Mammography::Mammo 2D Navigator': { modality: 'Mammography', subModality: 'Navigator DRCare' },
@@ -2911,7 +2912,7 @@ const SEED_FIELD_REPORTS = [
     next: 'Close PO RS Mayapada Kuningan CT 64 sebelum 20 Mei',
     fatigue: 1, createdAt: '2026-05-07T17:30:00.000Z' },
 
-  // ============= ICHA (Ika Apriani) — Sales Staff baru bawah Dwi, mulai April 2026 ==============
+  // ============= ICHA (Ika AprianiApriyaniani) — Sales Staff baru bawah Dwi, mulai April 2026 ==============
   { id: 'rpt_icha_w1', salesId: 'icha', date: '2026-04-04', week: 'Minggu 1',
     days: 4, nights: 0, area: 'Jakarta Pusat + Tangerang (training & onboarding)',
     visits: [
@@ -3020,12 +3021,12 @@ function generateInstalledUnits() {
 
 // ============== Maintenance Issues (Repairs & Complaints) ==============
 const SEED_ISSUES = [
-  { id: 'iss1', type: 'repair', unitId: null, customer: 'RS Husada Utama Surabaya', modality: 'CT Scan', subModality: 'CT 64 Slice Anatom Clarity', issue: 'Image artifact pada slice tipis, kalibrasi diperlukan', priority: 'high', status: 'progress', reportedDate: '2026-05-08', technician: 'Budi Hartono', note: 'Spare part dipesan dari ANKE, ETA 5 hari' },
-  { id: 'iss2', type: 'repair', unitId: null, customer: 'RSUD Banyumas', modality: 'X-Ray', subModality: 'X-Ray Stationary 500mA', issue: 'Tube X-Ray tidak emit, suspect tube failure', priority: 'critical', status: 'open', reportedDate: '2026-05-12', technician: 'Rudi Susanto', note: 'Klaim garansi SG Healthcare diajukan' },
-  { id: 'iss3', type: 'complaint', unitId: null, customer: 'RS Premier Bintaro', modality: 'MRI', subModality: 'MRI 1.5T Supermark', issue: 'Antrian pasien lama, request training operator lanjutan', priority: 'medium', status: 'progress', reportedDate: '2026-05-05', technician: 'Eko Prasetyo', note: 'Training scheduled minggu depan' },
-  { id: 'iss4', type: 'complaint', unitId: null, customer: 'RSUD Tarakan Jakarta', modality: 'C-Arm', subModality: 'C-Arm Garion', issue: 'Software update request untuk workflow OK', priority: 'low', status: 'resolved', reportedDate: '2026-04-20', technician: 'Budi Hartono', note: 'Update v2.3 terinstall, training done' },
-  { id: 'iss5', type: 'repair', unitId: null, customer: 'RS Hermina Galaxy', modality: 'CT Scan', subModality: 'CT 128 Slice Anatom Precision', issue: 'Console PC hang berkala', priority: 'medium', status: 'resolved', reportedDate: '2026-04-15', technician: 'Rudi Susanto', note: 'Re-image OS dan firmware update' },
-  { id: 'iss6', type: 'complaint', unitId: null, customer: 'RSUD Banyuwangi', modality: 'Mammography', subModality: 'Mammo 2D Navigator', issue: 'Kualitas film print kurang tajam', priority: 'medium', status: 'open', reportedDate: '2026-05-14', technician: 'Eko Prasetyo', note: 'Check printer cartridge dan kalibrasi' },
+  { id: 'iss1', type: 'repair', unitId: null, customer: 'RS Husada Utama Surabaya', modality: 'CT Scan', subModality: 'CT 64 Slice Anatom Clarity', issue: 'Image artifact pada slice tipis, kalibrasi diperlukan', priority: 'high', status: 'progress', reportedDate: '2026-05-08', technician: 'Robby Dwi Setiawan', note: 'Spare part dipesan dari ANKE, ETA 5 hari' },
+  { id: 'iss2', type: 'repair', unitId: null, customer: 'RSUD Banyumas', modality: 'X-Ray', subModality: 'X-Ray Stationary 500mA', issue: 'Tube X-Ray tidak emit, suspect tube failure', priority: 'critical', status: 'open', reportedDate: '2026-05-12', technician: 'Muhammad Yusuf', note: 'Klaim garansi SG Healthcare diajukan' },
+  { id: 'iss3', type: 'complaint', unitId: null, customer: 'RS Premier Bintaro', modality: 'MRI', subModality: 'MRI 1.5T Supermark', issue: 'Antrian pasien lama, request training operator lanjutan', priority: 'medium', status: 'progress', reportedDate: '2026-05-05', technician: 'Muh. Nur Ichsan', note: 'Training scheduled minggu depan' },
+  { id: 'iss4', type: 'complaint', unitId: null, customer: 'RSUD Tarakan Jakarta', modality: 'C-Arm', subModality: 'C-Arm Garion', issue: 'Software update request untuk workflow OK', priority: 'low', status: 'resolved', reportedDate: '2026-04-20', technician: 'Robby Dwi Setiawan', note: 'Update v2.3 terinstall, training done' },
+  { id: 'iss5', type: 'repair', unitId: null, customer: 'RS Hermina Galaxy', modality: 'CT Scan', subModality: 'CT 128 Slice Anatom Precision', issue: 'Console PC hang berkala', priority: 'medium', status: 'resolved', reportedDate: '2026-04-15', technician: 'Muhammad Yusuf', note: 'Re-image OS dan firmware update' },
+  { id: 'iss6', type: 'complaint', unitId: null, customer: 'RSUD Banyuwangi', modality: 'Mammography', subModality: 'Mammo 2D Navigator', issue: 'Kualitas film print kurang tajam', priority: 'medium', status: 'open', reportedDate: '2026-05-14', technician: 'Muh. Nur Ichsan', note: 'Check printer cartridge dan kalibrasi' },
 ];
 
 // ============== AKL Kemenkes Records (Distribution License) ==============
@@ -3044,7 +3045,7 @@ const SEED_AKL_RECORDS = [
     preregistDate: '2026-04-18', docsDate: '2026-04-25', submitDate: '2026-04-30',
     pnbpDate: '2026-05-05', pnbpAmount: 5000000, evalDate: '2026-05-08',
     fixDate: null, issuedDate: null, aklNo: null,
-    pic: 'Rini Wahyuni',
+    pic: 'Ananda Rifki Bayu Saputra',
     note: 'Tim penilai meminta klarifikasi spesifikasi tabung X-Ray',
   },
   {
@@ -3056,7 +3057,7 @@ const SEED_AKL_RECORDS = [
     preregistDate: '2026-04-25', docsDate: '2026-05-02', submitDate: '2026-05-09',
     pnbpDate: null, pnbpAmount: null, evalDate: null,
     fixDate: null, issuedDate: null, aklNo: null,
-    pic: 'Rini Wahyuni',
+    pic: 'Ananda Rifki Bayu Saputra',
     note: 'Menunggu penerbitan PNBP dari Regalkes',
   },
   {
@@ -3068,7 +3069,7 @@ const SEED_AKL_RECORDS = [
     preregistDate: '2026-05-02', docsDate: null, submitDate: null,
     pnbpDate: null, pnbpAmount: null, evalDate: null,
     fixDate: null, issuedDate: null, aklNo: null,
-    pic: 'Rini Wahyuni',
+    pic: 'Ananda Rifki Bayu Saputra',
     note: 'Sedang melengkapi dokumen teknis & uji klinis dari Angell',
   },
   // Innocare - Taiwan (OEM HAMSKI XR untuk merek HNTI sendiri)
@@ -3081,7 +3082,7 @@ const SEED_AKL_RECORDS = [
     preregistDate: '2026-04-08', docsDate: '2026-04-15', submitDate: '2026-04-20',
     pnbpDate: '2026-04-24', pnbpAmount: 3500000, evalDate: '2026-04-28',
     fixDate: '2026-05-08', issuedDate: null, aklNo: null,
-    pic: 'Rini Wahyuni',
+    pic: 'Ananda Rifki Bayu Saputra',
     note: 'Perbaikan label OEM (merek HNTI) sedang difinalisasi. ETA selesai 18 Mei.',
   },
   // ANKE - existing partner, AKL untuk produk baru
@@ -3094,7 +3095,7 @@ const SEED_AKL_RECORDS = [
     preregistDate: '2026-03-10', docsDate: '2026-03-17', submitDate: '2026-03-22',
     pnbpDate: '2026-03-26', pnbpAmount: 5000000, evalDate: '2026-04-02',
     fixDate: null, issuedDate: '2026-04-18', aklNo: 'AKL 20603022826',
-    pic: 'Rini Wahyuni',
+    pic: 'Ananda Rifki Bayu Saputra',
     note: 'AKL terbit tepat waktu (28 hari kerja). Berlaku hingga April 2031.',
   },
   // SG Healthcare - existing partner, AKL update
@@ -3107,7 +3108,7 @@ const SEED_AKL_RECORDS = [
     preregistDate: '2026-05-12', docsDate: null, submitDate: null,
     pnbpDate: null, pnbpAmount: null, evalDate: null,
     fixDate: null, issuedDate: null, aklNo: null,
-    pic: 'Rini Wahyuni',
+    pic: 'Ananda Rifki Bayu Saputra',
     note: 'Persiapan pra-registrasi untuk perpanjangan masa berlaku',
   },
 ];
@@ -3120,26 +3121,26 @@ const SEED_IMPORT_RECORDS = [
     product: 'X-Ray Ceiling Digital Premium', stage: 'issued', stageIdx: 4,
     registerDate: '2026-02-15', preregistDate: '2026-02-15', docsDate: '2026-02-22',
     submitDate: '2026-03-01', evalDate: '2026-03-10', issuedDate: '2026-04-05',
-    importPermitNo: 'BAPETEN/IMP/2026/00451', pic: 'Rini Wahyuni',
+    importPermitNo: 'BAPETEN/IMP/2026/00451', pic: 'Ananda Rifki Bayu Saputra',
     note: 'Izin Import terbit, lanjut pengajuan AKL Kemenkes' },
   { id: 'imp_002', principal: 'Angell', principalCountry: 'China',
     product: 'X-Ray Mobile Digital Premium', stage: 'issued', stageIdx: 4,
     registerDate: '2026-02-15', preregistDate: '2026-02-15', docsDate: '2026-02-22',
     submitDate: '2026-03-01', evalDate: '2026-03-10', issuedDate: '2026-04-12',
-    importPermitNo: 'BAPETEN/IMP/2026/00452', pic: 'Rini Wahyuni',
+    importPermitNo: 'BAPETEN/IMP/2026/00452', pic: 'Ananda Rifki Bayu Saputra',
     note: 'Izin Import terbit, lanjut pengajuan AKL Kemenkes' },
   { id: 'imp_003', principal: 'Angell', principalCountry: 'China',
     product: 'Digital Fluoroscopy Premium', stage: 'eval', stageIdx: 3,
     registerDate: '2026-02-15', preregistDate: '2026-02-15', docsDate: '2026-02-22',
     submitDate: '2026-03-05', evalDate: '2026-03-15', issuedDate: null,
-    importPermitNo: null, pic: 'Rini Wahyuni',
+    importPermitNo: null, pic: 'Ananda Rifki Bayu Saputra',
     note: 'Sedang evaluasi BAPETEN - klarifikasi spesifikasi proteksi radiasi' },
   // Innocare - 1 produk (OEM HAMSKI XR)
   { id: 'imp_004', principal: 'Innocare', principalCountry: 'Taiwan',
     product: 'Flat Panel Detector HAMSKI XR', stage: 'issued', stageIdx: 4,
     registerDate: '2026-01-20', preregistDate: '2026-01-20', docsDate: '2026-01-28',
     submitDate: '2026-02-05', evalDate: '2026-02-15', issuedDate: '2026-03-25',
-    importPermitNo: 'BAPETEN/IMP/2026/00280', pic: 'Rini Wahyuni',
+    importPermitNo: 'BAPETEN/IMP/2026/00280', pic: 'Ananda Rifki Bayu Saputra',
     note: 'Izin Import terbit, AKL Kemenkes dalam proses fix' },
 ];
 
@@ -3150,27 +3151,27 @@ const SEED_PENGALIHAN_RECORDS = [
     subModality: 'CT 128 Slice Anatom Precision', destination: 'Semarang',
     stage: 'issued', stageIdx: 2, submitDate: '2025-08-12', evalDate: '2025-08-22',
     issuedDate: '2025-09-05', permitNo: 'BAPETEN/PGL/2025/01823',
-    pic: 'Rini Wahyuni', note: 'Pengalihan ke RS Bhakti Wira Tamtama disetujui' },
+    pic: 'Ananda Rifki Bayu Saputra', note: 'Pengalihan ke RS Bhakti Wira Tamtama disetujui' },
   { id: 'pgl_002', customer: 'RS Premier Bintaro', modality: 'MRI',
     subModality: 'MRI 1.5T Supermark', destination: 'Tangerang Selatan',
     stage: 'issued', stageIdx: 2, submitDate: '2025-09-15', evalDate: '2025-09-25',
     issuedDate: '2025-10-10', permitNo: 'BAPETEN/PGL/2025/02145',
-    pic: 'Rini Wahyuni', note: 'Pengalihan ke RS Premier Bintaro disetujui' },
+    pic: 'Ananda Rifki Bayu Saputra', note: 'Pengalihan ke RS Premier Bintaro disetujui' },
   { id: 'pgl_003', customer: 'RSUD Banyumas', modality: 'X-Ray',
     subModality: 'X-Ray Stationary 500mA', destination: 'Banyumas, Jateng',
     stage: 'eval', stageIdx: 1, submitDate: '2026-04-20', evalDate: '2026-05-02',
     issuedDate: null, permitNo: null,
-    pic: 'Rini Wahyuni', note: 'Sedang evaluasi - dokumen tambahan diminta' },
+    pic: 'Ananda Rifki Bayu Saputra', note: 'Sedang evaluasi - dokumen tambahan diminta' },
   { id: 'pgl_004', customer: 'RS Hermina Galaxy', modality: 'CT Scan',
     subModality: 'CT 128 Slice', destination: 'Bekasi',
     stage: 'submit', stageIdx: 0, submitDate: '2026-05-08', evalDate: null,
     issuedDate: null, permitNo: null,
-    pic: 'Rini Wahyuni', note: 'Baru submit, menunggu nomor agenda' },
+    pic: 'Ananda Rifki Bayu Saputra', note: 'Baru submit, menunggu nomor agenda' },
   { id: 'pgl_005', customer: 'RSUD Soewandhie Surabaya', modality: 'C-Arm',
     subModality: 'C-Arm Garion', destination: 'Surabaya',
     stage: 'eval', stageIdx: 1, submitDate: '2026-04-28', evalDate: '2026-05-10',
     issuedDate: null, permitNo: null,
-    pic: 'Rini Wahyuni', note: 'Evaluasi BAPETEN, ETA 2 minggu' },
+    pic: 'Ananda Rifki Bayu Saputra', note: 'Evaluasi BAPETEN, ETA 2 minggu' },
 ];
 
 // ============== Izin Persetujuan Import (PI) - berlaku 21 hari kerja ==============
@@ -3263,31 +3264,31 @@ const SEED_INSTALL_RECORDS = [
   { id: 'inst_001', recordNo: 'BA-INST-2026-001', customer: 'RS Bhakti Wira Tamtama',
     modality: 'CT Scan', subModality: 'CT 128 Slice Anatom Precision',
     installStart: '2026-04-15', installEnd: '2026-04-20', duration: 5,
-    leadTechnician: 'Budi Hartono', teamSize: 3,
+    leadTechnician: 'Robby Dwi Setiawan', teamSize: 3,
     roomReady: true, electricalReady: true, calibrationDone: true,
     status: 'completed', notes: 'Instalasi lancar, kalibrasi sesuai spesifikasi pabrik' },
   { id: 'inst_002', recordNo: 'BA-INST-2026-002', customer: 'RS Premier Bintaro',
     modality: 'MRI', subModality: 'MRI 1.5T Supermark',
     installStart: '2026-03-10', installEnd: '2026-03-25', duration: 15,
-    leadTechnician: 'Budi Hartono', teamSize: 4,
+    leadTechnician: 'Robby Dwi Setiawan', teamSize: 4,
     roomReady: true, electricalReady: true, calibrationDone: true,
     status: 'completed', notes: 'MRI 1.5T butuh shielding khusus, sudah handle dengan baik' },
   { id: 'inst_003', recordNo: 'BA-INST-2026-003', customer: 'RSUD Banyumas',
     modality: 'X-Ray', subModality: 'X-Ray Stationary Jumong General',
     installStart: '2026-04-25', installEnd: null, duration: null,
-    leadTechnician: 'Rudi Susanto', teamSize: 2,
+    leadTechnician: 'Muhammad Yusuf', teamSize: 2,
     roomReady: true, electricalReady: true, calibrationDone: false,
     status: 'progress', notes: 'Sedang dalam tahap testing & calibration' },
   { id: 'inst_004', recordNo: 'BA-INST-2026-004', customer: 'RS Hermina Galaxy Bekasi',
     modality: 'CT Scan', subModality: 'CT 64 Slice Anatom Clarity',
     installStart: '2026-05-08', installEnd: null, duration: null,
-    leadTechnician: 'Budi Hartono', teamSize: 3,
+    leadTechnician: 'Robby Dwi Setiawan', teamSize: 3,
     roomReady: true, electricalReady: false, calibrationDone: false,
     status: 'delayed', notes: 'Tertunda karena instalasi panel listrik dari pihak RS belum selesai' },
   { id: 'inst_005', recordNo: 'BA-INST-2026-005', customer: 'RS Husada Utama Surabaya',
     modality: 'C-Arm', subModality: 'C-Arm Garion',
     installStart: '2026-05-20', installEnd: null, duration: null,
-    leadTechnician: 'Eko Prasetyo', teamSize: 2,
+    leadTechnician: 'Muh. Nur Ichsan', teamSize: 2,
     roomReady: false, electricalReady: false, calibrationDone: false,
     status: 'planning', notes: 'Survey lokasi sudah dilakukan, menunggu RS finalisasi ruangan' },
 ];
@@ -3320,7 +3321,7 @@ const SEED_BAST_RECORDS = [
 const SEED_TRAINING_RECORDS = [
   { id: 'train_001', certNo: 'CERT-HNTI-2026-001', customer: 'RS Bhakti Wira Tamtama',
     modality: 'CT Scan', subModality: 'CT 128 Slice Anatom Precision',
-    sessionDate: '2026-04-21', participants: 4, instructor: 'Budi Hartono + Engineer ANKE',
+    sessionDate: '2026-04-21', participants: 4, instructor: 'Robby Dwi Setiawan + Engineer ANKE',
     duration: 16, topics: 'Operasional dasar, scan protocol, dose management, troubleshooting basic',
     status: 'completed', certUrl: '', notes: 'Training 2 hari, 4 radiografer + 1 dokter spesialis' },
   { id: 'train_002', certNo: 'CERT-HNTI-2026-002', customer: 'RS Premier Bintaro',
@@ -3330,7 +3331,7 @@ const SEED_TRAINING_RECORDS = [
     status: 'completed', certUrl: '', notes: 'Training intensif 3 hari, sertifikat dari ANKE Headquarters' },
   { id: 'train_003', certNo: 'CERT-HNTI-2026-003', customer: 'RSUD Cibinong',
     modality: 'CT Scan', subModality: 'CT 32 Slice C201',
-    sessionDate: '2026-02-12', participants: 3, instructor: 'Budi Hartono',
+    sessionDate: '2026-02-12', participants: 3, instructor: 'Robby Dwi Setiawan',
     duration: 12, topics: 'Operasional, scan protocol dasar, perawatan harian',
     status: 'completed', certUrl: '', notes: 'Training 1.5 hari' },
   { id: 'train_004', certNo: '', customer: 'RSUD Banyumas',
@@ -3460,7 +3461,7 @@ const SEED_BUSINESS_TRIPS = [
 
   // 4. Budi (Teknisi) — PENDING REVIEW GM (sudah approve finance & manager_ops)
   { id: 'bt_2026_004', requestNo: 'BT-2026-004',
-    travelerUsername: 'teknisi', travelerName: 'Budi Hartono', position: 'Supervisor', allowancePerDay: 150000,
+    travelerUsername: 'teknisi', travelerName: 'Robby Dwi Setiawan', position: 'Supervisor', allowancePerDay: 150000,
     destination: 'Banyumas + Cilacap', destinationCity: 'Purwokerto',
     purpose: 'Instalasi X-Ray RSUD Banyumas (lanjutan) + PM CT Scan RSUD Cilacap',
     dateStart: '2026-05-26', dateEnd: '2026-05-30', duration: 5,
@@ -3471,11 +3472,11 @@ const SEED_BUSINESS_TRIPS = [
     },
     officeBooked: { ticketPP: 0, hotelTotal: 1600000, ticketNote: '-', hotelNote: 'Hotel Java Heritage Purwokerto 4 malam' },
     totalAdvance: 100000 + 0 + 300000 + 700000 + 600000 + 200000 + 750000, // 2650000
-    bankAccount: { bankName: 'BRI', accountNo: '003901123456', holderName: 'Budi Hartono' },
+    bankAccount: { bankName: 'BRI', accountNo: '003901123456', holderName: 'Robby Dwi Setiawan' },
     status: 'pending_gm', tripStatus: 'planned', paymentStatus: 'pending',
     paidDate: null, paidAmount: 0, paidProof: '',
     approvalHistory: [
-      { level: 'submit', by: 'teknisi', byName: 'Budi Hartono', date: '2026-05-15', action: 'submitted', note: '' },
+      { level: 'submit', by: 'teknisi', byName: 'Robby Dwi Setiawan', date: '2026-05-15', action: 'submitted', note: '' },
       { level: 'finance', by: 'finance', byName: 'Maya Sari', date: '2026-05-16', action: 'approved', note: 'Estimasi biaya wajar untuk teknisi field 5 hari' },
       { level: 'manager_ops', by: 'manager_ops', byName: 'Novan Restu', date: '2026-05-17', action: 'approved', note: 'Instalasi RSUD Banyumas urgent harus selesai' },
     ],
@@ -3536,7 +3537,7 @@ const SEED_BUSINESS_TRIPS = [
 
   // 7. Icha (Sales baru) — NEEDS CLARIFICATION dari Manager Ops
   { id: 'bt_2026_007', requestNo: 'BT-2026-007',
-    travelerUsername: 'icha', travelerName: 'Ika Apriani (Icha)', position: 'Staff', allowancePerDay: 130000,
+    travelerUsername: 'icha', travelerName: 'Ika AprianiApriyaniani (Icha)', position: 'Staff', allowancePerDay: 130000,
     destination: 'Tangerang + Bekasi', destinationCity: 'Tangerang',
     purpose: 'Demo X-Ray DR ke RS Awal Bros Tangerang & follow up RS Hermina Bekasi',
     dateStart: '2026-05-25', dateEnd: '2026-05-27', duration: 3,
@@ -3547,13 +3548,13 @@ const SEED_BUSINESS_TRIPS = [
     },
     officeBooked: { ticketPP: 0, hotelTotal: 0, ticketNote: '-', hotelNote: 'PP harian, tidak menginap' },
     totalAdvance: 100000 + 0 + 200000 + 400000 + 250000 + 0 + 390000, // 1340000
-    bankAccount: { bankName: 'BCA', accountNo: '5210999888', holderName: 'Ika Apriani' },
+    bankAccount: { bankName: 'BCA', accountNo: '5210999888', holderName: 'Ika AprianiApriyaniani' },
     status: 'clarification', tripStatus: 'planned', paymentStatus: 'pending',
     paidDate: null, paidAmount: 0, paidProof: '',
     approvalHistory: [
-      { level: 'submit', by: 'icha', byName: 'Ika Apriani (Icha)', date: '2026-05-15', action: 'submitted', note: '' },
+      { level: 'submit', by: 'icha', byName: 'Ika AprianiApriyaniani (Icha)', date: '2026-05-15', action: 'submitted', note: '' },
       { level: 'finance', by: 'finance', byName: 'Maya Sari', date: '2026-05-16', action: 'approved', note: 'OK' },
-      { level: 'manager_ops', by: 'manager_ops', byName: 'Novan Restu', date: '2026-05-17', action: 'clarification', note: 'Mohon konfirmasi: apakah perlu didampingi Dwi (Manager) untuk demo X-Ray? Jika ya, ajukan terpisah. Jika tidak, please update purpose dan submit ulang.' },
+      { level: 'manager_ops', by: 'manager_ops', byName: 'Novan Restu', date: '2026-05-17', action: 'clarification', note: 'Mohon konfirmasi: apakah perlu didampingi Dwi (Manager) untuk demo X-Ray? JIka Aprianiya, ajukan terpisah. JIka Aprianitidak, please update purpose dan submit ulang.' },
     ],
     submittedAt: '2026-05-15', updatedAt: '2026-05-17',
     realizationId: null,
@@ -3694,7 +3695,7 @@ function generateHistoricalBusinessTrips() {
       ],
       purposes: ['Visit RSUD Tugurejo Semarang', 'Follow up RS Mardi Rahayu Kudus', 'Demo C-Arm RSUD Pekalongan'] },
     // Teknisi - Budi (banyak trip untuk install + PM)
-    { un: 'teknisi', name: 'Budi Hartono', pos: 'Supervisor', allow: 150000, freq: 4.2,
+    { un: 'teknisi', name: 'Robby Dwi Setiawan', pos: 'Supervisor', allow: 150000, freq: 4.2,
       dests: [
         { city: 'Surabaya', area: 'Jatim instalasi', flight: [2200000, 2600000], hotel: [2000000, 2500000] },
         { city: 'Solo', area: 'Jateng PM', flight: 0, hotel: [1400000, 1800000] },
@@ -3904,7 +3905,7 @@ function generateRegulatoryRecords(units) {
       evalDate: stageIdx >= 2 ? u.installDate : null,
       pnbpAmount: stageIdx >= 3 ? 12500000 : null,
       issuedDate: stageIdx >= 4 ? u.installDate : null,
-      pic: 'Rini Wahyuni', note: stage === 'eval' ? 'Menunggu hasil evaluasi BAPETEN' : stage === 'pnbp' ? 'PNBP sudah terbit, menunggu pembayaran' : stage === 'docs' ? 'Sedang mengumpulkan SOP & dokumen teknis' : '',
+      pic: 'Ananda Rifki Bayu Saputra', note: stage === 'eval' ? 'Menunggu hasil evaluasi BAPETEN' : stage === 'pnbp' ? 'PNBP sudah terbit, menunggu pembayaran' : stage === 'docs' ? 'Sedang mengumpulkan SOP & dokumen teknis' : '',
     };
   });
 }
@@ -4539,19 +4540,15 @@ function LoginScreen({ t, lang, setLang, onLogin, employees }) {
   return (
     <div style={{minHeight: '100vh', background: '#f8f5ef', fontFamily: 'Inter, sans-serif', color: '#1a2942', display: 'flex'}}>
       <GlobalStyles />
-      <div className="login-left" style={{flex: 1, background: 'linear-gradient(135deg, #1a2942 0%, #2a3f5f 100%)', padding: '60px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', color: '#f8f5ef', position: 'relative', overflow: 'hidden'}}>
-        <div style={{position: 'absolute', top: '-100px', right: '-100px', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(200,169,106,0.13) 0%, transparent 70%)'}} />
-        <div style={{position: 'absolute', bottom: '-150px', left: '-150px', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(74,149,64,0.08) 0%, transparent 70%)'}} />
-        <div style={{position: 'relative', zIndex: 1}}><IMSLogo size="xl" inverted showTagline /></div>
-        <div style={{position: 'relative', zIndex: 1}}>
-          <div style={{fontSize: '10px', letterSpacing: '0.25em', color: '#c8a96a', textTransform: 'uppercase', marginBottom: '16px', fontWeight: 500, lineHeight: 1.6}}>{t.motto}</div>
-          <h1 className="serif" style={{fontSize: '42px', fontWeight: 400, lineHeight: 1.15, margin: 0, letterSpacing: '-0.02em'}}>
-            {lang === 'id' ? 'Sistem terpadu untuk monitoring operasional perusahaan' : 'Integrated platform for enterprise operations monitoring'}
-          </h1>
-        </div>
-        <div style={{position: 'relative', zIndex: 1, fontSize: '10px', letterSpacing: '0.2em', color: 'rgba(248,245,239,0.5)', textTransform: 'uppercase'}}>© 2026 {t.company} · Confidential</div>
+      <div className="login-left" style={{
+        flex: 1,
+        backgroundImage: `url(${logoFull})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundColor: '#1a2942'
+      }}>
       </div>
-
       <div className="login-right" style={{flex: '0 0 460px', padding: '60px 48px', display: 'flex', flexDirection: 'column', justifyContent: 'center', overflowY: 'auto'}}>
         <div style={{display: 'flex', justifyContent: 'flex-end', marginBottom: '32px'}}>
           <button onClick={() => setLang(lang === 'id' ? 'en' : 'id')} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '7px 13px', fontFamily: 'inherit', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.1em', color: '#1a2942', fontWeight: 500}}>
@@ -7008,7 +7005,7 @@ function CashFlowProjection({ data, t, lang, fmt }) {
     realistic: { rate: 0.18, label: lang === 'id' ? 'Realistis' : 'Realistic', color: '#1a2942',
       basis: lang === 'id' ? '≈2× pertumbuhan pasar. Didorong siklus upgrade radiologi akibat reklasifikasi RS berbasis kompetensi (UU 17/2023) + ekspansi model KSO.' : '≈2× market growth. Driven by radiology upgrade cycle from competency-based hospital reclassification (Law 17/2023) + KSO expansion.' },
     optimistic: { rate: 0.25, label: lang === 'id' ? 'Optimis' : 'Optimistic', color: '#3a6b3a',
-      basis: lang === 'id' ? 'Rebut pangsa agresif + recurring KSO + kemitraan principal baru (ANKE, 5G Healthcare, SINO MDT) + KRIS & Program Transformasi Kesehatan Rp20T.' : 'Aggressive share capture + KSO recurring + new principals + KRIS & Rp20T Health Transformation Program.' },
+      basis: lang === 'id' ? 'Rebut pangsa agresif + recurring KSO + kemitraan principal baru (ANKE, SG Healthcare, SINO MDT) + KRIS & Program Transformasi Kesehatan Rp20T.' : 'Aggressive share capture + KSO recurring + new principals + KRIS & Rp20T Health Transformation Program.' },
   };
   const g = SCENARIOS[scenario].rate;
 
@@ -7151,7 +7148,7 @@ function CashFlowProjection({ data, t, lang, fmt }) {
 
       {/* Mathematical & regulatory foundation */}
       <div style={{padding: '18px 20px', background: 'rgba(123,63,181,0.05)', borderLeft: '3px solid #7b3fb5', fontSize: '12px', color: '#1a2942', lineHeight: 1.75}}>
-        <div style={{fontWeight: 700, fontSize: '13px', marginBottom: '10px'}}>📐 {lang === 'id' ? 'Dasar Matematika & Logika Proyeksi' : 'Mathematical & Logical Foundation'}</div>
+        <div style={{fontWeight: 700, fontSize: '13px', marginBottom: '10px'}}>📐 {lang === 'id' ? 'Dasar MatematIka Apriani& LogIka AprianiProyeksi' : 'Mathematical & Logical Foundation'}</div>
         <div style={{marginBottom: '10px'}}>
           <strong>{lang === 'id' ? '1. Rumus pertumbuhan majemuk:' : '1. Compound growth formula:'}</strong><br/>
           <span style={{fontFamily: 'monospace', background: '#fff', padding: '2px 8px', display: 'inline-block', marginTop: '4px', border: '1px solid #e8e1cc'}}>Pendapatan(thn) = Basis₂₀₂₆ × (1 + g)^(thn − 2026)</span>
@@ -8380,7 +8377,7 @@ function EmployeeModal({ emp, employees, onSave, onClose, t, lang }) {
             </div>
           </Field>
           <Field label={t.emp_name}>
-            <input value={form.name} onChange={e => update('name', e.target.value)} placeholder="contoh: Budi Hartono" />
+            <input value={form.name} onChange={e => update('name', e.target.value)} placeholder="contoh: Robby Dwi Setiawan" />
           </Field>
           <Field label={t.emp_position}>
             <select value={form.position} onChange={e => updatePosition(e.target.value)}>
@@ -12022,7 +12019,7 @@ function Valuation({ data, t, lang, fmt }) {
 
       {/* Methodology + sources */}
       <div style={{padding: '18px 20px', background: 'rgba(123,63,181,0.05)', borderLeft: '3px solid #7b3fb5', fontSize: '12px', color: '#1a2942', lineHeight: 1.75, marginTop: '20px'}}>
-        <div style={{fontWeight: 700, fontSize: '13px', marginBottom: '10px'}}>📐 {lang === 'id' ? 'Dasar Logika, Matematika & Sumber' : 'Methodology, Math & Sources'}</div>
+        <div style={{fontWeight: 700, fontSize: '13px', marginBottom: '10px'}}>📐 {lang === 'id' ? 'Dasar Logika, MatematIka Apriani& Sumber' : 'Methodology, Math & Sources'}</div>
         <div style={{marginBottom: '8px'}}>
           <strong>{lang === 'id' ? '1. Pendapatan disetahunkan:' : '1. Annualized revenue:'}</strong>{' '}
           <span style={{fontFamily: 'monospace', background: '#fff', padding: '1px 6px', border: '1px solid #e8e1cc'}}>{fmt(revenueYTD)} × (12/5) = {fmt(annualizedRevenue)}</span>{' '}
@@ -12933,7 +12930,7 @@ function MaintenanceIssueModal({ record, onSave, onClose, t, lang, units, sessio
     priority: 'medium',
     status: 'open',
     reportedDate: new Date().toISOString().split('T')[0],
-    technician: session?.name || 'Budi Hartono',
+    technician: session?.name || 'Robby Dwi Setiawan',
     note: '',
     estimatedCost: 0,
     resolvedDate: null,
@@ -13012,7 +13009,7 @@ function PMScheduleModal({ record, onSave, onClose, t, lang, units, session, liv
     unitId: '',
     lastPmDate: new Date().toISOString().split('T')[0],
     nextPmDate: '',
-    technician: session?.name || 'Budi Hartono',
+    technician: session?.name || 'Robby Dwi Setiawan',
     status: 'scheduled',
     notes: '',
   });
@@ -13930,7 +13927,7 @@ function RegulatoryRecordModal({ record, recordType, onSave, onClose, t, lang })
     if (type === 'import') {
       return { id: baseId, principal: '', principalCountry: '', product: '', stage: 'preregist', stageIdx: 0,
         registerDate: today, preregistDate: today, docsDate: null, submitDate: null, evalDate: null, issuedDate: null,
-        importPermitNo: null, pic: 'Rini Wahyuni', note: '' };
+        importPermitNo: null, pic: 'Ananda Rifki Bayu Saputra', note: '' };
     }
     if (type === 'akl') {
       return { id: baseId, principal: '', principalCountry: '', product: '', productClass: 'B',
@@ -13939,18 +13936,18 @@ function RegulatoryRecordModal({ record, recordType, onSave, onClose, t, lang })
         preregistDate: today, docsDate: null, submitDate: null,
         pnbpDate: null, pnbpAmount: null, evalDate: null,
         fixDate: null, issuedDate: null, aklNo: null,
-        pic: 'Rini Wahyuni', note: '' };
+        pic: 'Ananda Rifki Bayu Saputra', note: '' };
     }
     if (type === 'bapeten') {
       return { id: baseId, customer: '', modality: 'CT Scan', subModality: '',
         installDate: today, stage: 'docs', stageIdx: 0,
         docsComplete: false, submitDate: null, evalDate: null,
-        pnbpAmount: null, issuedDate: null, pic: 'Rini Wahyuni', note: '' };
+        pnbpAmount: null, issuedDate: null, pic: 'Ananda Rifki Bayu Saputra', note: '' };
     }
     if (type === 'pengalihan') {
       return { id: baseId, customer: '', modality: 'CT Scan', subModality: '', destination: '',
         stage: 'submit', stageIdx: 0, submitDate: today, evalDate: null, issuedDate: null,
-        permitNo: null, pic: 'Rini Wahyuni', note: '' };
+        permitNo: null, pic: 'Ananda Rifki Bayu Saputra', note: '' };
     }
     if (type === 'pi') {
       const exp = new Date(today);

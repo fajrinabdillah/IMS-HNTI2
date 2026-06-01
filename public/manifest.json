@@ -1,4 +1,11 @@
-"icons": [
+{
+  "short_name": "IMS HNTI",
+  "name": "Integrated Monitoring System",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#1a2942",
+  "background_color": "#f8f5ef",
+  "icons": [
     {
       "src": "/logo3.png",
       "sizes": "192x192",
@@ -10,3 +17,4 @@
       "type": "image/png"
     }
   ]
+}

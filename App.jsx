@@ -1600,13 +1600,13 @@ const PRODUCT_MASTER_SEED = [
   { id: 'prod_ct32', name: 'CT 32 Slice', modality: 'CT Scan', brand: 'Supermark', type: 'Anatom C201', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'Budget-friendly entry CT' },
   { id: 'prod_ct64_noncardiac', name: 'CT 64 Slice Non-Cardiac', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom C206', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'CT 64-slice non-cardiac' },
   { id: 'prod_ct128_basic', name: 'CT 128 Slice Basic', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom C408', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'CT 128-slice budget-friendly' },
-  // === C-Arm (5G Healthcare, Korea) ===
-  { id: 'prod_carm_5kw', name: 'Mobile C-Arm', modality: 'C-Arm', brand: '5G Healthcare', type: 'Garion 5kW', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Standard surgical C-Arm' },
-  { id: 'prod_carm_15kw', name: 'Mobile C-Arm', modality: 'C-Arm', brand: '5G Healthcare', type: 'Garion 15kW', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Advance surgical C-Arm' },
-  // === X-Ray (5G Healthcare Korea + Precision China) ===
-  { id: 'prod_xray_stat500', name: 'X-Ray Stationary 500mA', modality: 'X-Ray Stationer', brand: '5G Healthcare', type: 'Jumong General', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'General X-Ray floor mounted 500mA' },
-  { id: 'prod_xray_ceiling500', name: 'X-Ray Ceiling 500mA', modality: 'X-Ray Ceiling', brand: '5G Healthcare', type: 'Jumong General', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'General X-Ray ceiling mounted 500mA' },
-  { id: 'prod_xray_mobile100', name: 'X-ray Mobile 100mA', modality: 'X-Ray Mobile', brand: '5G Healthcare', type: 'Jumong Mobile 5kW', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Entry Level X-Ray machine' },
+  // === C-Arm (SG Healthcare, Korea) ===
+  { id: 'prod_carm_5kw', name: 'Mobile C-Arm', modality: 'C-Arm', brand: 'SG Healthcare', type: 'Garion 5kW', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Standard surgical C-Arm' },
+  { id: 'prod_carm_15kw', name: 'Mobile C-Arm', modality: 'C-Arm', brand: 'SG Healthcare', type: 'Garion 15kW', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Advance surgical C-Arm' },
+  // === X-Ray (SG Healthcare Korea + Precision China) ===
+  { id: 'prod_xray_stat500', name: 'X-Ray Stationary 500mA', modality: 'X-Ray Stationer', brand: 'SG Healthcare', type: 'Jumong General', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'General X-Ray floor mounted 500mA' },
+  { id: 'prod_xray_ceiling500', name: 'X-Ray Ceiling 500mA', modality: 'X-Ray Ceiling', brand: 'SG Healthcare', type: 'Jumong General', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'General X-Ray ceiling mounted 500mA' },
+  { id: 'prod_xray_mobile100', name: 'X-ray Mobile 100mA', modality: 'X-Ray Mobile', brand: 'SG Healthcare', type: 'Jumong Mobile 5kW', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Entry Level X-Ray machine' },
   { id: 'prod_xray_portable', name: 'X-Ray Portable', modality: 'X-Ray Portable', brand: 'Precision', type: 'DJPS5DR', origin: 'China', principal: 'Daeji Medical Equipment', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Portable X-Ray for ICU/ER/TB screening use' },
   // === Mammography (SINO MDT, China) ===
   { id: 'prod_mammo_3d', name: 'Mammography 3D Tomosynthesis', modality: 'Mammography', brand: 'SINO MDT', type: 'Navigator 1000A', origin: 'China', principal: 'SINO MDT', tkdn: 0, akl: 'KEMENKES RI AKL 10303550XXX', active: true, notes: '3D digital mammography with tomosynthesis' },
@@ -1762,7 +1762,7 @@ const SEED_SPH = [
 // Catatan #4: product chips are DERIVED from the Product Master (by brand match) so they always
 // stay in sync. Each partner lists the master brand(s) it represents; products auto-populate.
 const BUSINESS_PARTNERS = [
-  { id: 'sg', name: 'SG Healthcare', country: 'Korea', flag: '🇰🇷', color: '#1a4d8a', status: 'active', brands: ['5G Healthcare'] },
+  { id: 'sg', name: 'SG Healthcare', country: 'Korea', flag: '🇰🇷', color: '#1a4d8a', status: 'active', brands: ['SG Healthcare'] },
   { id: 'anke', name: 'ANKE', country: 'China', flag: '🇨🇳', color: '#c03030', status: 'active', brands: ['ANKE', 'Supermark'] },
   { id: 'sino', name: 'SINO MDT', country: 'China', flag: '🇨🇳', color: '#d4780a', status: 'active', brands: ['SINO MDT'] },
   { id: 'hyde', name: 'Hyde Medical', country: 'China', flag: '🇨🇳', color: '#7b3fb5', status: 'active', brands: ['Hyde Medical (HAMSKI XR)'] },
@@ -6905,7 +6905,7 @@ function CashFlowProjection({ data, t, lang, fmt }) {
     realistic: { rate: 0.18, label: lang === 'id' ? 'Realistis' : 'Realistic', color: '#1a2942',
       basis: lang === 'id' ? '≈2× pertumbuhan pasar. Didorong siklus upgrade radiologi akibat reklasifikasi RS berbasis kompetensi (UU 17/2023) + ekspansi model KSO.' : '≈2× market growth. Driven by radiology upgrade cycle from competency-based hospital reclassification (Law 17/2023) + KSO expansion.' },
     optimistic: { rate: 0.25, label: lang === 'id' ? 'Optimis' : 'Optimistic', color: '#3a6b3a',
-      basis: lang === 'id' ? 'Rebut pangsa agresif + recurring KSO + kemitraan principal baru (ANKE, 5G Healthcare, SINO MDT) + KRIS & Program Transformasi Kesehatan Rp20T.' : 'Aggressive share capture + KSO recurring + new principals + KRIS & Rp20T Health Transformation Program.' },
+      basis: lang === 'id' ? 'Rebut pangsa agresif + recurring KSO + kemitraan principal baru (ANKE, SG Healthcare, SINO MDT) + KRIS & Program Transformasi Kesehatan Rp20T.' : 'Aggressive share capture + KSO recurring + new principals + KRIS & Rp20T Health Transformation Program.' },
   };
   const g = SCENARIOS[scenario].rate;
 

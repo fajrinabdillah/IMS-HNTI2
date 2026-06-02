@@ -6603,9 +6603,9 @@ function ExecutiveSummary({ data, reports, annotations, products, t, lang, fmt, 
         <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '28px'}}>
           {[
             { label: lang === 'id' ? 'Total Pipeline' : 'Total Pipeline', value: fmt(k.totalPipeline), sub: `${k.active.length} ${lang === 'id' ? 'deal aktif' : 'active deals'}`, color: '#1a4d8a' },
-            { label: lang === 'id' ? 'Pipeline Tertimbang' : 'Weighted Pipeline', value: fmt(dashboardStats.weighted_pipeline), sub: lang === 'id' ? 'probabilitas × nilai' : 'probability × value', color: '#c8a96a' },
-            { label: lang === 'id' ? 'Pendapatan (Menang)' : 'Revenue (Won)', value: fmt(dashboardStats.revenue_ytd), sub: `${k.won.length} ${lang === 'id' ? 'deal menang' : 'won deals'}`, color: '#3a6b3a' },
-            { label: t.win_rate, value: `${dashboardStats.win_rate}%`, sub: `${k.won.length}/${k.won.length + k.lost.length} ${lang === 'id' ? 'closing' : 'closed'}`, color: '#7b3fb5' },
+            { label: lang === 'id' ? 'Pipeline Tertimbang' : 'Weighted Pipeline', value: fmt(k.weightedPipeline), sub: lang === 'id' ? 'probabilitas × nilai' : 'probability × value', color: '#c8a96a' },
+            { label: lang === 'id' ? 'Pendapatan (Menang)' : 'Revenue (Won)', value: fmt(k.revenueYTD), sub: `${k.won.length} ${lang === 'id' ? 'deal menang' : 'won deals'}`, color: '#3a6b3a' },
+            { label: t.win_rate, value: `${k.winRate.toFixed(1)}%`, sub: `${k.won.length}/${k.won.length + k.lost.length} ${lang === 'id' ? 'closing' : 'closed'}`, color: '#7b3fb5' },
           ].map((kpi, i) => (
             <div key={i} className="exec-card" style={{padding: '16px', background: '#fefcf7', border: '1px solid #e8e1cc'}}>
               <div style={{fontSize: '9px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{kpi.label}</div>

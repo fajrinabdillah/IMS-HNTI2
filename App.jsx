@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { TrendingUp, FileText, Briefcase, Plus, Search, Edit2, Trash2, X, ArrowUpRight, ArrowDownRight, Activity, DollarSign, Users, Clock, Globe, LogOut, Shield, Wrench, Truck, Wallet, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, FileCheck, Menu, ChevronDown, ChevronRight, ChevronLeft, ClipboardList, Star, Settings, ShieldCheck, CalendarDays, AlertTriangle, FileSearch, UserPlus, UserCheck, UserX, Plane, Receipt, Hotel, RefreshCw, History, FolderOpen, Upload, MessageSquare, Download, Target, Layers, FileBarChart, Paperclip, Bell } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Area, ComposedChart } from 'recharts';
-import logoFull from './logo.png';
-import logoKecil from './logo3.png';
 
 const DEFAULT_USD_IDR = 18000;
 
@@ -74,6 +72,8 @@ const translations = {
     customs_status: 'Customs',
     status_note_label: 'Keterangan Status',
     status_note_hold_required: 'Wajib isi alasan saat status On Hold',
+    status_note_save: 'Simpan Alasan',
+    status_note_saved: 'Tersimpan',
     status_note_placeholder: 'Contoh: Menunggu dokumen COO dari principal, tertahan inspeksi karantina, dll.',
     status_note_add: 'Tambah/Edit Keterangan',
     status_note_empty: 'Belum ada keterangan',
@@ -156,6 +156,7 @@ const translations = {
     reg_doc_complete: 'Dokumen Lengkap',
     reg_doc_pending: 'Dokumen Kurang',
     reg_note: 'Keterangan',
+    reg_attachment: 'Lampiran Izin (Link Google Drive)',
     reg_total_pending: 'Izin Diproses', reg_total_issued: 'Izin Terbit', reg_avg_days: 'Rata-rata Hari',
     reg_doc_inventory: 'Inventarisasi Dokumen', reg_advance: 'Lanjutkan ke Tahap Berikutnya',
     // Regulatory Tabs
@@ -756,6 +757,8 @@ const translations = {
     customs_status: 'Customs',
     status_note_label: 'Status Note',
     status_note_hold_required: 'Reason required when status is On Hold',
+    status_note_save: 'Save Reason',
+    status_note_saved: 'Saved',
     status_note_placeholder: 'E.g.: Awaiting COO document from principal, held at quarantine inspection, etc.',
     status_note_add: 'Add/Edit Note',
     status_note_empty: 'No note yet',
@@ -836,6 +839,7 @@ const translations = {
     reg_doc_complete: 'Documents Complete',
     reg_doc_pending: 'Documents Pending',
     reg_note: 'Notes',
+    reg_attachment: 'Permit Attachment (Google Drive Link)',
     reg_total_pending: 'Permits Processing', reg_total_issued: 'Permits Issued', reg_avg_days: 'Avg Days',
     reg_doc_inventory: 'Document Inventory', reg_advance: 'Advance to Next Stage',
     // Regulatory Tabs
@@ -1511,10 +1515,12 @@ function resolveEmpName(employees, val) {
   }
   // Technician positional fallback (sorted by username) — keeps display synced even after the
   // technician username was renamed (e.g. 'teknisi' → 'teknisi1') without alias tracking.
-  const liveTechs = Object.entries(employees)
-    .filter(([u, e]) => e && e.role === 'technician' && e.active)
+  const allTechs = Object.entries(employees).filter(([u, e]) => e && e.role === 'technician');
+  const activeTechs = allTechs.filter(([u, e]) => e.active);
+  const liveTechs = (activeTechs.length ? activeTechs : allTechs)
     .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([u, e]) => e.name);
+    .map(([u, e]) => e.name)
+    .filter(nm => nm && !/^teknisi\d*$/i.test(nm)); // never fall back onto a raw username-like name
   if (liveTechs.length) {
     const staticSorted = [...STATIC_TECH_ORDER].sort((a, b) => a.un.localeCompare(b.un));
     const idx = staticSorted.findIndex(s => s.un === val || s.name === val);
@@ -4007,6 +4013,33 @@ const storeDel = async (k) => {
   } catch { delete _memStore[k]; }
 };
 
+// ── Debounced persistence (speed booster) ──────────────────────────────────
+// Coalesces rapid state changes (typing, toggling) into a single localStorage write
+// after a short idle, so large JSON isn't serialized+written on every keystroke.
+// A guaranteed flush on page-hide/unload ensures ZERO data loss.
+const _persistPending = {};
+let _persistTimer = null;
+function debouncedStoreSet(k, v) {
+  _persistPending[k] = v;
+  if (_persistTimer) return;
+  _persistTimer = setTimeout(() => {
+    const batch = _persistPending; const keys = Object.keys(batch);
+    _persistTimer = null;
+    for (const key of keys) { const val = batch[key]; delete batch[key]; storeSet(key, val); }
+  }, 500);
+}
+function flushPersist() {
+  if (_persistTimer) { clearTimeout(_persistTimer); _persistTimer = null; }
+  const keys = Object.keys(_persistPending);
+  for (const key of keys) { const val = _persistPending[key]; delete _persistPending[key]; storeSet(key, val); }
+}
+if (typeof window !== 'undefined' && !window.__hntiFlushBound) {
+  window.__hntiFlushBound = true;
+  window.addEventListener('pagehide', flushPersist);
+  window.addEventListener('beforeunload', flushPersist);
+  if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.hidden) flushPersist(); });
+}
+
 // ============== Incentive Configuration ==============
 const PPN_RATE = 0.11;        // PPN 11%
 const PPH23_RATE = 0.025;     // PPh 23 2.5%
@@ -4098,22 +4131,122 @@ const PAYMENT_TERMS = {
 
 // ============== Refined Logo (3-layer diamond) ==============
 // React.memo wrapped - logo is pure presentational, no state, no parent re-render needed
-// ====== KODE LOGO KECIL DASBOR ======
-const IMSLogo = React.memo(function IMSLogo({ size = 'md' }) {
-  // Mengatur ukuran lebar logo secara proporsional sesuai kebutuhan komponen
-  const logoWidth = size === 'xl' ? '180px' : size === 'lg' ? '140px' : size === 'sm' ? '80px' : '100px';
+const IMSLogo = React.memo(function IMSLogo({ size = 'md', inverted = false, showTagline = false }) {
+  const sizes = {
+    sm: { layer: 24, txt: 22, tag: 8, gap: 4, sub: 10 },
+    md: { layer: 36, txt: 32, tag: 10, gap: 5, sub: 12 },
+    lg: { layer: 64, txt: 56, tag: 14, gap: 8, sub: 18 },
+    xl: { layer: 96, txt: 84, tag: 20, gap: 12, sub: 28 },
+  };
+  const s = sizes[size] || sizes.md;
+  const txtColor = inverted ? '#f8f5ef' : '#1a2942';
+  const subColor = inverted ? '#f0e6c8' : '#1a2942';
+  const goldColor = '#c8a96a';
+  const goldLight = '#e8c98a';
+  const goldDark = '#a88a4a';
+  const silverColor = '#b8bcc4';
+  const silverLight = '#d8dce4';
+  const silverDark = '#8a8e96';
+  const blueColor = '#1e5aa8';
+  const blueLight = '#4a8ad8';
+  const blueDark = '#0a3a78';
+  const navyDark = '#0a1a35';
+
+  // Layer SVG size: width = 1.5x layer height; viewBox 90x80 for stacked chevrons
+  const svgW = s.layer * 1.15;
+  const svgH = s.layer * 1.05;
 
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center' }}>
-      <img 
-        src={logoKecil} 
-        alt="Logo IMS HNTI" 
-        style={{ width: logoWidth, height: 'auto', objectFit: 'contain' }} 
-      />
+    <div style={{display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1}}>
+      <div style={{display: 'flex', alignItems: 'center', gap: `${s.gap + 3}px`}}>
+        {/* 3-layer stacked chevron logo: silver pyramid + gold chevron + blue chevron */}
+        <svg width={svgW} height={svgH} viewBox="0 0 90 80" style={{flexShrink: 0}}>
+          <defs>
+            {/* Silver gradient - top layer (pyramid/diamond) */}
+            <linearGradient id="ims-silver" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={silverLight} />
+              <stop offset="50%" stopColor={silverColor} />
+              <stop offset="100%" stopColor={silverDark} />
+            </linearGradient>
+            {/* Gold gradient - middle layer */}
+            <linearGradient id="ims-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={goldLight} />
+              <stop offset="50%" stopColor={goldColor} />
+              <stop offset="100%" stopColor={goldDark} />
+            </linearGradient>
+            {/* Blue gradient - bottom layer */}
+            <linearGradient id="ims-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={blueLight} />
+              <stop offset="50%" stopColor={blueColor} />
+              <stop offset="100%" stopColor={blueDark} />
+            </linearGradient>
+            {/* Inner face shading (darker side of chevron) */}
+            <linearGradient id="ims-silver-dark" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={silverColor} />
+              <stop offset="100%" stopColor={silverDark} />
+            </linearGradient>
+            <linearGradient id="ims-gold-dark" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={goldColor} />
+              <stop offset="100%" stopColor={goldDark} />
+            </linearGradient>
+            <linearGradient id="ims-blue-dark" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={blueColor} />
+              <stop offset="100%" stopColor={blueDark} />
+            </linearGradient>
+          </defs>
+
+          {/* Top: Silver pyramid/diamond (solid) */}
+          <polygon points="45,3 80,22 45,28 10,22" fill="url(#ims-silver)" stroke={silverDark} strokeWidth="0.5" />
+          {/* Silver face shading (right side darker) */}
+          <polygon points="45,3 80,22 45,28" fill="url(#ims-silver-dark)" opacity="0.35" />
+
+          {/* Middle: Gold chevron (pointing down) */}
+          <polygon points="10,30 45,49 80,30 80,38 45,57 10,38" fill="url(#ims-gold)" stroke={goldDark} strokeWidth="0.5" />
+          <polygon points="45,49 80,30 80,38 45,57" fill="url(#ims-gold-dark)" opacity="0.3" />
+
+          {/* Bottom: Blue chevron (pointing down) */}
+          <polygon points="10,46 45,65 80,46 80,55 45,75 10,55" fill="url(#ims-blue)" stroke={blueDark} strokeWidth="0.5" />
+          <polygon points="45,65 80,46 80,55 45,75" fill="url(#ims-blue-dark)" opacity="0.3" />
+        </svg>
+
+        {/* iMS text - navy with gold outline */}
+        <div style={{display: 'flex', alignItems: 'baseline', fontFamily: 'Inter, sans-serif', position: 'relative'}}>
+          <span style={{
+            fontSize: `${s.txt}px`,
+            fontWeight: 800,
+            color: txtColor,
+            letterSpacing: '-0.04em',
+            lineHeight: 0.9,
+            WebkitTextStroke: size === 'xl' || size === 'lg' ? `1px ${goldColor}` : `0.5px ${goldColor}`,
+            textShadow: inverted ? 'none' : `1px 1px 0 ${goldColor}40`,
+          }}>
+            <span style={{fontStyle: 'normal'}}>i</span>MS
+          </span>
+        </div>
+      </div>
+
+      {showTagline && (
+        <div style={{marginTop: `${s.gap * 1.2}px`, width: '100%'}}>
+          {/* Gold underline */}
+          <div style={{height: '2px', background: `linear-gradient(90deg, ${goldDark}, ${goldLight}, ${goldDark})`, marginBottom: `${s.gap}px`}} />
+          {/* Main subtitle */}
+          <div style={{
+            fontFamily: 'Inter, sans-serif',
+            fontSize: `${s.sub}px`,
+            fontWeight: 700,
+            color: subColor,
+            letterSpacing: '0.02em',
+            textTransform: 'uppercase',
+            WebkitTextStroke: (size === 'xl' || size === 'lg') ? `0.3px ${goldColor}` : 'none',
+          }}>
+            Integrated Monitoring System
+          </div>
+        </div>
+      )}
     </div>
   );
 });
-// ====================================
+
 // Global styles
 const GlobalStyles = () => (
   <style>{`
@@ -4147,21 +4280,13 @@ const GlobalStyles = () => (
     .card { background: #fefcf7; border: 1px solid #e8e1cc; padding: 22px; }
     .card-title { font-size: 10px; letter-spacing: 0.2em; color: #8a7d5c; text-transform: uppercase; font-weight: 600; margin-bottom: 18px; }
     @media (max-width: 900px) {
-      .main-content { padding: 16px !important; }
-      .header-content { padding: 12px 16px !important; }
+      .main-content { padding: 20px !important; }
+      .header-content { padding: 14px 20px !important; }
       .desktop-nav { display: none !important; }
       .mobile-menu-btn { display: flex !important; }
       .kpi-grid-4 { grid-template-columns: repeat(2, 1fr) !important; }
       .two-col, .three-col { grid-template-columns: 1fr !important; }
-      .hero-title { font-size: 24px !important; }
-    }
-
-    /* ATURAN KHUSUS HP (Layar Sangat Sempit) */
-    @media (max-width: 600px) {
-      .kpi-grid-4 { grid-template-columns: 1fr !important; gap: 8px !important; }
-      table { display: block; overflow-x: auto; white-space: nowrap; }
-      .card { padding: 14px !important; }
-      .card-pad { padding: 12px !important; }
+      .hero-title { font-size: 28px !important; }
     }
     .mobile-menu-btn { display: none; }
   `}</style>
@@ -4362,23 +4487,23 @@ export default function App() {
     })();
   }, []);
 
-  useEffect(() => { if (!loading) { storeSet(STORAGE_KEY, JSON.stringify(data)); setLastSync(Date.now()); } }, [data, loading]);
-  useEffect(() => { if (!loading) storeSet(REPORTS_KEY, JSON.stringify(reports)); }, [reports, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:issues_v22', JSON.stringify(issues)); }, [issues, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:reg_v22', JSON.stringify(regRecords)); }, [regRecords, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:akl_v22', JSON.stringify(aklRecords)); }, [aklRecords, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:imp_v22', JSON.stringify(importRecords)); }, [importRecords, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:pgl_v22', JSON.stringify(pengalihanRecords)); }, [pengalihanRecords, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:pi_v22', JSON.stringify(piRecords)); }, [piRecords, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:pm_v22', JSON.stringify(pmSchedule)); }, [pmSchedule, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:mfst_v22', JSON.stringify(manifests)); }, [manifests, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:cdoc_v22', JSON.stringify(customsDocs)); }, [customsDocs, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:inst_v24', JSON.stringify(installRecords)); }, [installRecords, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:bast_v23', JSON.stringify(bastRecords)); }, [bastRecords, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:train_v23', JSON.stringify(trainingRecords)); }, [trainingRecords, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:emp_v22', JSON.stringify(employees)); }, [employees, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:bt_v22', JSON.stringify(businessTrips)); }, [businessTrips, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:btr_v22', JSON.stringify(realizations)); }, [realizations, loading]);
+  useEffect(() => { if (!loading) { debouncedStoreSet(STORAGE_KEY, JSON.stringify(data)); setLastSync(Date.now()); } }, [data, loading]);
+  useEffect(() => { if (!loading) debouncedStoreSet(REPORTS_KEY, JSON.stringify(reports)); }, [reports, loading]);
+  useEffect(() => { if (!loading) debouncedStoreSet('ims_hnti:issues_v22', JSON.stringify(issues)); }, [issues, loading]);
+  useEffect(() => { if (!loading) debouncedStoreSet('ims_hnti:reg_v22', JSON.stringify(regRecords)); }, [regRecords, loading]);
+  useEffect(() => { if (!loading) debouncedStoreSet('ims_hnti:akl_v22', JSON.stringify(aklRecords)); }, [aklRecords, loading]);
+  useEffect(() => { if (!loading) debouncedStoreSet('ims_hnti:imp_v22', JSON.stringify(importRecords)); }, [importRecords, loading]);
+  useEffect(() => { if (!loading) debouncedStoreSet('ims_hnti:pgl_v22', JSON.stringify(pengalihanRecords)); }, [pengalihanRecords, loading]);
+  useEffect(() => { if (!loading) debouncedStoreSet('ims_hnti:pi_v22', JSON.stringify(piRecords)); }, [piRecords, loading]);
+  useEffect(() => { if (!loading) debouncedStoreSet('ims_hnti:pm_v22', JSON.stringify(pmSchedule)); }, [pmSchedule, loading]);
+  useEffect(() => { if (!loading) debouncedStoreSet('ims_hnti:mfst_v22', JSON.stringify(manifests)); }, [manifests, loading]);
+  useEffect(() => { if (!loading) debouncedStoreSet('ims_hnti:cdoc_v22', JSON.stringify(customsDocs)); }, [customsDocs, loading]);
+  useEffect(() => { if (!loading) debouncedStoreSet('ims_hnti:inst_v24', JSON.stringify(installRecords)); }, [installRecords, loading]);
+  useEffect(() => { if (!loading) debouncedStoreSet('ims_hnti:bast_v23', JSON.stringify(bastRecords)); }, [bastRecords, loading]);
+  useEffect(() => { if (!loading) debouncedStoreSet('ims_hnti:train_v23', JSON.stringify(trainingRecords)); }, [trainingRecords, loading]);
+  useEffect(() => { if (!loading) debouncedStoreSet('ims_hnti:emp_v22', JSON.stringify(employees)); }, [employees, loading]);
+  useEffect(() => { if (!loading) debouncedStoreSet('ims_hnti:bt_v22', JSON.stringify(businessTrips)); }, [businessTrips, loading]);
+  useEffect(() => { if (!loading) debouncedStoreSet('ims_hnti:btr_v22', JSON.stringify(realizations)); }, [realizations, loading]);
   useEffect(() => { if (!loading) storeSet(LANG_KEY, lang); }, [lang, loading]);
   useEffect(() => { if (!loading) { session ? storeSet(SESSION_KEY, JSON.stringify(session)) : storeDel(SESSION_KEY); } }, [session, loading]);
   useEffect(() => { if (!loading) storeSet(RATE_KEY, String(exchangeRate)); }, [exchangeRate, loading]);
@@ -4392,12 +4517,12 @@ export default function App() {
       setSession(s => ({ ...s, name: emp.name, initial: initialOf(emp.name) }));
     }
   }, [employees, loading]);
-  useEffect(() => { if (!loading) storeSet(AUDIT_LOG_KEY, JSON.stringify(auditLog)); }, [auditLog, loading]);
-  useEffect(() => { if (!loading) storeSet(PRODUCT_KEY, JSON.stringify(products)); }, [products, loading]);
-  useEffect(() => { if (!loading) storeSet(ANNOTATIONS_KEY, JSON.stringify(annotations)); }, [annotations, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:unittech_v1', JSON.stringify(unitTechMap)); }, [unitTechMap, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:reports_seen_v1', JSON.stringify(reportsSeen)); }, [reportsSeen, loading]);
-  useEffect(() => { if (!loading) storeSet('ims_hnti:access_v1', JSON.stringify(moduleAccess)); }, [moduleAccess, loading]);
+  useEffect(() => { if (!loading) debouncedStoreSet(AUDIT_LOG_KEY, JSON.stringify(auditLog)); }, [auditLog, loading]);
+  useEffect(() => { if (!loading) debouncedStoreSet(PRODUCT_KEY, JSON.stringify(products)); }, [products, loading]);
+  useEffect(() => { if (!loading) debouncedStoreSet(ANNOTATIONS_KEY, JSON.stringify(annotations)); }, [annotations, loading]);
+  useEffect(() => { if (!loading) debouncedStoreSet('ims_hnti:unittech_v1', JSON.stringify(unitTechMap)); }, [unitTechMap, loading]);
+  useEffect(() => { if (!loading) debouncedStoreSet('ims_hnti:reports_seen_v1', JSON.stringify(reportsSeen)); }, [reportsSeen, loading]);
+  useEffect(() => { if (!loading) debouncedStoreSet('ims_hnti:access_v1', JSON.stringify(moduleAccess)); }, [moduleAccess, loading]);
 
   // Live technician roster from the employee DB (re-derives when employees are edited)
   const liveTechnicians = useMemo(() => Object.values(employees).filter(e => e.role === 'technician' && e.active).map(e => e.name), [employees]);
@@ -4449,15 +4574,19 @@ function LoginScreen({ t, lang, setLang, onLogin, employees }) {
   return (
     <div style={{minHeight: '100vh', background: '#f8f5ef', fontFamily: 'Inter, sans-serif', color: '#1a2942', display: 'flex'}}>
       <GlobalStyles />
-      <div className="login-left" style={{
-        flex: 1,
-        backgroundImage: `url(${logoFull})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        backgroundColor: '#1a2942'
-      }}>
+      <div className="login-left" style={{flex: 1, background: 'linear-gradient(135deg, #1a2942 0%, #2a3f5f 100%)', padding: '60px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', color: '#f8f5ef', position: 'relative', overflow: 'hidden'}}>
+        <div style={{position: 'absolute', top: '-100px', right: '-100px', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(200,169,106,0.13) 0%, transparent 70%)'}} />
+        <div style={{position: 'absolute', bottom: '-150px', left: '-150px', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(74,149,64,0.08) 0%, transparent 70%)'}} />
+        <div style={{position: 'relative', zIndex: 1}}><IMSLogo size="xl" inverted showTagline /></div>
+        <div style={{position: 'relative', zIndex: 1}}>
+          <div style={{fontSize: '10px', letterSpacing: '0.25em', color: '#c8a96a', textTransform: 'uppercase', marginBottom: '16px', fontWeight: 500, lineHeight: 1.6}}>{t.motto}</div>
+          <h1 className="serif" style={{fontSize: '42px', fontWeight: 400, lineHeight: 1.15, margin: 0, letterSpacing: '-0.02em'}}>
+            {lang === 'id' ? 'Sistem terpadu untuk monitoring operasional perusahaan' : 'Integrated platform for enterprise operations monitoring'}
+          </h1>
+        </div>
+        <div style={{position: 'relative', zIndex: 1, fontSize: '10px', letterSpacing: '0.2em', color: 'rgba(248,245,239,0.5)', textTransform: 'uppercase'}}>© 2026 {t.company} · Confidential</div>
       </div>
+
       <div className="login-right" style={{flex: '0 0 460px', padding: '60px 48px', display: 'flex', flexDirection: 'column', justifyContent: 'center', overflowY: 'auto'}}>
         <div style={{display: 'flex', justifyContent: 'flex-end', marginBottom: '32px'}}>
           <button onClick={() => setLang(lang === 'id' ? 'en' : 'id')} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '7px 13px', fontFamily: 'inherit', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.1em', color: '#1a2942', fontWeight: 500}}>
@@ -4629,9 +4758,9 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
         {view === 'sales_report' && canRead('sales_report') && <SalesReport reports={reports} setReports={setReports} t={t} lang={lang} session={session} fmt={fmt} employees={employees} reportsSeen={reportsSeen} setReportsSeen={setReportsSeen} />}
         {view === 'finance' && canRead('finance') && <FinanceModule data={data} setData={setData} t={t} lang={lang} canEdit={canEdit('finance')} fmt={fmt} />}
         {view === 'operations' && canRead('operations') && <OperationsModule data={data} setData={setData} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} t={t} lang={lang} canEdit={canEdit('operations')} fmt={fmt} />}
-        {view === 'installation' && canRead('installation') && <InstallationModule data={data} setData={setData} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} t={t} lang={lang} canEdit={canEdit('installation')} fmt={fmt} employees={employees} liveTechnicians={liveTechnicians} />}
+        {view === 'installation' && canRead('installation') && <InstallationModule data={data} setData={setData} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} t={t} lang={lang} canEdit={canEdit('installation')} fmt={fmt} employees={employees} liveTechnicians={liveTechnicians} regRecords={regRecords} />}
         {view === 'maintenance' && canRead('maintenance') && <MaintenanceModule units={installedUnits} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} t={t} lang={lang} canEdit={canEdit('maintenance')} session={session} liveTechnicians={liveTechnicians} unitTechMap={unitTechMap} setUnitTechMap={setUnitTechMap} employees={employees} />}
-        {view === 'regulatory' && canRead('regulatory') && <RegulatoryModule records={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} units={installedUnits} t={t} lang={lang} fmt={fmt} canEdit={canEdit('regulatory')} />}
+        {view === 'regulatory' && canRead('regulatory') && <RegulatoryModule records={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} units={installedUnits} t={t} lang={lang} fmt={fmt} canEdit={canEdit('regulatory')} data={data} products={products} />}
         {view === 'incentive' && canRead('incentive') && <IncentiveModule data={data} setData={setData} t={t} lang={lang} session={session} fmt={fmt} fmtFull={fmtFull} canEdit={canEdit('incentive')} employees={employees} />}
         {view === 'valuation' && canRead('valuation') && <Valuation data={data} t={t} lang={lang} fmt={fmt} />}
         {view === 'employees' && canRead('employees') && <EmployeesModule employees={employees} setEmployees={setEmployees} t={t} lang={lang} session={session} fmt={fmt} moduleAccess={moduleAccess} setModuleAccess={setModuleAccess} logAction={logAction} />}
@@ -10591,6 +10720,30 @@ function NetProfitAnalysis({ data, t, lang, fmt }) {
   );
 }
 
+// Customs status reason editor — local draft + explicit Save button (review #3) so the typed
+// reason is committed deliberately, with a clear "saved" confirmation.
+function CustomsNoteEditor({ value, isHold, onSave, t, lang }) {
+  const [draft, setDraft] = useState(value || '');
+  const [justSaved, setJustSaved] = useState(false);
+  useEffect(() => { setDraft(value || ''); setJustSaved(false); }, [value]);
+  const dirty = draft !== (value || '');
+  return (
+    <>
+      <textarea
+        value={draft}
+        onChange={e => { setDraft(e.target.value); setJustSaved(false); }}
+        placeholder={t.status_note_placeholder}
+        rows={2}
+        style={{width: '100%', fontSize: '12px', padding: '6px 8px', border: `1px solid ${isHold && !draft.trim() ? '#c03030' : '#d4cdb8'}`, background: '#fff', fontFamily: 'inherit', resize: 'vertical'}}
+      />
+      <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px'}}>
+        <button onClick={() => { onSave(draft.trim()); setJustSaved(true); }} disabled={!dirty} style={{padding: '6px 14px', fontSize: '11px', fontFamily: 'inherit', fontWeight: 600, letterSpacing: '0.03em', background: dirty ? '#1a2942' : '#d4cdb8', color: '#fff', border: 'none', cursor: dirty ? 'pointer' : 'default'}}>{t.status_note_save}</button>
+        {justSaved && !dirty && <span style={{fontSize: '11px', color: '#3a6b3a', fontWeight: 600}}>✓ {t.status_note_saved}</span>}
+      </div>
+    </>
+  );
+}
+
 function OperationsModule({ data, setData, manifests, setManifests, customsDocs, setCustomsDocs, t, lang, canEdit, fmt }) {
   const [tab, setTab] = useState('shipment');
   // Only show PO still in active shipping pipeline (not yet delivered/installed).
@@ -10635,6 +10788,12 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
   const updateStatusNote = (id, note) => {
     if (!canEdit) return;
     setData(prev => prev.map(s => s.id === id ? { ...s, customsStatusNote: note } : s));
+  };
+  const saveStatusNote = (id, note) => {
+    if (!canEdit) return;
+    setData(prev => prev.map(s => s.id === id ? { ...s, customsStatusNote: note } : s));
+    flushPersist();
+    showToast(lang === 'id' ? 'Alasan status bea cukai tersimpan' : 'Customs status reason saved', 'success');
   };
   const linkManifest = (id, manifestId) => {
     if (!canEdit) return;
@@ -10760,13 +10919,7 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
                     {t.status_note_label} {p.customsStatus === 'hold' && <span style={{color: '#c03030'}}>* {t.status_note_hold_required}</span>}
                   </div>
                   {canEdit ? (
-                    <textarea
-                      value={p.customsStatusNote || ''}
-                      onChange={e => updateStatusNote(p.id, e.target.value)}
-                      placeholder={t.status_note_placeholder}
-                      rows={2}
-                      style={{width: '100%', fontSize: '12px', padding: '6px 8px', border: `1px solid ${p.customsStatus === 'hold' && !p.customsStatusNote ? '#c03030' : '#d4cdb8'}`, background: '#fff', fontFamily: 'inherit', resize: 'vertical'}}
-                    />
+                    <CustomsNoteEditor value={p.customsStatusNote} isHold={p.customsStatus === 'hold'} onSave={note => saveStatusNote(p.id, note)} t={t} lang={lang} />
                   ) : (
                     <div style={{fontSize: '12px', color: '#1a2942', fontStyle: p.customsStatusNote ? 'normal' : 'italic'}}>{p.customsStatusNote || t.status_note_empty}</div>
                   )}
@@ -11113,11 +11266,15 @@ function CustomsDocModal({ record, manifests, onSave, onClose, t, lang }) {
   );
 }
 
-function InstallationModule({ data, setData, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, t, lang, canEdit, fmt, employees = {}, liveTechnicians = [] }) {
+function InstallationModule({ data, setData, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, t, lang, canEdit, fmt, employees = {}, liveTechnicians = [], regRecords = [] }) {
   const [tab, setTab] = useState('progress');
   // Default to current year (2026) — sync with SPH module behavior
   const [filterYear, setFilterYear] = useState('2026');
   const [search, setSearch] = useState('');
+  // Speed booster: paginate the progress card list so we never render 80+ heavy cards at once.
+  const CARD_PAGE = 24;
+  const [visibleCount, setVisibleCount] = useState(CARD_PAGE);
+  useEffect(() => { setVisibleCount(CARD_PAGE); }, [filterYear, search, tab]);
 
   // Available years derived from data (PO issue years OR install-record years)
   const availableYears = useMemo(() => {
@@ -11189,6 +11346,24 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
     return map;
   }, [trainingRecords]);
 
+  // SPH whose PO is already issued ("PO Terbit") — feed the "pull from SPH" picker in the
+  // Installation Record / BAST / Training forms so RS name + product are never re-typed (review #1).
+  const deliveredUnits = useMemo(() => data
+    .filter(s => s.poStatus === 'issued')
+    .map(s => ({ id: s.id, customer: s.customer, modality: s.modality, subModality: s.subModality || '', sphNo: s.sphNo }))
+    .sort((a, b) => a.customer.localeCompare(b.customer)), [data]);
+
+  // BAPETEN Utilization Permit linkage (review #3): a unit's "Izin BAPETEN" step turns green
+  // automatically once the matching Izin Pemanfaatan BAPETEN record (regulatory) reaches "issued".
+  const bapetenIssuedByCustomer = useMemo(() => {
+    const map = new Map();
+    (regRecords || []).forEach(r => {
+      const issued = r.stage === 'issued' || !!r.issuedDate;
+      if (issued && r.customer) map.set(r.customer, r);
+    });
+    return map;
+  }, [regRecords]);
+
   // Derive effective step status for a PO project (auto-synced from other tabs)
   const getStepStatus = (p) => {
     const rec = recordsByCustomer.get(p.customer);
@@ -11196,15 +11371,16 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
     const training = trainingByCustomer.get(p.customer);
     // Unit TERPASANG (installed) = seluruh siklus instalasi tuntas (instalasi, uji fungsi/paparan, training, izin, BAST).
     const isInstalled = p.installationStatus === 'installed';
+    const bapetenRec = bapetenIssuedByCustomer.get(p.customer);
     return {
       installation_done: isInstalled || (rec && rec.status === 'completed') || !!p.installation_done,
       functionTest: isInstalled || (rec && rec.calibrationDone) || !!p.functionTest,
       exposureTest: isInstalled || !!p.exposureTest,
       complianceTest: isInstalled || !!p.complianceTest,
       trainingCert: isInstalled || (training && training.status === 'completed') || !!p.trainingCert,
-      bapetenPermit: isInstalled || !!p.bapetenPermit,
+      bapetenPermit: isInstalled || !!p.bapetenPermit || !!bapetenRec,
       bast: isInstalled || (bast && bast.status === 'signed') || !!p.bastDone,
-      _rec: rec, _bast: bast, _training: training,
+      _rec: rec, _bast: bast, _training: training, _bapeten: bapetenRec,
     };
   };
 
@@ -11215,7 +11391,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
     { id: 'complianceTest', label: t.compliance_test, icon: CheckCircle2, syncSrc: null },
     { id: 'trainingCert', label: t.training_cert, icon: FileCheck, syncSrc: 'training' },
     { id: 'bast', label: t.inst_step_bast, icon: FileCheck, syncSrc: 'bast' },
-    { id: 'bapetenPermit', label: t.bapeten_permit, icon: Shield, syncSrc: null },
+    { id: 'bapetenPermit', label: t.bapeten_permit, icon: Shield, syncSrc: 'bapeten' },
   ], [t]);
 
   // PERFORMANCE: KPI calculations memoized — now scoped to the YEAR-FILTERED installProjects
@@ -11306,7 +11482,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
           <div style={{padding: '10px 14px', background: '#3a6b3a10', borderLeft: '3px solid #3a6b3a', fontSize: '11px', color: '#1a4d2a'}}>
             🔗 {t.inst_prog_auto_synced}
           </div>
-          {installProjects.map(p => {
+          {installProjects.slice(0, visibleCount).map(p => {
             const ss = getStepStatus(p);
             const rec = ss._rec;
             return (
@@ -11345,7 +11521,8 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
                   const isSynced = step.syncSrc && (
                     (step.syncSrc === 'record' && rec) ||
                     (step.syncSrc === 'bast' && ss._bast) ||
-                    (step.syncSrc === 'training' && ss._training)
+                    (step.syncSrc === 'training' && ss._training) ||
+                    (step.syncSrc === 'bapeten' && ss._bapeten)
                   );
                   return (
                     <button key={step.id} onClick={() => { if (step.id === 'bast') { toggleStep(p.id, 'bastDone'); } else { toggleStep(p.id, step.id); } }} disabled={!canEdit} title={isSynced ? t.inst_prog_auto_synced : ''} style={{padding: '11px', fontSize: '10.5px', fontFamily: 'inherit', background: done ? '#3a6b3a' : 'transparent', color: done ? '#fff' : '#8a7d5c', border: `1px solid ${done ? '#3a6b3a' : '#d4cdb8'}`, cursor: canEdit ? 'pointer' : 'default', fontWeight: 500, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', textAlign: 'center', position: 'relative'}}>
@@ -11383,19 +11560,24 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
             </div>
             );
           })}
+          {installProjects.length > visibleCount && (
+            <button onClick={() => setVisibleCount(v => v + CARD_PAGE)} style={{width: '100%', padding: '12px', background: '#fff', border: '1px dashed #c8a96a', color: '#8a6a2a', fontFamily: 'inherit', fontSize: '12px', fontWeight: 600, cursor: 'pointer', borderRadius: '4px'}}>
+              {lang === 'id' ? `Tampilkan ${Math.min(CARD_PAGE, installProjects.length - visibleCount)} lainnya (${visibleCount} dari ${installProjects.length})` : `Show ${Math.min(CARD_PAGE, installProjects.length - visibleCount)} more (${visibleCount} of ${installProjects.length})`}
+            </button>
+          )}
           {installProjects.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#8a7d5c', background: '#fefcf7', border: '1px solid #e8e1cc'}}>{t.no_data}</div>}
         </div>
       )}
 
-      {tab === 'records' && <InstallRecordsList records={installRecordsY} setRecords={setInstallRecords} t={t} lang={lang} canEdit={canEdit} employees={employees} />}
-      {tab === 'bast' && <BASTList records={bastRecordsY} setRecords={setBastRecords} t={t} lang={lang} canEdit={canEdit} />}
-      {tab === 'training' && <TrainingCertList records={trainingRecordsY} setRecords={setTrainingRecords} t={t} lang={lang} canEdit={canEdit} employees={employees} />}
+      {tab === 'records' && <InstallRecordsList records={installRecordsY} setRecords={setInstallRecords} t={t} lang={lang} canEdit={canEdit} employees={employees} units={deliveredUnits} />}
+      {tab === 'bast' && <BASTList records={bastRecordsY} setRecords={setBastRecords} t={t} lang={lang} canEdit={canEdit} units={deliveredUnits} />}
+      {tab === 'training' && <TrainingCertList records={trainingRecordsY} setRecords={setTrainingRecords} t={t} lang={lang} canEdit={canEdit} employees={employees} units={deliveredUnits} />}
     </div>
   );
 }
 
 // ============== Install Records List ==============
-function InstallRecordsList({ records, setRecords, t, lang, canEdit, employees = {} }) {
+function InstallRecordsList({ records, setRecords, t, lang, canEdit, employees = {}, units = [] }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc');
@@ -11474,14 +11656,14 @@ function InstallRecordsList({ records, setRecords, t, lang, canEdit, employees =
         );
       })}
       {records.length === 0 && <div className="empty-state">{t.no_data}</div>}
-      {modalOpen && <InstallRecordModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} employees={employees} />}
+      {modalOpen && <InstallRecordModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} employees={employees} units={units} />}
       <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Riwayat Instalasi?' : 'Delete Installation Record?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
   );
 }
 
 // ============== BAST List ==============
-function BASTList({ records, setRecords, t, lang, canEdit }) {
+function BASTList({ records, setRecords, t, lang, canEdit, units = [] }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc');
@@ -11556,14 +11738,14 @@ function BASTList({ records, setRecords, t, lang, canEdit }) {
         );
       })}
       {records.length === 0 && <div className="empty-state">{t.no_data}</div>}
-      {modalOpen && <BASTModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
+      {modalOpen && <BASTModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} units={units} />}
       <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus BAST?' : 'Delete BAST?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
   );
 }
 
 // ============== Training Cert List ==============
-function TrainingCertList({ records, setRecords, t, lang, canEdit, employees = {} }) {
+function TrainingCertList({ records, setRecords, t, lang, canEdit, employees = {}, units = [] }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc');
@@ -11637,14 +11819,38 @@ function TrainingCertList({ records, setRecords, t, lang, canEdit, employees = {
         );
       })}
       {records.length === 0 && <div className="empty-state">{t.no_data}</div>}
-      {modalOpen && <TrainingCertModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
+      {modalOpen && <TrainingCertModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} units={units} />}
       <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Sertifikat?' : 'Delete Certificate?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
   );
 }
 
 // ============== Install Record Modal ==============
-function InstallRecordModal({ record, onSave, onClose, t, lang, employees = {} }) {
+// ── Shared: pick a delivered/installed unit (RS) from SPH & auto-fill product fields ──
+// Used by Installation Record / BAST / Training Certificate / BAPETEN Utilization Permit forms
+// so the customer (RS) name + installed product (modality/sub-modality) are PULLED from SPH
+// data rather than re-typed — eliminating RS↔product mismatch (review notes #1 & #2).
+function UnitPickerField({ units = [], customer, modality, subModality, onPick, lang }) {
+  const keyOf = (u) => `${u.customer}|${u.modality || ''}|${u.subModality || ''}`;
+  const curKey = (customer || modality || subModality) ? `${customer || ''}|${modality || ''}|${subModality || ''}` : '';
+  const hasMatch = units.some(u => keyOf(u) === curKey);
+  return (
+    <Field label={lang === 'id' ? 'Tarik dari SPH (RS terkirim / terpasang)' : 'Pull from SPH (delivered / installed RS)'} full>
+      <select value={curKey} onChange={e => {
+        if (!e.target.value) { onPick({ customer: '', modality: '', subModality: '' }); return; }
+        const u = units.find(x => keyOf(x) === e.target.value);
+        if (u) onPick(u);
+      }}>
+        <option value="">{lang === 'id' ? '— Pilih RS / unit terkirim —' : '— Select delivered RS / unit —'}</option>
+        {!hasMatch && customer && <option value={curKey}>{customer}{modality ? ` — ${modality}` : ''}{subModality ? ` ${subModality}` : ''} {lang === 'id' ? '(input manual)' : '(manual entry)'}</option>}
+        {units.map(u => <option key={u.id || keyOf(u)} value={keyOf(u)}>{u.customer} — {u.modality}{u.subModality ? ` ${u.subModality}` : ''}{u.sphNo ? ` · ${u.sphNo}` : ''}</option>)}
+      </select>
+    </Field>
+  );
+}
+
+// ============== Installation Record Modal ==============
+function InstallRecordModal({ record, onSave, onClose, t, lang, employees = {}, units = [] }) {
   const today = new Date().toISOString().split('T')[0];
   const [form, setForm] = useState(record || {
     id: 'inst_' + Date.now(),
@@ -11675,10 +11881,11 @@ function InstallRecordModal({ record, onSave, onClose, t, lang, employees = {} }
               <option value="delayed">{t.inst_status_delayed}</option>
             </select>
           </Field>
+          <UnitPickerField units={units} customer={form.customer} modality={form.modality} subModality={form.subModality} lang={lang} onPick={u => setForm(prev => ({ ...prev, customer: u.customer, modality: u.modality || prev.modality, subModality: u.subModality || '' }))} />
           <Field label={t.customer} full><input value={form.customer} onChange={e => update('customer', e.target.value)} placeholder="RS / Klinik" /></Field>
           <Field label={t.modality}>
             <select value={form.modality} onChange={e => update('modality', e.target.value)}>
-              {Object.keys(MODALITY_COLORS).map(m => <option key={m} value={m}>{m}</option>)}
+              {[...new Set([...Object.keys(MODALITY_COLORS), form.modality].filter(Boolean))].map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </Field>
           <Field label="Sub-Modalitas"><input value={form.subModality} onChange={e => update('subModality', e.target.value)} /></Field>
@@ -11717,7 +11924,7 @@ function InstallRecordModal({ record, onSave, onClose, t, lang, employees = {} }
 }
 
 // ============== BAST Modal ==============
-function BASTModal({ record, onSave, onClose, t, lang }) {
+function BASTModal({ record, onSave, onClose, t, lang, units = [] }) {
   const today = new Date().toISOString().split('T')[0];
   const [form, setForm] = useState(record || {
     id: 'bast_' + Date.now(),
@@ -11746,10 +11953,11 @@ function BASTModal({ record, onSave, onClose, t, lang }) {
               <option value="signed">{t.bast_status_signed}</option>
             </select>
           </Field>
+          <UnitPickerField units={units} customer={form.customer} modality={form.modality} subModality={form.subModality} lang={lang} onPick={u => setForm(prev => ({ ...prev, customer: u.customer, modality: u.modality || prev.modality, subModality: u.subModality || '' }))} />
           <Field label={t.customer} full><input value={form.customer} onChange={e => update('customer', e.target.value)} /></Field>
           <Field label={t.modality}>
             <select value={form.modality} onChange={e => update('modality', e.target.value)}>
-              {Object.keys(MODALITY_COLORS).map(m => <option key={m} value={m}>{m}</option>)}
+              {[...new Set([...Object.keys(MODALITY_COLORS), form.modality].filter(Boolean))].map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </Field>
           <Field label="Sub-Modalitas"><input value={form.subModality} onChange={e => update('subModality', e.target.value)} /></Field>
@@ -11770,7 +11978,7 @@ function BASTModal({ record, onSave, onClose, t, lang }) {
 }
 
 // ============== Training Cert Modal ==============
-function TrainingCertModal({ record, onSave, onClose, t, lang }) {
+function TrainingCertModal({ record, onSave, onClose, t, lang, units = [] }) {
   const [form, setForm] = useState(record || {
     id: 'train_' + Date.now(),
     certNo: 'CERT-HNTI-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-3),
@@ -11796,10 +12004,11 @@ function TrainingCertModal({ record, onSave, onClose, t, lang }) {
               <option value="completed">{t.train_completed}</option>
             </select>
           </Field>
+          <UnitPickerField units={units} customer={form.customer} modality={form.modality} subModality={form.subModality} lang={lang} onPick={u => setForm(prev => ({ ...prev, customer: u.customer, modality: u.modality || prev.modality, subModality: u.subModality || '' }))} />
           <Field label={t.customer} full><input value={form.customer} onChange={e => update('customer', e.target.value)} /></Field>
           <Field label={t.modality}>
             <select value={form.modality} onChange={e => update('modality', e.target.value)}>
-              {Object.keys(MODALITY_COLORS).map(m => <option key={m} value={m}>{m}</option>)}
+              {[...new Set([...Object.keys(MODALITY_COLORS), form.modality].filter(Boolean))].map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </Field>
           <Field label="Sub-Modalitas"><input value={form.subModality} onChange={e => update('subModality', e.target.value)} /></Field>
@@ -12961,7 +13170,7 @@ function PMScheduleModal({ record, onSave, onClose, t, lang, units, session, liv
 }
 
 // ============== Regulatory Module ==============
-function RegulatoryModule({ records, setRegRecords, aklRecords, setAklRecords, importRecords, setImportRecords, pengalihanRecords, setPengalihanRecords, piRecords, setPiRecords, units, t, lang, fmt, canEdit }) {
+function RegulatoryModule({ records, setRegRecords, aklRecords, setAklRecords, importRecords, setImportRecords, pengalihanRecords, setPengalihanRecords, piRecords, setPiRecords, units, t, lang, fmt, canEdit, data = [], products = [] }) {
   const [tab, setTab] = useState('import');
   const titleByTab = {
     import: t.imp_title, akl: t.akl_title, bapeten: t.reg_tab_bapeten,
@@ -13022,7 +13231,7 @@ function RegulatoryModule({ records, setRegRecords, aklRecords, setAklRecords, i
 
       {tab === 'import' && <ImportPipeline records={importRecords} setImportRecords={setImportRecords} t={t} lang={lang} canEdit={canEdit} />}
       {tab === 'akl' && <AKLPipeline aklRecords={aklRecords} setAklRecords={setAklRecords} t={t} lang={lang} fmt={fmt} canEdit={canEdit} />}
-      {tab === 'bapeten' && <BAPETENPipeline records={records} setRegRecords={setRegRecords} t={t} lang={lang} fmt={fmt} canEdit={canEdit} />}
+      {tab === 'bapeten' && <BAPETENPipeline records={records} setRegRecords={setRegRecords} t={t} lang={lang} fmt={fmt} canEdit={canEdit} data={data} products={products} />}
       {tab === 'pengalihan' && <PengalihanPipeline records={pengalihanRecords} setRecords={setPengalihanRecords} t={t} lang={lang} canEdit={canEdit} />}
       {tab === 'pi' && <PIPipeline records={piRecords} setRecords={setPiRecords} t={t} lang={lang} canEdit={canEdit} />}
     </div>
@@ -13175,6 +13384,7 @@ function ImportPipeline({ records, setImportRecords, t, lang, canEdit }) {
                 {r.issuedDate && <span style={{color: '#3a6b3a', fontWeight: 600}}>5️⃣ Issued: <span className="mono">{r.issuedDate}</span></span>}
               </div>
               {r.note && <div style={{padding: '8px 10px', background: '#f0ebe0', fontSize: '11px', fontStyle: 'italic', color: '#1a2942', marginBottom: '8px'}}>📝 {r.note}</div>}
+              {r.attachmentUrl && <div style={{marginBottom: '8px'}}><LinkAttachment url={r.attachmentUrl} label={lang === 'id' ? '📎 Lampiran Izin' : '📎 Permit Attachment'} lang={lang} /></div>}
               {canEdit && r.stage !== 'issued' && (
                 <button onClick={() => advanceStage(r.id)} style={{padding: '6px 14px', fontSize: '11px', background: '#1a2942', color: '#f8f5ef', border: 'none', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.05em', fontWeight: 500}}>
                   {t.imp_advance} →
@@ -13458,6 +13668,7 @@ function PIPipeline({ records, setRecords, t, lang, canEdit }) {
               </div>
               {isExpiring && <div style={{padding: '8px 10px', background: 'rgba(192,48,48,0.10)', fontSize: '11px', color: '#c03030', fontWeight: 600, marginBottom: '8px'}}>⚠ {t.pi_warning_expiring}</div>}
               {r.note && <div style={{padding: '8px 10px', background: '#f0ebe0', fontSize: '11px', fontStyle: 'italic', color: '#1a2942', marginBottom: '8px'}}>📝 {r.note}</div>}
+               {r.attachmentUrl && <div style={{marginBottom: '8px'}}><LinkAttachment url={r.attachmentUrl} label={lang === 'id' ? '📎 Lampiran Izin' : '📎 Permit Attachment'} lang={lang} /></div>}
               {canEdit && r.computedStatus === 'active' && (
                 <button onClick={() => markUsed(r.id)} style={{padding: '6px 14px', fontSize: '11px', background: '#5b87b8', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.05em', fontWeight: 500}}>
                   {lang === 'id' ? 'Tandai Digunakan' : 'Mark as Used'}
@@ -13475,12 +13686,19 @@ function PIPipeline({ records, setRecords, t, lang, canEdit }) {
 }
 
 // ============== BAPETEN Pipeline Sub-Component ==============
-function BAPETENPipeline({ records, setRegRecords, t, lang, fmt, canEdit }) {
+function BAPETENPipeline({ records, setRegRecords, t, lang, fmt, canEdit, data = [], products = [] }) {
   const stages = ['docs', 'submit', 'eval', 'pnbp', 'issued'];
   const stageColors = { docs: '#94a3b8', submit: '#7d9cc5', eval: '#c8a96a', pnbp: '#b8935a', issued: '#3a6b3a' };
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc');
+
+  // Pull RS + product from SPH (review #2): customer dropdown sourced from SPH with PO Terbit,
+  // modality list synced from Master Produk — so the alat tidak perlu diisi ulang & tidak mismatch.
+  const deliveredUnits = useMemo(() => data
+    .filter(s => s.poStatus === 'issued')
+    .map(s => ({ id: s.id, customer: s.customer, modality: s.modality, subModality: s.subModality || '', sphNo: s.sphNo }))
+    .sort((a, b) => a.customer.localeCompare(b.customer)), [data]);
 
   const sortedRecords = useMemo(() => {
     const arr = [...records];
@@ -13612,6 +13830,7 @@ function BAPETENPipeline({ records, setRegRecords, t, lang, fmt, canEdit }) {
                 {r.issuedDate && <span>✅ {t.reg_stage_issued}: <span className="mono">{r.issuedDate}</span></span>}
               </div>
               {r.note && <div style={{padding: '8px 10px', background: '#f0ebe0', fontSize: '11px', fontStyle: 'italic', color: '#1a2942', marginBottom: '8px'}}>📝 {r.note}</div>}
+              {r.attachmentUrl && <div style={{marginBottom: '8px'}}><LinkAttachment url={r.attachmentUrl} label={lang === 'id' ? '📎 Lampiran Izin' : '📎 Permit Attachment'} lang={lang} /></div>}
               {canEdit && r.stage !== 'issued' && (
                 <button onClick={() => advanceStage(r.id)} style={{padding: '6px 14px', fontSize: '11px', background: '#1a2942', color: '#f8f5ef', border: 'none', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.05em', fontWeight: 500}}>
                   {t.reg_advance} →
@@ -13622,7 +13841,7 @@ function BAPETENPipeline({ records, setRegRecords, t, lang, fmt, canEdit }) {
         })}
         {records.length === 0 && <div className="empty-state">{t.no_data}</div>}
       </div>
-      {modalOpen && <RegulatoryRecordModal record={editingRecord} recordType="bapeten" onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
+      {modalOpen && <RegulatoryRecordModal record={editingRecord} recordType="bapeten" onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} units={deliveredUnits} products={products} />}
       <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Catatan?' : 'Delete Record?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
   );
@@ -13806,6 +14025,7 @@ function AKLPipeline({ aklRecords, setAklRecords, t, lang, fmt, canEdit }) {
               </div>
 
               {r.note && <div style={{padding: '8px 10px', background: '#f0ebe0', fontSize: '11px', fontStyle: 'italic', color: '#1a2942', marginBottom: '8px'}}>📝 {r.note}</div>}
+              {r.attachmentUrl && <div style={{marginBottom: '8px'}}><LinkAttachment url={r.attachmentUrl} label={lang === 'id' ? '📎 Lampiran Izin' : '📎 Permit Attachment'} lang={lang} /></div>}
 
               {canEdit && r.stage !== 'issued' && (
                 <button onClick={() => advanceStage(r.id)} style={{padding: '6px 14px', fontSize: '11px', background: '#1a2942', color: '#f8f5ef', border: 'none', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.05em', fontWeight: 500}}>
@@ -13824,7 +14044,7 @@ function AKLPipeline({ aklRecords, setAklRecords, t, lang, fmt, canEdit }) {
 }
 
 // ============== Reusable Regulatory CRUD Modal ==============
-function RegulatoryRecordModal({ record, recordType, onSave, onClose, t, lang }) {
+function RegulatoryRecordModal({ record, recordType, onSave, onClose, t, lang, units = [], products = [] }) {
   // recordType: 'import' | 'akl' | 'bapeten' | 'pengalihan' | 'pi'
   const [form, setForm] = useState(record || getDefaultRecord(recordType));
   const titleKey = record ? `reg_modal_edit_${recordType}` : `reg_modal_add_${recordType}`;
@@ -13836,7 +14056,7 @@ function RegulatoryRecordModal({ record, recordType, onSave, onClose, t, lang })
     if (type === 'import') {
       return { id: baseId, principal: '', principalCountry: '', product: '', stage: 'preregist', stageIdx: 0,
         registerDate: today, preregistDate: today, docsDate: null, submitDate: null, evalDate: null, issuedDate: null,
-        importPermitNo: null, pic: 'Rini Wahyuni', note: '' };
+        importPermitNo: null, pic: 'Rini Wahyuni', note: '', attachmentUrl: '' };
     }
     if (type === 'akl') {
       return { id: baseId, principal: '', principalCountry: '', product: '', productClass: 'B',
@@ -13845,13 +14065,13 @@ function RegulatoryRecordModal({ record, recordType, onSave, onClose, t, lang })
         preregistDate: today, docsDate: null, submitDate: null,
         pnbpDate: null, pnbpAmount: null, evalDate: null,
         fixDate: null, issuedDate: null, aklNo: null,
-        pic: 'Rini Wahyuni', note: '' };
+        pic: 'Rini Wahyuni', note: '', attachmentUrl: '' };
     }
     if (type === 'bapeten') {
       return { id: baseId, customer: '', modality: 'CT Scan', subModality: '',
         installDate: today, stage: 'docs', stageIdx: 0,
         docsComplete: false, submitDate: null, evalDate: null,
-        pnbpAmount: null, issuedDate: null, pic: 'Rini Wahyuni', note: '' };
+        pnbpAmount: null, issuedDate: null, pic: 'Rini Wahyuni', note: '', attachmentUrl: '' };
     }
     if (type === 'pengalihan') {
       return { id: baseId, customer: '', modality: 'CT Scan', subModality: '', destination: '',
@@ -13863,7 +14083,7 @@ function RegulatoryRecordModal({ record, recordType, onSave, onClose, t, lang })
       exp.setDate(exp.getDate() + 21);
       return { id: baseId, piNo: '', principal: '', shipment: '', items: '',
         issuedDate: today, expiredDate: exp.toISOString().split('T')[0],
-        status: 'active', note: '' };
+        status: 'active', note: '', attachmentUrl: '' };
     }
     return { id: baseId };
   }
@@ -13886,6 +14106,7 @@ function RegulatoryRecordModal({ record, recordType, onSave, onClose, t, lang })
         <Field label="Tgl. Izin Terbit"><input type="date" value={form.issuedDate || ''} onChange={e => update('issuedDate', e.target.value)} /></Field>
         <Field label={t.imp_no}><input value={form.importPermitNo || ''} onChange={e => update('importPermitNo', e.target.value)} placeholder="BAPETEN/IMP/2026/00xxx" /></Field>
         <Field label={t.crud_pic}><input value={form.pic} onChange={e => update('pic', e.target.value)} /></Field>
+        <Field label={t.reg_attachment} full><input type="url" value={form.attachmentUrl || ''} onChange={e => update('attachmentUrl', e.target.value)} placeholder="https://drive.google.com/... (Surat Persetujuan Impor)" /></Field>
         <Field label={t.akl_note} full><textarea rows={2} value={form.note || ''} onChange={e => update('note', e.target.value)} /></Field>
       </>
     );
@@ -13921,16 +14142,18 @@ function RegulatoryRecordModal({ record, recordType, onSave, onClose, t, lang })
         <Field label={t.akl_akl_no}><input value={form.aklNo || ''} onChange={e => update('aklNo', e.target.value)} placeholder="AKL 20xxxxxxxxx" /></Field>
         <Field label="Sisa Hari Kerja"><input type="number" value={form.workingDaysRemaining || 0} onChange={e => update('workingDaysRemaining', parseInt(e.target.value) || 0)} /></Field>
         <Field label={t.crud_pic}><input value={form.pic} onChange={e => update('pic', e.target.value)} /></Field>
+        <Field label={t.reg_attachment} full><input type="url" value={form.attachmentUrl || ''} onChange={e => update('attachmentUrl', e.target.value)} placeholder="https://drive.google.com/... (AKL Kemenkes terbit)" /></Field>
         <Field label={t.akl_note} full><textarea rows={2} value={form.note || ''} onChange={e => update('note', e.target.value)} /></Field>
       </>
     );
 
     if (recordType === 'bapeten') return (
       <>
+        <UnitPickerField units={units} customer={form.customer} modality={form.modality} subModality={form.subModality} lang={lang} onPick={u => setForm(prev => ({ ...prev, customer: u.customer, modality: u.modality || prev.modality, subModality: u.subModality || '' }))} />
         <Field label={t.customer} full><input value={form.customer} onChange={e => update('customer', e.target.value)} /></Field>
         <Field label={t.modality}>
           <select value={form.modality} onChange={e => update('modality', e.target.value)}>
-            {Object.keys(MODALITY_COLORS).map(m => <option key={m} value={m}>{m}</option>)}
+            {[...new Set([...products.map(p => p.modality).filter(Boolean), ...Object.keys(MODALITY_COLORS), form.modality].filter(Boolean))].sort().map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </Field>
         <Field label="Sub-Modalitas"><input value={form.subModality} onChange={e => update('subModality', e.target.value)} /></Field>
@@ -13955,6 +14178,7 @@ function RegulatoryRecordModal({ record, recordType, onSave, onClose, t, lang })
         <Field label={lang === 'id' ? 'Jumlah PNBP (Rp)' : 'PNBP Amount (Rp)'}><input type="number" value={form.pnbpAmount || ''} onChange={e => update('pnbpAmount', parseFloat(e.target.value) || null)} /></Field>
         <Field label="Tgl. Izin Terbit"><input type="date" value={form.issuedDate || ''} onChange={e => update('issuedDate', e.target.value)} /></Field>
         <Field label={t.crud_pic}><input value={form.pic || ''} onChange={e => update('pic', e.target.value)} /></Field>
+        <Field label={t.reg_attachment} full><input type="url" value={form.attachmentUrl || ''} onChange={e => update('attachmentUrl', e.target.value)} placeholder="https://drive.google.com/... (Izin Pemanfaatan terbit)" /></Field>
         <Field label={t.reg_note} full><textarea rows={2} value={form.note || ''} onChange={e => update('note', e.target.value)} /></Field>
       </>
     );
@@ -13998,6 +14222,7 @@ function RegulatoryRecordModal({ record, recordType, onSave, onClose, t, lang })
             <option value="expired">{t.pi_status_expired}</option>
           </select>
         </Field>
+        <Field label={t.reg_attachment} full><input type="url" value={form.attachmentUrl || ''} onChange={e => update('attachmentUrl', e.target.value)} placeholder="https://drive.google.com/... (Surat Persetujuan Impor / PI)" /></Field>
         <Field label={t.akl_note} full><textarea rows={2} value={form.note || ''} onChange={e => update('note', e.target.value)} /></Field>
       </>
     );

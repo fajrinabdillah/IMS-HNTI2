@@ -5029,19 +5029,6 @@ const ChartTooltip = ({ active, payload, label, fmt }) => {
 function Dashboard({ data, reports, products, t, lang, session, fmt, employees = {} }) {
   // PERFORMANCE FIX: All filters/maps wrapped in useMemo to avoid recomputing on every render
   // (was causing scroll lag with 613 SPH records)
-  const [dashboardStats, setDashboardStats] = useState({
-    weighted_pipeline: 27.87,
-    revenue_ytd: 32.19,
-    win_rate: 65
-  });
-
-  useEffect(() => {
-    const fetchDB = async () => {
-      const { data } = await supabase.from('dashboard_summary').select('*').limit(1).single();
-      if (data) setDashboardStats(data);
-    };
-    fetchDB();
-  }, []);
   const stats = useMemo(() => {
     const activeData = data.filter(s => s.status === 'active');
     const wonData = data.filter(s => s.status === 'won');
@@ -5120,9 +5107,9 @@ function Dashboard({ data, reports, products, t, lang, session, fmt, employees =
 
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '24px', border: '1px solid #d4cdb8'}}>
         <KPICard label={t.pipeline_value} value={fmt(totalPipeline)} sublabel={`${activeData.length} ${t.project_count} aktif`} trend={12.4} info={t.pipeline_value_sub} />
-        <KPICard label={t.weighted_pipeline} value={fmt(Number(dashboardStats.weighted_pipeline))} sublabel={`${totalPipeline > 0 ? ((weightedPipeline/totalPipeline)*100).toFixed(0) : 0}% ${lang === 'id' ? 'dari total · proyeksi' : 'of total · projection'}`} trend={8.7} info={t.weighted_pipeline_sub} />
-        <KPICard label={t.revenue_ytd} value={fmt(Number(dashboardStats.revenue_ytd))} sublabel={`${wonData.length} deal · ${t.revenue_period}`} trend={-3.2} info={t.revenue_ytd_sub} />
-        <KPICard label={t.win_rate} value={`${Number(dashboardStats.win_rate).toFixed(0)}%`} sublabel={`${wonData.length}/${wonData.length + lostData.length} closed`} trend={5.1} info={t.win_rate_sub} />
+        <KPICard label={t.weighted_pipeline} value={fmt(weightedPipeline)} sublabel={`${totalPipeline > 0 ? ((weightedPipeline/totalPipeline)*100).toFixed(0) : 0}% ${lang === 'id' ? 'dari total · proyeksi' : 'of total · projection'}`} trend={8.7} info={t.weighted_pipeline_sub} />
+        <KPICard label={t.revenue_ytd} value={fmt(revenueYTD)} sublabel={`${wonData.length} deal · ${t.revenue_period}`} trend={-3.2} info={t.revenue_ytd_sub} />
+        <KPICard label={t.win_rate} value={\${winRate.toFixed(0)}%`}` sublabel={`${wonData.length}/${wonData.length + lostData.length} closed`} trend={5.1} info={t.win_rate_sub} />
       </div>
 
       <div className="card" style={{marginBottom: '20px'}}>

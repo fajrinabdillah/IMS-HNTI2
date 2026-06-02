@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { TrendingUp, FileText, Briefcase, Plus, Search, Edit2, Trash2, X, ArrowUpRight, ArrowDownRight, Activity, DollarSign, Users, Clock, Globe, LogOut, Shield, Wrench, Truck, Wallet, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, FileCheck, Menu, ChevronDown, ChevronRight, ChevronLeft, ClipboardList, Star, Settings, ShieldCheck, CalendarDays, AlertTriangle, FileSearch, UserPlus, UserCheck, UserX, Plane, Receipt, Hotel, RefreshCw, History, FolderOpen, Upload, MessageSquare, Download, Target, Layers, FileBarChart, Paperclip, Bell } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Area, ComposedChart } from 'recharts';
+import logoFull from './logo.png';
+import logoKecil from './logo3.png';
+import { supabase } from './supabase';
 
 const DEFAULT_USD_IDR = 18000;
 
@@ -4294,6 +4297,31 @@ const GlobalStyles = () => (
 
 // Main App
 export default function App() {
+  // 1. Menyediakan tempat penyimpanan angka dasbor di aplikasi
+// 1. Menyediakan tempat penyimpanan angka dasbor di aplikasi
+  const [dashboardStats, setDashboardStats] = useState({
+    weighted_pipeline: 27.87,
+    revenue_ytd: 32.19,
+    win_rate: 65,
+    currency: 'USD'
+  });
+// 2. Robot penarik data dari tabel 'dashboard_summary' di Supabase
+useEffect(() => {
+  const fetchDashboardData = async () => {
+    const { data, error } = await supabase
+      .from('dashboard_summary')
+      .select('*')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (data && !error) {
+      setDashboardStats(data);
+    }
+  };
+
+  fetchDashboardData();
+}, []);
   const [lang, setLang] = useState('id');
   const [session, setSession] = useState(null);
   const [data, setData] = useState(ALL_SPH);
@@ -6664,9 +6692,9 @@ function ExecutiveSummary({ data, reports, annotations, products, t, lang, fmt, 
         <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '28px'}}>
           {[
             { label: lang === 'id' ? 'Total Pipeline' : 'Total Pipeline', value: fmt(k.totalPipeline), sub: `${k.active.length} ${lang === 'id' ? 'deal aktif' : 'active deals'}`, color: '#1a4d8a' },
-            { label: lang === 'id' ? 'Pipeline Tertimbang' : 'Weighted Pipeline', value: fmt(k.weightedPipeline), sub: lang === 'id' ? 'probabilitas × nilai' : 'probability × value', color: '#c8a96a' },
-            { label: lang === 'id' ? 'Pendapatan (Menang)' : 'Revenue (Won)', value: fmt(k.revenueYTD), sub: `${k.won.length} ${lang === 'id' ? 'deal menang' : 'won deals'}`, color: '#3a6b3a' },
-            { label: t.win_rate, value: `${k.winRate.toFixed(1)}%`, sub: `${k.won.length}/${k.won.length + k.lost.length} ${lang === 'id' ? 'closing' : 'closed'}`, color: '#7b3fb5' },
+            { label: lang === 'id' ? 'Pipeline Tertimbang' : 'Weighted Pipeline', value: fmt(dashboardStats.weighted_pipeline), sub: lang === 'id' ? 'probabilitas × nilai' : 'probability × value', color: '#c8a96a' },
+            { label: lang === 'id' ? 'Pendapatan (Menang)' : 'Revenue (Won)', value: fmt(dashboardStats.revenue_ytd), sub: `${k.won.length} ${lang === 'id' ? 'deal menang' : 'won deals'}`, color: '#3a6b3a' },
+            { label: t.win_rate, value: `${dashboardStats.win_rate}%`, sub: `${k.won.length}/${k.won.length + k.lost.length} ${lang === 'id' ? 'closing' : 'closed'}`, color: '#7b3fb5' },
           ].map((kpi, i) => (
             <div key={i} className="exec-card" style={{padding: '16px', background: '#fefcf7', border: '1px solid #e8e1cc'}}>
               <div style={{fontSize: '9px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>{kpi.label}</div>

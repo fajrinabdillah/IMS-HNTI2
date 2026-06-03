@@ -4194,7 +4194,7 @@ const PAYMENT_TERMS = {
 // React.memo wrapped - logo is pure presentational, no state, no parent re-render needed
 // ====== KODE LOGO KECIL DASBOR ======
 const IMSLogo = React.memo(function IMSLogo({ size = 'md' }) {
-  // Mengatur ukuran lebar logo secara proporsional sesuai kebutuhan komponen
+  // Mengatur ukuran lebar logo
   const logoWidth = size === 'xl' ? '180px' : size === 'lg' ? '140px' : size === 'sm' ? '80px' : '100px';
 
   return (
@@ -4207,7 +4207,6 @@ const IMSLogo = React.memo(function IMSLogo({ size = 'md' }) {
     </div>
   );
 });
-
 // Global styles
 const GlobalStyles = () => (
   <style>{`

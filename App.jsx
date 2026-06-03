@@ -4240,6 +4240,35 @@ useEffect(() => {
   const [lang, setLang] = useState('id');
   const [session, setSession] = useState(null);
   const [data, setData] = useState(ALL_SPH);
+  // ==== KODE SIHIR PEMINDAH DATA ====
+  useEffect(() => {
+    const pindahkanData = async () => {
+      const { count } = await supabase.from('project').select('*', { count: 'exact', head: true });
+      if (count === 0) { // Hanya menembak jika tabel di Supabase masih kosong
+        const payload = ALL_SPH.map(item => ({
+          project_id: String(item.id),
+          sph_number: item.sphNo,
+          customer_name: item.customer,
+          customer_type: item.customerType,
+          sector: item.projectType,
+          modality: item.modality,
+          product: item.subModality,
+          qty: Number(item.qty),
+          value: Number(item.totalValue),
+          sales_name: item.salesOwner,
+          region: item.region,
+          status: item.stage
+        }));
+        
+        const { error } = await supabase.from('project').insert(payload);
+        if (!error) {
+          alert("SIHIR BERHASIL! Seluruh data proyek telah masuk ke Supabase!");
+        }
+      }
+    };
+    pindahkanData();
+  }, []);
+  // ==================================
   const [reports, setReports] = useState(SEED_FIELD_REPORTS);
   const [issues, setIssues] = useState(SEED_ISSUES);
   const [pmSchedule, setPmSchedule] = useState([]);

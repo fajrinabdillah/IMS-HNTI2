@@ -4228,20 +4228,12 @@ useEffect(() => {
         
         const baseProbs = { sph_sent: 20, presentation_scheduled: 35, presentation_done: 50, ecatalog: 40, negotiation: 70, tender: 55, po_issued: 100 };
 
-        const appData = dbData.map((item, index) => {
+        const appData = dbData.map(item => {
           const currentStage = item.status || 'sph_sent';
           
           let currentStatus = 'active';
           if (currentStage === 'po_issued') currentStatus = 'won';
           if (currentStage === 'lost' || currentStage === 'drop') currentStatus = 'lost';
-
-          // Membagi 363 data ke bulan 01 (Jan) sampai 05 (Mei)
-          let monthNum = Math.floor(index / 75) + 1; 
-          if (monthNum > 5) monthNum = 5;
-          const monthStr = monthNum.toString().padStart(2, '0');
-          
-          // FORMAT AMAN: Hanya YYYY-MM-DD (Tanpa embel-embel jam yang bikin error)
-          const safeDate = `2026-${monthStr}-15`;
 
           return {
             id: item.project_id,
@@ -4252,19 +4244,12 @@ useEffect(() => {
             modality: item.modality,
             subModality: item.product,
             qty: Number(item.qty) || 0,
-            unitPrice: (Number(item.value) || 0) / (Number(item.qty) || 1),
             totalValue: Number(item.value) || 0,
-            value: Number(item.value) || 0,
             salesOwner: item.sales_name,
             region: item.region,
             stage: currentStage,
             status: currentStatus,
-            probability: baseProbs[currentStage] || 0,
-            
-            // Kunci tanggal diseragamkan
-            issuedDate: safeDate,
-            date: safeDate,
-            lastUpdate: safeDate
+            probability: baseProbs[currentStage] || 0
           };
         });
         
@@ -4272,8 +4257,10 @@ useEffect(() => {
       }
     };
     
+    // Tarik data saat pertama kali dimuat
     fetchSupabaseData();
 
+    // Aktifkan sinkronisasi Real-Time
     const subscription = supabase
       .channel('project_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project' }, () => {
@@ -4284,7 +4271,8 @@ useEffect(() => {
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, []);  // ==== KODE SIHIR PEMINDAH DATA ====
+  }, []);
+  
   useEffect(() => {
     const pindahkanData = async () => {
       const { count } = await supabase.from('project').select('*', { count: 'exact', head: true });

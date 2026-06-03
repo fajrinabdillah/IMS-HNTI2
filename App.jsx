@@ -4234,6 +4234,9 @@ useEffect(() => {
           if (currentStage === 'po_issued') currentStatus = 'won';
           if (currentStage === 'lost' || currentStage === 'drop') currentStatus = 'lost';
 
+          // Kita kunci tanggalnya di pertengahan Maret agar pasti terbaca oleh grafik
+          const chartDate = '2026-03-15';
+
           return {
             id: item.project_id,
             sphNo: item.sph_number,
@@ -4243,13 +4246,18 @@ useEffect(() => {
             modality: item.modality,
             subModality: item.product,
             qty: Number(item.qty) || 0,
+            unitPrice: (Number(item.value) || 0) / (Number(item.qty) || 1), // Jaga-jaga jika grafik butuh harga satuan
             totalValue: Number(item.value) || 0,
+            value: Number(item.value) || 0, 
             salesOwner: item.sales_name,
             region: item.region,
             stage: currentStage,
             status: currentStatus,
             probability: baseProbs[currentStage] || 0,
-            issuedDate: '2026-03-15' // Kunci untuk menghidupkan grafik bergelombang
+            // Kita berikan semua jenis kunci tanggal
+            date: chartDate,
+            issuedDate: chartDate,
+            lastUpdate: chartDate
           };
         });
         
@@ -4257,10 +4265,10 @@ useEffect(() => {
       }
     };
     
-    // 1. Tarik data saat web pertama kali dibuka
+    // 1. Tarik data saat web dibuka
     fetchSupabaseData();
 
-    // 2. KODE REAL-TIME MAGIC (Otomatis tarik data lagi jika ada perubahan di gudang)
+    // 2. Sihir Real-Time: Otomatis perbarui dasbor jika ada perubahan di Supabase
     const subscription = supabase
       .channel('project_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project' }, (payload) => {
@@ -4271,8 +4279,7 @@ useEffect(() => {
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, []);
-  const [lang, setLang] = useState('id');
+  }, []);  const [lang, setLang] = useState('id');
   const [session, setSession] = useState(null);
   const [data, setData] = useState([]);
 

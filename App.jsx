@@ -4235,13 +4235,13 @@ useEffect(() => {
           if (currentStage === 'po_issued') currentStatus = 'won';
           if (currentStage === 'lost' || currentStage === 'drop') currentStatus = 'lost';
 
-          // Mitigasi Grafik: Menyebarkan 363 data secara merata ke bulan Jan - Mei
+          // Membagi 363 data ke bulan 01 (Jan) sampai 05 (Mei)
           let monthNum = Math.floor(index / 75) + 1; 
           if (monthNum > 5) monthNum = 5;
           const monthStr = monthNum.toString().padStart(2, '0');
           
-          // Format ISO 8601 yang mutlak terbaca oleh sistem grafik
-          const validDate = `2026-${monthStr}-15T12:00:00.000Z`;
+          // FORMAT AMAN: Hanya YYYY-MM-DD (Tanpa embel-embel jam yang bikin error)
+          const safeDate = `2026-${monthStr}-15`;
 
           return {
             id: item.project_id,
@@ -4261,11 +4261,10 @@ useEffect(() => {
             status: currentStatus,
             probability: baseProbs[currentStage] || 0,
             
-            // Memberikan tanggal yang valid ke semua variabel yang mungkin dibaca grafik
-            issuedDate: validDate,
-            date: validDate,
-            lastUpdate: validDate,
-            createdAt: validDate
+            // Kunci tanggal diseragamkan
+            issuedDate: safeDate,
+            date: safeDate,
+            lastUpdate: safeDate
           };
         });
         
@@ -4285,8 +4284,7 @@ useEffect(() => {
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, []);
-  // ==== KODE SIHIR PEMINDAH DATA ====
+  }, []);  // ==== KODE SIHIR PEMINDAH DATA ====
   useEffect(() => {
     const pindahkanData = async () => {
       const { count } = await supabase.from('project').select('*', { count: 'exact', head: true });

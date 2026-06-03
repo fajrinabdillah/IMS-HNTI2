@@ -4719,6 +4719,40 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
       <Header session={session} setSession={setSession} lang={lang} setLang={setLang} view={view} setView={setView} allowedNav={allowedNav} t={t} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} businessTrips={businessTrips} realizations={realizations} reports={reports} reportsSeen={reportsSeen} onChangePassword={() => setChangePwOpen(true)} />
 
       <main className="main-content fade-in" style={{maxWidth: '1440px', margin: '0 auto', padding: '32px 48px 60px'}}>
+        <button
+          onClick={async () => {
+            try {
+              alert("Mempersiapkan pengiriman ribuan data... Klik OK dan tunggu sebentar.");
+              const payload = ALL_SPH.map(item => ({
+                project_id: String(item.id),
+                sph_number: String(item.sphNo),
+                customer_name: String(item.customer),
+                customer_type: String(item.customerType),
+                sector: String(item.projectType),
+                modality: String(item.modality),
+                product: String(item.subModality),
+                qty: Number(item.qty) || 0,
+                value: Number(item.totalValue) || 0,
+                sales_name: String(item.salesOwner),
+                region: String(item.region),
+                status: String(item.stage)
+              }));
+              
+              const { error } = await supabase.from('project').insert(payload);
+              
+              if (error) {
+                alert("GAGAL MENGIRIM! Pesan dari Supabase: " + error.message);
+              } else {
+                alert("SUKSES BESAR! 🏆 Seluruh data telah masuk ke Supabase!");
+              }
+            } catch (err) {
+              alert("ERROR SISTEM: " + err.message);
+            }
+          }}
+          style={{ padding: '20px', background: '#e74c3c', color: 'white', fontSize: '18px', fontWeight: 'bold', width: '100%', marginBottom: '20px', cursor: 'pointer', borderRadius: '8px' }}
+        >
+          🚀 KLIK DI SINI UNTUK PINDAHKAN DATA KE SUPABASE 🚀
+        </button>
         {view === 'dashboard' && <Dashboard data={filteredData} reports={reports} products={products} t={t} lang={lang} session={session} fmt={fmt} employees={employees} />}
         {view === 'sph' && canRead('sph') && <SPHManagement data={filteredData} employees={employees} t={t} lang={lang} canEdit={canEdit('sph')} fmt={fmt} onAdd={() => { setEditingSph(null); setModalOpen(true); }} onEdit={(s) => { setEditingSph(s); setModalOpen(true); }} onDelete={handleDelete} />}
         {view === 'pipeline' && canRead('pipeline') && <PipelineBoard data={filteredData} allData={data} setData={setData} employees={employees} session={session} logAction={logAction} t={t} lang={lang} canEdit={canEdit('pipeline')} fmt={fmt} onEdit={(s) => { setEditingSph(s); setModalOpen(true); }} />}

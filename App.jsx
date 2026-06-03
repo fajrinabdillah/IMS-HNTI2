@@ -4244,7 +4244,13 @@ useEffect(() => {
             modality: item.modality,
             subModality: item.product,
             qty: Number(item.qty) || 0,
+            unitPrice: (Number(item.value) || 0) / (Number(item.qty) || 1),
             totalValue: Number(item.value) || 0,
+            
+            // TANGGAL PENYELAMAT GRAFIK:
+            issuedDate: '2026-03-15', 
+            lastUpdate: '2026-05-12',
+            
             salesOwner: item.sales_name,
             region: item.region,
             stage: currentStage,
@@ -4257,10 +4263,8 @@ useEffect(() => {
       }
     };
     
-    // Tarik data saat pertama kali dimuat
     fetchSupabaseData();
 
-    // Aktifkan sinkronisasi Real-Time
     const subscription = supabase
       .channel('project_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project' }, () => {
@@ -4273,33 +4277,6 @@ useEffect(() => {
     };
   }, []);
   
-  useEffect(() => {
-    const pindahkanData = async () => {
-      const { count } = await supabase.from('project').select('*', { count: 'exact', head: true });
-      if (count === 0) { // Hanya menembak jika tabel di Supabase masih kosong
-        const payload = ALL_SPH.map(item => ({
-          project_id: String(item.id),
-          sph_number: item.sphNo,
-          customer_name: item.customer,
-          customer_type: item.customerType,
-          sector: item.projectType,
-          modality: item.modality,
-          product: item.subModality,
-          qty: Number(item.qty),
-          value: Number(item.totalValue),
-          sales_name: item.salesOwner,
-          region: item.region,
-          status: item.stage
-        }));
-        
-        const { error } = await supabase.from('project').insert(payload);
-        if (!error) {
-          alert("SIHIR BERHASIL! Seluruh data proyek telah masuk ke Supabase!");
-        }
-      }
-    };
-    pindahkanData();
-  }, []);
   // ==================================
   const [reports, setReports] = useState(SEED_FIELD_REPORTS);
   const [issues, setIssues] = useState(SEED_ISSUES);

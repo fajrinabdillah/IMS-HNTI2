@@ -4690,43 +4690,39 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
 
   const filteredData = session.role === 'sales' && session.salesId ? data.filter(s => s.salesOwner === session.salesId) : data;
 
-  const handleSave = (sph) => {
+  const handleSave = async (sph) => {
     const isEdit = !!editingSph;
-    // Strip internal markers before saving
-    const replaceOldIds = sph._replaceOldIds || [];
-    const duplicateNote = sph._duplicateNote || null;
-    const clean = { ...sph };
-    delete clean._replaceOldIds;
-    delete clean._duplicateNote;
+
+    const payload = {
+      sph_number: sph.sphNo,
+      customer_name: sph.customer,
+      customer_type: sph.customerType,
+      sector: sph.projectType,
+      modality: sph.modality,
+      product: sph.subModality,
+      qty: Number(sph.qty) || 1,
+      value: Number(sph.totalValue) || 0,
+      sales_name: sph.salesOwner,
+      region: sph.region,
+      status: sph.stage || 'sph_sent'
+    };
 
     if (isEdit) {
-      setData(prev => prev.map(s => s.id === clean.id ? clean : s));
-      logAction({ module: 'sph', action: 'update', entityId: clean.id, entityLabel: `${clean.sphNo} · ${clean.customer}`, note: `Total: ${clean.totalValue}` });
+      const { error } = await supabase
+        .from('project')
+        .update(payload)
+        .eq('project_id', sph.id);
+      
+      if (error) console.error("Error update:", error);
     } else {
-      const newId = 'sph_' + Date.now();
-      const newSph = { ...clean, id: newId };
-      // If replacing old SPHs, mark them as cancelled with link to new SPH
-      if (replaceOldIds.length > 0) {
-        setData(prev => {
-          const updated = prev.map(s => replaceOldIds.includes(s.id)
-            ? { ...s, status: 'cancelled', stage: 'lost', _replacedBy: newId, _replacedAt: new Date().toISOString(), notes: (s.notes || '') + ` [Digantikan oleh ${clean.sphNo} pada ${new Date().toLocaleDateString('id-ID')}]` }
-            : s);
-          return [...updated, newSph];
-        });
-        // Log each replacement
-        replaceOldIds.forEach(oldId => {
-          const oldSph = data.find(s => s.id === oldId);
-          if (oldSph) {
-            logAction({ module: 'sph', action: 'update', entityId: oldId, entityLabel: `${oldSph.sphNo} · ${oldSph.customer}`, field: 'status', before: oldSph.status, after: 'cancelled', note: `Digantikan oleh SPH baru ${clean.sphNo}` });
-          }
-        });
-        logAction({ module: 'sph', action: 'create', entityId: newId, entityLabel: `${clean.sphNo} · ${clean.customer}`, note: `${duplicateNote || ''} · Menggantikan: ${replaceOldIds.join(', ')}` });
-      } else {
-        setData(prev => [...prev, newSph]);
-        logAction({ module: 'sph', action: 'create', entityId: newId, entityLabel: `${clean.sphNo} · ${clean.customer}`, note: duplicateNote ? `${duplicateNote} · Total: ${clean.totalValue}` : `Total: ${clean.totalValue}` });
-      }
+      const { error } = await supabase
+        .from('project')
+        .insert([payload]);
+      
+      if (error) console.error("Error insert:", error);
     }
-    setModalOpen(false); setEditingSph(null);
+
+    setEditingSph(null);
   };
   const [deleteSphId, setDeleteSphId] = useState(null);
   const handleDelete = (id) => setDeleteSphId(id);

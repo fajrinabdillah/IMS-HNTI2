@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { TrendingUp, FileText, Briefcase, Plus, Search, Edit2, Trash2, X, ArrowUpRight, ArrowDownRight, Activity, DollarSign, Users, Clock, Globe, LogOut, Shield, Wrench, Truck, Wallet, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, FileCheck, Menu, ChevronDown, ChevronRight, ChevronLeft, ClipboardList, Star, Settings, ShieldCheck, CalendarDays, AlertTriangle, FileSearch, UserPlus, UserCheck, UserX, Plane, Receipt, Hotel, RefreshCw, History, FolderOpen, Upload, MessageSquare, Download, Target, Layers, FileBarChart, Paperclip, Bell } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Area, ComposedChart } from 'recharts';
-import logoFull from './logo.png';
+import logoFull from ‘./logo.png';
 import logoKecil from './logo3.png';
-import { supabase } from './supabase';
 const DEFAULT_USD_IDR = 18000;
 
 // ============== i18n ==============
@@ -3993,26 +3992,66 @@ const _hasLocalStorage = (() => {
     return true;
   } catch { return false; }
 })();
+// ── Supabase cloud storage (Tahap 4 migration) ───────────────────────────────
+// Anon key AMAN di browser selama RLS aktif (sudah kita aktifkan di Tahap 2-3).
+// ▼▼▼ GANTI baris _SUPA_KEY di bawah dengan anon key Anda dari Supabase Settings → API Keys ▼▼▼
+const _SUPA_URL = 'https://xuumodhksfwnkdbyjnmq.supabase.co';
+const _SUPA_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1dW1vZGhrc2Z3bmtkYnlqbm1xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDgwMTQsImV4cCI6MjA5NTk4NDAxNH0.yiuPJEI-BXXc_mXNparq7wDX2u4QJ04mVbF55FZkbuo
+// ▲▲▲ setelah diganti, commit & deploy → data akan tersimpan di Supabase ▲▲▲
+const _supaEnabled = () => _SUPA_KEY !== 'MASUKKAN_ANON_KEY_ANDA_DI_SINI' && _SUPA_URL.startsWith('https://');
+const _supaFetch = (path, opts = {}) => fetch(`${_SUPA_URL}/rest/v1/${path}`, {
+  ...opts, headers: { apikey: _SUPA_KEY, Authorization: `Bearer ${_SUPA_KEY}`, 'Content-Type': 'application/json', ...(opts.headers || {}) }
+});
+if (typeof window !== 'undefined' && !_supaEnabled()) {
+  console.warn('[IMS] Supabase belum dikonfigurasi — memakai localStorage sementara. Ganti _SUPA_KEY di kode.');
+}
 const storeGet = async (k) => {
-  try {
-    if (_hasArtifactStorage) { const r = await window.storage.get(k); return r?.value ?? null; }
-    if (_hasLocalStorage) { return window.localStorage.getItem(k); }
-    return _memStore[k] ?? null;
-  } catch { return _memStore[k] ?? null; }
+  // [1] Claude artifact preview
+  if (_hasArtifactStorage) { try { const r = await window.storage.get(k); return r?.value ?? null; } catch {} }
+  // [2] Supabase (penyimpanan cloud utama)
+  if (_supaEnabled()) {
+    try {
+      const res = await _supaFetch(`kv_store?key=eq.${encodeURIComponent(k)}&select=value`);
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows) && rows.length > 0) {
+          const v = rows[0].value;
+          if (v == null) return null;
+          return typeof v === 'string' ? v : JSON.stringify(v);
+        }
+      }
+    } catch {}
+  }
+  // [3] localStorage (fallback: data lama sebelum Supabase aktif / Supabase offline)
+  try { if (_hasLocalStorage) return window.localStorage.getItem(k); } catch {}
+  return _memStore[k] ?? null;
 };
 const storeSet = async (k, v) => {
-  try {
-    if (_hasArtifactStorage) { await window.storage.set(k, v); return; }
-    if (_hasLocalStorage) { window.localStorage.setItem(k, v); return; }
-    _memStore[k] = v;
-  } catch { _memStore[k] = v; }
+  // [1] Claude artifact preview
+  if (_hasArtifactStorage) { try { await window.storage.set(k, v); return; } catch {} }
+  // [2] Supabase upsert (insert-or-update berdasarkan primary key)
+  if (_supaEnabled()) {
+    try {
+      const jv = (() => { try { return JSON.parse(v); } catch { return v; } })();
+      await _supaFetch('kv_store', {
+        method: 'POST',
+        headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify({ key: k, value: jv, updated_at: new Date().toISOString() })
+      });
+    } catch {}
+  }
+  // [3] localStorage mirror (data tetap ada saat offline / transisi ke Supabase)
+  try { if (_hasLocalStorage) { window.localStorage.setItem(k, v); return; } } catch {}
+  _memStore[k] = v;
 };
 const storeDel = async (k) => {
-  try {
-    if (_hasArtifactStorage) { await window.storage.delete(k); return; }
-    if (_hasLocalStorage) { window.localStorage.removeItem(k); return; }
-    delete _memStore[k];
-  } catch { delete _memStore[k]; }
+  // [1] Claude artifact preview
+  if (_hasArtifactStorage) { try { await window.storage.delete(k); return; } catch {} }
+  // [2] Supabase delete
+  if (_supaEnabled()) { try { await _supaFetch(`kv_store?key=eq.${encodeURIComponent(k)}`, { method: 'DELETE' }); } catch {} }
+  // [3] localStorage cleanup
+  try { if (_hasLocalStorage) { window.localStorage.removeItem(k); return; } } catch {}
+  delete _memStore[k];
 };
 
 // ── Debounced persistence (speed booster) ──────────────────────────────────
@@ -4167,7 +4206,7 @@ const IMSLogo = React.memo(function IMSLogo({ size = 'md' }) {
     </div>
   );
 });
-// ====================================
+
 // Global styles
 const GlobalStyles = () => (
   <style>{`

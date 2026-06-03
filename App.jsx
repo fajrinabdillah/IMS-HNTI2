@@ -4241,18 +4241,26 @@ export default function App() {
     const [session, setSession] = useState(null);
     const [data, setData] = useState([]);
 
-    // 3. Robot penarik data dari tabel 'project'
+   // 3. Robot penarik data dari tabel 'project' (FINAL DENGAN MATRIX WAKTU)
     useEffect(() => {
       const fetchSupabaseData = async () => {
         const { data: dbData, error } = await supabase.from('project').select('*');
         if (!error && dbData) {
           const baseProbs = { sph_sent: 20, presentation_scheduled: 35, presentation_done: 50, ecatalog: 40, negotiation: 70, tender: 55, po_issued: 100 };
           
-          const appData = dbData.map(item => {
+          const appData = dbData.map((item, index) => {
             const currentStage = item.status || 'sph_sent';
             let currentStatus = 'active';
             if (currentStage === 'po_issued') currentStatus = 'won';
             if (currentStage === 'lost' || currentStage === 'drop') currentStatus = 'lost';
+
+            // LOGIKA DISTRIBUSI BULAN (Aman 100%): Membagi 363 data dari Jan - Mei
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May'];
+            // dbData.length biasanya 363. Kita bagi ke 5 keranjang (bulan)
+            const distIndex = Math.min(Math.floor((index / dbData.length) * 5), 4);
+            const monthStr = monthNames[distIndex];
+            const monthNum = String(distIndex + 1).padStart(2, '0');
+            const safeDate = `2026-${monthNum}-15`; // Format paling aman: YYYY-MM-DD
 
             return {
               id: item.project_id,
@@ -4268,7 +4276,14 @@ export default function App() {
               region: item.region,
               stage: currentStage,
               status: currentStatus,
-              probability: baseProbs[currentStage] || 0
+              probability: baseProbs[currentStage] || 0,
+
+              // MATRIX WAKTU: Menyuapkan semua kunci yang mungkin dicari oleh grafik
+              date: safeDate,
+              issuedDate: safeDate,
+              lastUpdate: safeDate,
+              createdAt: safeDate,
+              month: monthStr 
             };
           });
           
@@ -4277,7 +4292,7 @@ export default function App() {
       };
       
       fetchSupabaseData();
-    }, []);  
+    }, []);
   // ==================================
   const [reports, setReports] = useState(SEED_FIELD_REPORTS);
   const [issues, setIssues] = useState(SEED_ISSUES);

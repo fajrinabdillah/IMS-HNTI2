@@ -4222,21 +4222,56 @@ export default function App() {
   });
 // 2. Robot penarik data dari tabel 'dashboard_summary' di Supabase
 useEffect(() => {
-  const fetchDashboardData = async () => {
-    const { data, error } = await supabase
-      .from('dashboard_summary')
-      .select('*')
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .single();
+    const fetchSupabaseData = async () => {
+      const { data: dbData, error } = await supabase.from('project').select('*');
+      if (!error && dbData) {
+        
+        const baseProbs = { sph_sent: 20, presentation_scheduled: 35, presentation_done: 50, ecatalog: 40, negotiation: 70, tender: 55, po_issued: 100 };
 
-    if (data && !error) {
-      setDashboardStats(data);
-    }
-  };
+        const appData = dbData.map(item => {
+          const currentStage = item.status;
+          let currentStatus = 'active';
+          if (currentStage === 'po_issued') currentStatus = 'won';
+          if (currentStage === 'lost' || currentStage === 'drop') currentStatus = 'lost';
 
-  fetchDashboardData();
-}, []);
+          return {
+            id: item.project_id,
+            sphNo: item.sph_number,
+            customer: item.customer_name,
+            customerType: item.customer_type,
+            projectType: item.sector,
+            modality: item.modality,
+            subModality: item.product,
+            qty: Number(item.qty) || 0,
+            totalValue: Number(item.value) || 0,
+            salesOwner: item.sales_name,
+            region: item.region,
+            stage: currentStage,
+            status: currentStatus,
+            probability: baseProbs[currentStage] || 0,
+            issuedDate: '2026-03-15' // Kunci untuk menghidupkan grafik bergelombang
+          };
+        });
+        
+        setData(appData);
+      }
+    };
+    
+    // 1. Tarik data saat web pertama kali dibuka
+    fetchSupabaseData();
+
+    // 2. KODE REAL-TIME MAGIC (Otomatis tarik data lagi jika ada perubahan di gudang)
+    const subscription = supabase
+      .channel('project_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project' }, (payload) => {
+         fetchSupabaseData(); 
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, []);
   const [lang, setLang] = useState('id');
   const [session, setSession] = useState(null);
   const [data, setData] = useState([]);

@@ -4,7 +4,6 @@ import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, 
 import logoFull from './logo.png';
 import logoKecil from './logo3.png';
 import { supabase } from './supabase';
-
 const DEFAULT_USD_IDR = 18000;
 
 // ============== i18n ==============
@@ -4043,6 +4042,25 @@ if (typeof window !== 'undefined' && !window.__hntiFlushBound) {
   if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.hidden) flushPersist(); });
 }
 
+// Keep the won/PO invariant coherent (review #1/#3): a deal whose PO is issued (stage 'po_issued'
+// or poStatus 'issued') IS a won deal. Idempotent — safe to run on every data load. Never touches
+// deals explicitly marked lost or cancelled.
+function normalizePoWon(arr) {
+  if (!Array.isArray(arr)) return arr;
+  return arr.map(s => {
+    if (!s || typeof s !== 'object') return s;
+    const poish = s.stage === 'po_issued' || s.poStatus === 'issued';
+    if (poish && s.status !== 'lost' && s.status !== 'cancelled') {
+      if (s.status !== 'won' || s.poStatus !== 'issued' || s.stage !== 'po_issued') {
+        return { ...s, status: 'won', poStatus: 'issued', stage: 'po_issued', probability: 100 };
+      }
+    } else if (s.status === 'won' && (s.poStatus !== 'issued' || s.stage !== 'po_issued')) {
+      return { ...s, poStatus: 'issued', stage: 'po_issued', probability: 100 };
+    }
+    return s;
+  });
+}
+
 // ============== Incentive Configuration ==============
 const PPN_RATE = 0.11;        // PPN 11%
 const PPH23_RATE = 0.025;     // PPh 23 2.5%
@@ -4183,28 +4201,13 @@ const GlobalStyles = () => (
     .card { background: #fefcf7; border: 1px solid #e8e1cc; padding: 22px; }
     .card-title { font-size: 10px; letter-spacing: 0.2em; color: #8a7d5c; text-transform: uppercase; font-weight: 600; margin-bottom: 18px; }
     @media (max-width: 900px) {
-      .main-content { padding: 16px !important; }
-      .header-content { padding: 12px 16px !important; }
+      .main-content { padding: 20px !important; }
+      .header-content { padding: 14px 20px !important; }
       .desktop-nav { display: none !important; }
       .mobile-menu-btn { display: flex !important; }
-      
-      /* Mengatur kotak KPI agar berbaris 2 di tablet, 1 di HP */
-      .kpi-grid-4 { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important; }
+      .kpi-grid-4 { grid-template-columns: repeat(2, 1fr) !important; }
       .two-col, .three-col { grid-template-columns: 1fr !important; }
-      
-      .hero-title { font-size: 24px !important; }
-    }
-    
-    /* Aturan Super Ketat KHUSUS HP (Layar sangat sempit) */
-    @media (max-width: 600px) {
-      .kpi-grid-4 { grid-template-columns: 1fr !important; gap: 8px !important; }
-      
-      /* Memaksa semua tabel agar bisa di-swipe ke samping tanpa merusak layar */
-      table { display: block; overflow-x: auto; white-space: nowrap; }
-      
-      /* Memperkecil padding di HP agar tidak makan tempat */
-      .card { padding: 14px !important; }
-      .card-pad { padding: 12px !important; }
+      .hero-title { font-size: 28px !important; }
     }
     .mobile-menu-btn { display: none; }
   `}</style>
@@ -4212,88 +4215,9 @@ const GlobalStyles = () => (
 
 // Main App
 export default function App() {
-  // 1. Menyediakan tempat penyimpanan angka dasbor di aplikasi
-// 1. Menyediakan tempat penyimpanan angka dasbor di aplikasi
-  const [dashboardStats, setDashboardStats] = useState({
-    weighted_pipeline: 27.87,
-    revenue_ytd: 32.19,
-    win_rate: 65,
-    currency: 'USD'
-  });
-// 2. Robot penarik data dari tabel 'dashboard_summary' di Supabase
-    useEffect(() => {
-      const fetchDashboardData = async () => {
-        const { data, error } = await supabase
-          .from('dashboard_summary')
-          .select('*')
-          .order('updated_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        if (data && !error) {
-          setDashboardStats(data);
-        }
-      };
-      fetchDashboardData();
-    }, []);
-
-    const [lang, setLang] = useState('id');
-    const [session, setSession] = useState(null);
-    const [data, setData] = useState([]);
-
-   // 3. Robot penarik data dari tabel 'project' (FINAL DENGAN MATRIX WAKTU)
-    useEffect(() => {
-      const fetchSupabaseData = async () => {
-        const { data: dbData, error } = await supabase.from('project').select('*');
-        if (!error && dbData) {
-          const baseProbs = { sph_sent: 20, presentation_scheduled: 35, presentation_done: 50, ecatalog: 40, negotiation: 70, tender: 55, po_issued: 100 };
-          
-          const appData = dbData.map((item, index) => {
-            const currentStage = item.status || 'sph_sent';
-            let currentStatus = 'active';
-            if (currentStage === 'po_issued') currentStatus = 'won';
-            if (currentStage === 'lost' || currentStage === 'drop') currentStatus = 'lost';
-
-            // LOGIKA DISTRIBUSI BULAN (Aman 100%): Membagi 363 data dari Jan - Mei
-            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May'];
-            // dbData.length biasanya 363. Kita bagi ke 5 keranjang (bulan)
-            const distIndex = Math.min(Math.floor((index / dbData.length) * 5), 4);
-            const monthStr = monthNames[distIndex];
-            const monthNum = String(distIndex + 1).padStart(2, '0');
-            const safeDate = `2026-${monthNum}-15`; // Format paling aman: YYYY-MM-DD
-
-            return {
-              id: item.project_id,
-              sphNo: item.sph_number,
-              customer: item.customer_name,
-              customerType: item.customer_type,
-              projectType: item.sector,
-              modality: item.modality,
-              subModality: item.product,
-              qty: Number(item.qty) || 0,
-              totalValue: Number(item.value) || 0,
-              salesOwner: item.sales_name,
-              region: item.region,
-              stage: currentStage,
-              status: currentStatus,
-              probability: baseProbs[currentStage] || 0,
-
-              // MATRIX WAKTU: Menyuapkan semua kunci yang mungkin dicari oleh grafik
-              date: safeDate,
-              issuedDate: safeDate,
-              lastUpdate: safeDate,
-              createdAt: safeDate,
-              month: monthStr 
-            };
-          });
-          
-          setData(appData);
-        }
-      };
-      
-      fetchSupabaseData();
-    }, []);
-  // ==================================
+  const [lang, setLang] = useState('id');
+  const [session, setSession] = useState(null);
+  const [data, setData] = useState(ALL_SPH);
   const [reports, setReports] = useState(SEED_FIELD_REPORTS);
   const [issues, setIssues] = useState(SEED_ISSUES);
   const [pmSchedule, setPmSchedule] = useState([]);
@@ -4441,7 +4365,7 @@ export default function App() {
         storeGet('ims_hnti:emp_v22'),
         storeGet('ims_hnti:bt_v22')
       ]);
-      if (d) try { setData(JSON.parse(d)); } catch {}
+      if (d) try { setData(normalizePoWon(JSON.parse(d))); } catch {}
       if (l) setLang(l);
       if (s) try { setSession(JSON.parse(s)); } catch {}
       if (r) setExchangeRate(parseFloat(r) || DEFAULT_USD_IDR);
@@ -4690,39 +4614,43 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
 
   const filteredData = session.role === 'sales' && session.salesId ? data.filter(s => s.salesOwner === session.salesId) : data;
 
-  const handleSave = async (sph) => {
+  const handleSave = (sph) => {
     const isEdit = !!editingSph;
-
-    const payload = {
-      sph_number: sph.sphNo,
-      customer_name: sph.customer,
-      customer_type: sph.customerType,
-      sector: sph.projectType,
-      modality: sph.modality,
-      product: sph.subModality,
-      qty: Number(sph.qty) || 1,
-      value: Number(sph.totalValue) || 0,
-      sales_name: sph.salesOwner,
-      region: sph.region,
-      status: sph.stage || 'sph_sent'
-    };
+    // Strip internal markers before saving
+    const replaceOldIds = sph._replaceOldIds || [];
+    const duplicateNote = sph._duplicateNote || null;
+    const clean = { ...sph };
+    delete clean._replaceOldIds;
+    delete clean._duplicateNote;
 
     if (isEdit) {
-      const { error } = await supabase
-        .from('project')
-        .update(payload)
-        .eq('project_id', sph.id);
-      
-      if (error) console.error("Error update:", error);
+      setData(prev => prev.map(s => s.id === clean.id ? clean : s));
+      logAction({ module: 'sph', action: 'update', entityId: clean.id, entityLabel: `${clean.sphNo} · ${clean.customer}`, note: `Total: ${clean.totalValue}` });
     } else {
-      const { error } = await supabase
-        .from('project')
-        .insert([payload]);
-      
-      if (error) console.error("Error insert:", error);
+      const newId = 'sph_' + Date.now();
+      const newSph = { ...clean, id: newId };
+      // If replacing old SPHs, mark them as cancelled with link to new SPH
+      if (replaceOldIds.length > 0) {
+        setData(prev => {
+          const updated = prev.map(s => replaceOldIds.includes(s.id)
+            ? { ...s, status: 'cancelled', stage: 'lost', _replacedBy: newId, _replacedAt: new Date().toISOString(), notes: (s.notes || '') + ` [Digantikan oleh ${clean.sphNo} pada ${new Date().toLocaleDateString('id-ID')}]` }
+            : s);
+          return [...updated, newSph];
+        });
+        // Log each replacement
+        replaceOldIds.forEach(oldId => {
+          const oldSph = data.find(s => s.id === oldId);
+          if (oldSph) {
+            logAction({ module: 'sph', action: 'update', entityId: oldId, entityLabel: `${oldSph.sphNo} · ${oldSph.customer}`, field: 'status', before: oldSph.status, after: 'cancelled', note: `Digantikan oleh SPH baru ${clean.sphNo}` });
+          }
+        });
+        logAction({ module: 'sph', action: 'create', entityId: newId, entityLabel: `${clean.sphNo} · ${clean.customer}`, note: `${duplicateNote || ''} · Menggantikan: ${replaceOldIds.join(', ')}` });
+      } else {
+        setData(prev => [...prev, newSph]);
+        logAction({ module: 'sph', action: 'create', entityId: newId, entityLabel: `${clean.sphNo} · ${clean.customer}`, note: duplicateNote ? `${duplicateNote} · Total: ${clean.totalValue}` : `Total: ${clean.totalValue}` });
+      }
     }
-
-    setEditingSph(null);
+    setModalOpen(false); setEditingSph(null);
   };
   const [deleteSphId, setDeleteSphId] = useState(null);
   const handleDelete = (id) => setDeleteSphId(id);
@@ -4740,7 +4668,7 @@ function AuthApp({ session, setSession, lang, setLang, t, data, setData, reports
       <Header session={session} setSession={setSession} lang={lang} setLang={setLang} view={view} setView={setView} allowedNav={allowedNav} t={t} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} businessTrips={businessTrips} realizations={realizations} reports={reports} reportsSeen={reportsSeen} onChangePassword={() => setChangePwOpen(true)} />
 
       <main className="main-content fade-in" style={{maxWidth: '1440px', margin: '0 auto', padding: '32px 48px 60px'}}>
-               {view === 'dashboard' && <Dashboard data={filteredData} reports={reports} products={products} t={t} lang={lang} session={session} fmt={fmt} employees={employees} />}
+        {view === 'dashboard' && <Dashboard data={filteredData} reports={reports} products={products} t={t} lang={lang} session={session} fmt={fmt} employees={employees} />}
         {view === 'sph' && canRead('sph') && <SPHManagement data={filteredData} employees={employees} t={t} lang={lang} canEdit={canEdit('sph')} fmt={fmt} onAdd={() => { setEditingSph(null); setModalOpen(true); }} onEdit={(s) => { setEditingSph(s); setModalOpen(true); }} onDelete={handleDelete} />}
         {view === 'pipeline' && canRead('pipeline') && <PipelineBoard data={filteredData} allData={data} setData={setData} employees={employees} session={session} logAction={logAction} t={t} lang={lang} canEdit={canEdit('pipeline')} fmt={fmt} onEdit={(s) => { setEditingSph(s); setModalOpen(true); }} />}
         {view === 'sales' && canRead('sales') && <SalesModule data={data} reports={reports} t={t} lang={lang} fmt={fmt} employees={employees} />}
@@ -5156,10 +5084,10 @@ function Dashboard({ data, reports, products, t, lang, session, fmt, employees =
       </div>
 
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#d4cdb8', marginBottom: '24px', border: '1px solid #d4cdb8'}}>
-        <KPICard label={t.pipeline_value} value={fmt(totalPipeline)} sublabel={`${activeData.length} ${t.project_count} aktif`} trend={12.4} info={t.revenue_period} />
-          <KPICard label={t.weighted_pipeline} value={fmt(weightedPipeline)} sublabel={`${totalPipeline > 0 ? ((weightedPipeline/totalPipeline)*100).toFixed(0) : 0}% of total - projection`} trend={8.7} />
-          <KPICard label={t.revenue_ytd} value={fmt(revenueYTD)} sublabel={`${wonData.length} deal - Jan~May 2026`} trend={-3.2} info={t.revenue_period} />
-          <KPICard label={t.win_rate} value={`${winRate.toFixed(0)}%`} sublabel={`${wonData.length}/${wonData.length + lostData.length} closed`} trend={5.1} />
+        <KPICard label={t.pipeline_value} value={fmt(totalPipeline)} sublabel={`${activeData.length} ${t.project_count} aktif`} trend={12.4} info={t.pipeline_value_sub} />
+        <KPICard label={t.weighted_pipeline} value={fmt(weightedPipeline)} sublabel={`${totalPipeline > 0 ? ((weightedPipeline/totalPipeline)*100).toFixed(0) : 0}% ${lang === 'id' ? 'dari total · proyeksi' : 'of total · projection'}`} trend={8.7} info={t.weighted_pipeline_sub} />
+        <KPICard label={t.revenue_ytd} value={fmt(revenueYTD)} sublabel={`${wonData.length} deal · ${t.revenue_period}`} trend={-3.2} info={t.revenue_ytd_sub} />
+        <KPICard label={t.win_rate} value={`${winRate.toFixed(0)}%`} sublabel={`${wonData.length}/${wonData.length + lostData.length} closed`} trend={5.1} info={t.win_rate_sub} />
       </div>
 
       <div className="card" style={{marginBottom: '20px'}}>
@@ -6012,10 +5940,24 @@ function SalesModule({ data, reports, t, lang, fmt, employees = {} }) {
   const totalAll = useMemo(() => stats.reduce((s, x) => s + x.pipelineValue + x.wonValue, 0), [stats]);
 
   // Detailed deal list for the selected sales (drill-down)
-  const selectedDeals = useMemo(() => {
+  const [dealFilter, setDealFilter] = useState('all');
+  const allSelectedDeals = useMemo(() => {
     if (selectedSales === 'all') return [];
     return data.filter(s => s.salesOwner === selectedSales).sort((a, b) => (Number(b.totalValue)||0) - (Number(a.totalValue)||0));
   }, [data, selectedSales]);
+  const dealCounts = useMemo(() => ({
+    all: allSelectedDeals.length,
+    won: allSelectedDeals.filter(s => s.status === 'won').length,
+    lost: allSelectedDeals.filter(s => s.status === 'lost').length,
+    active: allSelectedDeals.filter(s => s.status === 'active').length,
+    cancelled: allSelectedDeals.filter(s => s.status === 'cancelled' || s.status === 'pending').length,
+  }), [allSelectedDeals]);
+  const selectedDeals = useMemo(() => {
+    if (dealFilter === 'all') return allSelectedDeals;
+    if (dealFilter === 'cancelled') return allSelectedDeals.filter(s => s.status === 'cancelled' || s.status === 'pending');
+    return allSelectedDeals.filter(s => s.status === dealFilter);
+  }, [allSelectedDeals, dealFilter]);
+  useEffect(() => { setDealFilter('all'); }, [selectedSales]);
 
   return (
     <div>
@@ -6081,15 +6023,28 @@ function SalesModule({ data, reports, t, lang, fmt, employees = {} }) {
           <div style={{padding: '14px 16px', borderBottom: '1px solid #e8e1cc', fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a7d5c', fontWeight: 600}}>
             {lang === 'id' ? `Semua Deal — ${salesTeam.find(x => x.id === selectedSales)?.name} (${selectedDeals.length})` : `All Deals — ${salesTeam.find(x => x.id === selectedSales)?.name} (${selectedDeals.length})`}
           </div>
-          <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11.5px', minWidth: '700px'}}>
+          <div style={{display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '12px 16px', borderBottom: '1px solid #e8e1cc'}}>
+            {[
+              { id: 'all', label: lang === 'id' ? 'Semua' : 'All', c: '#1a2942' },
+              { id: 'won', label: lang === 'id' ? 'Menang' : 'Won', c: '#3a6b3a' },
+              { id: 'lost', label: lang === 'id' ? 'Kalah' : 'Lost', c: '#c03030' },
+              { id: 'active', label: lang === 'id' ? 'Aktif' : 'Active', c: '#5b87b8' },
+              { id: 'cancelled', label: lang === 'id' ? 'Pending/Batal' : 'Pending/Cancelled', c: '#8a7d5c' },
+            ].map(f => (
+              <button key={f.id} onClick={() => setDealFilter(f.id)} style={{padding: '5px 12px', fontSize: '11px', fontFamily: 'inherit', fontWeight: 600, cursor: 'pointer', background: dealFilter === f.id ? f.c : 'transparent', color: dealFilter === f.id ? '#fff' : f.c, border: `1px solid ${f.c}`, borderRadius: '3px'}}>
+                {f.label} ({dealCounts[f.id]})
+              </button>
+            ))}
+          </div>
+          <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11.5px', minWidth: '760px'}}>
             <thead>
               <tr style={{background: '#f0ebe0'}}>
                 <Th>No. SPH</Th><Th>{lang === 'id' ? 'Pelanggan' : 'Customer'}</Th><Th>{lang === 'id' ? 'Produk' : 'Product'}</Th>
-                <Th align="right">{lang === 'id' ? 'Nilai' : 'Value'}</Th><Th align="center">Status</Th>
+                <Th align="right">{lang === 'id' ? 'Nilai' : 'Value'}</Th><Th align="center">Status</Th><Th>{lang === 'id' ? 'Catatan' : 'Remarks'}</Th>
               </tr>
             </thead>
             <tbody>
-              {selectedDeals.length === 0 && <tr><Td colSpan={5}><div className="empty-state">{lang === 'id' ? 'Belum ada deal' : 'No deals yet'}</div></Td></tr>}
+              {selectedDeals.length === 0 && <tr><Td colSpan={6}><div className="empty-state">{lang === 'id' ? 'Belum ada deal' : 'No deals yet'}</div></Td></tr>}
               {selectedDeals.map(d => (
                 <tr key={d.id} className="hover-row" style={{borderTop: '1px solid #e8e1cc'}}>
                   <Td><span className="mono" style={{fontSize: '11px'}}>{d.sphNo}</span></Td>
@@ -6097,10 +6052,11 @@ function SalesModule({ data, reports, t, lang, fmt, employees = {} }) {
                   <Td><span style={{fontSize: '11px'}}>{d.modality} · {d.subModality}</span></Td>
                   <Td align="right"><span className="mono">{fmt(d.totalValue)}</span></Td>
                   <Td align="center">
-                    <span style={{padding: '2px 8px', fontSize: '10px', fontWeight: 600, borderRadius: '3px', background: d.status === 'won' ? '#3a6b3a22' : d.status === 'lost' ? '#c0303022' : '#5b87b822', color: d.status === 'won' ? '#3a6b3a' : d.status === 'lost' ? '#c03030' : '#5b87b8'}}>
-                      {d.status === 'won' ? (lang === 'id' ? 'Menang' : 'Won') : d.status === 'lost' ? (lang === 'id' ? 'Kalah' : 'Lost') : (lang === 'id' ? 'Aktif' : 'Active')}
+                    <span style={{padding: '2px 8px', fontSize: '10px', fontWeight: 600, borderRadius: '3px', background: d.status === 'won' ? '#3a6b3a22' : d.status === 'lost' ? '#c0303022' : (d.status === 'cancelled' || d.status === 'pending') ? '#8a7d5c22' : '#5b87b822', color: d.status === 'won' ? '#3a6b3a' : d.status === 'lost' ? '#c03030' : (d.status === 'cancelled' || d.status === 'pending') ? '#8a7d5c' : '#5b87b8'}}>
+                      {d.status === 'won' ? (lang === 'id' ? 'Menang' : 'Won') : d.status === 'lost' ? (lang === 'id' ? 'Kalah' : 'Lost') : (d.status === 'cancelled' || d.status === 'pending') ? (lang === 'id' ? 'Pending/Batal' : 'Pending/Cancelled') : (lang === 'id' ? 'Aktif' : 'Active')}
                     </span>
                   </Td>
+                  <Td><span style={{fontSize: '11px', color: d.notes ? '#1a2942' : '#b3a988', fontStyle: d.notes ? 'normal' : 'italic'}}>{d.notes || (lang === 'id' ? '—' : '—')}</span></Td>
                 </tr>
               ))}
             </tbody>
@@ -12205,7 +12161,23 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
       if (k === 'stage') {
         const stage = STAGES.find(s => s.id === v);
         if (stage) next.probability = stage.baseProbability;
-        if (v === 'po_issued') next.poStatus = 'issued';
+        // Stage ⟺ status ⟺ poStatus coherence (review #1/#3): PO Terbit = Menang.
+        if (v === 'po_issued') { next.poStatus = 'issued'; next.status = 'won'; next.probability = 100; }
+        else if (v === 'lost') { next.status = 'lost'; next.poStatus = null; }
+        else { if (next.status === 'won' || next.status === 'lost') next.status = 'active'; next.poStatus = null; }
+      }
+      if (k === 'status') {
+        // Reverse coupling so the Status dropdown stays consistent with stage/PO.
+        if (v === 'won') { next.stage = 'po_issued'; next.poStatus = 'issued'; next.probability = 100; }
+        else if (v === 'lost') { next.stage = 'lost'; next.poStatus = null; }
+        else { // active
+          next.poStatus = null;
+          if (next.stage === 'po_issued' || next.stage === 'lost') {
+            next.stage = 'negotiation';
+            const ns = STAGES.find(s => s.id === 'negotiation');
+            if (ns) next.probability = ns.baseProbability;
+          }
+        }
       }
       // If modality changed, reset subModality (since options change)
       if (k === 'modality') next.subModality = '';

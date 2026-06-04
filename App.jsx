@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { TrendingUp, FileText, Briefcase, Plus, Search, Edit2, Trash2, X, ArrowUpRight, ArrowDownRight, Activity, DollarSign, Users, Clock, Globe, LogOut, Shield, Wrench, Truck, Wallet, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, FileCheck, Menu, ChevronDown, ChevronRight, ChevronLeft, ClipboardList, Star, Settings, ShieldCheck, CalendarDays, AlertTriangle, FileSearch, UserPlus, UserCheck, UserX, Plane, Receipt, Hotel, RefreshCw, History, FolderOpen, Upload, MessageSquare, Download, Target, Layers, FileBarChart, Paperclip, Bell } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Area, ComposedChart } from 'recharts';
 import logoFull from './logo.png';
-import logoKecil from './logo3.png';
+import logoKecil from './logo3.jpg';
 const DEFAULT_USD_IDR = 18000;
 
 // ============== i18n ==============
@@ -11,7 +11,6 @@ const translations = {
     system_name: 'IMS HNTI', system_full: 'Integrated Monitoring System',
     company: 'PT Harmoni Nasional Teknologi Indonesia',
     motto: 'Transparent · Accountable · Real-time · Business Information Management Reviews',
-    
     login_title: 'Masuk ke Sistem', login_subtitle: 'Akses terbatas untuk personel berwenang',
     username: 'Nama Pengguna', password: 'Kata Sandi', login_btn: 'Masuk',
     demo_credentials: 'Kredensial Demo', login_error: 'Nama pengguna atau kata sandi salah',
@@ -1370,11 +1369,11 @@ const translations = {
 // ============== 5 Sales Team — synced with user spec ==============
 const SALES_TEAM = [
   { id: 'lukman', name: 'Lukman Effendi', initial: 'LE', territory: 'Jateng + DIY B', territoryEn: 'Central Java + DIY B', accent: '#1a6bb0' },
-  { id: 'hatim', name: 'Hatim Tirmidzi', initial: 'HT', territory: 'Jateng A', territoryEn: 'Central Java A', accent: '#d4780a' },
+  { id: 'hatim', name: 'Ahmad Hatim Ashshidiq', initial: 'HT', territory: 'Jateng A', territoryEn: 'Central Java A', accent: '#d4780a' },
   { id: 'dwi', name: 'Dwi Wahyudianto', initial: 'DW', territory: 'Jabodetabek + Jabar', territoryEn: 'Jabodetabek + West Java', accent: '#c03030' },
   { id: 'tri', name: 'Tri Sutjahjono', initial: 'TS', territory: 'Jatim 1', territoryEn: 'East Java 1', accent: '#12855a' },
   { id: 'bagus', name: 'Bagus Iswahyudi', initial: 'BI', territory: 'Jatim 2', territoryEn: 'East Java 2', accent: '#7b3fb5' },
-  { id: 'icha', name: 'Ika Apriani Pratiwi', initial: 'IA', territory: 'Jabodetabek + Jabar (bawah Dwi)', territoryEn: 'Jabodetabek + West Java (under Dwi)', accent: '#d4a8c8', supervisedBy: 'dwi' },
+  { id: 'icha', name: 'Ika Apriani', initial: 'IA', territory: 'Jabodetabek + Jabar (bawah Dwi)', territoryEn: 'Jabodetabek + West Java (under Dwi)', accent: '#d4a8c8', supervisedBy: 'dwi' },
   { id: 'office', name: 'HNT Indonesia (Office)', initial: 'HO', territory: 'Nasional', territoryEn: 'Nationwide', accent: '#1a2942', isOffice: true },
 ];
 
@@ -1467,20 +1466,20 @@ const POSITION_ALLOWANCE = {
 const USERS = {
   'ceo': { password: 'hnti2026', role: 'super_admin', name: 'Fajrin Abdillah', initial: 'F', position: 'Direksi', allowancePerDay: 500000, active: true },
   'gm': { password: 'hnti2026', role: 'gm', name: 'Endah Purwitasari', initial: 'EP', position: 'General Manager', allowancePerDay: 175000, active: true },
-  'manager_ops': { password: 'hnti2026', role: 'manager_ops', name: 'Novan Restu Pradana', initial: 'NR', position: 'Manager Operasional', allowancePerDay: 175000, active: true },
-  'admin': { password: 'hnti2026', role: 'admin', name: 'Siti Rahayu', initial: 'SR', position: 'Manager', allowancePerDay: 175000, active: true },
-  'teknisi': { password: 'hnti2026', role: 'technician', name: 'Budi Hartono', initial: 'BH', position: 'Supervisor', allowancePerDay: 150000, active: true },
-  'teknisi2': { password: 'hnti2026', role: 'technician', name: 'Rudi Susanto', initial: 'RS', position: 'Teknisi', allowancePerDay: 130000, active: true },
-  'teknisi3': { password: 'hnti2026', role: 'technician', name: 'Eko Prasetyo', initial: 'EP', position: 'Teknisi', allowancePerDay: 130000, active: true },
-  'ops': { password: 'hnti2026', role: 'operations', name: 'Andi Pratama', initial: 'AP', position: 'Supervisor', allowancePerDay: 150000, active: true },
-  'finance': { password: 'hnti2026', role: 'finance', name: 'Maya Sari Wijayanti', initial: 'MS', position: 'Manager', allowancePerDay: 175000, active: true },
-  'regulatory': { password: 'hnti2026', role: 'regulatory', name: 'Rini Wahyuni', initial: 'RW', position: 'Supervisor', allowancePerDay: 150000, active: true },
+  'manager_ops': { password: 'hnti2026', role: 'manager_ops', name: 'Novan Restu Aryanto', initial: 'NR', position: 'Manager Operasional', allowancePerDay: 175000, active: true },
+  'admin': { password: 'hnti2026', role: 'admin', name: 'Fahmi Alifudin', initial: 'SR', position: 'Manager', allowancePerDay: 175000, active: true },
+  'teknisi': { password: 'hnti2026', role: 'technician', name: 'Robby Dwi Setiawan', initial: 'BH', position: 'Supervisor', allowancePerDay: 150000, active: true },
+  'teknisi2': { password: 'hnti2026', role: 'technician', name: 'Muhammad Yusuf', initial: 'RS', position: 'Teknisi', allowancePerDay: 130000, active: true },
+  'teknisi3': { password: 'hnti2026', role: 'technician', name: 'Muh. Nur Ichsan', initial: 'EP', position: 'Teknisi', allowancePerDay: 130000, active: true },
+  'ops': { password: 'hnti2026', role: 'operations', name: 'Tria Mailawati', initial: 'AP', position: 'Supervisor', allowancePerDay: 150000, active: true },
+  'finance': { password: 'hnti2026', role: 'finance', name: 'Riris Elia', initial: 'MS', position: 'Manager', allowancePerDay: 175000, active: true },
+  'regulatory': { password: 'hnti2026', role: 'regulatory', name: 'Ananda Rifki Bayu Saputra', initial: 'RW', position: 'Supervisor', allowancePerDay: 150000, active: true },
   'lukman': { password: 'hnti2026', role: 'sales', name: 'Lukman Effendi', initial: 'LE', salesId: 'lukman', position: 'Staff', allowancePerDay: 130000, active: true },
-  'hatim': { password: 'hnti2026', role: 'sales', name: 'Hatim Tirmidzi', initial: 'HT', salesId: 'hatim', position: 'Staff', allowancePerDay: 130000, active: true },
+  'hatim': { password: 'hnti2026', role: 'sales', name: 'Ahmad Hatim Ashshidiq', initial: 'HT', salesId: 'hatim', position: 'Staff', allowancePerDay: 130000, active: true },
   'dwi': { password: 'hnti2026', role: 'sales', name: 'Dwi Wahyudianto', initial: 'DW', salesId: 'dwi', position: 'Manager', allowancePerDay: 175000, active: true },
   'tri': { password: 'hnti2026', role: 'sales', name: 'Tri Sutjahjono', initial: 'TS', salesId: 'tri', position: 'Manager', allowancePerDay: 175000, active: true },
   'bagus': { password: 'hnti2026', role: 'sales', name: 'Bagus Iswahyudi', initial: 'BI', salesId: 'bagus', position: 'Manager', allowancePerDay: 175000, active: true },
-  'icha': { password: 'hnti2026', role: 'sales', name: 'Ika Apriani Pratiwi', initial: 'IA', salesId: 'icha', position: 'Staff', allowancePerDay: 130000, active: true },
+  'icha': { password: 'hnti2026', role: 'sales', name: 'Ika Apriani', initial: 'IA', salesId: 'icha', position: 'Staff', allowancePerDay: 130000, active: true },
   'office': { password: 'hnti2026', role: 'sales', name: 'HNT Indonesia (Office)', initial: 'HO', salesId: 'office', isOffice: true, position: '-', allowancePerDay: 0, active: true },
 };
 
@@ -1532,7 +1531,7 @@ function resolveEmpName(employees, val) {
 }
 
 // Resolve any seed technician name embedded inside a free-text string (e.g. training instructor
-// "Budi Hartono + Aplikator") to the current live employee name, so renamed staff never leak.
+// "Robby Dwi Setiawan + Aplikator") to the current live employee name, so renamed staff never leak.
 function resolveNamesInText(employees, text) {
   if (!text || !employees) return text || '';
   let out = String(text);
@@ -1603,21 +1602,21 @@ const PRODUCT_MASTER_SEED = [
   // === MRI (ANKE / Shenzhen Anke High-Tech, China) ===
   { id: 'prod_mri_15t_hfm', name: 'MRI 1.5 Tesla', modality: 'MRI', brand: 'ANKE', type: 'Supermark 1.5T HFM', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Non-Helium 1.5Tesla MRI System' },
   { id: 'prod_mri_15t_art', name: 'MRI 1.5 Tesla', modality: 'MRI', brand: 'ANKE', type: 'Supermark 1.5T ART', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Less-Helium 1.5Tesla MRI System (700 Liter)' },
-  { id: 'prod_mri_30t', name: 'MRI 3.0T Supermark', modality: 'MRI', brand: 'ANKE', type: 'Supermark 590D', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Premium 3.0T research-grade' },
+  { id: 'prod_mri_30t', name: 'MRI 3.0T Supermark', modality: 'MRI', brand: 'ANKE', type: 'Supermark S900', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Premium 3.0T research-grade' },
   // === CT Scan (ANKE, China) ===
   { id: 'prod_ct64_cardiac', name: 'CT 64 Slice Cardiac', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom Clarity', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'CT 64-slice cardiac' },
   { id: 'prod_ct128_premium', name: 'CT 128 Slice Premium', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom Precision', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'High-end diagnostic CT' },
   { id: 'prod_ct32', name: 'CT 32 Slice', modality: 'CT Scan', brand: 'Supermark', type: 'Anatom C201', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'Budget-friendly entry CT' },
   { id: 'prod_ct64_noncardiac', name: 'CT 64 Slice Non-Cardiac', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom C206', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'CT 64-slice non-cardiac' },
-  { id: 'prod_ct128_basic', name: 'CT 128 Slice Basic', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom C408', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'CT 128-slice budget-friendly' },
-  // === C-Arm (5G Healthcare, Korea) ===
-  { id: 'prod_carm_5kw', name: 'Mobile C-Arm', modality: 'C-Arm', brand: '5G Healthcare', type: 'Garion 5kW', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Standard surgical C-Arm' },
-  { id: 'prod_carm_15kw', name: 'Mobile C-Arm', modality: 'C-Arm', brand: '5G Healthcare', type: 'Garion 15kW', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Advance surgical C-Arm' },
-  // === X-Ray (5G Healthcare Korea + Precision China) ===
-  { id: 'prod_xray_stat500', name: 'X-Ray Stationary 500mA', modality: 'X-Ray Stationer', brand: '5G Healthcare', type: 'Jumong General', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'General X-Ray floor mounted 500mA' },
-  { id: 'prod_xray_ceiling500', name: 'X-Ray Ceiling 500mA', modality: 'X-Ray Ceiling', brand: '5G Healthcare', type: 'Jumong General', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'General X-Ray ceiling mounted 500mA' },
-  { id: 'prod_xray_mobile100', name: 'X-ray Mobile 100mA', modality: 'X-Ray Mobile', brand: '5G Healthcare', type: 'Jumong Mobile 5kW', origin: 'Korea', principal: '5G Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Entry Level X-Ray machine' },
-  { id: 'prod_xray_portable', name: 'X-Ray Portable', modality: 'X-Ray Portable', brand: 'Precision', type: 'DJPS5DR', origin: 'China', principal: 'Daeji Medical Equipment', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Portable X-Ray for ICU/ER/TB screening use' },
+  { id: 'prod_ct128_basic', name: 'CT 128 Slice Basic', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom C409', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'CT 128-slice budget-friendly' },
+  // === C-Arm (SG Healthcare, Korea) ===
+  { id: 'prod_carm_5kw', name: 'Mobile C-Arm', modality: 'C-Arm', brand: 'SG Healthcare', type: 'Garion 5kW', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Standard surgical C-Arm' },
+  { id: 'prod_carm_15kw', name: 'Mobile C-Arm', modality: 'C-Arm', brand: 'SG Healthcare', type: 'Garion 15kW', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Advance surgical C-Arm' },
+  // === X-Ray (SG Healthcare Korea + Precision China) ===
+  { id: 'prod_xray_stat500', name: 'X-Ray Stationary 500mA', modality: 'X-Ray Stationer', brand: 'SG Healthcare', type: 'Jumong General', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'General X-Ray floor mounted 500mA' },
+  { id: 'prod_xray_ceiling500', name: 'X-Ray Ceiling 500mA', modality: 'X-Ray Ceiling', brand: 'SG Healthcare', type: 'Jumong General', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'General X-Ray ceiling mounted 500mA' },
+  { id: 'prod_xray_mobile100', name: 'X-ray Mobile 100mA', modality: 'X-Ray Mobile', brand: 'SG Healthcare', type: 'Jumong Mobile 5kW', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Entry Level X-Ray machine' },
+  { id: 'prod_xray_portable', name: 'X-Ray Portable', modality: 'X-Ray Portable', brand: 'Precision', type: 'DJP05DR', origin: 'China', principal: 'Daoji Medical Equipment', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Portable X-Ray for ICU/ER/TB screening use' },
   // === Mammography (SINO MDT, China) ===
   { id: 'prod_mammo_3d', name: 'Mammography 3D Tomosynthesis', modality: 'Mammography', brand: 'SINO MDT', type: 'Navigator 1000A', origin: 'China', principal: 'SINO MDT', tkdn: 0, akl: 'KEMENKES RI AKL 10303550XXX', active: true, notes: '3D digital mammography with tomosynthesis' },
   { id: 'prod_mammo_2d', name: 'Mammography 2D Digital', modality: 'Mammography', brand: 'SINO MDT', type: 'Navigator DRCare', origin: 'China', principal: 'SINO MDT', tkdn: 0, akl: 'KEMENKES RI AKL 10303550XXX', active: true, notes: '2D digital mammography' },
@@ -1772,7 +1771,7 @@ const SEED_SPH = [
 // Catatan #4: product chips are DERIVED from the Product Master (by brand match) so they always
 // stay in sync. Each partner lists the master brand(s) it represents; products auto-populate.
 const BUSINESS_PARTNERS = [
-  { id: 'sg', name: 'SG Healthcare', country: 'Korea', flag: '🇰🇷', color: '#1a4d8a', status: 'active', brands: ['5G Healthcare'] },
+  { id: 'sg', name: 'SG Healthcare', country: 'Korea', flag: '🇰🇷', color: '#1a4d8a', status: 'active', brands: ['SG Healthcare'] },
   { id: 'anke', name: 'ANKE', country: 'China', flag: '🇨🇳', color: '#c03030', status: 'active', brands: ['ANKE', 'Supermark'] },
   { id: 'sino', name: 'SINO MDT', country: 'China', flag: '🇨🇳', color: '#d4780a', status: 'active', brands: ['SINO MDT'] },
   { id: 'hyde', name: 'Hyde Medical', country: 'China', flag: '🇨🇳', color: '#7b3fb5', status: 'active', brands: ['Hyde Medical (HAMSKI XR)'] },
@@ -2284,12 +2283,12 @@ const SPH_PRODUCT_NORMALIZATION = {
   'MRI::MRI 1.5T Supermark': { modality: 'MRI', subModality: 'Supermark 1.5T HFM' },
   'MRI::MRI 1.5T': { modality: 'MRI', subModality: 'Supermark 1.5T HFM' },
   'MRI::MRI 0.5T Opemark 5000': { modality: 'MRI', subModality: 'Supermark 1.5T ART' },
-  'MRI::MRI 3.0T': { modality: 'MRI', subModality: 'Supermark 590D' },
+  'MRI::MRI 3.0T': { modality: 'MRI', subModality: 'Supermark S900' },
   'CT Scan::CT 64 Slice Anatom Clarity': { modality: 'CT Scan', subModality: 'Anatom Clarity' },
   'CT Scan::CT 128 Slice Anatom Precision': { modality: 'CT Scan', subModality: 'Anatom Precision' },
   'CT Scan::CT 32 Slice C201': { modality: 'CT Scan', subModality: 'Anatom C201' },
   'CT Scan::CT 32 Slice': { modality: 'CT Scan', subModality: 'Anatom C201' },
-  'CT Scan::CT 128 Slice': { modality: 'CT Scan', subModality: 'Anatom C408' },
+  'CT Scan::CT 128 Slice': { modality: 'CT Scan', subModality: 'Anatom C409' },
   'CT Scan::CT 64 Slice': { modality: 'CT Scan', subModality: 'Anatom C206' },
   'C-Arm::C-Arm Garion': { modality: 'C-Arm', subModality: 'Garion 5kW' },
   'C-Arm::C-Arm Surgical': { modality: 'C-Arm', subModality: 'Garion 5kW' },
@@ -2301,7 +2300,7 @@ const SPH_PRODUCT_NORMALIZATION = {
   'X-Ray::X-Ray Digital DR': { modality: 'X-Ray Stationer', subModality: 'Jumong General' },
   'X-Ray::X-Ray Ceiling 500mA': { modality: 'X-Ray Ceiling', subModality: 'Jumong General' },
   'X-Ray::Flat Panel Detector': { modality: 'Flat Panel Detector', subModality: 'V17C' },
-  'X-Ray::X-Ray Portable': { modality: 'X-Ray Portable', subModality: 'DJPS5DR' },
+  'X-Ray::X-Ray Portable': { modality: 'X-Ray Portable', subModality: 'DJP05DR' },
   'Mammography::Mammo 3D': { modality: 'Mammography', subModality: 'Navigator 1000A' },
   'Mammography::Mammo Tomosynthesis': { modality: 'Mammography', subModality: 'Navigator 1000A' },
   'Mammography::Mammo 2D Navigator': { modality: 'Mammography', subModality: 'Navigator DRCare' },
@@ -3030,12 +3029,12 @@ function generateInstalledUnits() {
 
 // ============== Maintenance Issues (Repairs & Complaints) ==============
 const SEED_ISSUES = [
-  { id: 'iss1', type: 'repair', unitId: null, customer: 'RS Husada Utama Surabaya', modality: 'CT Scan', subModality: 'CT 64 Slice Anatom Clarity', issue: 'Image artifact pada slice tipis, kalibrasi diperlukan', priority: 'high', status: 'progress', reportedDate: '2026-05-08', technician: 'Budi Hartono', note: 'Spare part dipesan dari ANKE, ETA 5 hari' },
-  { id: 'iss2', type: 'repair', unitId: null, customer: 'RSUD Banyumas', modality: 'X-Ray', subModality: 'X-Ray Stationary 500mA', issue: 'Tube X-Ray tidak emit, suspect tube failure', priority: 'critical', status: 'open', reportedDate: '2026-05-12', technician: 'Rudi Susanto', note: 'Klaim garansi SG Healthcare diajukan' },
-  { id: 'iss3', type: 'complaint', unitId: null, customer: 'RS Premier Bintaro', modality: 'MRI', subModality: 'MRI 1.5T Supermark', issue: 'Antrian pasien lama, request training operator lanjutan', priority: 'medium', status: 'progress', reportedDate: '2026-05-05', technician: 'Eko Prasetyo', note: 'Training scheduled minggu depan' },
-  { id: 'iss4', type: 'complaint', unitId: null, customer: 'RSUD Tarakan Jakarta', modality: 'C-Arm', subModality: 'C-Arm Garion', issue: 'Software update request untuk workflow OK', priority: 'low', status: 'resolved', reportedDate: '2026-04-20', technician: 'Budi Hartono', note: 'Update v2.3 terinstall, training done' },
-  { id: 'iss5', type: 'repair', unitId: null, customer: 'RS Hermina Galaxy', modality: 'CT Scan', subModality: 'CT 128 Slice Anatom Precision', issue: 'Console PC hang berkala', priority: 'medium', status: 'resolved', reportedDate: '2026-04-15', technician: 'Rudi Susanto', note: 'Re-image OS dan firmware update' },
-  { id: 'iss6', type: 'complaint', unitId: null, customer: 'RSUD Banyuwangi', modality: 'Mammography', subModality: 'Mammo 2D Navigator', issue: 'Kualitas film print kurang tajam', priority: 'medium', status: 'open', reportedDate: '2026-05-14', technician: 'Eko Prasetyo', note: 'Check printer cartridge dan kalibrasi' },
+  { id: 'iss1', type: 'repair', unitId: null, customer: 'RS Husada Utama Surabaya', modality: 'CT Scan', subModality: 'CT 64 Slice Anatom Clarity', issue: 'Image artifact pada slice tipis, kalibrasi diperlukan', priority: 'high', status: 'progress', reportedDate: '2026-05-08', technician: 'Robby Dwi Setiawan', note: 'Spare part dipesan dari ANKE, ETA 5 hari' },
+  { id: 'iss2', type: 'repair', unitId: null, customer: 'RSUD Banyumas', modality: 'X-Ray', subModality: 'X-Ray Stationary 500mA', issue: 'Tube X-Ray tidak emit, suspect tube failure', priority: 'critical', status: 'open', reportedDate: '2026-05-12', technician: 'Muhammad Yusuf', note: 'Klaim garansi SG Healthcare diajukan' },
+  { id: 'iss3', type: 'complaint', unitId: null, customer: 'RS Premier Bintaro', modality: 'MRI', subModality: 'MRI 1.5T Supermark', issue: 'Antrian pasien lama, request training operator lanjutan', priority: 'medium', status: 'progress', reportedDate: '2026-05-05', technician: 'Muh. Nur Ichsan', note: 'Training scheduled minggu depan' },
+  { id: 'iss4', type: 'complaint', unitId: null, customer: 'RSUD Tarakan Jakarta', modality: 'C-Arm', subModality: 'C-Arm Garion', issue: 'Software update request untuk workflow OK', priority: 'low', status: 'resolved', reportedDate: '2026-04-20', technician: 'Robby Dwi Setiawan', note: 'Update v2.3 terinstall, training done' },
+  { id: 'iss5', type: 'repair', unitId: null, customer: 'RS Hermina Galaxy', modality: 'CT Scan', subModality: 'CT 128 Slice Anatom Precision', issue: 'Console PC hang berkala', priority: 'medium', status: 'resolved', reportedDate: '2026-04-15', technician: 'Muhammad Yusuf', note: 'Re-image OS dan firmware update' },
+  { id: 'iss6', type: 'complaint', unitId: null, customer: 'RSUD Banyuwangi', modality: 'Mammography', subModality: 'Mammo 2D Navigator', issue: 'Kualitas film print kurang tajam', priority: 'medium', status: 'open', reportedDate: '2026-05-14', technician: 'Muh. Nur Ichsan', note: 'Check printer cartridge dan kalibrasi' },
 ];
 
 // ============== AKL Kemenkes Records (Distribution License) ==============
@@ -3054,7 +3053,7 @@ const SEED_AKL_RECORDS = [
     preregistDate: '2026-04-18', docsDate: '2026-04-25', submitDate: '2026-04-30',
     pnbpDate: '2026-05-05', pnbpAmount: 5000000, evalDate: '2026-05-08',
     fixDate: null, issuedDate: null, aklNo: null,
-    pic: 'Rini Wahyuni',
+    pic: 'Ananda Rifki Bayu Saputra',
     note: 'Tim penilai meminta klarifikasi spesifikasi tabung X-Ray',
   },
   {
@@ -3066,7 +3065,7 @@ const SEED_AKL_RECORDS = [
     preregistDate: '2026-04-25', docsDate: '2026-05-02', submitDate: '2026-05-09',
     pnbpDate: null, pnbpAmount: null, evalDate: null,
     fixDate: null, issuedDate: null, aklNo: null,
-    pic: 'Rini Wahyuni',
+    pic: 'Ananda Rifki Bayu Saputra',
     note: 'Menunggu penerbitan PNBP dari Regalkes',
   },
   {
@@ -3078,7 +3077,7 @@ const SEED_AKL_RECORDS = [
     preregistDate: '2026-05-02', docsDate: null, submitDate: null,
     pnbpDate: null, pnbpAmount: null, evalDate: null,
     fixDate: null, issuedDate: null, aklNo: null,
-    pic: 'Rini Wahyuni',
+    pic: 'Ananda Rifki Bayu Saputra',
     note: 'Sedang melengkapi dokumen teknis & uji klinis dari Angell',
   },
   // Innocare - Taiwan (OEM HAMSKI XR untuk merek HNTI sendiri)
@@ -3091,7 +3090,7 @@ const SEED_AKL_RECORDS = [
     preregistDate: '2026-04-08', docsDate: '2026-04-15', submitDate: '2026-04-20',
     pnbpDate: '2026-04-24', pnbpAmount: 3500000, evalDate: '2026-04-28',
     fixDate: '2026-05-08', issuedDate: null, aklNo: null,
-    pic: 'Rini Wahyuni',
+    pic: 'Ananda Rifki Bayu Saputra',
     note: 'Perbaikan label OEM (merek HNTI) sedang difinalisasi. ETA selesai 18 Mei.',
   },
   // ANKE - existing partner, AKL untuk produk baru
@@ -3104,7 +3103,7 @@ const SEED_AKL_RECORDS = [
     preregistDate: '2026-03-10', docsDate: '2026-03-17', submitDate: '2026-03-22',
     pnbpDate: '2026-03-26', pnbpAmount: 5000000, evalDate: '2026-04-02',
     fixDate: null, issuedDate: '2026-04-18', aklNo: 'AKL 20603022826',
-    pic: 'Rini Wahyuni',
+    pic: 'Ananda Rifki Bayu Saputra',
     note: 'AKL terbit tepat waktu (28 hari kerja). Berlaku hingga April 2031.',
   },
   // SG Healthcare - existing partner, AKL update
@@ -3117,7 +3116,7 @@ const SEED_AKL_RECORDS = [
     preregistDate: '2026-05-12', docsDate: null, submitDate: null,
     pnbpDate: null, pnbpAmount: null, evalDate: null,
     fixDate: null, issuedDate: null, aklNo: null,
-    pic: 'Rini Wahyuni',
+    pic: 'Ananda Rifki Bayu Saputra',
     note: 'Persiapan pra-registrasi untuk perpanjangan masa berlaku',
   },
 ];
@@ -3130,26 +3129,26 @@ const SEED_IMPORT_RECORDS = [
     product: 'X-Ray Ceiling Digital Premium', stage: 'issued', stageIdx: 4,
     registerDate: '2026-02-15', preregistDate: '2026-02-15', docsDate: '2026-02-22',
     submitDate: '2026-03-01', evalDate: '2026-03-10', issuedDate: '2026-04-05',
-    importPermitNo: 'BAPETEN/IMP/2026/00451', pic: 'Rini Wahyuni',
+    importPermitNo: 'BAPETEN/IMP/2026/00451', pic: 'Ananda Rifki Bayu Saputra',
     note: 'Izin Import terbit, lanjut pengajuan AKL Kemenkes' },
   { id: 'imp_002', principal: 'Angell', principalCountry: 'China',
     product: 'X-Ray Mobile Digital Premium', stage: 'issued', stageIdx: 4,
     registerDate: '2026-02-15', preregistDate: '2026-02-15', docsDate: '2026-02-22',
     submitDate: '2026-03-01', evalDate: '2026-03-10', issuedDate: '2026-04-12',
-    importPermitNo: 'BAPETEN/IMP/2026/00452', pic: 'Rini Wahyuni',
+    importPermitNo: 'BAPETEN/IMP/2026/00452', pic: 'Ananda Rifki Bayu Saputra',
     note: 'Izin Import terbit, lanjut pengajuan AKL Kemenkes' },
   { id: 'imp_003', principal: 'Angell', principalCountry: 'China',
     product: 'Digital Fluoroscopy Premium', stage: 'eval', stageIdx: 3,
     registerDate: '2026-02-15', preregistDate: '2026-02-15', docsDate: '2026-02-22',
     submitDate: '2026-03-05', evalDate: '2026-03-15', issuedDate: null,
-    importPermitNo: null, pic: 'Rini Wahyuni',
+    importPermitNo: null, pic: 'Ananda Rifki Bayu Saputra',
     note: 'Sedang evaluasi BAPETEN - klarifikasi spesifikasi proteksi radiasi' },
   // Innocare - 1 produk (OEM HAMSKI XR)
   { id: 'imp_004', principal: 'Innocare', principalCountry: 'Taiwan',
     product: 'Flat Panel Detector HAMSKI XR', stage: 'issued', stageIdx: 4,
     registerDate: '2026-01-20', preregistDate: '2026-01-20', docsDate: '2026-01-28',
     submitDate: '2026-02-05', evalDate: '2026-02-15', issuedDate: '2026-03-25',
-    importPermitNo: 'BAPETEN/IMP/2026/00280', pic: 'Rini Wahyuni',
+    importPermitNo: 'BAPETEN/IMP/2026/00280', pic: 'Ananda Rifki Bayu Saputra',
     note: 'Izin Import terbit, AKL Kemenkes dalam proses fix' },
 ];
 
@@ -3160,27 +3159,27 @@ const SEED_PENGALIHAN_RECORDS = [
     subModality: 'CT 128 Slice Anatom Precision', destination: 'Semarang',
     stage: 'issued', stageIdx: 2, submitDate: '2025-08-12', evalDate: '2025-08-22',
     issuedDate: '2025-09-05', permitNo: 'BAPETEN/PGL/2025/01823',
-    pic: 'Rini Wahyuni', note: 'Pengalihan ke RS Bhakti Wira Tamtama disetujui' },
+    pic: 'Ananda Rifki Bayu Saputra', note: 'Pengalihan ke RS Bhakti Wira Tamtama disetujui' },
   { id: 'pgl_002', customer: 'RS Premier Bintaro', modality: 'MRI',
     subModality: 'MRI 1.5T Supermark', destination: 'Tangerang Selatan',
     stage: 'issued', stageIdx: 2, submitDate: '2025-09-15', evalDate: '2025-09-25',
     issuedDate: '2025-10-10', permitNo: 'BAPETEN/PGL/2025/02145',
-    pic: 'Rini Wahyuni', note: 'Pengalihan ke RS Premier Bintaro disetujui' },
+    pic: 'Ananda Rifki Bayu Saputra', note: 'Pengalihan ke RS Premier Bintaro disetujui' },
   { id: 'pgl_003', customer: 'RSUD Banyumas', modality: 'X-Ray',
     subModality: 'X-Ray Stationary 500mA', destination: 'Banyumas, Jateng',
     stage: 'eval', stageIdx: 1, submitDate: '2026-04-20', evalDate: '2026-05-02',
     issuedDate: null, permitNo: null,
-    pic: 'Rini Wahyuni', note: 'Sedang evaluasi - dokumen tambahan diminta' },
+    pic: 'Ananda Rifki Bayu Saputra', note: 'Sedang evaluasi - dokumen tambahan diminta' },
   { id: 'pgl_004', customer: 'RS Hermina Galaxy', modality: 'CT Scan',
     subModality: 'CT 128 Slice', destination: 'Bekasi',
     stage: 'submit', stageIdx: 0, submitDate: '2026-05-08', evalDate: null,
     issuedDate: null, permitNo: null,
-    pic: 'Rini Wahyuni', note: 'Baru submit, menunggu nomor agenda' },
+    pic: 'Ananda Rifki Bayu Saputra', note: 'Baru submit, menunggu nomor agenda' },
   { id: 'pgl_005', customer: 'RSUD Soewandhie Surabaya', modality: 'C-Arm',
     subModality: 'C-Arm Garion', destination: 'Surabaya',
     stage: 'eval', stageIdx: 1, submitDate: '2026-04-28', evalDate: '2026-05-10',
     issuedDate: null, permitNo: null,
-    pic: 'Rini Wahyuni', note: 'Evaluasi BAPETEN, ETA 2 minggu' },
+    pic: 'Ananda Rifki Bayu Saputra', note: 'Evaluasi BAPETEN, ETA 2 minggu' },
 ];
 
 // ============== Izin Persetujuan Import (PI) - berlaku 21 hari kerja ==============
@@ -3273,31 +3272,31 @@ const SEED_INSTALL_RECORDS = [
   { id: 'inst_001', recordNo: 'BA-INST-2026-001', customer: 'RS Bhakti Wira Tamtama',
     modality: 'CT Scan', subModality: 'CT 128 Slice Anatom Precision',
     installStart: '2026-04-15', installEnd: '2026-04-20', duration: 5,
-    leadTechnician: 'Budi Hartono', teamSize: 3,
+    leadTechnician: 'Robby Dwi Setiawan', teamSize: 3,
     roomReady: true, electricalReady: true, calibrationDone: true,
     status: 'completed', notes: 'Instalasi lancar, kalibrasi sesuai spesifikasi pabrik' },
   { id: 'inst_002', recordNo: 'BA-INST-2026-002', customer: 'RS Premier Bintaro',
     modality: 'MRI', subModality: 'MRI 1.5T Supermark',
     installStart: '2026-03-10', installEnd: '2026-03-25', duration: 15,
-    leadTechnician: 'Budi Hartono', teamSize: 4,
+    leadTechnician: 'Robby Dwi Setiawan', teamSize: 4,
     roomReady: true, electricalReady: true, calibrationDone: true,
     status: 'completed', notes: 'MRI 1.5T butuh shielding khusus, sudah handle dengan baik' },
   { id: 'inst_003', recordNo: 'BA-INST-2026-003', customer: 'RSUD Banyumas',
     modality: 'X-Ray', subModality: 'X-Ray Stationary Jumong General',
     installStart: '2026-04-25', installEnd: null, duration: null,
-    leadTechnician: 'Rudi Susanto', teamSize: 2,
+    leadTechnician: 'Muhammad Yusuf', teamSize: 2,
     roomReady: true, electricalReady: true, calibrationDone: false,
     status: 'progress', notes: 'Sedang dalam tahap testing & calibration' },
   { id: 'inst_004', recordNo: 'BA-INST-2026-004', customer: 'RS Hermina Galaxy Bekasi',
     modality: 'CT Scan', subModality: 'CT 64 Slice Anatom Clarity',
     installStart: '2026-05-08', installEnd: null, duration: null,
-    leadTechnician: 'Budi Hartono', teamSize: 3,
+    leadTechnician: 'Robby Dwi Setiawan', teamSize: 3,
     roomReady: true, electricalReady: false, calibrationDone: false,
     status: 'delayed', notes: 'Tertunda karena instalasi panel listrik dari pihak RS belum selesai' },
   { id: 'inst_005', recordNo: 'BA-INST-2026-005', customer: 'RS Husada Utama Surabaya',
     modality: 'C-Arm', subModality: 'C-Arm Garion',
     installStart: '2026-05-20', installEnd: null, duration: null,
-    leadTechnician: 'Eko Prasetyo', teamSize: 2,
+    leadTechnician: 'Muh. Nur Ichsan', teamSize: 2,
     roomReady: false, electricalReady: false, calibrationDone: false,
     status: 'planning', notes: 'Survey lokasi sudah dilakukan, menunggu RS finalisasi ruangan' },
 ];
@@ -3330,7 +3329,7 @@ const SEED_BAST_RECORDS = [
 const SEED_TRAINING_RECORDS = [
   { id: 'train_001', certNo: 'CERT-HNTI-2026-001', customer: 'RS Bhakti Wira Tamtama',
     modality: 'CT Scan', subModality: 'CT 128 Slice Anatom Precision',
-    sessionDate: '2026-04-21', participants: 4, instructor: 'Budi Hartono + Engineer ANKE',
+    sessionDate: '2026-04-21', participants: 4, instructor: 'Robby Dwi Setiawan + Engineer ANKE',
     duration: 16, topics: 'Operasional dasar, scan protocol, dose management, troubleshooting basic',
     status: 'completed', certUrl: '', notes: 'Training 2 hari, 4 radiografer + 1 dokter spesialis' },
   { id: 'train_002', certNo: 'CERT-HNTI-2026-002', customer: 'RS Premier Bintaro',
@@ -3340,7 +3339,7 @@ const SEED_TRAINING_RECORDS = [
     status: 'completed', certUrl: '', notes: 'Training intensif 3 hari, sertifikat dari ANKE Headquarters' },
   { id: 'train_003', certNo: 'CERT-HNTI-2026-003', customer: 'RSUD Cibinong',
     modality: 'CT Scan', subModality: 'CT 32 Slice C201',
-    sessionDate: '2026-02-12', participants: 3, instructor: 'Budi Hartono',
+    sessionDate: '2026-02-12', participants: 3, instructor: 'Robby Dwi Setiawan',
     duration: 12, topics: 'Operasional, scan protocol dasar, perawatan harian',
     status: 'completed', certUrl: '', notes: 'Training 1.5 hari' },
   { id: 'train_004', certNo: '', customer: 'RSUD Banyumas',
@@ -3470,7 +3469,7 @@ const SEED_BUSINESS_TRIPS = [
 
   // 4. Budi (Teknisi) — PENDING REVIEW GM (sudah approve finance & manager_ops)
   { id: 'bt_2026_004', requestNo: 'BT-2026-004',
-    travelerUsername: 'teknisi', travelerName: 'Budi Hartono', position: 'Supervisor', allowancePerDay: 150000,
+    travelerUsername: 'teknisi', travelerName: 'Robby Dwi Setiawan', position: 'Supervisor', allowancePerDay: 150000,
     destination: 'Banyumas + Cilacap', destinationCity: 'Purwokerto',
     purpose: 'Instalasi X-Ray RSUD Banyumas (lanjutan) + PM CT Scan RSUD Cilacap',
     dateStart: '2026-05-26', dateEnd: '2026-05-30', duration: 5,
@@ -3481,11 +3480,11 @@ const SEED_BUSINESS_TRIPS = [
     },
     officeBooked: { ticketPP: 0, hotelTotal: 1600000, ticketNote: '-', hotelNote: 'Hotel Java Heritage Purwokerto 4 malam' },
     totalAdvance: 100000 + 0 + 300000 + 700000 + 600000 + 200000 + 750000, // 2650000
-    bankAccount: { bankName: 'BRI', accountNo: '003901123456', holderName: 'Budi Hartono' },
+    bankAccount: { bankName: 'BRI', accountNo: '003901123456', holderName: 'Robby Dwi Setiawan' },
     status: 'pending_gm', tripStatus: 'planned', paymentStatus: 'pending',
     paidDate: null, paidAmount: 0, paidProof: '',
     approvalHistory: [
-      { level: 'submit', by: 'teknisi', byName: 'Budi Hartono', date: '2026-05-15', action: 'submitted', note: '' },
+      { level: 'submit', by: 'teknisi', byName: 'Robby Dwi Setiawan', date: '2026-05-15', action: 'submitted', note: '' },
       { level: 'finance', by: 'finance', byName: 'Maya Sari', date: '2026-05-16', action: 'approved', note: 'Estimasi biaya wajar untuk teknisi field 5 hari' },
       { level: 'manager_ops', by: 'manager_ops', byName: 'Novan Restu', date: '2026-05-17', action: 'approved', note: 'Instalasi RSUD Banyumas urgent harus selesai' },
     ],
@@ -3704,7 +3703,7 @@ function generateHistoricalBusinessTrips() {
       ],
       purposes: ['Visit RSUD Tugurejo Semarang', 'Follow up RS Mardi Rahayu Kudus', 'Demo C-Arm RSUD Pekalongan'] },
     // Teknisi - Budi (banyak trip untuk install + PM)
-    { un: 'teknisi', name: 'Budi Hartono', pos: 'Supervisor', allow: 150000, freq: 4.2,
+    { un: 'teknisi', name: 'Robby Dwi Setiawan', pos: 'Supervisor', allow: 150000, freq: 4.2,
       dests: [
         { city: 'Surabaya', area: 'Jatim instalasi', flight: [2200000, 2600000], hotel: [2000000, 2500000] },
         { city: 'Solo', area: 'Jateng PM', flight: 0, hotel: [1400000, 1800000] },
@@ -3914,7 +3913,7 @@ function generateRegulatoryRecords(units) {
       evalDate: stageIdx >= 2 ? u.installDate : null,
       pnbpAmount: stageIdx >= 3 ? 12500000 : null,
       issuedDate: stageIdx >= 4 ? u.installDate : null,
-      pic: 'Rini Wahyuni', note: stage === 'eval' ? 'Menunggu hasil evaluasi BAPETEN' : stage === 'pnbp' ? 'PNBP sudah terbit, menunggu pembayaran' : stage === 'docs' ? 'Sedang mengumpulkan SOP & dokumen teknis' : '',
+      pic: 'Ananda Rifki Bayu Saputra', note: stage === 'eval' ? 'Menunggu hasil evaluasi BAPETEN' : stage === 'pnbp' ? 'PNBP sudah terbit, menunggu pembayaran' : stage === 'docs' ? 'Sedang mengumpulkan SOP & dokumen teknis' : '',
     };
   });
 }
@@ -3977,6 +3976,11 @@ const PRODUCT_KEY = 'ims_hnti:prod_v24';
 const LANG_KEY = 'ims_hnti:lang_v22';
 const SESSION_KEY = 'ims_hnti:session_v22';
 const RATE_KEY = 'ims_hnti:rate_v23';
+// ── Logo assets (pastikan kedua file ada di folder /public/ di repo GitHub) ──────────────
+// logo.png  → berlatar putih, untuk halaman login
+// logo3.png → berlatar gelap, untuk header & sidebar
+const LOGO_MAIN_SRC = '/logo.png';
+const LOGO_ICON_SRC = '/logo3.png';
 // ============== Universal Storage Adapter ==============
 // CRITICAL FIX: works across environments —
 //   • Vercel / normal browser → localStorage (persistent across logout/login/reload)
@@ -4000,19 +4004,71 @@ const _SUPA_URL = 'https://xuumodhksfwnkdbyjnmq.supabase.co';
 const _SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1dW1vZGhrc2Z3bmtkYnlqbm1xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDgwMTQsImV4cCI6MjA5NTk4NDAxNH0.yiuPJEI-BXXc_mXNparq7wDX2u4QJ04mVbF55FZkbuo';
 // ▲▲▲ setelah diganti, commit & deploy → data akan tersimpan di Supabase ▲▲▲
 const _supaEnabled = () => _SUPA_KEY !== 'MASUKKAN_ANON_KEY_ANDA_DI_SINI' && _SUPA_URL.startsWith('https://');
-const _supaFetch = (path, opts = {}) => fetch(`${_SUPA_URL}/rest/v1/${path}`, {
-  ...opts, headers: { apikey: _SUPA_KEY, Authorization: `Bearer ${_SUPA_KEY}`, 'Content-Type': 'application/json', ...(opts.headers || {}) }
+// _supaFetch: tok=null → pakai anon key; tok=access_token → pakai session token (authenticated)
+const _supaFetch = (path, opts = {}, tok = null) => fetch(`${_SUPA_URL}/rest/v1/${path}`, {
+  ...opts, headers: { apikey: _SUPA_KEY, Authorization: `Bearer ${tok || _SUPA_KEY}`, 'Content-Type': 'application/json', ...(opts.headers || {}) }
 });
 if (typeof window !== 'undefined' && !_supaEnabled()) {
   console.warn('[IMS] Supabase belum dikonfigurasi — memakai localStorage sementara. Ganti _SUPA_KEY di kode.');
 }
+
+// ── Supabase Auth (Tahap 6b) — login, refresh token, restore session ─────────
+// Token sesi HANYA disimpan di localStorage browser (tidak di kv_store Supabase).
+let _supaSession = null; // { access_token, refresh_token, expires_at }
+const _SUPA_SESS_LS = 'ims_hnti:supa_sess_v1'; // kunci localStorage khusus sesi Auth
+const _authFetch = (path, opts = {}) => fetch(`${_SUPA_URL}/auth/v1/${path}`, {
+  ...opts, headers: { apikey: _SUPA_KEY, 'Content-Type': 'application/json', ...(opts.headers || {}) }
+});
+const _supaSignIn = async (email, password) => {
+  const res = await _authFetch('token?grant_type=password', { method: 'POST', body: JSON.stringify({ email, password }) });
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error_description || e.msg || 'auth_failed'); }
+  const d = await res.json();
+  _supaSession = { access_token: d.access_token, refresh_token: d.refresh_token, expires_at: Date.now() + (d.expires_in || 3600) * 1000 };
+  try { if (_hasLocalStorage) window.localStorage.setItem(_SUPA_SESS_LS, JSON.stringify(_supaSession)); } catch {}
+  return d;
+};
+const _supaRefreshTok = async () => {
+  if (!_supaSession?.refresh_token) return false;
+  try {
+    const res = await _authFetch('token?grant_type=refresh_token', { method: 'POST', body: JSON.stringify({ refresh_token: _supaSession.refresh_token }) });
+    if (!res.ok) return false;
+    const d = await res.json();
+    _supaSession = { access_token: d.access_token, refresh_token: d.refresh_token, expires_at: Date.now() + (d.expires_in || 3600) * 1000 };
+    try { if (_hasLocalStorage) window.localStorage.setItem(_SUPA_SESS_LS, JSON.stringify(_supaSession)); } catch {}
+    return true;
+  } catch { return false; }
+};
+const _supaSignOut = async () => {
+  if (_supaSession?.access_token) {
+    try { await _authFetch('logout', { method: 'POST', headers: { Authorization: `Bearer ${_supaSession.access_token}` } }); } catch {}
+  }
+  _supaSession = null;
+  try { if (_hasLocalStorage) window.localStorage.removeItem(_SUPA_SESS_LS); } catch {}
+};
+const _restoreSupaSession = async () => {
+  if (!_supaEnabled()) return false;
+  try {
+    if (!_hasLocalStorage) return false;
+    const stored = window.localStorage.getItem(_SUPA_SESS_LS);
+    if (!stored) return false;
+    _supaSession = JSON.parse(stored);
+    if (!_supaSession?.refresh_token) { _supaSession = null; return false; }
+    return await _supaRefreshTok(); // selalu refresh saat load untuk token segar
+  } catch { _supaSession = null; return false; }
+};
+const _getSupaTok = async () => {
+  if (!_supaSession) return null; // tidak ada sesi → pakai anon key (fallback)
+  if (_supaSession.expires_at - Date.now() < 300000) await _supaRefreshTok(); // refresh jika < 5 menit
+  return _supaSession?.access_token || null;
+};
 const storeGet = async (k) => {
   // [1] Claude artifact preview
   if (_hasArtifactStorage) { try { const r = await window.storage.get(k); return r?.value ?? null; } catch {} }
-  // [2] Supabase (penyimpanan cloud utama)
+  // [2] Supabase (penyimpanan cloud utama) — gunakan session token jika ada
   if (_supaEnabled()) {
     try {
-      const res = await _supaFetch(`kv_store?key=eq.${encodeURIComponent(k)}&select=value`);
+      const tok = await _getSupaTok();
+      const res = await _supaFetch(`kv_store?key=eq.${encodeURIComponent(k)}&select=value`, {}, tok);
       if (res.ok) {
         const rows = await res.json();
         if (Array.isArray(rows) && rows.length > 0) {
@@ -4030,15 +4086,16 @@ const storeGet = async (k) => {
 const storeSet = async (k, v) => {
   // [1] Claude artifact preview
   if (_hasArtifactStorage) { try { await window.storage.set(k, v); return; } catch {} }
-  // [2] Supabase upsert (insert-or-update berdasarkan primary key)
+  // [2] Supabase upsert — gunakan session token jika ada
   if (_supaEnabled()) {
     try {
+      const tok = await _getSupaTok();
       const jv = (() => { try { return JSON.parse(v); } catch { return v; } })();
       await _supaFetch('kv_store', {
         method: 'POST',
         headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
         body: JSON.stringify({ key: k, value: jv, updated_at: new Date().toISOString() })
-      });
+      }, tok);
     } catch {}
   }
   // [3] localStorage mirror (data tetap ada saat offline / transisi ke Supabase)
@@ -4048,8 +4105,13 @@ const storeSet = async (k, v) => {
 const storeDel = async (k) => {
   // [1] Claude artifact preview
   if (_hasArtifactStorage) { try { await window.storage.delete(k); return; } catch {} }
-  // [2] Supabase delete
-  if (_supaEnabled()) { try { await _supaFetch(`kv_store?key=eq.${encodeURIComponent(k)}`, { method: 'DELETE' }); } catch {} }
+  // [2] Supabase delete — gunakan session token jika ada
+  if (_supaEnabled()) {
+    try {
+      const tok = await _getSupaTok();
+      await _supaFetch(`kv_store?key=eq.${encodeURIComponent(k)}`, { method: 'DELETE' }, tok);
+    } catch {}
+  }
   // [3] localStorage cleanup
   try { if (_hasLocalStorage) { window.localStorage.removeItem(k); return; } } catch {}
   delete _memStore[k];
@@ -4241,15 +4303,43 @@ const GlobalStyles = () => (
     .card { background: #fefcf7; border: 1px solid #e8e1cc; padding: 22px; }
     .card-title { font-size: 10px; letter-spacing: 0.2em; color: #8a7d5c; text-transform: uppercase; font-weight: 600; margin-bottom: 18px; }
     @media (max-width: 900px) {
-      .main-content { padding: 20px !important; }
-      .header-content { padding: 14px 20px !important; }
+      .main-content { padding: 16px !important; }
+      .header-content { padding: 12px 16px !important; }
       .desktop-nav { display: none !important; }
       .mobile-menu-btn { display: flex !important; }
       .kpi-grid-4 { grid-template-columns: repeat(2, 1fr) !important; }
       .two-col, .three-col { grid-template-columns: 1fr !important; }
-      .hero-title { font-size: 28px !important; }
+      .hero-title { font-size: 26px !important; }
+      .hide-mobile { display: none !important; }
+      .modal-content { padding: 20px !important; margin: 0 !important; max-height: 95vh !important; border-radius: 0 !important; }
+      .modal-overlay { padding: 0 !important; align-items: flex-end !important; }
+      table { font-size: 11px !important; }
     }
-    .mobile-menu-btn { display: none; }
+    @media (max-width: 600px) {
+      .kpi-grid-4 { grid-template-columns: 1fr !important; }
+      .header-content { padding: 10px 14px !important; }
+      .main-content { padding: 12px !important; }
+      .hero-title { font-size: 22px !important; }
+      .card { padding: 14px !important; }
+      .card-pad { padding: 14px !important; }
+      .serif.kpi-num { font-size: 20px !important; }
+      .login-right { padding: 28px 18px !important; }
+      .btn-primary, .btn-ghost { padding: 11px 14px !important; font-size: 12px !important; }
+      input, select, textarea { font-size: 16px !important; } /* prevents iOS zoom */
+      .modal-content { padding: 16px !important; }
+    }
+    /* Tabel horizontal scroll di mobile */
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    /* Touch target minimum 44px */
+    @media (hover: none) and (pointer: coarse) {
+      button { min-height: 40px; }
+      .nav-btn { min-height: 44px !important; padding: 12px 18px !important; }
+    }
+    /* Animasi lebih ringan di mobile untuk performa */
+    @media (prefers-reduced-motion: reduce) {
+      .fade-in { animation: none !important; }
+      * { transition-duration: 0.01ms !important; }
+    }
   `}</style>
 );
 
@@ -4307,6 +4397,8 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
+      // Pulihkan sesi Supabase Auth (jika pernah login sebelumnya) sebelum load data
+      if (_supaEnabled()) await _restoreSupaSession();
       // ONE-TIME MIGRATION: clear obsolete storage keys from older versions
       // This forces a fresh seed load when user upgrades to v22 schema (with payment scheme fields)
       const MIGRATION_MARKER = 'ims_hnti:schema_v22_migrated';
@@ -4517,7 +4609,9 @@ function LoginScreen({ t, lang, setLang, onLogin, employees }) {
   const [showPwd, setShowPwd] = useState(false);
   const [error, setError] = useState('');
 
-  const handleLogin = () => {
+  const [loggingIn, setLoggingIn] = useState(false);
+
+  const handleLogin = async () => {
     const u = username.toLowerCase().trim();
     const userDb = employees || USERS;
     const user = userDb[u];
@@ -4526,10 +4620,27 @@ function LoginScreen({ t, lang, setLang, onLogin, employees }) {
       setError(lang === 'id' ? 'Akun Anda telah dinon-aktifkan. Hubungi admin.' : 'Your account has been deactivated. Contact admin.');
       return;
     }
-    if (user.password === password) {
-      onLogin({ username: u, role: user.role, name: user.name, initial: user.initial, salesId: user.salesId, position: user.position, allowancePerDay: user.allowancePerDay });
-      setError('');
-    } else setError(t.login_error);
+    if (_supaEnabled()) {
+      // Validasi via Supabase Auth: email = username@imshnti.id
+      setLoggingIn(true);
+      try {
+        await _supaSignIn(`${u}@imshnti.id`, password);
+        // Supabase OK → lanjut ke app
+      } catch {
+        // Fallback sementara: cek password di employees (untuk karyawan yang belum punya akun Supabase)
+        if (user.password !== password) {
+          setError(t.login_error);
+          setLoggingIn(false);
+          return;
+        }
+        console.warn(`[IMS Auth] ${u}: login via fallback (akun Supabase belum dibuat)`);
+      }
+      setLoggingIn(false);
+    } else {
+      if (user.password !== password) { setError(t.login_error); return; }
+    }
+    onLogin({ username: u, role: user.role, name: user.name, initial: user.initial, salesId: user.salesId, position: user.position, allowancePerDay: user.allowancePerDay });
+    setError('');
   };
 
   return (
@@ -4544,6 +4655,7 @@ function LoginScreen({ t, lang, setLang, onLogin, employees }) {
         backgroundColor: '#1a2942'
       }}>
       </div>
+
       <div className="login-right" style={{flex: '0 0 460px', padding: '60px 48px', display: 'flex', flexDirection: 'column', justifyContent: 'center', overflowY: 'auto'}}>
         <div style={{display: 'flex', justifyContent: 'flex-end', marginBottom: '32px'}}>
           <button onClick={() => setLang(lang === 'id' ? 'en' : 'id')} style={{background: 'transparent', border: '1px solid #d4cdb8', padding: '7px 13px', fontFamily: 'inherit', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.1em', color: '#1a2942', fontWeight: 500}}>
@@ -4565,8 +4677,8 @@ function LoginScreen({ t, lang, setLang, onLogin, employees }) {
           </div>
         </div>
         {error && <div style={{color: '#8b3a3a', fontSize: '12px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px'}}><AlertCircle size={13} />{error}</div>}
-        <button className="btn-primary" onClick={handleLogin} style={{width: '100%', padding: '13px', justifyContent: 'center', marginTop: '14px'}}>
-          <Lock size={14} />{t.login_btn}
+        <button className="btn-primary" onClick={handleLogin} disabled={loggingIn} style={{width: '100%', padding: '13px', justifyContent: 'center', marginTop: '14px', opacity: loggingIn ? 0.75 : 1}}>
+          <Lock size={14} />{loggingIn ? (lang === 'id' ? 'Memverifikasi...' : 'Verifying...') : t.login_btn}
         </button>
 
         <div style={{marginTop: '24px', padding: '14px', background: '#fefcf7', border: '1px solid #e8e1cc'}}>
@@ -4882,7 +4994,9 @@ function Header({ session, setSession, lang, setLang, view, setView, allowedNav,
       <div className="header-content" style={{maxWidth: '1440px', margin: '0 auto', padding: '14px 48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px'}}>
         <div style={{display: 'flex', alignItems: 'center', gap: '14px'}}>
           <button className="mobile-menu-btn" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} style={{background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px'}}><Menu size={22} strokeWidth={1.5} /></button>
-          <IMSLogo size="md" />
+          <div style={{background: '#1a2942', borderRadius: '3px', padding: '2px 6px', height: '40px', display: 'flex', alignItems: 'center', overflow: 'hidden'}}>
+            <img src={LOGO_ICON_SRC} alt="IMS HNTI" style={{height: '34px', width: 'auto', display: 'block'}} onError={e => { e.target.style.display='none'; e.target.parentElement.innerHTML='<span style="color:#c8a96a;font-size:13px;font-weight:700;padding:0 4px;letter-spacing:0.06em">iMS</span>'; }} />
+          </div>
         </div>
 
         <div style={{flex: 1}} />
@@ -4927,7 +5041,7 @@ function Header({ session, setSession, lang, setLang, view, setView, allowedNav,
                   <button onClick={() => { onChangePassword(); setUserMenuOpen(false); }} style={{width: '100%', padding: '12px 14px', background: 'transparent', border: 'none', borderBottom: '1px solid #e8e1cc', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', color: '#1a2942', fontFamily: 'inherit', fontSize: '13px'}}>
                     <Lock size={14} strokeWidth={1.5} />{t.change_password}
                   </button>
-                  <button onClick={() => { setSession(null); setUserMenuOpen(false); }} style={{width: '100%', padding: '12px 14px', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', color: '#1a2942', fontFamily: 'inherit', fontSize: '13px'}}>
+                  <button onClick={() => { _supaSignOut(); setSession(null); setUserMenuOpen(false); }} style={{width: '100%', padding: '12px 14px', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', color: '#1a2942', fontFamily: 'inherit', fontSize: '13px'}}>
                     <LogOut size={14} strokeWidth={1.5} />{t.logout}
                   </button>
                 </div>
@@ -4993,10 +5107,7 @@ function HoverSidebar({ allowedNav, view, setView, t, lang, btNotifCount, srNoti
       >
         {/* Drawer header */}
         <div style={{padding: '20px 18px 16px', borderBottom: '1px solid rgba(248,245,239,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-          <div>
-            <div style={{fontSize: '15px', fontWeight: 700, letterSpacing: '0.04em'}}>IMS HNTI</div>
-            <div style={{fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#c8a96a', marginTop: '2px'}}>{lang === 'id' ? 'Sistem Monitoring' : 'Monitoring System'}</div>
-          </div>
+          <img src={LOGO_ICON_SRC} alt="IMS HNTI" style={{height: '38px', width: 'auto', display: 'block'}} onError={e => { e.target.outerHTML = '<div style="color:#c8a96a;font-size:14px;font-weight:700;letter-spacing:0.06em">iMS HNTI</div>'; }} />
           <button onClick={() => setOpen(false)} style={{background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(248,245,239,0.6)', padding: '4px'}} title={lang === 'id' ? 'Tutup' : 'Close'}>
             <ChevronLeft size={18} strokeWidth={1.5} />
           </button>
@@ -5020,9 +5131,12 @@ function HoverSidebar({ allowedNav, view, setView, t, lang, btNotifCount, srNoti
           })}
         </nav>
 
-        {/* Drawer footer hint */}
-        <div style={{padding: '12px 18px', borderTop: '1px solid rgba(248,245,239,0.12)', fontSize: '9.5px', color: 'rgba(248,245,239,0.4)', letterSpacing: '0.05em'}}>
-          {lang === 'id' ? 'Geser keluar untuk menutup' : 'Move out to close'}
+        {/* Drawer footer — logo pojok kiri bawah */}
+        <div style={{padding: '14px 18px', borderTop: '1px solid rgba(248,245,239,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+          <img src={LOGO_ICON_SRC} alt="IMS HNTI" style={{height: '28px', width: 'auto', opacity: 0.75}} onError={e => { e.target.style.display='none'; }} />
+          <span style={{fontSize: '9px', color: 'rgba(248,245,239,0.35)', letterSpacing: '0.05em'}}>
+            {lang === 'id' ? 'Geser keluar untuk menutup' : 'Move out to close'}
+          </span>
         </div>
       </div>
     </>
@@ -7028,7 +7142,7 @@ function CashFlowProjection({ data, t, lang, fmt }) {
     realistic: { rate: 0.18, label: lang === 'id' ? 'Realistis' : 'Realistic', color: '#1a2942',
       basis: lang === 'id' ? '≈2× pertumbuhan pasar. Didorong siklus upgrade radiologi akibat reklasifikasi RS berbasis kompetensi (UU 17/2023) + ekspansi model KSO.' : '≈2× market growth. Driven by radiology upgrade cycle from competency-based hospital reclassification (Law 17/2023) + KSO expansion.' },
     optimistic: { rate: 0.25, label: lang === 'id' ? 'Optimis' : 'Optimistic', color: '#3a6b3a',
-      basis: lang === 'id' ? 'Rebut pangsa agresif + recurring KSO + kemitraan principal baru (ANKE, 5G Healthcare, SINO MDT) + KRIS & Program Transformasi Kesehatan Rp20T.' : 'Aggressive share capture + KSO recurring + new principals + KRIS & Rp20T Health Transformation Program.' },
+      basis: lang === 'id' ? 'Rebut pangsa agresif + recurring KSO + kemitraan principal baru (ANKE, SG Healthcare, SINO MDT) + KRIS & Program Transformasi Kesehatan Rp20T.' : 'Aggressive share capture + KSO recurring + new principals + KRIS & Rp20T Health Transformation Program.' },
   };
   const g = SCENARIOS[scenario].rate;
 
@@ -8400,7 +8514,7 @@ function EmployeeModal({ emp, employees, onSave, onClose, t, lang }) {
             </div>
           </Field>
           <Field label={t.emp_name}>
-            <input value={form.name} onChange={e => update('name', e.target.value)} placeholder="contoh: Budi Hartono" />
+            <input value={form.name} onChange={e => update('name', e.target.value)} placeholder="contoh: Robby Dwi Setiawan" />
           </Field>
           <Field label={t.emp_position}>
             <select value={form.position} onChange={e => updatePosition(e.target.value)}>
@@ -13049,7 +13163,7 @@ function MaintenanceIssueModal({ record, onSave, onClose, t, lang, units, sessio
     priority: 'medium',
     status: 'open',
     reportedDate: new Date().toISOString().split('T')[0],
-    technician: session?.name || 'Budi Hartono',
+    technician: session?.name || 'Robby Dwi Setiawan',
     note: '',
     estimatedCost: 0,
     resolvedDate: null,
@@ -13128,7 +13242,7 @@ function PMScheduleModal({ record, onSave, onClose, t, lang, units, session, liv
     unitId: '',
     lastPmDate: new Date().toISOString().split('T')[0],
     nextPmDate: '',
-    technician: session?.name || 'Budi Hartono',
+    technician: session?.name || 'Robby Dwi Setiawan',
     status: 'scheduled',
     notes: '',
   });
@@ -14057,7 +14171,7 @@ function RegulatoryRecordModal({ record, recordType, onSave, onClose, t, lang, u
     if (type === 'import') {
       return { id: baseId, principal: '', principalCountry: '', product: '', stage: 'preregist', stageIdx: 0,
         registerDate: today, preregistDate: today, docsDate: null, submitDate: null, evalDate: null, issuedDate: null,
-        importPermitNo: null, pic: 'Rini Wahyuni', note: '', attachmentUrl: '' };
+        importPermitNo: null, pic: 'Ananda Rifki Bayu Saputra', note: '', attachmentUrl: '' };
     }
     if (type === 'akl') {
       return { id: baseId, principal: '', principalCountry: '', product: '', productClass: 'B',
@@ -14066,18 +14180,18 @@ function RegulatoryRecordModal({ record, recordType, onSave, onClose, t, lang, u
         preregistDate: today, docsDate: null, submitDate: null,
         pnbpDate: null, pnbpAmount: null, evalDate: null,
         fixDate: null, issuedDate: null, aklNo: null,
-        pic: 'Rini Wahyuni', note: '', attachmentUrl: '' };
+        pic: 'Ananda Rifki Bayu Saputra', note: '', attachmentUrl: '' };
     }
     if (type === 'bapeten') {
       return { id: baseId, customer: '', modality: 'CT Scan', subModality: '',
         installDate: today, stage: 'docs', stageIdx: 0,
         docsComplete: false, submitDate: null, evalDate: null,
-        pnbpAmount: null, issuedDate: null, pic: 'Rini Wahyuni', note: '', attachmentUrl: '' };
+        pnbpAmount: null, issuedDate: null, pic: 'Ananda Rifki Bayu Saputra', note: '', attachmentUrl: '' };
     }
     if (type === 'pengalihan') {
       return { id: baseId, customer: '', modality: 'CT Scan', subModality: '', destination: '',
         stage: 'submit', stageIdx: 0, submitDate: today, evalDate: null, issuedDate: null,
-        permitNo: null, pic: 'Rini Wahyuni', note: '' };
+        permitNo: null, pic: 'Ananda Rifki Bayu Saputra', note: '' };
     }
     if (type === 'pi') {
       const exp = new Date(today);

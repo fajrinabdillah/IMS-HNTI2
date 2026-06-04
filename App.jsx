@@ -4991,14 +4991,7 @@ function Header({ session, setSession, lang, setLang, view, setView, allowedNav,
 
   return (
     <header style={{borderBottom: '1px solid #d4cdb8', background: '#f8f5ef', position: 'sticky', top: 0, zIndex: 50}}>
-      <div className="header-content" style={{maxWidth: '1440px', margin: '0 auto', padding: '14px 48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px'}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: '14px'}}>
-          <button className="mobile-menu-btn" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} style={{background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px'}}><Menu size={22} strokeWidth={1.5} /></button>
-          <div style={{background: '#1a2942', borderRadius: '3px', padding: '2px 6px', height: '40px', display: 'flex', alignItems: 'center', overflow: 'hidden'}}>
-            <img src={LOGO_ICON_SRC} alt="IMS HNTI" style={{height: '34px', width: 'auto', display: 'block'}} onError={e => { e.target.style.display='none'; e.target.parentElement.innerHTML='<span style="color:#c8a96a;font-size:13px;font-weight:700;padding:0 4px;letter-spacing:0.06em">iMS</span>'; }} />
-          </div>
-        </div>
-
+      <img src={logoKecil} alt="Logo IMS Header" style={{ height: '40px', objectFit: 'contain' }} />
         <div style={{flex: 1}} />
 
         <div style={{display: 'flex', alignItems: 'center', gap: '14px'}}>

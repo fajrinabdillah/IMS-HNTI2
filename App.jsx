@@ -4261,7 +4261,8 @@ const IMSLogo = React.memo(function IMSLogo({ size = 'md' }) {
 
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center' }}>
-      <img  
+      <img
+        src={logoKecil}
         alt="Logo IMS HNTI" 
         style={{ width: logoWidth, height: 'auto', objectFit: 'contain' }} 
       />

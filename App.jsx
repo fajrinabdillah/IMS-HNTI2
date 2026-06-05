@@ -3,7 +3,7 @@ import { TrendingUp, FileText, Briefcase, Plus, Search, Edit2, Trash2, X, ArrowU
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Area, ComposedChart } from 'recharts';
 import logoFull from './logo.png';
 import logoKecil from './logo3.png';
-import logoSidebar from './Logo2.png';
+import logoSidebar from './logo2.png';
 const DEFAULT_USD_IDR = 18000;
 
 // ============== i18n ==============

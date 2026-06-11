@@ -17,7 +17,9 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
+    "@react-pdf/renderer"
     "vite": "^5.0.8"
+    
   },
   "engines": {
     "node": ">=18.0.0",

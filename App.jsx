@@ -771,31 +771,6 @@ const STATIC_TECH_ORDER = Object.entries(USERS).filter(([u, i]) => i.role === 't
 // stays correct after renames — never relies on a stored, possibly-stale, initial field).
 // Resolve ANY stored value (live username, original seed name/username, or custom text) to the
 // current live employee name. Resilient to renamed usernames via technician positional fallback.
-function resolveEmpName(employees, val) {
-  if (!val || !employees) return val || '';
-  // value is a current live username — but only trust a real name (not empty, not the username itself)
-  if (employees[val] && employees[val].name && employees[val].name !== val) return employees[val].name;
-  const un = SEED_NAME_TO_USERNAME[val];
-  if (un && employees[un] && employees[un].name && employees[un].name !== un) return employees[un].name; // seed name → username still present
-  // Rename-alias lookup: find a live employee whose _prevUsernames recorded the old key.
-  for (const e of Object.values(employees)) {
-    if (e && Array.isArray(e._prevUsernames) && (e._prevUsernames.includes(val) || (un && e._prevUsernames.includes(un)))) return e.name;
-  }
-  // Technician positional fallback (sorted by username) — keeps display synced even after the
-  // technician username was renamed (e.g. 'teknisi' → 'teknisi1') without alias tracking.
-  const allTechs = Object.entries(employees).filter(([u, e]) => e && e.role === 'technician');
-  const activeTechs = allTechs.filter(([u, e]) => e.active);
-  const liveTechs = (activeTechs.length ? activeTechs : allTechs)
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([u, e]) => e.name)
-    .filter(nm => nm && !/^teknisi\d*$/i.test(nm)); // never fall back onto a raw username-like name
-  if (liveTechs.length) {
-    const staticSorted = [...STATIC_TECH_ORDER].sort((a, b) => a.un.localeCompare(b.un));
-    const idx = staticSorted.findIndex(s => s.un === val || s.name === val);
-    if (idx >= 0) return liveTechs[idx % liveTechs.length];
-  }
-  return val;                                                      // custom/manually-typed name
-}
 
 // Resolve any seed technician name embedded inside a free-text string (e.g. training instructor
 // "Robby Dwi Setiawan + Aplikator") to the current live employee name, so renamed staff never leak.

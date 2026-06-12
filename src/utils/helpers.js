@@ -68,4 +68,17 @@ const detectPaymentScheme = (projectType, customerType) => {
   if (projectType === 'government' || projectType === 'tender') return 'after_bast';
   return 'dp_installment';
 };
+const resolveCustomerSector = (sph) => {
+  if (sph?.customerSector === 'swasta' || sph?.customerSector === 'pemerintah') return sph.customerSector;
+  if (sph?.projectType === 'government' || sph?.projectType === 'tender' || sph?.projectType === 'bumn') return 'pemerintah';
+  return 'swasta';
+};
+const resolveDealModel = (sph) => {
+  if (sph?.dealModel) return sph.dealModel; // explicit (data baru)
+  // Derive dari data lama:
+  if (sph?.paymentScheme === 'kso' || sph?.projectType === 'kso') return 'kso';
+  if (sph?.projectType === 'tender') return 'tender';
+  if (sph?.projectType === 'government' || sph?.projectType === 'bumn') return 'ekatalog';
+  return 'cicilan'; // default RS Swasta
+};
 

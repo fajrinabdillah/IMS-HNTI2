@@ -867,11 +867,6 @@ const ROLE_LABEL_REGULATORY_ID = 'Regulatory';
 // - KSO: deposit + 60× bagi hasil bulanan (5 tahun)
 // - Government/RSUD (project type government or tender to RSUD): 100% after BAST (no DP)
 // - Private RS/Klinik: DP 30% + cicilan (default 12×, bisa sampai 36×)
-const detectPaymentScheme = (projectType, customerType) => {
-  if (projectType === 'kso') return 'kso';
-  if (projectType === 'government' || projectType === 'tender') return 'after_bast';
-  return 'dp_installment';
-};
 
 // ============== SPH Enhancement (Tahap 8) — Deal Model & Invoice Schedule ==============
 // Skema bisnis konkret yang Pak Fajrin minta:

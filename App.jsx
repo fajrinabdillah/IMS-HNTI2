@@ -18702,4 +18702,3 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
 }
 
 // ============== Test exports (untuk audit harness; tidak dipakai oleh bundle browser) ==============
-export { migrateRegRecord, resolveDealModel, resolveCustomerSector, computeInvoiceSchedule, generatePaymentSchedule, detectPaymentScheme, pushNotificationToList, isNotificationForUser, countUnreadNotifications, appendStageHistoryEntry, getStageMetrics, formatDuration };

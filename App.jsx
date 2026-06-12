@@ -1129,15 +1129,6 @@ const SEED_SPH = [];
 // ============== Business Partners ==============
 // Catatan #4: product chips are DERIVED from the Product Master (by brand match) so they always
 // stay in sync. Each partner lists the master brand(s) it represents; products auto-populate.
-const BUSINESS_PARTNERS = [
-  { id: 'sg', name: 'SG Healthcare', country: 'Korea', flag: '🇰🇷', color: '#1a4d8a', status: 'active', brands: ['SG Healthcare'] },
-  { id: 'anke', name: 'ANKE', country: 'China', flag: '🇨🇳', color: '#c03030', status: 'active', brands: ['ANKE', 'Supermark'] },
-  { id: 'sino', name: 'SINO MDT', country: 'China', flag: '🇨🇳', color: '#d4780a', status: 'active', brands: ['SINO MDT'] },
-  { id: 'hyde', name: 'Hyde Medical', country: 'China', flag: '🇨🇳', color: '#7b3fb5', status: 'active', brands: ['Hyde Medical (HAMSKI XR)'] },
-  { id: 'precision', name: 'Precision', country: 'China', flag: '🇨🇳', color: '#0f7a5a', status: 'active', brands: ['Precision'] },
-  { id: 'angell', name: 'Angell', country: 'China', flag: '🇨🇳', color: '#0f7a5a', status: 'onboarding', brands: ['Angell'] },
-  { id: 'innocare', name: 'Innocare', country: 'Taiwan', flag: '🇹🇼', color: '#b8860b', status: 'onboarding', brands: ['Innocare (HAMSKI XR)'] },
-];
 
 // ============== Legacy Bulk SPH Generator — disabled after 60-SPH reset ==============
 // Helper lama dibiarkan sebagai referensi teknis, tetapi tidak lagi menghasilkan data SPH.

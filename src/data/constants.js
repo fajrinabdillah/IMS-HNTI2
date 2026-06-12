@@ -724,3 +724,36 @@ const SALES_TEAM = [
   { id: 'icha', name: 'Ika Apriani', initial: 'IA', territory: 'Jabodetabek + Jabar (bawah Dwi)', territoryEn: 'Jabodetabek + West Java (under Dwi)', accent: '#d4a8c8', supervisedBy: 'dwi' },
   { id: 'office', name: 'HNT Indonesia (Office)', initial: 'HO', territory: 'Nasional', territoryEn: 'Nationwide', accent: 'var(--ims-accent)', isOffice: true },
 ];
+const TERRITORY_MAP = {
+  // === Hatim — Jateng A (Semarang, sekitar, Pati, Tegal, Brebes, Cirebon coastal) ===
+  'semarang': 'hatim', 'kendal': 'hatim', 'demak': 'hatim', 'jepara': 'hatim', 'kudus': 'hatim',
+  'pati': 'hatim', 'rembang': 'hatim', 'blora': 'hatim', 'grobogan': 'hatim', 'bojonegoro': 'hatim',
+  'tegal': 'hatim', 'brebes': 'hatim', 'pemalang': 'hatim', 'pekalongan': 'hatim',
+  'tuban': 'hatim',
+  // === Lukman — Jateng selatan + DIY B ===
+  'solo': 'lukman', 'surakarta': 'lukman', 'sukoharjo': 'lukman', 'karanganyar': 'lukman',
+  'sragen': 'lukman', 'wonogiri': 'lukman', 'klaten': 'lukman', 'boyolali': 'lukman',
+  'magelang': 'lukman', 'salatiga': 'lukman', 'temanggung': 'lukman', 'wonosobo': 'lukman',
+  'banjarnegara': 'lukman', 'purbalingga': 'lukman', 'banyumas': 'lukman', 'purwokerto': 'lukman',
+  'cilacap': 'lukman', 'kebumen': 'lukman', 'purworejo': 'lukman',
+  'yogyakarta': 'lukman', 'sleman': 'lukman', 'bantul': 'lukman', 'kulon progo': 'lukman', 'gunung kidul': 'lukman',
+  // === Dwi — Jabodetabek + Jabar (mayoritas), Icha membantu di bawahnya ===
+  'jakarta': 'dwi', 'bekasi': 'dwi', 'tangerang': 'dwi', 'depok': 'dwi', 'bogor': 'dwi',
+  'bandung': 'dwi', 'cimahi': 'dwi', 'sumedang': 'dwi', 'karawang': 'dwi', 'purwakarta': 'dwi',
+  'subang': 'dwi', 'majalengka': 'dwi', 'cirebon': 'dwi', 'kuningan': 'dwi',
+  'indramayu': 'dwi', 'sukabumi': 'dwi', 'cianjur': 'dwi', 'garut': 'dwi', 'tasikmalaya': 'dwi',
+  'ciamis': 'dwi', 'banjar': 'dwi',
+  // === Tri — Jatim 1 (Sisi barat/selatan Jatim termasuk Malang, Kediri, dll) ===
+  'malang': 'tri', 'batu': 'tri', 'kediri': 'tri', 'tulungagung': 'tri', 'trenggalek': 'tri',
+  'blitar': 'tri', 'jombang': 'tri', 'nganjuk': 'tri', 'madiun': 'tri', 'magetan': 'tri',
+  'ngawi': 'tri', 'ponorogo': 'tri', 'pacitan': 'tri', 'mojokerto': 'tri',
+  // === Bagus — Jatim 2 (Surabaya & sekitar termasuk Madura, Banyuwangi, Pasuruan) ===
+  'surabaya': 'bagus', 'gresik': 'bagus', 'lamongan': 'bagus', 'sidoarjo': 'bagus',
+  'pasuruan': 'bagus', 'probolinggo': 'bagus', 'lumajang': 'bagus', 'jember': 'bagus',
+  'bondowoso': 'bagus', 'situbondo': 'bagus', 'banyuwangi': 'bagus',
+  'bangkalan': 'bagus', 'sampang': 'bagus', 'pamekasan': 'bagus', 'sumenep': 'bagus',
+  // === Bali → Office (luar 5 area, di-handle kantor pusat) ===
+  'bali': 'office', 'denpasar': 'office', 'badung': 'office',
+  // === Luar Jawa → Office sementara ===
+  'medan': 'office', 'palembang': 'office', 'makassar': 'office', 'manado': 'office', 'pontianak': 'office',
+};

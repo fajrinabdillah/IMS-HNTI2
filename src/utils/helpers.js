@@ -1,3 +1,4 @@
+import { TERRITORY_MAP } from '../data/constants';
 const detectSalesOwnerFromCustomer = (customerName) => {
   if (!customerName) return null;
   const lower = customerName.toLowerCase();
@@ -155,4 +156,13 @@ const computeInvoiceSchedule = (sph, baseDateOverride) => {
   }
   return { invoices: [], totalCount: 0, scheme: 'unknown' };
 };
-
+export {
+  detectSalesOwnerFromCustomer,
+  initialOf,
+  resolveEmpName,
+  resolveNamesInText,
+  detectPaymentScheme,
+  resolveCustomerSector,
+  resolveDealModel,
+  computeInvoiceSchedule
+};

@@ -4221,8 +4221,8 @@ const _hasLocalStorage = (() => {
 // ── Supabase cloud storage (Tahap 4 migration) ───────────────────────────────
 // Anon key AMAN di browser selama RLS aktif (sudah kita aktifkan di Tahap 2-3).
 // ▼▼▼ GANTI baris _SUPA_KEY di bawah dengan anon key Anda dari Supabase Settings → API Keys ▼▼▼
-const _SUPA_URL = 'https://xuumodhksfwnkdbyjnmq.supabase.co';
-const _SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1dW1vZGhrc2Z3bmtkYnlqbm1xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDgwMTQsImV4cCI6MjA5NTk4NDAxNH0.yiuPJEI-BXXc_mXNparq7wDX2u4QJ04mVbF55FZkbuo';
+const _SUPA_URL = import.meta.env.VITE_SUPABASE_URL;
+const _SUPA_KEY = import.meta.env.VITE_SUPABASE_KEY;
 // ▲▲▲ setelah diganti, commit & deploy → data akan tersimpan di Supabase ▲▲▲
 const _supaEnabled = () => _SUPA_KEY !== 'MASUKKAN_ANON_KEY_ANDA_DI_SINI' && _SUPA_URL.startsWith('https://');
 // _supaFetch: tok=null → pakai anon key; tok=access_token → pakai session token (authenticated)

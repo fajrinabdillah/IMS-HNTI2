@@ -769,13 +769,6 @@ SEED_NAME_TO_USERNAME['Rudi Susanto'] = 'teknisi2';    // → Muhammad Yusuf
 const STATIC_TECH_ORDER = Object.entries(USERS).filter(([u, i]) => i.role === 'technician').map(([u, i]) => ({ un: u, name: i.name }));
 // Derive a 1-2 letter avatar initial from a name (always computed from the live name so it
 // stays correct after renames — never relies on a stored, possibly-stale, initial field).
-function initialOf(name) {
-  if (!name) return '?';
-  const parts = String(name).trim().replace(/\(.*?\)/g, '').trim().split(/\s+/).filter(Boolean);
-  if (!parts.length) return '?';
-  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-  return (parts[0][0] + parts[1][0]).toUpperCase();
-}
 // Resolve ANY stored value (live username, original seed name/username, or custom text) to the
 // current live employee name. Resilient to renamed usernames via technician positional fallback.
 function resolveEmpName(employees, val) {

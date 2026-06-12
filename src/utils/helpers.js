@@ -81,4 +81,78 @@ const resolveDealModel = (sph) => {
   if (sph?.projectType === 'government' || sph?.projectType === 'bumn') return 'ekatalog';
   return 'cicilan'; // default RS Swasta
 };
+const _addMonthsISO = (dateStr, addMonths) => {
+  if (!dateStr) return dateStr;
+  const d = new Date(dateStr + 'T00:00:00Z'); if (isNaN(d.getTime())) return dateStr;
+  const day = d.getUTCDate();
+  d.setUTCDate(1);
+  d.setUTCMonth(d.getUTCMonth() + addMonths);
+  // Clamp day ke akhir bulan kalau bulan baru lebih pendek
+  const lastDay = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  d.setUTCDate(Math.min(day, lastDay));
+  return d.toISOString().slice(0, 10);
+};
+
+// Hitung jadwal invoice/tagihan berdasarkan dealModel. Untuk Finance & Proyeksi 5-Tahun.
+// Mengembalikan { invoices: [{seq, date, type, label, amount}], totalCount, scheme }
+// `baseDate` = tanggal PO untuk cicilan/e-kat/tender, tanggal install+ujifungsi untuk KSO.
+const computeInvoiceSchedule = (sph, baseDateOverride) => {
+  if (!sph) return { invoices: [], totalCount: 0, scheme: 'unknown' };
+  const dm = resolveDealModel(sph);
+  const total = Number(sph.totalValue) || ((Number(sph.qty) || 0) * (Number(sph.unitPrice) || 0));
+  const baseDate = baseDateOverride || sph.issuedDate || new Date().toISOString().slice(0, 10);
+  if (dm === 'ekatalog' || dm === 'tender') {
+    // 1 invoice 100% setelah BAST. BAST date harus disuplai sebagai baseDateOverride saat BAST sudah ada.
+    return {
+      scheme: dm, totalCount: 1,
+      invoices: [{ seq: 1, date: baseDate, type: 'final', label: '100% setelah BAST', amount: total }]
+    };
+  }
+  if (dm === 'cicilan') {
+    const dpPct = Math.max(10, Math.min(100, Number(sph.dpPercent) || 30));
+    const termCount = Math.max(1, Math.min(36, Number(sph.installmentMonths) || 12));
+    const dpAmt = total * (dpPct / 100);
+    const invoices = [{ seq: 1, date: baseDate, type: 'dp', label: `DP ${dpPct}%`, amount: dpAmt }];
+    if (termCount > 1) {
+      const remaining = total - dpAmt;
+      const perInst = remaining / (termCount - 1);
+      for (let i = 1; i < termCount; i++) {
+        invoices.push({
+          seq: i + 1,
+          date: _addMonthsISO(baseDate, i),
+          type: 'installment',
+          label: `Cicilan ${i}/${termCount - 1}`,
+          amount: perInst
+        });
+      }
+    } else if (dpPct < 100) {
+      // termCount=1 tapi DP<100% → invoice ke-2 pelunasan
+      invoices.push({ seq: 2, date: _addMonthsISO(baseDate, 1), type: 'final', label: 'Pelunasan', amount: total - dpAmt });
+    }
+    return { scheme: 'cicilan', totalCount: invoices.length, invoices };
+  }
+  if (dm === 'kso') {
+    const years = Math.max(5, Math.min(10, Number(sph.ksoYears) || 5));
+    const investorPct = Math.max(60, Math.min(80, Number(sph.ksoInvestorPct) || 70));
+    // Pembayaran bagi hasil dimulai 3 bulan setelah install+uji fungsi selesai.
+    // baseDate untuk KSO seharusnya = install+ujifungsi date (di-supply dari caller).
+    const firstBillingDate = _addMonthsISO(baseDate, 3);
+    const monthsTotal = years * 12;
+    // Estimasi pendapatan bulanan: totalValue / monthsTotal × investorPct/100
+    // (default; per-invoice editable di Finance — angka ini hanya estimasi proyeksi)
+    const estPerMonth = (total * (investorPct / 100)) / monthsTotal;
+    const invoices = [];
+    for (let i = 0; i < monthsTotal; i++) {
+      invoices.push({
+        seq: i + 1,
+        date: _addMonthsISO(firstBillingDate, i),
+        type: 'installment',
+        label: `Bagi Hasil ${i + 1}/${monthsTotal}`,
+        amount: estPerMonth
+      });
+    }
+    return { scheme: 'kso', totalCount: monthsTotal, invoices, firstBillingDate, ksoYears: years, ksoInvestorPct: investorPct };
+  }
+  return { invoices: [], totalCount: 0, scheme: 'unknown' };
+};
 

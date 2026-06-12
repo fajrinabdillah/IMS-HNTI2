@@ -815,3 +815,12 @@ const PRODUCT_MASTER_SEED = [
   { id: 'prod_angell_mobile', name: 'X-Ray Mobile Digital Premium', modality: 'X-Ray Mobile', brand: 'Angell', type: 'Mobile Digital Premium', origin: 'China', principal: 'Angell Medical', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Premium mobile digital X-Ray' },
   { id: 'prod_angell_fluoro', name: 'Digital Fluoroscopy Premium', modality: 'Fluoroscopy', brand: 'Angell', type: 'Digital Fluoroscopy Premium', origin: 'China', principal: 'Angell Medical', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Premium digital fluoroscopy system' },
 ];
+const BUSINESS_PARTNERS = [
+  { id: 'sg', name: 'SG Healthcare', country: 'Korea', flag: '🇰🇷', color: '#1a4d8a', status: 'active', brands: ['SG Healthcare'] },
+  { id: 'anke', name: 'ANKE', country: 'China', flag: '🇨🇳', color: '#c03030', status: 'active', brands: ['ANKE', 'Supermark'] },
+  { id: 'sino', name: 'SINO MDT', country: 'China', flag: '🇨🇳', color: '#d4780a', status: 'active', brands: ['SINO MDT'] },
+  { id: 'hyde', name: 'Hyde Medical', country: 'China', flag: '🇨🇳', color: '#7b3fb5', status: 'active', brands: ['Hyde Medical (HAMSKI XR)'] },
+  { id: 'precision', name: 'Precision', country: 'China', flag: '🇨🇳', color: '#0f7a5a', status: 'active', brands: ['Precision'] },
+  { id: 'angell', name: 'Angell', country: 'China', flag: '🇨🇳', color: '#0f7a5a', status: 'onboarding', brands: ['Angell'] },
+  { id: 'innocare', name: 'Innocare', country: 'Taiwan', flag: '🇹🇼', color: '#b8860b', status: 'onboarding', brands: ['Innocare (HAMSKI XR)'] },
+];

@@ -1,3 +1,13 @@
+import { 
+  translations, 
+  SALES_TEAM, 
+  TERRITORY_MAP, 
+  USERS, 
+  PRODUCT_MASTER_SEED, 
+  BUSINESS_PARTNERS, 
+  PERMISSIONS, 
+  NAV_BY_ROLE 
+} from './data/constants';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { TrendingUp, FileText, Briefcase, Plus, Search, Edit2, Trash2, X, ArrowUpRight, ArrowDownRight, Activity, DollarSign, Users, Clock, Globe, LogOut, Shield, Wrench, Truck, Wallet, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, FileCheck, Menu, ChevronDown, ChevronRight, ChevronLeft, ClipboardList, Star, Settings, ShieldCheck, CalendarDays, AlertTriangle, FileSearch, UserPlus, UserCheck, UserX, Plane, Receipt, Hotel, RefreshCw, History, FolderOpen, Upload, MessageSquare, Download, Target, Layers, FileBarChart, Paperclip, Bell, Palette, Check } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Area, ComposedChart } from 'recharts';

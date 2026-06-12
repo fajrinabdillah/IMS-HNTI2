@@ -22,4 +22,11 @@ const detectSalesOwnerFromCustomer = (customerName) => {
   // 3. Default: office (akan di-flag sebagai "vacant area" di UI)
   return 'office';
 };
+function initialOf(name) {
+  if (!name) return '?';
+  const parts = String(name).trim().replace(/\(.*?\)/g, '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '?';
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
 

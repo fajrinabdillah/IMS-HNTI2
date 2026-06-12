@@ -63,4 +63,9 @@ function resolveNamesInText(employees, text) {
   }
   return out;
 }
+const detectPaymentScheme = (projectType, customerType) => {
+  if (projectType === 'kso') return 'kso';
+  if (projectType === 'government' || projectType === 'tender') return 'after_bast';
+  return 'dp_installment';
+};
 

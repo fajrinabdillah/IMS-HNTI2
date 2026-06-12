@@ -774,15 +774,6 @@ const STATIC_TECH_ORDER = Object.entries(USERS).filter(([u, i]) => i.role === 't
 
 // Resolve any seed technician name embedded inside a free-text string (e.g. training instructor
 // "Robby Dwi Setiawan + Aplikator") to the current live employee name, so renamed staff never leak.
-function resolveNamesInText(employees, text) {
-  if (!text || !employees) return text || '';
-  let out = String(text);
-  for (const seed of STATIC_TECH_ORDER) {
-    const live = resolveEmpName(employees, seed.name);
-    if (live && live !== seed.name && out.includes(seed.name)) out = out.split(seed.name).join(live);
-  }
-  return out;
-}
 
 const OFFICE_SALES_ID = 'office';
 const SALES_META_BY_ID = Object.fromEntries(SALES_TEAM.map(s => [s.id, s]));

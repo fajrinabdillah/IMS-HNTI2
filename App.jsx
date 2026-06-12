@@ -14,6 +14,16 @@ import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, 
 import logoFull from './logo.png';
 import logoKecil from './logo3.png';
 import logoSidebar from './logo2.png';
+import {
+  detectSalesOwnerFromCustomer,
+  initialOf,
+  resolveEmpName,
+  resolveNamesInText,
+  detectPaymentScheme,
+  resolveCustomerSector,
+  resolveDealModel,
+  computeInvoiceSchedule
+} from './utils/helpers';
 const DEFAULT_USD_IDR = 18000;
 
 // ============== i18n ==============

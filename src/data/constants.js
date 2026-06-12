@@ -757,3 +757,28 @@ const TERRITORY_MAP = {
   // === Luar Jawa → Office sementara ===
   'medan': 'office', 'palembang': 'office', 'makassar': 'office', 'manado': 'office', 'pontianak': 'office',
 };
+const USERS = {
+  'ceo': { password: 'hnti2026', role: 'super_admin', name: 'Fajrin Abdillah', initial: 'FA', position: 'Direksi', allowancePerDay: 500000, active: true },
+  'gm': { password: 'hnti2026', role: 'gm', name: 'Endah Purwitasari', initial: 'EP', position: 'General Manager', allowancePerDay: 175000, active: true },
+  'manager_ops': { password: 'hnti2026', role: 'manager_ops', name: 'Novan Restu Aryanto', initial: 'NR', position: 'Manager Operasional', allowancePerDay: 175000, active: true },
+  'admin': { password: 'hnti2026', role: 'admin', name: 'Fahmi Alifudin', initial: 'FA', position: 'Staff', allowancePerDay: 130000, active: true },
+  'admin2': { password: 'hnti2026', role: 'admin', name: 'Tria Mailawati', initial: 'TM', position: 'Staff', allowancePerDay: 130000, active: true },
+  'teknisi': { password: 'hnti2026', role: 'technician', name: 'Robby Dwi Setiawan', initial: 'RS', position: 'Supervisor', allowancePerDay: 150000, active: true },
+  'teknisi2': { password: 'hnti2026', role: 'technician', name: 'Muhammad Yusuf', initial: 'MY', position: 'Teknisi', allowancePerDay: 130000, active: true },
+  'teknisi3': { password: 'hnti2026', role: 'technician', name: 'Muh. Nur Ichsan', initial: 'MN', position: 'Teknisi', allowancePerDay: 130000, active: true },
+  'teknisi4': { password: 'hnti2026', role: 'technician', name: 'Kim Myung Gi (Luke)', initial: 'KM', position: 'Teknisi', allowancePerDay: 130000, active: true },
+  'finance': { password: 'hnti2026', role: 'finance', name: 'Riris Elia', initial: 'RE', position: 'Supervisor', allowancePerDay: 150000, active: true },
+  'finance2': { password: 'hnti2026', role: 'finance', name: 'Fransiskus Marmora', initial: 'FM', position: 'Staff', allowancePerDay: 130000, active: true },
+  'regulatory': { password: 'hnti2026', role: 'regulatory', name: 'Ananda Rifki Bayu Saputra', initial: 'AR', position: 'Staff', allowancePerDay: 130000, active: true },
+  'product': { password: 'hnti2026', role: 'product_specialist', name: 'Rivan Riyadi', initial: 'RR', position: 'Staff', allowancePerDay: 130000, active: true },
+  'product2': { password: 'hnti2026', role: 'product_specialist', name: 'Octavianus Hernandes', initial: 'OH', position: 'Staff', allowancePerDay: 130000, active: true },
+  'lukman': { password: 'hnti2026', role: 'sales', name: 'Lukman Effendi', initial: 'LE', salesId: 'lukman', position: 'Staff', allowancePerDay: 130000, active: true },
+  'hatim': { password: 'hnti2026', role: 'sales', name: 'Ahmad Hatim Ashshidiq', initial: 'AH', salesId: 'hatim', position: 'Staff', allowancePerDay: 130000, active: true },
+  'dwi': { password: 'hnti2026', role: 'sales', name: 'Dwi Wahyudianto', initial: 'DW', salesId: 'dwi', position: 'Manager', allowancePerDay: 175000, active: true },
+  'tri': { password: 'hnti2026', role: 'sales', name: 'Tri Sutjahjono', initial: 'TS', salesId: 'tri', position: 'Manager', allowancePerDay: 175000, active: true },
+  'bagus': { password: 'hnti2026', role: 'sales', name: 'Bagus Iswahyudi', initial: 'BI', salesId: 'bagus', position: 'Manager', allowancePerDay: 175000, active: true },
+  'icha': { password: 'hnti2026', role: 'sales', name: 'Ika Apriani', initial: 'IA', salesId: 'icha', position: 'Staff', allowancePerDay: 130000, active: true },
+  'sule': { password: 'hnti2026', role: 'security', name: 'Sulaiman', initial: 'SU', position: 'Security', allowancePerDay: 100000, active: true },
+  'ami': { password: 'hnti2026', role: 'office_support', name: 'Supatmi', initial: 'SU', position: 'Office Boy/Girl', allowancePerDay: 100000, active: true },
+  'office': { password: 'hnti2026', role: 'sales', name: 'HNT Indonesia (Office)', initial: 'HO', salesId: 'office', isOffice: true, position: '-', allowancePerDay: 0, active: true },
+};

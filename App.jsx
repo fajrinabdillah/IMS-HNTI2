@@ -886,19 +886,6 @@ const ROLE_LABEL_REGULATORY_ID = 'Regulatory';
 //   ksoInvestorPct: 60.0–80.0 step 0.5 (baru) — porsi HNTI; porsi RS = 100 − ksoInvestorPct
 //
 // Helper resolveDealModel: 1 sumber kebenaran untuk seluruh modul hilir
-const resolveCustomerSector = (sph) => {
-  if (sph?.customerSector === 'swasta' || sph?.customerSector === 'pemerintah') return sph.customerSector;
-  if (sph?.projectType === 'government' || sph?.projectType === 'tender' || sph?.projectType === 'bumn') return 'pemerintah';
-  return 'swasta';
-};
-const resolveDealModel = (sph) => {
-  if (sph?.dealModel) return sph.dealModel; // explicit (data baru)
-  // Derive dari data lama:
-  if (sph?.paymentScheme === 'kso' || sph?.projectType === 'kso') return 'kso';
-  if (sph?.projectType === 'tender') return 'tender';
-  if (sph?.projectType === 'government' || sph?.projectType === 'bumn') return 'ekatalog';
-  return 'cicilan'; // default RS Swasta
-};
 // Daftar opsi KSO investor% — 60.0, 60.5, …, 80.0 (41 opsi)
 const KSO_INVESTOR_PCT_OPTIONS = (() => {
   const arr = []; for (let p = 60.0; p <= 80.0 + 1e-9; p += 0.5) arr.push(Math.round(p * 10) / 10); return arr;

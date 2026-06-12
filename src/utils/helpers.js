@@ -54,4 +54,13 @@ function resolveEmpName(employees, val) {
   }
   return val;                                                      // custom/manually-typed name
 }
+function resolveNamesInText(employees, text) {
+  if (!text || !employees) return text || '';
+  let out = String(text);
+  for (const seed of STATIC_TECH_ORDER) {
+    const live = resolveEmpName(employees, seed.name);
+    if (live && live !== seed.name && out.includes(seed.name)) out = out.split(seed.name).join(live);
+  }
+  return out;
+}
 

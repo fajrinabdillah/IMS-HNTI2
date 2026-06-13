@@ -7,10 +7,16 @@ import { CHART_COLORS } from '../constants/theme.js';
 import { DocumentEditorModal } from '../components/DocumentEditorModal.jsx';
 import { DEFAULT_DOCUMENT_TEMPLATES, DOC_TYPE_LABELS } from '../constants/docs.js';
 import { MODALITY_COLORS } from '../constants/sales.js';
-import { buildEditorTemplate, downloadBASTBarangDoc, downloadBATrainingDoc, printBAIPdf, printBASTBarangPdf, printBATrainingPdf, printBAUjiFungsiPdf } from '../utils/documents.js';
+import { buildEditorTemplate, downloadBASTBarangDoc, downloadBATrainingDoc, printBAIPdf, printBASTBarangPdf, printBATrainingPdf, printBAUjiFungsiPdf, printBAUjiPaparanPdf } from '../utils/documents.js';
 import { notify } from '../utils/notifications.js';
 import { resolveEmpName, resolveNamesInText } from '../utils/domain.js';
 import { DASHBOARD_GLASS, DashboardHero, GlassPanel } from '../components/FuturisticDashboardShell.jsx';
+
+const SKIP_RADIATION_TEST_PRODUCTS = ['Flat Panel Detector', 'MRI', 'ESWL'];
+const needsExposureTest = (record) => {
+  const norm = String(record?.modality || record?.subModality || '').toLowerCase();
+  return !SKIP_RADIATION_TEST_PRODUCTS.some(p => norm.includes(p.toLowerCase()));
+};
 function InstallationModule({ data, setData, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, t, lang, canEdit, fmt, employees = {}, liveTechnicians = [], regRecords = [], products = [], documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, onSaveDocument, session = {}, contentOnly = false, forcedTab = null }) {
   const [installEditor, setInstallEditor] = useState(null); // { record, docType, html, title }
   const openInstallEditor = (docType, record, label) => {
@@ -48,6 +54,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
   const installRecordsFiltered = useMemo(() => installRecordsY.filter(r => matchesSearch(r.recordNo, r.customer, r.modality, r.subModality, r.status, resolveEmpName(employees, r.leadTechnician))), [installRecordsY, searchTerm, employees]);
   const bastRecordsFiltered = useMemo(() => bastRecordsY.filter(r => matchesSearch(r.bastNo, r.customer, r.modality, r.subModality, r.status, r.hntiRep, r.customerRep, r.witness)), [bastRecordsY, searchTerm]);
   const trainingRecordsFiltered = useMemo(() => trainingRecordsY.filter(r => matchesSearch(r.certNo, r.customer, r.modality, r.subModality, r.status, r.instructor, r.topics)), [trainingRecordsY, searchTerm]);
+  const exposureRecordsFiltered = useMemo(() => installRecordsFiltered.filter(r => needsExposureTest(r)), [installRecordsFiltered]);
 
   const normalizeInstallPart = (value) => String(value || '').trim().toLowerCase();
   const unitKey = (r) => [r.customer, r.modality, r.subModality].map(normalizeInstallPart).join('|');
@@ -264,7 +271,6 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
   // Tahap 11 Phase 1.5: dynamic installSteps per modality
   // - Hapus 'bapetenPermit' (catatan #4: bukan domain teknisi)
   // - Skip 'exposureTest' + 'complianceTest' untuk Flat Panel Detector, MRI, ESWL (catatan #5)
-  const SKIP_RADIATION_TEST_PRODUCTS = ['Flat Panel Detector', 'MRI', 'ESWL'];
   const getInstallStepsForProduct = (productOrModality) => {
     const norm = String(productOrModality || '').toLowerCase();
     const skipRadiation = SKIP_RADIATION_TEST_PRODUCTS.some(p => norm.includes(p.toLowerCase()));
@@ -424,12 +430,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
       {activeTab === 'records' && <InstallRecordsList records={installRecordsFiltered} setRecords={setInstallRecords} t={t} lang={lang} canEdit={canEdit} employees={employees} units={deliveredUnits} products={products} fmt={fmt} documentTemplates={documentTemplates} onOpenEditor={openInstallEditor} />}
       {activeTab === 'bast' && <BASTList products={products} records={bastRecordsForView} setRecords={setBastRecords} t={t} lang={lang} canEdit={canEdit} units={installRecordUnits} installRecords={installRecords} employees={employees} documentTemplates={documentTemplates} fmt={fmt} onOpenEditor={openInstallEditor} />}
       {activeTab === 'training' && <TrainingCertList records={trainingRecordsForView} setRecords={setTrainingRecords} t={t} lang={lang} canEdit={canEdit} employees={employees} units={installRecordUnits} installRecords={installRecords} products={products} documentTemplates={documentTemplates} fmt={fmt} onOpenEditor={openInstallEditor} />}
-      {activeTab === 'history_bast' && (
-        <div style={{display: 'flex', flexDirection: 'column', gap: '24px'}}>
-          <InstallRecordsList records={installRecordsFiltered} setRecords={setInstallRecords} t={t} lang={lang} canEdit={canEdit} employees={employees} units={deliveredUnits} products={products} fmt={fmt} documentTemplates={documentTemplates} onOpenEditor={openInstallEditor} />
-          <BASTList products={products} records={bastRecordsForView} setRecords={setBastRecords} t={t} lang={lang} canEdit={canEdit} units={installRecordUnits} installRecords={installRecords} employees={employees} documentTemplates={documentTemplates} fmt={fmt} onOpenEditor={openInstallEditor} />
-        </div>
-      )}
+      {activeTab === 'exposure' && <ExposureTestList records={exposureRecordsFiltered} setRecords={setInstallRecords} t={t} lang={lang} canEdit={canEdit} employees={employees} units={deliveredUnits} products={products} fmt={fmt} documentTemplates={documentTemplates} onOpenEditor={openInstallEditor} />}
 
       {installEditor && (
         <DocumentEditorModal
@@ -443,6 +444,15 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
           lang={lang}
           onSave={(html, status) => {
             onSaveDocument && onSaveDocument({ docType: installEditor.docType, html, status, record: installEditor.record, requesterId: installEditor.record.salesOwner, notifyRequester: false });
+            const recId = installEditor.record?.id;
+            if (status === 'final' && recId) {
+              if (installEditor.docType === 'bauji_paparan') {
+                setInstallRecords(prev => prev.map(r => r.id === recId ? { ...r, exposureTest: true, exposureTestDate: new Date().toISOString().split('T')[0] } : r));
+              }
+              if (installEditor.docType === 'bauji_fungsi') {
+                setInstallRecords(prev => prev.map(r => r.id === recId ? { ...r, calibrationDone: true } : r));
+              }
+            }
             setInstallEditor(null);
           }}
         />
@@ -743,7 +753,7 @@ function InstallRecordsList({ records, setRecords, t, lang, canEdit, employees =
         <div className="serif" style={{fontSize: '17px', fontWeight: 500}}>{t.inst_tab_records}</div>
         <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
           <SortToggle value={sortBy} onChange={setSortBy} lang={lang} options={[{value: 'date_desc', label: lang === 'id' ? 'Terbaru' : 'Newest'}, {value: 'date_asc', label: lang === 'id' ? 'Terlama' : 'Oldest'}, {value: 'status', label: lang === 'id' ? 'Status' : 'Status'}]} />
-          {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
+          {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{lang === 'id' ? 'Tambah Data Instalasi' : 'Add Installation'}</button>}
         </div>
       </div>
       {sortedRecords.map(r => {
@@ -762,9 +772,9 @@ function InstallRecordsList({ records, setRecords, t, lang, canEdit, employees =
               <div style={{textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px'}}>
                 <span style={{padding: '4px 10px', fontSize: '10px', background: statusColor + '25', color: statusColor, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{t[`inst_status_${r.status}`]}</span>
                 <div style={{display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
-                  {canEdit && onOpenEditor && <button onClick={() => onOpenEditor('batraining', r, 'BA Training')} className="btn-primary" style={{fontSize: '10px', padding: '4px 8px'}} title="Buat BA Training di editor"><Edit2 size={11} />Buat</button>}
-                  <button onClick={() => printBATrainingPdf(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="PDF BA Training"><FileText size={11} />PDF</button>
-                  <button onClick={() => downloadBATrainingDoc(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="Word BA Training"><Download size={11} />Word</button>
+                  {canEdit && onOpenEditor && <button onClick={() => onOpenEditor('bauji_fungsi', r, lang === 'id' ? 'BA Instalasi & Uji Fungsi' : 'Installation & Function Test BA')} className="btn-primary" style={{fontSize: '10px', padding: '4px 8px'}} title={lang === 'id' ? 'Buat BA Instalasi & uji fungsi di editor' : 'Create installation & function test BA in editor'}><Edit2 size={11} />{lang === 'id' ? 'Buat BA Instalasi & uji fungsi' : 'Create Install & Function BA'}</button>}
+                  <button onClick={() => printBAUjiFungsiPdf(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="PDF BA Instalasi & Uji Fungsi"><FileText size={11} />PDF</button>
+                  <button onClick={() => printBAIPdf(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="PDF BA Instalasi"><FileCheck size={11} />BAI</button>
                   {canEdit && <button onClick={() => { setEditingRecord(r); setModalOpen(true); }} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}}><Edit2 size={11} />Edit</button>}
                   {canEdit && <button onClick={() => handleDelete(r.id)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px', color: '#c03030'}}><Trash2 size={11} /></button>}
                 </div>
@@ -836,7 +846,7 @@ function BASTList({ records, products = [], setRecords, t, lang, canEdit, units 
         <div className="serif" style={{fontSize: '17px', fontWeight: 500}}>{t.inst_tab_bast}</div>
         <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
           <SortToggle value={sortBy} onChange={setSortBy} lang={lang} options={[{value: 'date_desc', label: lang === 'id' ? 'Terbaru' : 'Newest'}, {value: 'date_asc', label: lang === 'id' ? 'Terlama' : 'Oldest'}, {value: 'status', label: lang === 'id' ? 'Status' : 'Status'}]} />
-          {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
+          {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{lang === 'id' ? 'Buat BAST' : 'Create BAST'}</button>}
         </div>
       </div>
       {sortedRecords.map(r => {
@@ -859,13 +869,9 @@ function BASTList({ records, products = [], setRecords, t, lang, canEdit, units 
                 <span style={{padding: '4px 10px', fontSize: '10px', background: statusColor + '25', color: statusColor, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{t[`bast_status_${r.status}`]}</span>
                 {r.docUrl && <LinkAttachment url={r.docUrl} lang={lang} />}
                 <div style={{display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
-                  {canEdit && onOpenEditor && <button onClick={() => onOpenEditor('bast_barang', r, 'BAST Barang')} className="btn-primary" style={{fontSize: '10px', padding: '4px 8px'}} title="Buat BAST di editor (bisa diedit & disimpan)"><Edit2 size={11} />Buat BAST</button>}
-                  {canEdit && onOpenEditor && <button onClick={() => onOpenEditor('bai', r, 'BA Instalasi')} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="Buat BA Instalasi di editor"><Edit2 size={11} />Buat BAI</button>}
-                  {canEdit && onOpenEditor && <button onClick={() => onOpenEditor('bauji_fungsi', r, 'BA Uji Fungsi')} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="Buat BA Uji Fungsi di editor"><Edit2 size={11} />Buat Uji</button>}
+                  {canEdit && onOpenEditor && <button onClick={() => onOpenEditor('bast_barang', r, 'BAST Barang')} className="btn-primary" style={{fontSize: '10px', padding: '4px 8px'}} title={lang === 'id' ? 'Buat BAST di editor (bisa diedit & disimpan)' : 'Create BAST in editor (editable & saveable)'}><Edit2 size={11} />{lang === 'id' ? 'Buat BAST' : 'Create BAST'}</button>}
                   <button onClick={() => printBASTBarangPdf(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="PDF BAST Barang"><FileText size={11} />PDF</button>
                   <button onClick={() => downloadBASTBarangDoc(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="Word BAST Barang"><Download size={11} />Word</button>
-                  <button onClick={() => printBAIPdf(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="PDF BA Instalasi"><FileCheck size={11} />BAI</button>
-                  <button onClick={() => printBAUjiFungsiPdf(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="PDF BA Uji Fungsi"><FileCheck size={11} />Uji</button>
                   {canEdit && <button onClick={() => { setEditingRecord(r); setModalOpen(true); }} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}}><Edit2 size={11} />Edit</button>}
                   {canEdit && !r._placeholder && <button onClick={() => handleDelete(r.id)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px', color: '#c03030'}}><Trash2 size={11} /></button>}
                 </div>
@@ -945,7 +951,7 @@ function TrainingCertList({ records, setRecords, t, lang, canEdit, employees = {
         <div className="serif" style={{fontSize: '17px', fontWeight: 500}}>{t.inst_tab_training}</div>
         <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
           <SortToggle value={sortBy} onChange={setSortBy} lang={lang} options={[{value: 'date_desc', label: lang === 'id' ? 'Terbaru' : 'Newest'}, {value: 'date_asc', label: lang === 'id' ? 'Terlama' : 'Oldest'}, {value: 'status', label: lang === 'id' ? 'Status' : 'Status'}]} />
-          {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.crud_add}</button>}
+          {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{lang === 'id' ? 'Tambah Pelatihan' : 'Add Training'}</button>}
         </div>
       </div>
       {sortedRecords.map(r => {
@@ -968,12 +974,13 @@ function TrainingCertList({ records, setRecords, t, lang, canEdit, employees = {
               <div style={{textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px'}}>
                 <span style={{padding: '4px 10px', fontSize: '10px', background: statusColor + '25', color: statusColor, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{r.status === 'completed' ? t.train_completed : t.train_pending}</span>
                 {r.certUrl && <LinkAttachment url={r.certUrl} lang={lang} />}
-                {canEdit && (
-                  <div style={{display: 'flex', gap: '4px'}}>
-                    <button onClick={() => { setEditingRecord(r); setModalOpen(true); }} style={{background: 'transparent', border: '1px solid var(--ims-border)', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: 'var(--ims-text)', fontFamily: 'inherit'}}><Edit2 size={11} /></button>
-                    {!r._placeholder && <button onClick={() => handleDelete(r.id)} style={{background: 'transparent', border: '1px solid var(--ims-border)', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: '#c03030', fontFamily: 'inherit'}}><Trash2 size={11} /></button>}
-                  </div>
-                )}
+                <div style={{display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
+                  {canEdit && onOpenEditor && <button onClick={() => onOpenEditor('batraining', r, lang === 'id' ? 'BA Pelatihan' : 'Training BA')} className="btn-primary" style={{fontSize: '10px', padding: '4px 8px'}} title={lang === 'id' ? 'Buat BA pelatihan di editor' : 'Create training BA in editor'}><Edit2 size={11} />{lang === 'id' ? 'Buat BA pelatihan' : 'Create Training BA'}</button>}
+                  <button onClick={() => printBATrainingPdf(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="PDF BA Pelatihan"><FileText size={11} />PDF</button>
+                  <button onClick={() => downloadBATrainingDoc(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="Word BA Pelatihan"><Download size={11} />Word</button>
+                  {canEdit && <button onClick={() => { setEditingRecord(r); setModalOpen(true); }} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}}><Edit2 size={11} />Edit</button>}
+                  {canEdit && !r._placeholder && <button onClick={() => handleDelete(r.id)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px', color: '#c03030'}}><Trash2 size={11} /></button>}
+                </div>
               </div>
             </div>
             <div style={{display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '10px', color: 'var(--ims-text-2)', marginBottom: '8px'}}>
@@ -989,6 +996,83 @@ function TrainingCertList({ records, setRecords, t, lang, canEdit, employees = {
       {records.length === 0 && <div className="empty-state">{t.no_data}</div>}
       {modalOpen && <TrainingCertModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} units={units} installRecords={installRecords} employees={employees} products={products} />}
       <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Sertifikat?' : 'Delete Certificate?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
+    </div>
+  );
+}
+function ExposureTestList({ records, setRecords, t, lang, canEdit, employees = {}, units = [], products = [], fmt = (n) => n, documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, onOpenEditor }) {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState(null);
+  const [sortBy, setSortBy] = useState('date_desc');
+
+  const handleSave = (rec) => {
+    setRecords(prev => {
+      const exists = prev.find(r => r.id === rec.id);
+      return exists ? prev.map(r => r.id === rec.id ? rec : r) : [...prev, rec];
+    });
+    setModalOpen(false); setEditingRecord(null);
+  };
+  const [deleteId, setDeleteId] = useState(null);
+  const handleDelete = (id) => {
+    if (!canEdit) return;
+    setDeleteId(id);
+  };
+  const confirmDelete = () => {
+    setRecords(prev => prev.filter(r => r.id !== deleteId));
+    setDeleteId(null);
+  };
+
+  const sortedRecords = useMemo(() => {
+    const arr = [...records];
+    if (sortBy === 'date_desc') return arr.sort((a, b) => (b.exposureTestDate || b.installStart || '').localeCompare(a.exposureTestDate || a.installStart || ''));
+    if (sortBy === 'date_asc') return arr.sort((a, b) => (a.exposureTestDate || a.installStart || '').localeCompare(b.exposureTestDate || b.installStart || ''));
+    if (sortBy === 'status') return arr.sort((a, b) => Number(!!b.exposureTest) - Number(!!a.exposureTest));
+    return arr;
+  }, [records, sortBy]);
+
+  return (
+    <div style={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
+      <div style={{padding: '14px 18px', borderBottom: '1px solid var(--ims-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px'}}>
+        <div className="serif" style={{fontSize: '17px', fontWeight: 500}}>{lang === 'id' ? 'Uji Paparan' : 'Exposure Test'}</div>
+        <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+          <SortToggle value={sortBy} onChange={setSortBy} lang={lang} options={[{value: 'date_desc', label: lang === 'id' ? 'Terbaru' : 'Newest'}, {value: 'date_asc', label: lang === 'id' ? 'Terlama' : 'Oldest'}, {value: 'status', label: lang === 'id' ? 'Status' : 'Status'}]} />
+          {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{lang === 'id' ? 'Tambah Uji Paparan' : 'Add Exposure Test'}</button>}
+        </div>
+      </div>
+      {sortedRecords.map(r => {
+        const done = !!r.exposureTest;
+        const statusColor = done ? 'var(--ims-accent-2)' : 'var(--ims-gold)';
+        return (
+          <div key={r.id} style={{padding: '16px 18px', borderTop: '1px solid var(--ims-border)'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '10px'}}>
+              <div style={{flex: '1 1 320px'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap'}}>
+                  <span className="mono" style={{fontSize: '12px', fontWeight: 700, color: 'var(--ims-text)'}}>{r.recordNo || r.exposureTestNo || '—'}</span>
+                  <span style={{fontSize: '11px', color: 'var(--ims-text-2)'}}>· {r.customer}</span>
+                </div>
+                <div style={{fontSize: '12px', fontWeight: 500, marginTop: '4px'}}>{r.modality} · {r.subModality}</div>
+                <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '4px'}}>👷 {resolveEmpName(employees, r.leadTechnician)}</div>
+              </div>
+              <div style={{textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px'}}>
+                <span style={{padding: '4px 10px', fontSize: '10px', background: statusColor + '25', color: statusColor, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{done ? (lang === 'id' ? 'Selesai' : 'Completed') : (lang === 'id' ? 'Belum' : 'Pending')}</span>
+                <div style={{display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
+                  {canEdit && onOpenEditor && <button onClick={() => onOpenEditor('bauji_paparan', r, lang === 'id' ? 'Uji Paparan' : 'Exposure Test')} className="btn-primary" style={{fontSize: '10px', padding: '4px 8px'}} title={lang === 'id' ? 'Buat uji paparan di editor' : 'Create exposure test in editor'}><Edit2 size={11} />{lang === 'id' ? 'Buat uji paparan' : 'Create Exposure Test'}</button>}
+                  <button onClick={() => printBAUjiPaparanPdf(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="PDF Uji Paparan"><FileText size={11} />PDF</button>
+                  {canEdit && <button onClick={() => { setEditingRecord(r); setModalOpen(true); }} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}}><Edit2 size={11} />Edit</button>}
+                  {canEdit && <button onClick={() => handleDelete(r.id)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px', color: '#c03030'}}><Trash2 size={11} /></button>}
+                </div>
+              </div>
+            </div>
+            <div style={{display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '10px', color: 'var(--ims-text-2)', marginBottom: '8px'}}>
+              {r.exposureTestDate && <span><strong>{lang === 'id' ? 'Tgl Uji' : 'Test Date'}:</strong> <span className="mono">{r.exposureTestDate}</span></span>}
+              {r.installStart && <span><strong>{lang === 'id' ? 'Instalasi' : 'Install'}:</strong> <span className="mono">{r.installStart}</span></span>}
+            </div>
+            {r.notes && <div style={{padding: '8px 10px', background: 'var(--ims-bg-card-2)', fontSize: '11px', fontStyle: 'italic', color: 'var(--ims-text)'}}>📝 {r.notes}</div>}
+          </div>
+        );
+      })}
+      {records.length === 0 && <div className="empty-state">{t.no_data}</div>}
+      {modalOpen && <InstallRecordModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} employees={employees} units={units} products={products} />}
+      <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Uji Paparan?' : 'Delete Exposure Test?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
   );
 }

@@ -246,9 +246,13 @@ function getTemplateHtmlBody(templates, type) {
   const row = (tpl.documentFiles || []).find(f => (f.type === type || f.id === type) && f.htmlBody && String(f.htmlBody).trim());
   return row ? row.htmlBody : '';
 }
-function fillTemplatePlaceholders(html, record = {}, employees = {}, fmt = (n) => n, reqUser = null) {
+function fillTemplatePlaceholders(html, record = {}, employees = {}, fmt = (n) => n, reqUser = null, templates = DEFAULT_DOCUMENT_TEMPLATES) {
   const reqSig = getUserSignature(employees, reqUser);
   const reqName = getUserDisplayName(employees, reqUser);
+  const tpl = mergeDocumentTemplates(templates);
+  const techName = resolveEmpName(employees, record.leadTechnician || record.technician) || record.hntiRep || record.technician || '';
+  const testDate = record.exposureTestDate || record.testDate || record.completedDate || record.signedDate || record.installEnd || '';
+  const opsSig = tpl.signatures?.operations || {};
   const map = {
     customer: record.customer || '',
     sphNo: record.sphNo || '',
@@ -263,14 +267,35 @@ function fillTemplatePlaceholders(html, record = {}, employees = {}, fmt = (n) =
     salesSignature: reqSig ? `<img class="sign-img" src="${escapeHtml(reqSig)}">` : '',
     date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
     address: record.address || record.location || '',
+    location: record.location || record.address || '',
     serialNo: record.serialNo || '',
+    docNo: record.docNo || record.exposureTestNo || record.recordNo || '',
+    exposureTestNo: record.exposureTestNo || record.docNo || record.recordNo || '',
+    recordNo: record.recordNo || '',
+    exposureTestDate: record.exposureTestDate || testDate,
+    testDate,
+    installStart: record.installStart || '',
+    installEnd: record.installEnd || '',
+    leadTechnician: techName,
+    technicianName: techName,
+    hntiRep: record.hntiRep || techName,
+    customerRep: record.customerRep || '',
+    notes: record.notes || '',
+    companyName: tpl.companyName || DEFAULT_DOCUMENT_TEMPLATES.companyName,
+    companyAddress: tpl.companyAddress || '',
+    companyPhone: tpl.companyPhone || '',
+    operationsName: opsSig.name || '',
+    operationsTitle: opsSig.title || '',
+    operationsSignature: opsSig.image ? `<img class="sign-img" src="${escapeHtml(opsSig.image)}" alt="TTD Operasional">` : '',
+    stampImage: tpl.stampImage ? `<img class="stamp-img" src="${escapeHtml(tpl.stampImage)}" alt="Stempel">` : '',
+    footerNote: tpl.footerNote || '',
   };
   return String(html).replace(/\{\{\s*(\w+)\s*\}\}/g, (m, key) => (map[key] !== undefined ? String(map[key]) : m));
 }
 function buildEditorBody(type, record, employees = {}, fmt = (n) => n, templates = DEFAULT_DOCUMENT_TEMPLATES, reqUser = null) {
   // POIN 1: utamakan HTML body custom dari Template Dokumen Resmi bila tersedia.
   const customHtml = getTemplateHtmlBody(templates, type);
-  if (customHtml) return fillTemplatePlaceholders(customHtml, record, employees, fmt, reqUser);
+  if (customHtml) return fillTemplatePlaceholders(customHtml, record, employees, fmt, reqUser, templates);
   switch (type) {
     case 'sph': {
       let base = buildSPHDocumentHtml(record, employees, fmt, templates);
@@ -293,6 +318,7 @@ function buildEditorBody(type, record, employees = {}, fmt = (n) => n, templates
     case 'kwitansi': return buildKwitansiHtml(record, fmt, templates);
     case 'bai': return buildBAIDocumentHtml(record, fmt, templates, employees);
     case 'bauji_fungsi': return buildBAUjiFungsiDocumentHtml(record, fmt, templates, employees);
+    case 'bauji_paparan': return buildBAUjiPaparanDocumentHtml(record, fmt, templates, employees);
     case 'batraining': return buildBATrainingDocumentHtml(record, fmt, templates, employees);
     case 'bast_barang': return buildBASTBarangDocumentHtml(record, fmt, templates, employees);
     case 'po_principal': return buildPrincipalPoHtml(record, fmt, templates);
@@ -485,6 +511,45 @@ function buildBAUjiFungsiDocumentHtml(record, fmt = (n) => n, templates = DEFAUL
 function printBAUjiFungsiPdf(record, fmt, templates = DEFAULT_DOCUMENT_TEMPLATES, employees = {}) {
   openDocumentTemplateOrHtml('bauji_fungsi', templates, 'BA Uji Fungsi HNTI', buildBAUjiFungsiDocumentHtml(record, fmt, templates, employees));
 }
+function buildBAUjiPaparanDocumentHtml(record, fmt = (n) => n, templates = DEFAULT_DOCUMENT_TEMPLATES, employees = {}) {
+  const tpl = mergeDocumentTemplates(templates);
+  const techName = resolveEmpName(employees, record.leadTechnician || record.technician) || record.hntiRep || record.technician || '—';
+  const testDate = record.exposureTestDate || record.testDate || record.completedDate || record.signedDate || '—';
+  return `
+    ${buildHntiLetterheadHtml(tpl)}
+    <h1 style="text-align:center;text-transform:uppercase;letter-spacing:.08em">Berita Acara Uji Paparan</h1>
+    <p><strong>Nomor:</strong> ${escapeHtml(record.docNo || record.exposureTestNo || '-')}<br><strong>Tanggal Uji:</strong> ${escapeHtml(testDate)}</p>
+    <p>Bersama ini dinyatakan bahwa peralatan medis di bawah ini telah dilakukan uji paparan dan dinyatakan <strong>MEMENUHI SYARAT KEAMANAN RADIASI</strong> sesuai ketentuan yang berlaku:</p>
+    <table><tbody>
+      <tr><td><strong>Customer</strong></td><td>${escapeHtml(record.customer || '-')}</td></tr>
+      <tr><td><strong>Modalitas</strong></td><td>${escapeHtml(record.modality || '-')}</td></tr>
+      <tr><td><strong>Tipe / Merek</strong></td><td>${escapeHtml(record.subModality || '-')} ${record.brand ? '/ ' + escapeHtml(record.brand) : ''}</td></tr>
+      <tr><td><strong>Serial Number</strong></td><td>${escapeHtml(record.serialNo || '-')}</td></tr>
+      <tr><td><strong>Tim Teknisi HNTI</strong></td><td>${escapeHtml(techName)}</td></tr>
+    </tbody></table>
+    <h3>Parameter Uji Paparan</h3>
+    <ol>
+      <li>Dosis paparan pada titik referensi: <strong>OK</strong></li>
+      <li>Konsistensi output radiasi: <strong>OK</strong></li>
+      <li>Indikator visual / display dosis: <strong>OK</strong></li>
+      <li>Proteksi radiasi dan shielding: <strong>OK</strong></li>
+      <li>Interlock dan sistem keamanan: <strong>OK</strong></li>
+    </ol>
+    ${record.notes ? `<h3>Catatan Uji</h3><p>${escapeHtml(String(record.notes)).replace(/\n/g, '<br>')}</p>` : ''}
+    ${renderDocLines(tpl.terms?.bauji_paparan)}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:30px">
+      ${renderSignatureBlock('operations', tpl, techName, 'Lead Technician HNTI')}
+      <div>
+        <p><strong>Customer / Radiation Safety Officer</strong></p>
+        <div style="height:80px"></div>
+        <p>(${escapeHtml(record.customerRep || '...........................')})</p>
+      </div>
+    </div>
+    ${renderDocFooter(tpl)}`;
+}
+function printBAUjiPaparanPdf(record, fmt, templates = DEFAULT_DOCUMENT_TEMPLATES, employees = {}) {
+  openDocumentTemplateOrHtml('bauji_paparan', templates, 'BA Uji Paparan HNTI', buildBAUjiPaparanDocumentHtml(record, fmt, templates, employees));
+}
 function buildBATrainingDocumentHtml(record, fmt = (n) => n, templates = DEFAULT_DOCUMENT_TEMPLATES, employees = {}) {
   const tpl = mergeDocumentTemplates(templates);
   const instructorName = resolveEmpName(employees, record.instructor) || record.instructor || '—';
@@ -584,4 +649,4 @@ function buildKwitansiHtml(p, fmt = (n) => n, templates = DEFAULT_DOCUMENT_TEMPL
     ${renderDocFooter(tpl)}`;
 }
 
-export { mergeDocumentTemplates, downloadDataUrl, downloadUploadedTemplate, previewUploadedTemplate, getUploadedDocumentTemplate, openDocumentTemplateOrHtml, downloadDocumentTemplateOrDoc, downloadCSV, downloadHtmlDoc, openPrintableHtml, getUserSignature, getUserDisplayName, findUserByRole, printHtmlStringAsPdf, renderDocLines, renderDocFooter, renderSignatureBlock, wrapDocumentInLetterhead, buildTextLetterheadHtml, buildHntiLetterheadHtml, renderDualSignatureHtml, buildEditorTemplate, getTemplateHtmlBody, fillTemplatePlaceholders, buildEditorBody, buildSPHDocumentHtml, downloadSPHWord, printSPHPdf, buildSPPDocumentHtml, downloadSPPWord, printSPPPdf, buildInvoiceKwitansiHtml, buildPrincipalPoHtml, buildBAIDocumentHtml, printBAIPdf, buildBAUjiFungsiDocumentHtml, printBAUjiFungsiPdf, buildBATrainingDocumentHtml, downloadBATrainingDoc, printBATrainingPdf, buildBASTBarangDocumentHtml, downloadBASTBarangDoc, printBASTBarangPdf, buildKwitansiHtml };
+export { mergeDocumentTemplates, downloadDataUrl, downloadUploadedTemplate, previewUploadedTemplate, getUploadedDocumentTemplate, openDocumentTemplateOrHtml, downloadDocumentTemplateOrDoc, downloadCSV, downloadHtmlDoc, openPrintableHtml, getUserSignature, getUserDisplayName, findUserByRole, printHtmlStringAsPdf, renderDocLines, renderDocFooter, renderSignatureBlock, wrapDocumentInLetterhead, buildTextLetterheadHtml, buildHntiLetterheadHtml, renderDualSignatureHtml, buildEditorTemplate, getTemplateHtmlBody, fillTemplatePlaceholders, buildEditorBody, buildSPHDocumentHtml, downloadSPHWord, printSPHPdf, buildSPPDocumentHtml, downloadSPPWord, printSPPPdf, buildInvoiceKwitansiHtml, buildPrincipalPoHtml, buildBAIDocumentHtml, printBAIPdf, buildBAUjiFungsiDocumentHtml, printBAUjiFungsiPdf, buildBAUjiPaparanDocumentHtml, printBAUjiPaparanPdf, buildBATrainingDocumentHtml, downloadBATrainingDoc, printBATrainingPdf, buildBASTBarangDocumentHtml, downloadBASTBarangDoc, printBASTBarangPdf, buildKwitansiHtml };

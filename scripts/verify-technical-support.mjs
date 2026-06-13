@@ -66,9 +66,11 @@ assert(authMatch && authMatch[1].includes('baseInstalledUnits'), 'AuthApp destru
 
 console.log('\n=== TechnicalSupportModule tabs ===');
 const tsSrc = readFileSync(new URL('../src/modules/TechnicalSupportModule.jsx', import.meta.url), 'utf8');
-for (const tab of ['dashboard', 'progress', 'records', 'history_bast', 'training', 'pm', 'issues']) {
+for (const tab of ['dashboard', 'progress', 'records', 'bast', 'training', 'exposure', 'pm', 'issues']) {
   assert(tsSrc.includes(`id: '${tab}'`) || tsSrc.includes(`tab === '${tab}'`), `tab "${tab}" present`);
 }
+assert(tsSrc.includes('forcedTab="bast"'), 'bast forcedTab wired');
+assert(tsSrc.includes('forcedTab="exposure"'), 'exposure forcedTab wired');
 assert(tsSrc.includes('forcedTab="dashboard"'), 'dashboard forcedTab wired');
 assert(tsSrc.includes('forcedTab="training"'), 'training forcedTab wired');
 assert(tsSrc.includes('forcedTab="progress"'), 'progress forcedTab wired');
@@ -84,7 +86,9 @@ console.log('\n=== InstallationModule ===');
 const instSrc = readFileSync(new URL('../src/modules/InstallationModule.jsx', import.meta.url), 'utf8');
 assert(instSrc.includes('getInstallStepsForProduct'), 'install steps function exists');
 assert(instSrc.includes('functionTest') && instSrc.includes('exposureTest') && instSrc.includes('complianceTest'), 'test steps in progress');
-assert(instSrc.includes("useState(contentOnly ? 'all' : '2026')"), 'embedded mode uses all years filter');
+assert(instSrc.includes('ExposureTestList'), 'exposure test list component exists');
+assert(instSrc.includes('bauji_paparan'), 'exposure test doc type wired');
+assert(!instSrc.includes("activeTab === 'history_bast'"), 'combined history_bast view removed');
 
 console.log(`\n=== RESULT: ${passed} passed, ${failed} failed ===\n`);
 process.exit(failed > 0 ? 1 : 0);

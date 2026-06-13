@@ -640,7 +640,9 @@ export default function App() {
         try { setRegRecords(JSON.parse(reg)); } catch {}
       } else {
         const sphData = d ? normalizePoWon(JSON.parse(d)) : ALL_SPH;
-        const units = generateInstalledUnits(sphData);
+        let bastData = INSTALL_DOCS.bast;
+        if (bast) try { bastData = JSON.parse(bast); } catch {}
+        const units = generateInstalledUnits(sphData, bastData);
         setRegRecords(generateRegulatoryRecords(units));
       }
       setLoading(false);
@@ -878,13 +880,13 @@ export default function App() {
 
   // Base installed units (without PM schedule overlay — PM merge happens in MaintenanceModule + for Regulatory display)
   const baseInstalledUnits = useMemo(() => {
-    const base = generateInstalledUnits(data);
+    const base = generateInstalledUnits(data, bastRecords);
     const techs = liveTechnicians.length ? liveTechnicians : TECHNICIAN_NAMES;
     return base.map((u, i) => ({
       ...u,
       technician: healTechnicianName(unitTechMap[u.id] || techs[i % techs.length], liveTechnicians, employees),
     }));
-  }, [data, liveTechnicians, unitTechMap, employees]);
+  }, [data, bastRecords, liveTechnicians, unitTechMap, employees]);
 
   // Regulatory & cross-module views: include PM overlay
   const installedUnits = useMemo(

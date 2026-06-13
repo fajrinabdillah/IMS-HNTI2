@@ -49,38 +49,15 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
   const bastRecordsFiltered = useMemo(() => bastRecordsY.filter(r => matchesSearch(r.bastNo, r.customer, r.modality, r.subModality, r.status, r.hntiRep, r.customerRep, r.witness)), [bastRecordsY, searchTerm]);
   const trainingRecordsFiltered = useMemo(() => trainingRecordsY.filter(r => matchesSearch(r.certNo, r.customer, r.modality, r.subModality, r.status, r.instructor, r.topics)), [trainingRecordsY, searchTerm]);
 
-  // Pipeline Instalasi hanya boleh berasal dari Data Instalasi yang dibuat teknisi.
-  // SPH dipakai hanya sebagai metadata pendukung, bukan pemicu proyek masuk pipeline.
-  const installProjects = useMemo(() => installRecordsFiltered.map(r => {
-    const sph = data.find(s => s.customer === r.customer && (s.subModality || '') === (r.subModality || ''))
-      || data.find(s => s.customer === r.customer && (s.modality || '') === (r.modality || ''))
-      || data.find(s => s.customer === r.customer);
-    return {
-      ...(sph || {}),
-      id: sph?.id || r.id,
-      customer: r.customer,
-      modality: r.modality || sph?.modality || '',
-      subModality: r.subModality || sph?.subModality || '',
-      product: sph?.product || r.subModality || r.modality || '',
-      sphNo: sph?.sphNo || r.sphNo || r.recordNo,
-      issuedDate: sph?.issuedDate || r.installStart || '',
-      installationStatus: r.status === 'completed' ? 'record_completed' : 'record_in_progress',
-      _installRecord: r,
-    };
-  }).sort((a, b) => {
-    const aDone = a._installRecord?.status === 'completed' ? 1 : 0;
-    const bDone = b._installRecord?.status === 'completed' ? 1 : 0;
-    if (aDone !== bDone) return aDone - bDone;
-    return (b._installRecord?.installStart || '').localeCompare(a._installRecord?.installStart || '');
-  }), [installRecordsFiltered, data]);
+  const normalizeInstallPart = (value) => String(value || '').trim().toLowerCase();
+  const unitKey = (r) => [r.customer, r.modality, r.subModality].map(normalizeInstallPart).join('|');
+
   const installRecordUnits = useMemo(() => installRecordsFiltered.map(r => {
     const sph = data.find(s => s.customer === r.customer && (s.subModality || '') === (r.subModality || ''))
       || data.find(s => s.customer === r.customer && (s.modality || '') === (r.modality || ''))
       || data.find(s => s.customer === r.customer);
     return { id: r.id, customer: r.customer, modality: r.modality || sph?.modality || '', subModality: r.subModality || sph?.subModality || '', sphNo: sph?.sphNo || r.recordNo };
   }), [installRecordsFiltered, data]);
-  const normalizeInstallPart = (value) => String(value || '').trim().toLowerCase();
-  const unitKey = (r) => [r.customer, r.modality, r.subModality].map(normalizeInstallPart).join('|');
   const bastRecordsForView = useMemo(() => {
     const existing = new Set(bastRecordsFiltered.map(unitKey));
     const placeholders = installRecordsFiltered
@@ -187,6 +164,60 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
     || s.goodsDeliveryStatus === 'delivered'
     || s.deliveryStatus === 'delivered'
   );
+
+  // Pipeline Instalasi: dari Data Instalasi + proyek SPH yang sudah terkirim ke RS.
+  const installProjects = useMemo(() => {
+    const findSphForRecord = (r) => data.find(s => s.customer === r.customer && (s.subModality || '') === (r.subModality || ''))
+      || data.find(s => s.customer === r.customer && (s.modality || '') === (r.modality || ''))
+      || data.find(s => s.customer === r.customer);
+
+    const projectMap = new Map();
+
+    installRecordsFiltered.forEach(r => {
+      const sph = findSphForRecord(r);
+      const key = unitKey(r);
+      projectMap.set(key, {
+        ...(sph || {}),
+        id: sph?.id || r.id,
+        customer: r.customer,
+        modality: r.modality || sph?.modality || '',
+        subModality: r.subModality || sph?.subModality || '',
+        product: sph?.product || r.subModality || r.modality || '',
+        sphNo: sph?.sphNo || r.sphNo || r.recordNo,
+        issuedDate: sph?.issuedDate || r.installStart || '',
+        installationStatus: r.status === 'completed' ? 'record_completed' : 'record_in_progress',
+        _installRecord: r,
+      });
+    });
+
+    data
+      .filter(s => s.poStatus === 'issued' && isProductDelivered(s))
+      .filter(s => {
+        if (filterYear !== 'all') {
+          const dates = [s.issuedDate, s.poIssuedDate, s.poDate, s.clientReceivedAt?.split?.('T')[0], s.bastDate];
+          if (!dates.some(d => d && String(d).startsWith(filterYear))) return false;
+        }
+        return matchesSearch(s.customer, s.sphNo, s.modality, s.subModality, s.product);
+      })
+      .forEach(s => {
+        const key = unitKey({ customer: s.customer, modality: s.modality, subModality: s.subModality });
+        if (projectMap.has(key)) return;
+        projectMap.set(key, {
+          ...s,
+          product: s.product || s.subModality || s.modality || '',
+          installationStatus: s.installationStatus || 'pending',
+          _installRecord: recordsByUnit.get(key) || null,
+        });
+      });
+
+    return Array.from(projectMap.values()).sort((a, b) => {
+      const aDone = a._installRecord?.status === 'completed' ? 1 : 0;
+      const bDone = b._installRecord?.status === 'completed' ? 1 : 0;
+      if (aDone !== bDone) return aDone - bDone;
+      return (b._installRecord?.installStart || b.issuedDate || '').localeCompare(a._installRecord?.installStart || a.issuedDate || '');
+    });
+  }, [installRecordsFiltered, data, recordsByUnit, filterYear, searchTerm]);
+
   const isBastDoneForSph = (s) => {
     const bast = bastByUnit.get(unitKey(s));
     return !!s.bastDone || !!s.bastDate || s.installationStatus === 'installed' || bast?.status === 'signed';

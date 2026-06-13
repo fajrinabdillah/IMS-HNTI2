@@ -39,23 +39,26 @@ assert(reverted[0].pmCompleted === undefined, 'delete PM: strips pmCompleted');
 const keys = pmDoneCycleKeys(pmSchedule);
 assert(keys.has('u1|2025-07-01'), 'notification: done cycle key stored');
 
-console.log('\n=== generateInstalledUnits(sourceData) ===');
+console.log('\n=== generateInstalledUnits(sourceData, bastRecords) ===');
 const mockData = [
-  { id: 'sph1', status: 'won', installationStatus: 'installed', sphNo: 'SPH/1', customer: 'RS Alpha', modality: 'CT Scan', subModality: '128', partner: 'P1', issuedDate: '2026-03-01', qty: 1 },
-  { id: 'sph2', status: 'won', installationStatus: 'progress', sphNo: 'SPH/2', customer: 'RS Beta', modality: 'MRI', subModality: '1.5T', partner: 'P2', issuedDate: '2026-04-01', qty: 1 },
-  { id: 'sph3', status: 'active', installationStatus: 'installed', sphNo: 'SPH/3', customer: 'RS Gamma', modality: 'X-Ray', subModality: 'DR', partner: 'P3', issuedDate: '2026-05-01', qty: 1 },
+  { id: 'sph1', status: 'won', sphNo: 'SPH/1', customer: 'RS Alpha', modality: 'CT Scan', subModality: '128', partner: 'P1', issuedDate: '2026-03-01', qty: 1 },
 ];
-const unitsFromMock = generateInstalledUnits(mockData);
-assert(unitsFromMock.length === 1 && unitsFromMock[0].customer === 'RS Alpha', 'only won+installed projects become PM units');
-assert(generateInstalledUnits(null).length === 0, 'null sourceData returns empty array');
-const afterDelete = generateInstalledUnits(mockData.filter(s => s.id !== 'sph1'));
-assert(afterDelete.length === 0, 'deleted project removed from PM units immediately');
+const mockBast = [
+  { id: 'bast1', bastNo: 'BAST/1', customer: 'RS Alpha', modality: 'CT Scan', subModality: '128', signedDate: '2026-01-01', status: 'signed' },
+  { id: 'bast2', bastNo: 'BAST/2', customer: 'RS Beta', modality: 'MRI', subModality: '1.5T', signedDate: '2026-02-15', status: 'draft' },
+];
+const unitsFromBast = generateInstalledUnits(mockData, mockBast);
+assert(unitsFromBast.length === 1 && unitsFromBast[0].customer === 'RS Alpha', 'only signed BAST creates PM units');
+assert(unitsFromBast[0].nextPmDate === '2026-07-01', 'first PM is BAST signed date + 6 months');
+assert(generateInstalledUnits(mockData, []).length === 0, 'no signed BAST returns empty array');
+const afterBastRemoved = generateInstalledUnits(mockData, mockBast.filter(b => b.id !== 'bast1'));
+assert(afterBastRemoved.length === 0, 'removed/unsigned BAST removes PM unit');
 
 console.log('\n=== App.jsx wiring ===');
 const appSrc = readFileSync(new URL('../App.jsx', import.meta.url), 'utf8');
 assert(appSrc.includes('baseInstalledUnits={baseInstalledUnits}'), 'AuthApp receives baseInstalledUnits prop');
-assert(appSrc.includes('generateInstalledUnits(data)'), 'baseInstalledUnits derives from live data state');
-assert(appSrc.includes('[data, liveTechnicians, unitTechMap, employees]'), 'baseInstalledUnits depends on data');
+assert(appSrc.includes('generateInstalledUnits(data, bastRecords)'), 'baseInstalledUnits derives from BAST + data');
+assert(appSrc.includes('[data, bastRecords, liveTechnicians, unitTechMap, employees]'), 'baseInstalledUnits depends on data and bastRecords');
 
 // AuthApp must declare baseInstalledUnits in destructuring
 const authMatch = appSrc.match(/function AuthApp\(\{([\s\S]*?)\}\)/);
@@ -63,7 +66,7 @@ assert(authMatch && authMatch[1].includes('baseInstalledUnits'), 'AuthApp destru
 
 console.log('\n=== TechnicalSupportModule tabs ===');
 const tsSrc = readFileSync(new URL('../src/modules/TechnicalSupportModule.jsx', import.meta.url), 'utf8');
-for (const tab of ['dashboard', 'progress', 'history_bast', 'training', 'pm', 'issues']) {
+for (const tab of ['dashboard', 'progress', 'records', 'history_bast', 'training', 'pm', 'issues']) {
   assert(tsSrc.includes(`id: '${tab}'`) || tsSrc.includes(`tab === '${tab}'`), `tab "${tab}" present`);
 }
 assert(tsSrc.includes('forcedTab="dashboard"'), 'dashboard forcedTab wired');

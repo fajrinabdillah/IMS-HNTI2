@@ -638,7 +638,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
           <div style={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', overflowX: 'auto'}}>
             <div style={{padding: '14px 18px', borderBottom: '1px solid var(--ims-border)'}}>
               <div className="serif" style={{fontSize: '17px', fontWeight: 500}}>{lang === 'id' ? 'Jadwal PM Otomatis (per Unit Terinstal)' : 'Auto PM Schedule (per Installed Unit)'}</div>
-              <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{lang === 'id' ? 'Berdasarkan tanggal instalasi + 6 bulan' : 'Based on install date + 6 months'}</div>
+              <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{lang === 'id' ? 'Muncul otomatis saat BAST ditandatangani · PM pertama = tgl BAST + 6 bulan' : 'Appears when BAST is signed · First PM = BAST date + 6 months'}</div>
             </div>
             <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px', minWidth: '900px'}}>
             <thead>

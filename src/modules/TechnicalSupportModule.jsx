@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, AlertTriangle, CalendarDays, ClipboardList, Users, Wrench } from 'lucide-react';
+import { Activity, AlertTriangle, CalendarDays, ClipboardList, FileCheck, Users, Wrench } from 'lucide-react';
 import { ReadOnlyBanner } from '../components/ui.jsx';
 import { InstallationModule } from './InstallationModule.jsx';
 import { MaintenanceModule } from './MaintenanceModule.jsx';
@@ -36,8 +36,9 @@ function TechnicalSupportModule({
 
   const tabs = [
     { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: Activity },
-    { id: 'progress', label: lang === 'id' ? 'Progress Instalasi' : 'Installation Progress', icon: Wrench },
-    { id: 'history_bast', label: lang === 'id' ? 'Riwayat & BAST' : 'History & BAST', icon: ClipboardList },
+    { id: 'progress', label: t.inst_tab_progress, icon: Wrench },
+    { id: 'records', label: t.inst_tab_records, icon: ClipboardList },
+    { id: 'history_bast', label: lang === 'id' ? 'Riwayat & BAST' : 'History & BAST', icon: FileCheck },
     { id: 'training', label: t.inst_tab_training, icon: Users },
     { id: 'pm', label: lang === 'id' ? 'Jadwal PM' : 'PM Schedule', icon: CalendarDays },
     { id: 'issues', label: lang === 'id' ? 'Perbaikan & Keluhan' : 'Repairs & Complaints', icon: AlertTriangle },
@@ -135,6 +136,7 @@ function TechnicalSupportModule({
 
       {tab === 'dashboard' && <InstallationModule {...installProps} forcedTab="dashboard" />}
       {tab === 'progress' && <InstallationModule {...installProps} forcedTab="progress" />}
+      {tab === 'records' && <InstallationModule {...installProps} forcedTab="records" />}
       {tab === 'history_bast' && <InstallationModule {...installProps} forcedTab="history_bast" />}
       {tab === 'training' && <InstallationModule {...installProps} forcedTab="training" />}
       {tab === 'pm' && <MaintenanceModule {...maintProps} forcedTab="schedule" />}

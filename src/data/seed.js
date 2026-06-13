@@ -251,44 +251,67 @@ function buildSeedNotificationsFromSph(projects = ALL_SPH) {
   });
   return rows;
 }
-function generateInstalledUnits(sourceData) {
-  if (!sourceData) return [];
-  const wonProjects = sourceData.filter(s => s.status === 'won' && s.installationStatus === 'installed');
-  // Helper: add N calendar months to a YYYY-MM-DD date (clean, no 30-day drift)
+function generateInstalledUnits(sourceData, bastRecords = []) {
+  if (!bastRecords?.length) return [];
+
   const addMonths = (dateStr, n) => {
-    const d = new Date(dateStr + 'T00:00:00');
-    const day = d.getDate();
-    d.setMonth(d.getMonth() + n);
-    // guard month overflow (e.g. Aug 31 + 6mo)
-    if (d.getDate() < day) d.setDate(0);
-    return d.toISOString().split('T')[0];
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const dt = new Date(y, m - 1 + n, d);
+    if (dt.getDate() !== d) dt.setDate(0);
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
   };
-  return wonProjects.map((s, i) => {
-    const installDate = s.issuedDate < '2026-01-01' ? `2025-${String(Math.floor(i / 5) % 12 + 1).padStart(2, '0')}-${String((i % 28) + 1).padStart(2, '0')}` : `2026-${String(Math.floor(i / 5) % 5 + 1).padStart(2, '0')}-${String((i % 28) + 1).padStart(2, '0')}`;
-    const installYear = parseInt(installDate.substring(0, 4));
-    const installMonth = parseInt(installDate.substring(5, 7));
+
+  const norm = (v) => String(v || '').trim().toLowerCase();
+  const unitKey = (r) => [r.customer, r.modality, r.subModality].map(norm).join('|');
+
+  const findSph = (bast) => (sourceData || []).find(s =>
+    norm(s.customer) === norm(bast.customer)
+    && norm(s.subModality || '') === norm(bast.subModality || '')
+    && norm(s.modality || '') === norm(bast.modality || '')
+  ) || (sourceData || []).find(s => norm(s.customer) === norm(bast.customer));
+
+  const signedBasts = bastRecords.filter(b => b.status === 'signed' && b.signedDate);
+  const seen = new Set();
+
+  return signedBasts.map((bast, i) => {
+    const key = unitKey(bast);
+    if (seen.has(key)) return null;
+    seen.add(key);
+
+    const sph = findSph(bast);
+    const installDate = String(bast.signedDate).split('T')[0];
+    if (!installDate) return null;
+
+    const installYear = parseInt(installDate.substring(0, 4), 10);
+    const installMonth = parseInt(installDate.substring(5, 7), 10);
     const warrantyEnd = `${installYear + 2}-${String(installMonth).padStart(2, '0')}-${installDate.substring(8)}`;
-    // PM SCHEDULE (#7): first PM exactly 6 calendar months after install, then every 6 months.
+
     const today = todayStart();
-    const installD = new Date(installDate + 'T00:00:00');
-    // Count completed 6-month cycles since install (first PM is at +6 months)
     let pmsDone = 0;
     while (new Date(addMonths(installDate, (pmsDone + 1) * 6) + 'T00:00:00') <= today) pmsDone++;
     const lastPmDate = pmsDone > 0 ? addMonths(installDate, pmsDone * 6) : null;
     const nextPmDate = addMonths(installDate, (pmsDone + 1) * 6);
+
     return {
-      id: `unit_${s.id}`, sphRef: s.sphNo, customer: s.customer,
-      modality: s.modality, subModality: s.subModality, partner: s.partner,
-      installDate, warrantyEnd,
+      id: sph ? `unit_${sph.id}` : `unit_bast_${bast.id}`,
+      sphRef: sph?.sphNo || bast.bastNo || '',
+      customer: bast.customer,
+      modality: bast.modality || sph?.modality,
+      subModality: bast.subModality || sph?.subModality,
+      partner: sph?.partner || '',
+      installDate,
+      bastSignedDate: installDate,
+      warrantyEnd,
       lastPmDate,
       nextPmDate,
       pmCompleted: false,
       technician: TECHNICIAN_NAMES[i % TECHNICIAN_NAMES.length],
-      qty: s.qty,
-      regulatoryStage: s.regulatoryStage || null,
-      utilizationPermitDoneAt: s.utilizationPermitDoneAt || null,
+      qty: sph?.qty || 1,
+      regulatoryStage: sph?.regulatoryStage || null,
+      utilizationPermitDoneAt: sph?.utilizationPermitDoneAt || null,
+      _bastId: bast.id,
     };
-  });
+  }).filter(Boolean);
 }
 function generateSeedManifestsFromSph() {
   const ports = {

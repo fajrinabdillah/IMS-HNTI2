@@ -1,7 +1,7 @@
 // Extracted from App.jsx during modular refactor.
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Activity, AlertTriangle, ArrowUpRight, Bell, Check, CheckCircle2, ChevronDown, ClipboardList, Clock, Download, Edit2, FileCheck, FileText, History, LayoutDashboard, Plus, RefreshCw, Search, Sparkles, Star, Trash2, Upload, X, Zap } from 'lucide-react';
-import { Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, PieChart, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Activity, AlertTriangle, ArrowUpRight, Bell, Check, CheckCircle2, ChevronDown, ClipboardList, Clock, Download, Edit2, FileCheck, FileText, History, Layers, LayoutDashboard, MapPin, Plus, RefreshCw, Search, Sparkles, Star, Target, TrendingUp, Trash2, Upload, Users, X, Zap } from 'lucide-react';
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, PieChart, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartTooltip, ConfirmDialog, Field, KPICard, ReadOnlyBanner, SortToggle, Td, Th } from '../components/ui.jsx';
 import { DASHBOARD_GLASS, DashboardHero, DashboardKpiGrid, GlassPanel, QuickNavGrid } from '../components/FuturisticDashboardShell.jsx';
 import { DocumentEditorModal } from '../components/DocumentEditorModal.jsx';
@@ -1404,7 +1404,134 @@ function PipelineBoard({ data, allData, setData, employees = {}, session, logAct
     </div>
   );
 }
+function SalesTeamDashboard({ data = [], reports = [], t, lang, fmt, employees = {}, onNavigateTeam }) {
+  const glass = DASHBOARD_GLASS.salesTeam;
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+  const dash = useMemo(() => {
+    const active = data.filter(s => s.status === 'active');
+    const won = data.filter(s => s.status === 'won' || s.stage === 'po_issued' || s.poStatus === 'issued');
+    const lost = data.filter(s => s.status === 'lost');
+    const winRateDen = won.length + lost.length;
+    const winRate = winRateDen > 0 ? (won.length / winRateDen) * 100 : 0;
+
+    const requestStages = new Set(['sph_sent', 'presentation_scheduled', 'presentation_done']);
+    const negoStages = new Set(['negotiation', 'tender', 'ecatalog']);
+    const funnelData = [
+      {
+        stage: lang === 'id' ? 'Request SPH/SPP' : 'SPH/SPP Request',
+        count: data.filter(s =>
+          requestStages.has(s.stage)
+          || s.sphWorkflowStatus === 'requested'
+          || s.sphWorkflowStatus === 'admin_drafting'
+          || s.sphWorkflowStatus === 'ready_for_sales'
+        ).length,
+        fill: '#6366f1',
+      },
+      {
+        stage: lang === 'id' ? 'Negosiasi' : 'Negotiation',
+        count: data.filter(s => negoStages.has(s.stage) && s.status === 'active').length,
+        fill: '#06b6d4',
+      },
+      {
+        stage: lang === 'id' ? 'Won (Deal)' : 'Won (Deal)',
+        count: won.length,
+        fill: '#10b981',
+      },
+    ];
+
+    const monthlyPipeline = MONTHS.map((m, idx) => {
+      const mm = String(idx + 1).padStart(2, '0');
+      const monthRows = data.filter(s => (s.issuedDate || '').substring(5, 7) === mm);
+      const activeVal = monthRows.filter(s => s.status === 'active').reduce((sum, p) => sum + (Number(p.totalValue) || 0), 0);
+      const wonVal = monthRows.filter(s => s.status === 'won').reduce((sum, p) => sum + (Number(p.totalValue) || 0), 0);
+      return { month: m, [lang === 'id' ? 'Pipeline Aktif' : 'Active Pipeline']: activeVal, [lang === 'id' ? 'Deal Menang' : 'Won Deals']: wonVal };
+    });
+
+    const closureDays = won.map(s => {
+      const start = s.issuedDate ? new Date(s.issuedDate + 'T00:00:00') : null;
+      const endStr = s.poIssuedDate || s.poDate || s.bastDate || s.clientReceivedAt?.split('T')[0];
+      const end = endStr ? new Date(String(endStr).substring(0, 10) + 'T00:00:00') : null;
+      if (!start || !end || isNaN(start) || isNaN(end)) return null;
+      return Math.max(0, Math.round((end - start) / (24 * 60 * 60 * 1000)));
+    }).filter(d => d != null);
+    const avgClosureDays = closureDays.length ? Math.round(closureDays.reduce((a, b) => a + b, 0) / closureDays.length) : 0;
+
+    const sppCount = data.filter(s => String(s.sphNo || '').toUpperCase().includes('SPP') || s.docKind === 'spp').length;
+    const sphCount = data.length - sppCount;
+
+    return { active, won, winRate, winRateDen, funnelData, monthlyPipeline, avgClosureDays, sppCount, sphCount };
+  }, [data, lang]);
+
+  const quickLinks = [
+    { id: 'team', label: lang === 'id' ? 'Performa Tim Sales' : 'Sales Team Performance', count: dash.active.length, icon: Users, color: glass.accent },
+    { id: 'team', label: 'SPH', count: dash.sphCount, icon: FileText, color: '#6366f1' },
+    { id: 'team', label: 'SPP', count: dash.sppCount, icon: FileCheck, color: '#06b6d4' },
+    { id: 'team', label: lang === 'id' ? 'Laporan Lapangan' : 'Field Reports', count: reports.length, icon: ClipboardList, color: '#10b981' },
+  ];
+
+  return (
+    <div style={{ display: 'grid', gap: '18px', marginBottom: '22px' }}>
+      <DashboardHero
+        glass={glass}
+        badge={lang === 'id' ? 'Sales Command Center' : 'Sales Command Center'}
+        title={lang === 'id' ? 'Dashboard Tim Sales' : 'Sales Team Dashboard'}
+        subtitle={lang === 'id' ? 'Sinkron realtime dengan SPH, SPP, Pipeline, dan Deals Management.' : 'Realtime sync with SPH, SPP, Pipeline, and Deals Management.'}
+        lang={lang}
+      />
+      <DashboardKpiGrid items={[
+        { label: lang === 'id' ? 'Penawaran Aktif' : 'Active Offers', value: dash.active.length, sub: fmt(dash.active.reduce((s, p) => s + (Number(p.totalValue) || 0), 0)), color: glass.accent },
+        { label: t.win_rate, value: dash.winRateDen > 0 ? `${dash.winRate.toFixed(1)}%` : '—', sub: `${dash.won.length}/${dash.winRateDen} closed`, color: '#10b981' },
+        { label: lang === 'id' ? 'Rata-rata Durasi Penutupan' : 'Avg. Deal Closure', value: dash.avgClosureDays ? `${dash.avgClosureDays} ${t.days}` : '—', sub: lang === 'id' ? 'dari SPH ke Won' : 'SPH to Won', color: '#06b6d4' },
+        { label: lang === 'id' ? 'Deal Menang' : 'Won Deals', value: dash.won.length, sub: fmt(dash.won.reduce((s, p) => s + (Number(p.totalValue) || 0), 0)), color: 'var(--ims-accent-2)' },
+      ]} />
+      <QuickNavGrid glass={glass} links={quickLinks} onNavigate={onNavigateTeam} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '16px' }}>
+        <GlassPanel glass={glass}>
+          <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Target size={15} color={glass.accent} /> {lang === 'id' ? 'Funnel Konversi Sales' : 'Sales Conversion Funnel'}
+          </div>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={dash.funnelData} layout="vertical" margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(99,102,241,0.12)" horizontal={false} />
+              <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10 }} />
+              <YAxis type="category" dataKey="stage" width={110} tick={{ fontSize: 10, fill: 'var(--ims-text-2)' }} />
+              <Tooltip content={<ChartTooltip fmt={v => v} />} />
+              <Bar dataKey="count" radius={[0, 6, 6, 0]} barSize={22}>
+                {dash.funnelData.map(e => <Cell key={e.stage} fill={e.fill} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </GlassPanel>
+        <GlassPanel glass={glass}>
+          <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <TrendingUp size={15} color={glass.accent} /> {lang === 'id' ? 'Tren Pipeline Aktif' : 'Active Pipeline Trend'}
+          </div>
+          <ResponsiveContainer width="100%" height={260}>
+            <AreaChart data={dash.monthlyPipeline} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
+              <defs>
+                <linearGradient id="salesPipeGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(99,102,241,0.1)" vertical={false} />
+              <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} tickFormatter={v => v >= 1e9 ? `${(v / 1e9).toFixed(0)}M` : v >= 1e6 ? `${(v / 1e6).toFixed(0)}Jt` : v} />
+              <Tooltip content={<ChartTooltip fmt={fmt} />} />
+              <Legend wrapperStyle={{ fontSize: 10 }} />
+              <Area type="monotone" dataKey={lang === 'id' ? 'Pipeline Aktif' : 'Active Pipeline'} stroke="#6366f1" fill="url(#salesPipeGrad)" strokeWidth={2} />
+              <Line type="monotone" dataKey={lang === 'id' ? 'Deal Menang' : 'Won Deals'} stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </GlassPanel>
+      </div>
+    </div>
+  );
+}
+
 function SalesModule({ data, reports, t, lang, fmt, employees = {} }) {
+  const [salesTab, setSalesTab] = useState('dashboard');
   const salesTeam = useMemo(() => getActiveSalesTeam(employees), [employees]);
   // Filter: view all sales, or drill into one specific sales
   const [selectedSales, setSelectedSales] = useState('all');
@@ -1460,6 +1587,27 @@ function SalesModule({ data, reports, t, lang, fmt, employees = {} }) {
         <div style={{fontSize: '13px', color: 'var(--ims-text-2)', marginTop: '6px'}}>{t.sales_subtitle}</div>
       </div>
 
+      <div style={{display: 'flex', gap: '2px', marginBottom: '22px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
+        {[
+          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: LayoutDashboard },
+          { id: 'team', label: lang === 'id' ? 'Tim Sales' : 'Sales Team', icon: Users },
+        ].map(tb => {
+          const Icon = tb.icon;
+          const active = salesTab === tb.id;
+          return (
+            <button key={tb.id} onClick={() => setSalesTab(tb.id)} style={{background: 'transparent', border: 'none', padding: '10px 18px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 500, color: active ? 'var(--ims-accent)' : 'var(--ims-text-2)', borderBottom: active ? '2px solid var(--ims-border)' : '2px solid transparent', marginBottom: '-1px', display: 'flex', alignItems: 'center', gap: '7px', letterSpacing: '0.03em'}}>
+              <Icon size={14} strokeWidth={1.5} />{tb.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {salesTab === 'dashboard' && (
+        <SalesTeamDashboard data={data} reports={reports} t={t} lang={lang} fmt={fmt} employees={employees} onNavigateTeam={() => setSalesTab('team')} />
+      )}
+
+      {salesTab === 'team' && (
+      <>
       {/* Sales filter — drill into one sales at a time */}
       <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', flexWrap: 'wrap'}}>
         <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600}}>{lang === 'id' ? 'Filter Sales' : 'Filter Sales'}:</span>
@@ -1571,10 +1719,30 @@ function SalesModule({ data, reports, t, lang, fmt, employees = {} }) {
           </BarChart>
         </ResponsiveContainer>
       </div>
+      </>
+      )}
     </div>
   );
 }
-function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {}, reportsSeen = {}, setReportsSeen }) {
+function reportMatchesSearch(report, term, salesTeam = []) {
+  if (!term) return true;
+  const q = term.toLowerCase();
+  const salesName = salesTeam.find(s => s.id === report.salesId)?.name || report.salesId || '';
+  const parts = [
+    salesName,
+    report.date,
+    report.week,
+    report.area,
+    report.closest,
+    report.win,
+    report.block,
+    report.next,
+    ...(report.visits || []).flatMap(v => [v.name, v.city, v.product, v.contact, v.note, v.visit, v.pipeline]),
+  ];
+  return parts.some(p => String(p || '').toLowerCase().includes(q));
+}
+
+function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {}, reportsSeen = {}, setReportsSeen, issues = [], installRecords = [] }) {
   const salesTeam = useMemo(() => getActiveSalesTeam(employees), [employees]);
   const markReportsRead = () => {
     if (!setReportsSeen || !reports.length) return;
@@ -1584,12 +1752,19 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
   };
   const [tab, setTab] = useState('dashboard');
   const [filterSales, setFilterSales] = useState('all');
+  const [search, setSearch] = useState('');
   const [editingReport, setEditingReport] = useState(null);
+  const searchTerm = search.trim().toLowerCase();
 
   const visibleReports = useMemo(() => session.role === 'sales'
     ? reports.filter(r => r.salesId === session.salesId)
     : (filterSales === 'all' ? reports : reports.filter(r => r.salesId === filterSales))
   , [reports, session.role, session.salesId, filterSales]);
+
+  const filteredReports = useMemo(
+    () => visibleReports.filter(r => reportMatchesSearch(r, searchTerm, salesTeam)),
+    [visibleReports, searchTerm, salesTeam]
+  );
 
   const tabs = session.role === 'sales' ? ['dashboard', 'new', 'history'] : ['dashboard', 'history'];
   const tabLabels = { dashboard: t.sr_dashboard, new: editingReport ? t.sr_edit_report : t.sr_new, history: t.sr_history };
@@ -1600,10 +1775,17 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
     setTab('new');
   };
   const [deleteReportId, setDeleteReportId] = useState(null);
+  const [bulkDeleteReportIds, setBulkDeleteReportIds] = useState(null);
   const handleDelete = (id) => setDeleteReportId(id);
   const confirmDeleteReport = () => {
     setReports(prev => prev.filter(r => r.id !== deleteReportId));
     setDeleteReportId(null);
+  };
+  const confirmBulkDeleteReports = () => {
+    if (!bulkDeleteReportIds?.length) return;
+    const ids = new Set(bulkDeleteReportIds);
+    setReports(prev => prev.filter(r => !ids.has(r.id)));
+    setBulkDeleteReportIds(null);
   };
   const handleSaved = () => {
     setEditingReport(null);
@@ -1630,6 +1812,33 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
         })}
       </div>
 
+      {(tab === 'dashboard' || tab === 'history') && (
+        <div style={{display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center', flexWrap: 'wrap'}}>
+          <div style={{position: 'relative', flex: '1 1 280px', maxWidth: '420px'}}>
+            <Search size={14} style={{position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--ims-text-2)', pointerEvents: 'none'}} />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder={lang === 'id' ? 'Cari nama RS, kota, sales, area, kontak...' : 'Search hospital, city, sales, area, contact...'}
+              style={{paddingLeft: '36px', width: '100%'}}
+            />
+          </div>
+          {searchTerm && (
+            <span style={{fontSize: '11px', color: 'var(--ims-text-2)'}}>
+              {filteredReports.length} / {visibleReports.length} {lang === 'id' ? 'laporan' : 'reports'}
+            </span>
+          )}
+          {searchTerm && (
+            <button
+              onClick={() => setSearch('')}
+              style={{background: 'transparent', border: '1px solid var(--ims-border)', padding: '6px 10px', fontSize: '10px', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--ims-text-2)'}}
+            >
+              {lang === 'id' ? 'Reset' : 'Clear'}
+            </button>
+          )}
+        </div>
+      )}
+
       {session.role !== 'sales' && tab === 'history' && (
         <div style={{display: 'flex', gap: '6px', marginBottom: '16px', flexWrap: 'wrap'}}>
           <button onClick={() => setFilterSales('all')} style={{padding: '5px 11px', fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', background: filterSales === 'all' ? 'var(--ims-accent)' : 'transparent', color: filterSales === 'all' ? 'var(--ims-gold)' : 'var(--ims-text-2)', border: '1px solid ' + (filterSales === 'all' ? 'var(--ims-accent)' : 'var(--ims-border)'), cursor: 'pointer', fontFamily: 'inherit'}}>{lang === 'id' ? 'Semua' : 'All'}</button>
@@ -1637,41 +1846,63 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
         </div>
       )}
 
-      {tab === 'dashboard' && <SRDashboard reports={visibleReports} t={t} lang={lang} employees={employees} session={session} onMarkRead={markReportsRead} reportsSeen={reportsSeen} />}
+      {tab === 'dashboard' && <SRDashboard reports={filteredReports} t={t} lang={lang} employees={employees} session={session} onMarkRead={markReportsRead} reportsSeen={reportsSeen} issues={issues} installRecords={installRecords} fmt={fmt} searchTerm={searchTerm} totalReports={visibleReports.length} />}
       {tab === 'new' && session.role === 'sales' && <SRForm reports={reports} setReports={setReports} t={t} lang={lang} session={session} editingReport={editingReport} onSaved={handleSaved} onCancel={() => { setEditingReport(null); setTab('history'); }} employees={employees} />}
-      {tab === 'history' && <SRHistory reports={visibleReports} t={t} lang={lang} fmt={fmt} canEdit={session.role === 'sales'} onEdit={handleEdit} onDelete={handleDelete} session={session} employees={employees} />}
+      {tab === 'history' && <SRHistory reports={filteredReports} t={t} lang={lang} fmt={fmt} canEdit={session.role === 'sales'} onEdit={handleEdit} onDelete={handleDelete} onBulkDelete={(ids) => setBulkDeleteReportIds(ids)} session={session} employees={employees} searchTerm={searchTerm} totalBeforeSearch={visibleReports.length} />}
       <ConfirmDialog open={!!deleteReportId} title={lang === 'id' ? 'Hapus Laporan?' : 'Delete Report?'} message={t.sr_confirm_delete || (lang === 'id' ? 'Yakin ingin menghapus laporan ini?' : 'Are you sure you want to delete this report?')} onConfirm={confirmDeleteReport} onCancel={() => setDeleteReportId(null)} danger lang={lang} />
+      <ConfirmDialog open={!!bulkDeleteReportIds?.length} title={lang === 'id' ? 'Hapus Laporan Terpilih?' : 'Delete Selected Reports?'} message={lang === 'id' ? `Yakin ingin menghapus ${bulkDeleteReportIds?.length || 0} laporan terpilih secara permanen?` : `Permanently delete ${bulkDeleteReportIds?.length || 0} selected report(s)?`} onConfirm={confirmBulkDeleteReports} onCancel={() => setBulkDeleteReportIds(null)} danger lang={lang} />
     </div>
   );
 }
-function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRead, reportsSeen = {} }) {
+function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRead, reportsSeen = {}, issues = [], installRecords = [], fmt = (n) => n, searchTerm = '', totalReports = 0 }) {
   const salesTeam = useMemo(() => getActiveSalesTeam(employees), [employees]);
-  // PERFORMANCE: All stats memoized (hook must come before any early return)
+  const glass = DASHBOARD_GLASS.fieldReport;
+  const todayStr = new Date().toISOString().split('T')[0];
+
   const stats = useMemo(() => {
     const totalVisits = reports.reduce((s, r) => s + (r.visits?.length || 0), 0);
     const totalDays = reports.reduce((s, r) => s + (r.days || 0), 0);
     const totalDeals = reports.reduce((s, r) => s + (r.visits?.filter(v => v.visit === 'closed').length || 0), 0);
-    const totalPipeRS = reports.reduce((s, r) => s + (r.pipeN || 0), 0);
+    const reportsToday = reports.filter(r => r.date === todayStr).length;
+    const openIssues = (issues || []).filter(i => i.status !== 'resolved').length;
+    const resolvedIssues = (issues || []).filter(i => i.status === 'resolved').length;
+    const issueTotal = openIssues + resolvedIssues;
+    const resolutionPct = issueTotal > 0 ? Math.round((resolvedIssues / issueTotal) * 100) : 0;
+
+    const visitTrend = [];
+    const dayMap = {};
+    reports.forEach(r => {
+      if (!r.date) return;
+      dayMap[r.date] = (dayMap[r.date] || 0) + (r.visits?.length || 0);
+    });
+    Object.entries(dayMap).sort((a, b) => a[0].localeCompare(b[0])).slice(-14).forEach(([date, visits]) => {
+      visitTrend.push({ label: date.slice(5), visits, date });
+    });
+
+    const routineVisits = reports.reduce((s, r) => s + (r.visits?.filter(v => ['first', 'followup', 'demo'].includes(v.visit)).length || 0), 0);
+    const negoVisits = reports.reduce((s, r) => s + (r.visits?.filter(v => v.visit === 'nego' || v.pipeline === 'proposal').length || 0), 0);
+    const closedVisits = reports.reduce((s, r) => s + (r.visits?.filter(v => v.visit === 'closed' || v.pipeline === 'win').length || 0), 0);
+    const installCount = (installRecords || []).filter(r => r.status !== 'completed').length;
+    const troubleshooting = openIssues;
+
+    const categoryData = [
+      { name: lang === 'id' ? 'Kunjungan Rutin' : 'Routine Visits', value: routineVisits, fill: '#f59e0b' },
+      { name: lang === 'id' ? 'Instalasi Baru' : 'New Installation', value: installCount, fill: '#10b981' },
+      { name: lang === 'id' ? 'Troubleshooting' : 'Troubleshooting', value: troubleshooting, fill: '#c03030' },
+      { name: lang === 'id' ? 'Negosiasi/Closing' : 'Negotiation/Closing', value: negoVisits + closedVisits, fill: '#6366f1' },
+    ].filter(x => x.value > 0);
+
     const bySales = {};
     reports.forEach(r => {
       if (!bySales[r.salesId]) bySales[r.salesId] = { count: 0 };
       bySales[r.salesId].count += r.visits?.length || 0;
     });
-    return { totalVisits, totalDays, totalDeals, totalPipeRS, bySales };
-  }, [reports]);
 
-  if (!reports.length) return (
-    <div style={{padding: '60px 30px', textAlign: 'center', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
-      <ClipboardList size={36} strokeWidth={1.2} style={{color: 'var(--ims-text-2)', marginBottom: '12px'}} />
-      <div style={{fontSize: '14px', color: 'var(--ims-text-2)', fontStyle: 'italic'}}>{t.sr_no_reports}</div>
-    </div>
-  );
+    return { totalVisits, totalDays, totalDeals, reportsToday, openIssues, resolutionPct, visitTrend, categoryData, bySales };
+  }, [reports, issues, installRecords, lang, todayStr]);
 
-  const { totalVisits, totalDays, totalDeals, totalPipeRS, bySales } = stats;
-
-  // Weekly report notification for CEO / GM / Manager Operasional
   const isManager = ['super_admin', 'gm', 'manager_ops'].includes(session.role);
-  const recentReports = (() => {
+  const recentReports = useMemo(() => {
     if (!isManager || !reports.length) return [];
     const dates = reports.map(r => r.date || '').filter(Boolean).sort();
     const latest = dates[dates.length - 1];
@@ -1681,12 +1912,32 @@ function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRea
     if (seen) cutStr = seen;
     else { const cut = new Date(latest); cut.setDate(cut.getDate() - 7); cutStr = cut.toISOString().split('T')[0]; }
     return reports.filter(r => (r.date || '') > cutStr).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-  })();
+  }, [reports, isManager, reportsSeen, session.username]);
+
+  if (!reports.length && searchTerm && totalReports > 0) return (
+    <div style={{padding: '60px 30px', textAlign: 'center', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
+      <Search size={36} strokeWidth={1.2} style={{color: 'var(--ims-text-2)', marginBottom: '12px'}} />
+      <div style={{fontSize: '14px', color: 'var(--ims-text-2)', fontStyle: 'italic'}}>
+        {lang === 'id'
+          ? `Tidak ada laporan cocok dengan "${searchTerm}" dari ${totalReports} laporan.`
+          : `No reports match "${searchTerm}" out of ${totalReports} reports.`}
+      </div>
+    </div>
+  );
+
+  if (!reports.length && !issues.length && !installRecords.length) return (
+    <div style={{padding: '60px 30px', textAlign: 'center', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
+      <ClipboardList size={36} strokeWidth={1.2} style={{color: 'var(--ims-text-2)', marginBottom: '12px'}} />
+      <div style={{fontSize: '14px', color: 'var(--ims-text-2)', fontStyle: 'italic'}}>{t.sr_no_reports}</div>
+    </div>
+  );
+
+  const { totalVisits, totalDays, totalDeals, reportsToday, openIssues, resolutionPct, visitTrend, categoryData, bySales } = stats;
 
   return (
-    <div>
+    <div style={{display: 'grid', gap: '18px'}}>
       {isManager && recentReports.length > 0 && (
-        <div style={{background: 'var(--ims-bg-alt)', color: 'var(--ims-text)', padding: '14px 18px', marginBottom: '20px', borderRadius: '4px', display: 'flex', alignItems: 'flex-start', gap: '12px'}}>
+        <div style={{background: 'var(--ims-bg-alt)', color: 'var(--ims-text)', padding: '14px 18px', borderRadius: '4px', display: 'flex', alignItems: 'flex-start', gap: '12px'}}>
           <Bell size={18} strokeWidth={1.8} style={{color: 'var(--ims-accent)', flexShrink: 0, marginTop: '2px'}} />
           <div style={{flex: 1}}>
             <div style={{fontSize: '13px', fontWeight: 600, marginBottom: '6px'}}>{lang === 'id' ? `${recentReports.length} laporan lapangan baru belum dibaca` : `${recentReports.length} new field reports unread`}</div>
@@ -1701,35 +1952,78 @@ function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRea
           {onMarkRead && <button onClick={onMarkRead} style={{background: 'var(--ims-accent)', color: 'var(--ims-text)', border: 'none', padding: '7px 14px', fontSize: '11px', fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', borderRadius: '4px', flexShrink: 0, alignSelf: 'center', display: 'flex', alignItems: 'center', gap: '6px'}}><CheckCircle2 size={13} />{lang === 'id' ? 'Tandai Sudah Dibaca' : 'Mark as Read'}</button>}
         </div>
       )}
-      <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: 'var(--ims-border)', marginBottom: '24px', border: '1px solid var(--ims-border)'}}>
-        <KPICard label={t.sr_visits_count} value={totalVisits} sublabel={`${reports.length} ${lang === 'id' ? 'laporan' : 'reports'}`} trend={15.2} />
-        <KPICard label={t.sr_field_days_total} value={totalDays} sublabel={lang === 'id' ? 'Hari lapangan' : 'Field days'} trend={8.4} />
-        <KPICard label={lang === 'id' ? 'Deal Closing' : 'Closing Deals'} value={totalDeals} sublabel={t.deals_won} trend={20.1} />
-        <KPICard label={lang === 'id' ? 'RS dalam Pipeline' : 'Pipeline RS'} value={totalPipeRS} sublabel={lang === 'id' ? 'Dari laporan' : 'From reports'} trend={12.5} />
+
+      <DashboardHero
+        glass={glass}
+        badge={lang === 'id' ? 'Field Ops Command' : 'Field Ops Command'}
+        title={lang === 'id' ? 'Dashboard Laporan Lapangan' : 'Field Report Dashboard'}
+        subtitle={lang === 'id' ? 'Sinkron kunjungan sales, instalasi teknisi, dan keluhan/perbaikan lapangan.' : 'Sync sales visits, technician installs, and field issues/repairs.'}
+        lang={lang}
+        showSync={false}
+      />
+
+      <DashboardKpiGrid items={[
+        { label: lang === 'id' ? 'Laporan Hari Ini' : 'Reports Today', value: reportsToday, sub: `${reports.length} ${lang === 'id' ? 'total laporan' : 'total reports'}`, color: glass.accent },
+        { label: lang === 'id' ? 'Menunggu Respons' : 'Awaiting Response', value: openIssues, sub: lang === 'id' ? 'issue/perbaikan open' : 'open issues/repairs', color: '#c03030' },
+        { label: lang === 'id' ? 'Penyelesaian Lapangan' : 'Field Resolution', value: `${resolutionPct}%`, sub: lang === 'id' ? 'masalah terselesaikan' : 'issues resolved', color: '#10b981' },
+        { label: t.sr_visits_count, value: totalVisits, sub: `${totalDays} ${lang === 'id' ? 'hari lapangan' : 'field days'}`, color: '#6366f1' },
+      ]} />
+
+      <div style={{display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '16px'}}>
+        <GlassPanel glass={glass}>
+          <div className="card-title" style={{display: 'flex', alignItems: 'center', gap: '8px'}}><Activity size={15} color={glass.accent} /> {lang === 'id' ? 'Tren Kunjungan Lapangan' : 'Field Visit Trend'}</div>
+          <ResponsiveContainer width="100%" height={260}>
+            <AreaChart data={visitTrend.length ? visitTrend : [{ label: '-', visits: 0 }]} margin={{top: 8, right: 16, left: 0, bottom: 8}}>
+              <defs>
+                <linearGradient id="srVisitGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(245,158,11,0.12)" vertical={false} />
+              <XAxis dataKey="label" tick={{fontSize: 10}} />
+              <YAxis allowDecimals={false} tick={{fontSize: 10}} />
+              <Tooltip content={<ChartTooltip fmt={v => v} />} />
+              <Area type="monotone" dataKey="visits" name={lang === 'id' ? 'Kunjungan' : 'Visits'} stroke="#f59e0b" fill="url(#srVisitGrad)" strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </GlassPanel>
+        <GlassPanel glass={glass}>
+          <div className="card-title" style={{display: 'flex', alignItems: 'center', gap: '8px'}}><MapPin size={15} color={glass.accent} /> {lang === 'id' ? 'Kategori Laporan Terbanyak' : 'Top Report Categories'}</div>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={categoryData.length ? categoryData : [{ name: '-', value: 0, fill: 'var(--ims-border)' }]} margin={{top: 8, right: 16, left: 0, bottom: 40}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(245,158,11,0.1)" vertical={false} />
+              <XAxis dataKey="name" tick={{fontSize: 9}} interval={0} angle={-18} textAnchor="end" height={50} />
+              <YAxis allowDecimals={false} tick={{fontSize: 10}} />
+              <Tooltip content={<ChartTooltip fmt={v => v} />} />
+              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                {(categoryData.length ? categoryData : [{ name: '-', value: 0, fill: 'var(--ims-border)' }]).map(e => <Cell key={e.name} fill={e.fill} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </GlassPanel>
       </div>
 
       {Object.keys(bySales).length > 0 && (
-        <div className="two-col" style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px'}}>
-          <div className="card">
-            <div className="card-title">{lang === 'id' ? 'Kunjungan per Sales' : 'Visits per Sales'}</div>
-            {Object.entries(bySales).map(([id, st]) => {
-              const sales = salesTeam.find(s => s.id === id);
-              if (!sales) return null;
-              const pct = Math.min(st.count / 100 * 100, 100);
-              return (
-                <div key={id} style={{marginBottom: '12px'}}>
-                  <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px'}}>
-                    <span style={{fontWeight: 500}}>{sales.name} <span style={{color: 'var(--ims-text-2)', fontSize: '11px'}}>· {lang === 'id' ? sales.territory : sales.territoryEn}</span></span>
-                    <span className="mono" style={{color: 'var(--ims-text-2)', fontSize: '11px'}}>{st.count}</span>
-                  </div>
-                  <div style={{height: '6px', background: 'var(--ims-bg-card-2)', overflow: 'hidden'}}>
-                    <div style={{height: '100%', width: `${pct}%`, background: sales.accent, transition: 'width 0.5s'}} />
-                  </div>
+        <GlassPanel glass={glass}>
+          <div className="card-title">{lang === 'id' ? 'Kunjungan per Sales' : 'Visits per Sales'}</div>
+          {Object.entries(bySales).map(([id, st]) => {
+            const sales = salesTeam.find(s => s.id === id);
+            if (!sales) return null;
+            const pct = Math.min((st.count / Math.max(totalVisits, 1)) * 100, 100);
+            return (
+              <div key={id} style={{marginBottom: '12px'}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px'}}>
+                  <span style={{fontWeight: 500}}>{sales.name} <span style={{color: 'var(--ims-text-2)', fontSize: '11px'}}>· {lang === 'id' ? sales.territory : sales.territoryEn}</span></span>
+                  <span className="mono" style={{color: 'var(--ims-text-2)', fontSize: '11px'}}>{st.count}</span>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+                <div style={{height: '6px', background: 'var(--ims-bg-card-2)', overflow: 'hidden', borderRadius: '3px'}}>
+                  <div style={{height: '100%', width: `${pct}%`, background: `linear-gradient(90deg, ${glass.accent}, #f97316)`, transition: 'width 0.5s'}} />
+                </div>
+              </div>
+            );
+          })}
+        </GlassPanel>
       )}
     </div>
   );
@@ -1887,10 +2181,11 @@ function SRForm({ reports, setReports, t, lang, session, editingReport, onSaved,
     </div>
   );
 }
-function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, session, fmt, employees = {} }) {
+function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, onBulkDelete, session, fmt, employees = {}, searchTerm = '', totalBeforeSearch = 0 }) {
   const salesTeam = useMemo(() => getActiveSalesTeam(employees), [employees]);
   const [expanded, setExpanded] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc');
+  const [selectedIds, setSelectedIds] = useState([]);
 
   const sortedReports = useMemo(() => {
     const arr = [...reports];
@@ -1900,16 +2195,64 @@ function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, session, fmt, 
     return arr;
   }, [reports, sortBy]);
 
+  const deletableIds = useMemo(() => sortedReports.filter(r => canEdit && session?.salesId === r.salesId).map(r => r.id), [sortedReports, canEdit, session?.salesId]);
+  const allSelected = deletableIds.length > 0 && deletableIds.every(id => selectedIds.includes(id));
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? [] : [...deletableIds]);
+  };
+
+  useEffect(() => {
+    setSelectedIds(prev => prev.filter(id => reports.some(r => r.id === id)));
+  }, [reports]);
+
   if (!reports.length) return (
     <div style={{padding: '60px 30px', textAlign: 'center', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
       <Clock size={36} strokeWidth={1.2} style={{color: 'var(--ims-text-2)', marginBottom: '12px'}} />
-      <div style={{fontSize: '14px', color: 'var(--ims-text-2)', fontStyle: 'italic'}}>{t.sr_no_reports}</div>
+      <div style={{fontSize: '14px', color: 'var(--ims-text-2)', fontStyle: 'italic'}}>
+        {searchTerm
+          ? (lang === 'id'
+            ? `Tidak ada laporan cocok dengan "${searchTerm}"${totalBeforeSearch > 0 ? ` dari ${totalBeforeSearch} laporan` : ''}.`
+            : `No reports match "${searchTerm}"${totalBeforeSearch > 0 ? ` out of ${totalBeforeSearch} reports` : ''}.`)
+          : t.sr_no_reports}
+      </div>
     </div>
   );
 
   return (
     <div>
-      <div style={{display: 'flex', justifyContent: 'flex-end', marginBottom: '10px'}}>
+      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '10px'}}>
+        {canEdit && deletableIds.length > 0 && (
+          <div style={{display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap'}}>
+            <label style={{display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 600}}>
+              <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} style={{width: '14px', height: '14px', cursor: 'pointer'}} />
+              {lang === 'id' ? 'Pilih Semua' : 'Select All'}
+            </label>
+            <button
+              disabled={selectedIds.length === 0}
+              onClick={() => selectedIds.length > 0 && onBulkDelete?.(selectedIds)}
+              style={{
+                background: selectedIds.length === 0 ? 'var(--ims-bg-card-2)' : '#c03030',
+                border: 'none',
+                color: selectedIds.length === 0 ? 'var(--ims-text-2)' : '#fff',
+                padding: '7px 14px',
+                fontSize: '11px',
+                fontFamily: 'inherit',
+                cursor: selectedIds.length === 0 ? 'not-allowed' : 'pointer',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                opacity: selectedIds.length === 0 ? 0.6 : 1,
+              }}
+            >
+              <Trash2 size={12} />{lang === 'id' ? 'Hapus Laporan Terpilih' : 'Delete Selected'}{selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}
+            </button>
+          </div>
+        )}
         <SortToggle value={sortBy} onChange={setSortBy} lang={lang} options={[
           {value: 'date_desc', label: lang === 'id' ? 'Terbaru' : 'Newest'},
           {value: 'date_asc', label: lang === 'id' ? 'Terlama' : 'Oldest'},
@@ -1920,16 +2263,26 @@ function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, session, fmt, 
         {sortedReports.map(r => {
         const sales = salesTeam.find(s => s.id === r.salesId);
         const isOpen = expanded === r.id;
-        // Only the report owner (sales) can edit/delete their own report
         const isOwner = canEdit && session?.salesId === r.salesId;
+        const isChecked = selectedIds.includes(r.id);
+        const rsPreview = (r.visits || []).slice(0, 3).map(v => v.name).filter(Boolean).join(', ');
+        const rsMore = (r.visits?.length || 0) > 3 ? ` +${r.visits.length - 3}` : '';
         return (
           <div key={r.id} style={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
             <div style={{padding: '12px 18px', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap'}}>
+              {isOwner && (
+                <input type="checkbox" checked={isChecked} onChange={() => toggleSelect(r.id)} onClick={e => e.stopPropagation()} style={{width: '14px', height: '14px', cursor: 'pointer', flexShrink: 0}} />
+              )}
               <div onClick={() => setExpanded(isOpen ? null : r.id)} style={{cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '14px', flex: '1 1 auto', flexWrap: 'wrap'}}>
                 <div style={{width: '4px', height: '38px', background: sales?.accent || 'var(--ims-accent)'}} />
                 <div style={{flex: '1 1 200px', minWidth: 0}}>
                   <div style={{fontSize: '13px', fontWeight: 600}}>{sales?.name || r.salesId}</div>
                   <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '2px'}} className="mono">{r.date} · {r.week}{r.updatedAt && <span style={{color: 'var(--ims-accent)', marginLeft: '6px'}}>· {lang === 'id' ? 'diedit' : 'edited'}</span>}</div>
+                  {rsPreview && (
+                    <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                      {lang === 'id' ? 'RS: ' : 'Hospitals: '}{rsPreview}{rsMore}
+                    </div>
+                  )}
                 </div>
                 <div style={{display: 'flex', gap: '14px', fontSize: '11px', color: 'var(--ims-text-2)', flexWrap: 'wrap'}} className="mono">
                   <span><b style={{color: 'var(--ims-text)'}}>{r.visits?.length || 0}</b> RS</span>
@@ -2485,4 +2838,4 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
   );
 }
 
-export { SPHWorkflowConsole, SPHDetailModal, SPHManagement, PipelineBoard, PipelineDashboard, SPHDashboard, SalesModule, SalesReport, SRDashboard, SRForm, SRHistory, SPHModal };
+export { SPHWorkflowConsole, SPHDetailModal, SPHManagement, PipelineBoard, PipelineDashboard, SPHDashboard, SalesTeamDashboard, SalesModule, SalesReport, SRDashboard, SRForm, SRHistory, SPHModal };

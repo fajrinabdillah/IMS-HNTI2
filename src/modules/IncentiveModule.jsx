@@ -1,36 +1,146 @@
 // Extracted from App.jsx during modular refactor.
 import { useMemo, useState } from 'react';
-import { X } from 'lucide-react';
-import { Td, Th } from '../components/ui.jsx';
+import { Award, DollarSign, LayoutDashboard, Wallet, X } from 'lucide-react';
+import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { ChartTooltip, Td, Th } from '../components/ui.jsx';
+import { DASHBOARD_GLASS, DashboardHero, DashboardKpiGrid, GlassPanel } from '../components/FuturisticDashboardShell.jsx';
+import { CHART_COLORS } from '../constants/theme.js';
 import { calcIncentive, getActiveSalesTeam, getIncentiveStatus } from '../utils/domain.js';
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+function IncentiveDashboard({ dealsWithIncentive, totalEstimated, totalReady, totalPaid, ytdTotal, leaderboard, salesTeam, t, lang, fmt }) {
+  const glass = DASHBOARD_GLASS.incentive;
+
+  const dash = useMemo(() => {
+    const paid = totalPaid;
+    const pending = totalEstimated + totalReady;
+    const monthly = MONTHS.map((m, idx) => {
+      const mm = String(idx + 1).padStart(2, '0');
+      const monthDeals = dealsWithIncentive.filter(d => (d.issuedDate || d.poDate || '').substring(5, 7) === mm);
+      const paidAmt = monthDeals.filter(d => d._stat?.status === 'paid').reduce((s, d) => s + d._calc.incentive, 0);
+      const pendingAmt = monthDeals.filter(d => ['estimated', 'ready', 'kso_prorata'].includes(d._stat?.status)).reduce((s, d) => s + d._calc.incentive, 0);
+      return { month: m, [lang === 'id' ? 'Dicairkan' : 'Paid Out']: paidAmt, [lang === 'id' ? 'Pending': 'Pending']: pendingAmt };
+    });
+
+    const deptData = (leaderboard.length ? leaderboard : salesTeam.map(s => ({ ...s, total: 0 })))
+      .filter(s => s.total > 0)
+      .map((s, i) => ({
+        name: s.name.split(' ')[0],
+        value: s.total,
+        fill: CHART_COLORS[i % CHART_COLORS.length],
+      }));
+
+    const monthlyTarget = Math.max(ytdTotal * 1.15, 1);
+    const progressPct = Math.min(100, Math.round((ytdTotal / monthlyTarget) * 100));
+
+    return { paid, pending, monthly, deptData, monthlyTarget, progressPct };
+  }, [dealsWithIncentive, totalEstimated, totalReady, totalPaid, ytdTotal, leaderboard, salesTeam, lang]);
+
+  return (
+    <div style={{ display: 'grid', gap: '18px', marginBottom: '24px' }}>
+      <DashboardHero
+        glass={glass}
+        badge={lang === 'id' ? 'Incentive Intelligence' : 'Incentive Intelligence'}
+        title={lang === 'id' ? 'Dashboard Insentif' : 'Incentive Dashboard'}
+        subtitle={lang === 'id' ? 'Sinkron KPI closing deal, status verifikasi sales, dan pembayaran finance.' : 'Sync with sales closing KPI, verification status, and finance payouts.'}
+        lang={lang}
+        showSync={false}
+      />
+      <DashboardKpiGrid items={[
+        { label: t.inc_total_paid, value: fmt(dash.paid), sub: lang === 'id' ? 'sudah dicairkan' : 'paid out', color: '#10b981' },
+        { label: t.inc_total_ready, value: fmt(totalReady), sub: lang === 'id' ? 'siap cair' : 'ready', color: glass.accent },
+        { label: t.inc_total_estimated, value: fmt(totalEstimated), sub: lang === 'id' ? 'estimasi' : 'estimated', color: '#94a3b8' },
+        { label: t.inc_ytd, value: fmt(ytdTotal), sub: `${dealsWithIncentive.length} deals`, color: '#14b8a6' },
+      ]} />
+
+      <GlassPanel glass={glass}>
+        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Award size={15} color={glass.accent} /> {lang === 'id' ? 'Target Bonus Bulanan Tim' : 'Team Monthly Bonus Target'}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 200px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '8px' }}>
+              <span>{fmt(ytdTotal)} / {fmt(dash.monthlyTarget)}</span>
+              <span style={{ fontWeight: 700, color: glass.accent }}>{dash.progressPct}%</span>
+            </div>
+            <div style={{ height: '10px', background: 'var(--ims-bg-card-2)', borderRadius: '6px', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${dash.progressPct}%`, background: `linear-gradient(90deg, #10b981, #14b8a6)`, borderRadius: '6px', transition: 'width 0.6s' }} />
+            </div>
+          </div>
+          <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: `conic-gradient(#10b981 ${dash.progressPct * 3.6}deg, var(--ims-bg-card-2) 0)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: '54px', height: '54px', borderRadius: '50%', background: 'var(--ims-bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, color: glass.accent }}>{dash.progressPct}%</div>
+          </div>
+        </div>
+      </GlassPanel>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '16px' }}>
+        <GlassPanel glass={glass}>
+          <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Wallet size={15} color={glass.accent} /> {lang === 'id' ? 'Aktivitas Pembayaran Insentif' : 'Incentive Payment Activity'}
+          </div>
+          <ResponsiveContainer width="100%" height={280}>
+            <ComposedChart data={dash.monthly} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(16,185,129,0.12)" vertical={false} />
+              <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} tickFormatter={v => v >= 1e6 ? `${(v / 1e6).toFixed(0)}Jt` : v} />
+              <Tooltip content={<ChartTooltip fmt={fmt} />} />
+              <Legend wrapperStyle={{ fontSize: 10 }} />
+              <Bar dataKey={lang === 'id' ? 'Dicairkan' : 'Paid Out'} fill="#10b981" radius={[4, 4, 0, 0]} barSize={18} />
+              <Line type="monotone" dataKey={lang === 'id' ? 'Pending' : 'Pending'} stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </GlassPanel>
+        <GlassPanel glass={glass}>
+          <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <DollarSign size={15} color={glass.accent} /> {lang === 'id' ? 'Distribusi per Sales' : 'Distribution by Sales'}
+          </div>
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart>
+              <Pie
+                data={dash.deptData.length ? dash.deptData : [{ name: '-', value: 1, fill: 'var(--ims-border)' }]}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={58}
+                outerRadius={88}
+                paddingAngle={2}
+              >
+                {(dash.deptData.length ? dash.deptData : [{ name: '-', value: 1, fill: 'var(--ims-border)' }]).map(e => (
+                  <Cell key={e.name} fill={e.fill} />
+                ))}
+              </Pie>
+              <Tooltip content={<ChartTooltip fmt={fmt} />} />
+              <Legend wrapperStyle={{ fontSize: 10 }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </GlassPanel>
+      </div>
+    </div>
+  );
+}
+
 function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdit, employees = {} }) {
   const salesTeam = useMemo(() => getActiveSalesTeam(employees), [employees]);
   const isSales = session.role === 'sales';
   const isOfficeAccount = session.salesId === 'office';
-  // Catatan #1: per-sales filter for CEO/Finance to drill into each sales' incentive detail
+  const [incTab, setIncTab] = useState('dashboard');
   const [incFilterSales, setIncFilterSales] = useState('all');
-  // For sales role, filter to only own deals; for finance/CEO, show all (or filtered by chosen sales)
   const incentiveStats = useMemo(() => {
     let visibleData = isSales ? data.filter(s => s.salesOwner === session.salesId) : data;
-    // Apply per-sales filter (only for non-sales roles)
     if (!isSales && incFilterSales !== 'all') {
       visibleData = visibleData.filter(s => s.salesOwner === incFilterSales);
     }
-    // Only PO Issued deals trigger incentive
     const poDeals = visibleData.filter(s => s.poStatus === 'issued');
-    // Compute per-deal incentive
     const dealsWithIncentive = poDeals.map(s => {
       const calc = calcIncentive(s);
       const stat = getIncentiveStatus(s);
       return { ...s, _calc: calc, _stat: stat };
     });
-    // Aggregate by status
     const totalEstimated = dealsWithIncentive.filter(d => d._stat?.status === 'estimated').reduce((sum, d) => sum + d._calc.incentive, 0);
     const totalReady = dealsWithIncentive.filter(d => d._stat?.status === 'ready').reduce((sum, d) => sum + d._calc.incentive, 0);
     const totalPaid = dealsWithIncentive.filter(d => d._stat?.status === 'paid').reduce((sum, d) => sum + d._calc.incentive, 0);
     const totalKsoSplit = dealsWithIncentive.filter(d => d._stat?.status === 'kso_prorata').reduce((sum, d) => sum + d._calc.incentive * (d._stat.progress || 0), 0);
     const ytdTotal = totalEstimated + totalReady + totalPaid + totalKsoSplit;
-    // Leaderboard (for CEO/Finance only) — always full team regardless of filter
     const leaderboard = !isSales ? salesTeam.map(sales => {
       const salesDeals = data.filter(s => s.salesOwner === sales.id && s.poStatus === 'issued');
       const total = salesDeals.reduce((sum, s) => sum + calcIncentive(s).incentive, 0);
@@ -38,11 +148,10 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
     }).sort((a, b) => b.total - a.total) : [];
     return { visibleData, poDeals, dealsWithIncentive, totalEstimated, totalReady, totalPaid, totalKsoSplit, ytdTotal, leaderboard };
   }, [data, isSales, session.salesId, incFilterSales, salesTeam]);
-  const { visibleData, poDeals, dealsWithIncentive, totalEstimated, totalReady, totalPaid, totalKsoSplit, ytdTotal, leaderboard } = incentiveStats;
+  const { poDeals, dealsWithIncentive, totalEstimated, totalReady, totalPaid, ytdTotal, leaderboard } = incentiveStats;
 
   const [selectedDeal, setSelectedDeal] = useState(null);
 
-  // Update operasional % per deal
   const updateOpsPercent = (id, opsPercent) => {
     if (!canEdit && !isSales) return;
     setData(prev => prev.map(s => s.id === id ? { ...s, opsPercent: Math.max(0, Math.min(0.5, opsPercent)) } : s));
@@ -65,7 +174,38 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
         </div>
       )}
 
-      {/* Catatan #1: Per-sales filter (CEO/Finance only) to drill into each sales' incentive */}
+      <div style={{display: 'flex', gap: '2px', marginBottom: '22px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
+        {[
+          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: LayoutDashboard },
+          { id: 'deals', label: lang === 'id' ? 'Detail Insentif' : 'Incentive Detail', icon: Wallet },
+        ].map(tb => {
+          const Icon = tb.icon;
+          const active = incTab === tb.id;
+          return (
+            <button key={tb.id} onClick={() => setIncTab(tb.id)} style={{background: 'transparent', border: 'none', padding: '10px 18px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 500, color: active ? 'var(--ims-accent)' : 'var(--ims-text-2)', borderBottom: active ? '2px solid var(--ims-border)' : '2px solid transparent', marginBottom: '-1px', display: 'flex', alignItems: 'center', gap: '7px', letterSpacing: '0.03em'}}>
+              <Icon size={14} strokeWidth={1.5} />{tb.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {incTab === 'dashboard' && (
+        <IncentiveDashboard
+          dealsWithIncentive={dealsWithIncentive}
+          totalEstimated={totalEstimated}
+          totalReady={totalReady}
+          totalPaid={totalPaid}
+          ytdTotal={ytdTotal}
+          leaderboard={leaderboard}
+          salesTeam={salesTeam}
+          t={t}
+          lang={lang}
+          fmt={fmt}
+        />
+      )}
+
+      {incTab === 'deals' && (
+      <>
       {!isSales && (
         <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', flexWrap: 'wrap'}}>
           <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600}}>{lang === 'id' ? 'Filter Sales' : 'Filter Sales'}:</span>
@@ -84,7 +224,6 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
         </div>
       )}
 
-      {/* KPI Cards */}
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: 'var(--ims-border)', marginBottom: '24px', border: '1px solid var(--ims-border)'}}>
         <div style={{padding: '20px 22px', background: 'var(--ims-bg-card)'}}>
           <div style={{fontSize: '10px', letterSpacing: '0.22em', color: 'var(--ims-text-2)', textTransform: 'uppercase'}}>{t.inc_total_estimated}</div>
@@ -108,7 +247,6 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
         </div>
       </div>
 
-      {/* Status Legend */}
       <div style={{padding: '12px 16px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', marginBottom: '20px'}}>
         <div style={{fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600, marginBottom: '8px'}}>{t.inc_status_legend}</div>
         <div style={{display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '11px', color: 'var(--ims-text)'}}>
@@ -119,7 +257,6 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
         </div>
       </div>
 
-      {/* Leaderboard for CEO/Finance */}
       {!isSales && leaderboard.length > 0 && (
         <div className="card" style={{marginBottom: '22px'}}>
           <div className="card-title">{t.inc_leaderboard}</div>
@@ -143,7 +280,6 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
         </div>
       )}
 
-      {/* Deal table */}
       <div style={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', overflowX: 'auto'}}>
         <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px', minWidth: '1000px'}}>
           <thead>
@@ -192,73 +328,33 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
         </table>
         {dealsWithIncentive.length === 0 && <div className="empty-state">{lang === 'id' ? 'Belum ada deal PO yang terbit' : 'No PO issued yet'}</div>}
       </div>
+      </>
+      )}
 
-      {/* Detail Modal */}
       {selectedDeal && (
         <div className="modal-overlay" onClick={() => setSelectedDeal(null)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '580px'}}>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px'}}>
               <div>
-                <div className="lbl-tag">{t.inc_breakdown}</div>
-                <h2 className="serif" style={{fontSize: '22px', margin: '4px 0 0', fontWeight: 500}}>{selectedDeal.customer}</h2>
-                <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{selectedDeal.subModality}</div>
+                <div style={{fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--ims-text-2)', marginBottom: '4px'}}>{t.inc_detail_title}</div>
+                <h2 className="serif" style={{fontSize: '22px', margin: 0, fontWeight: 500}}>{selectedDeal.customer}</h2>
+                <div style={{fontSize: '12px', color: 'var(--ims-text-2)', marginTop: '4px'}}>{selectedDeal.modality} · {selectedDeal.subModality}</div>
               </div>
               <button onClick={() => setSelectedDeal(null)} style={{background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--ims-text-2)'}}><X size={20} /></button>
             </div>
-
-            <div style={{fontSize: '13px', lineHeight: 1.7}}>
-              <div style={{display: 'flex', justifyContent: 'space-between', padding: '6px 0'}}>
-                <span>{t.inc_gross_price}</span><span className="mono" style={{fontWeight: 500}}>{fmtFull(selectedDeal._calc.grossPrice)}</span>
-              </div>
-              <div style={{display: 'flex', justifyContent: 'space-between', padding: '6px 0', color: 'var(--ims-text-2)'}}>
-                <span>{t.inc_ppn}</span><span className="mono">− {fmtFull(selectedDeal._calc.ppn)}</span>
-              </div>
-              <div style={{display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderTop: '1px solid var(--ims-border)', borderBottom: '1px solid var(--ims-border)'}}>
-                <span style={{fontWeight: 600}}>{t.inc_dpp}</span><span className="mono" style={{fontWeight: 600}}>{fmtFull(selectedDeal._calc.dpp)}</span>
-              </div>
-              <div style={{display: 'flex', justifyContent: 'space-between', padding: '6px 0', color: 'var(--ims-text-2)'}}>
-                <span>{t.inc_pph23}</span><span className="mono">− {fmtFull(selectedDeal._calc.pph23)}</span>
-              </div>
-              <div style={{padding: '10px 12px', background: 'rgba(200,169,106,0.10)', border: '1px dashed var(--ims-gold)', marginTop: '4px', marginBottom: '4px'}}>
-                <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: 'var(--ims-text-2)', alignItems: 'center'}}>
-                  <span style={{fontWeight: 600, fontSize: '12px'}}>✏️ {t.inc_ops_cost} <span style={{fontSize: '10px', fontWeight: 400}}>{t.inc_ops_editable}</span></span>
-                  <span className="mono" style={{fontSize: '13px', fontWeight: 600, color: 'var(--ims-text)'}}>− {fmtFull(selectedDeal._calc.opsCost)}</span>
-                </div>
-                <div style={{display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap'}}>
-                  <span style={{fontSize: '10px', color: 'var(--ims-text-2)', letterSpacing: '0.1em', textTransform: 'uppercase'}}>{lang === 'id' ? 'Edit %:' : 'Edit %:'}</span>
-                  <input type="number" step="0.5" min="0" max="50" defaultValue={(selectedDeal._calc.opsPercent * 100).toFixed(1)} onChange={(e) => updateOpsPercent(selectedDeal.id, (parseFloat(e.target.value) || 0) / 100)} style={{width: '90px', padding: '6px 10px', fontSize: '13px', border: '1px solid var(--ims-accent)', fontWeight: 600}} />
-                  <span style={{fontSize: '13px', color: 'var(--ims-text)', fontWeight: 600}}>%</span>
-                  <span style={{fontSize: '10px', color: 'var(--ims-accent-2)', marginLeft: 'auto', fontStyle: 'italic'}}>✓ {lang === 'id' ? 'Otomatis tersimpan saat diubah' : 'Auto-saves on change'}</span>
-                </div>
-              </div>
-              <div style={{display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderTop: '2px solid var(--ims-border)', marginTop: '8px'}}>
-                <span style={{fontWeight: 700, fontSize: '14px'}}>{t.inc_net_sales}</span>
-                <span className="mono" style={{fontWeight: 700, fontSize: '14px'}}>{fmtFull(selectedDeal._calc.netSales)}</span>
-              </div>
-              <div style={{display: 'flex', justifyContent: 'space-between', padding: '8px 0', color: 'var(--ims-text-2)'}}>
-                <span>{t.inc_rate}</span><span className="mono">× 1.5%</span>
-              </div>
-              <div style={{display: 'flex', justifyContent: 'space-between', padding: '14px 16px', marginTop: '8px', background: 'linear-gradient(90deg, var(--ims-bg-alt), #2a3f5f)', color: 'var(--ims-accent)'}}>
-                <span style={{fontWeight: 700, fontSize: '15px'}}>{t.inc_amount}</span>
-                <span className="mono" style={{fontWeight: 700, fontSize: '17px'}}>{fmtFull(selectedDeal._calc.incentive)}</span>
-              </div>
-
-              {selectedDeal._stat && (
-                <div style={{marginTop: '14px', padding: '10px 14px', background: selectedDeal._stat.color + '15', borderLeft: `3px solid ${selectedDeal._stat.color}`}}>
-                  <div style={{fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: selectedDeal._stat.color, fontWeight: 700, marginBottom: '3px'}}>Status</div>
-                  <div style={{fontSize: '13px', fontWeight: 600, color: selectedDeal._stat.color}}>{t[selectedDeal._stat.label]}</div>
-                  {selectedDeal._stat.progress !== undefined && (
-                    <div style={{marginTop: '6px', height: '4px', background: 'var(--ims-bg-card-2)'}}>
-                      <div style={{height: '100%', width: `${(selectedDeal._stat.progress * 100).toFixed(0)}%`, background: selectedDeal._stat.color}} />
-                    </div>
-                  )}
-                </div>
-              )}
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '12px'}}>
+              <div><div style={{fontSize: '10px', color: 'var(--ims-text-2)', textTransform: 'uppercase', letterSpacing: '0.1em'}}>{t.value}</div><div className="mono" style={{fontWeight: 600, marginTop: '4px'}}>{fmtFull(selectedDeal.totalValue)}</div></div>
+              <div><div style={{fontSize: '10px', color: 'var(--ims-text-2)', textTransform: 'uppercase', letterSpacing: '0.1em'}}>{t.inc_net_sales}</div><div className="mono" style={{fontWeight: 600, marginTop: '4px'}}>{fmtFull(selectedDeal._calc.netSales)}</div></div>
+              <div><div style={{fontSize: '10px', color: 'var(--ims-text-2)', textTransform: 'uppercase', letterSpacing: '0.1em'}}>{t.inc_amount}</div><div className="mono" style={{fontWeight: 700, marginTop: '4px', color: 'var(--ims-accent)'}}>{fmtFull(selectedDeal._calc.incentive)}</div></div>
+              <div><div style={{fontSize: '10px', color: 'var(--ims-text-2)', textTransform: 'uppercase', letterSpacing: '0.1em'}}>{t.inc_status_legend.replace(' :', '')}</div><div style={{marginTop: '4px'}}>{selectedDeal._stat && <span style={{padding: '3px 8px', fontSize: '10px', background: selectedDeal._stat.color + '25', color: selectedDeal._stat.color, fontWeight: 600}}>{t[selectedDeal._stat.label]}</span>}</div></div>
             </div>
-
-            <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: '20px'}}>
-              <button className="btn-primary" onClick={() => setSelectedDeal(null)}>{t.inc_close}</button>
-            </div>
+            {(canEdit || isSales) && (
+              <div style={{marginTop: '18px', paddingTop: '18px', borderTop: '1px solid var(--ims-border)'}}>
+                <label style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600, display: 'block', marginBottom: '6px'}}>{t.inc_ops_percent}</label>
+                <input type="range" min="0" max="50" step="1" value={Math.round((selectedDeal.opsPercent || 0) * 100)} onChange={e => updateOpsPercent(selectedDeal.id, parseInt(e.target.value) / 100)} style={{width: '100%'}} />
+                <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '4px'}}>{Math.round((selectedDeal.opsPercent || 0) * 100)}%</div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -266,4 +362,4 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
   );
 }
 
-export { IncentiveModule };
+export { IncentiveModule, IncentiveDashboard };

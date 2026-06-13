@@ -1,0 +1,269 @@
+// Extracted from App.jsx during modular refactor.
+import { useMemo, useState } from 'react';
+import { X } from 'lucide-react';
+import { Td, Th } from '../components/ui.jsx';
+import { calcIncentive, getActiveSalesTeam, getIncentiveStatus } from '../utils/domain.js';
+function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdit, employees = {} }) {
+  const salesTeam = useMemo(() => getActiveSalesTeam(employees), [employees]);
+  const isSales = session.role === 'sales';
+  const isOfficeAccount = session.salesId === 'office';
+  // Catatan #1: per-sales filter for CEO/Finance to drill into each sales' incentive detail
+  const [incFilterSales, setIncFilterSales] = useState('all');
+  // For sales role, filter to only own deals; for finance/CEO, show all (or filtered by chosen sales)
+  const incentiveStats = useMemo(() => {
+    let visibleData = isSales ? data.filter(s => s.salesOwner === session.salesId) : data;
+    // Apply per-sales filter (only for non-sales roles)
+    if (!isSales && incFilterSales !== 'all') {
+      visibleData = visibleData.filter(s => s.salesOwner === incFilterSales);
+    }
+    // Only PO Issued deals trigger incentive
+    const poDeals = visibleData.filter(s => s.poStatus === 'issued');
+    // Compute per-deal incentive
+    const dealsWithIncentive = poDeals.map(s => {
+      const calc = calcIncentive(s);
+      const stat = getIncentiveStatus(s);
+      return { ...s, _calc: calc, _stat: stat };
+    });
+    // Aggregate by status
+    const totalEstimated = dealsWithIncentive.filter(d => d._stat?.status === 'estimated').reduce((sum, d) => sum + d._calc.incentive, 0);
+    const totalReady = dealsWithIncentive.filter(d => d._stat?.status === 'ready').reduce((sum, d) => sum + d._calc.incentive, 0);
+    const totalPaid = dealsWithIncentive.filter(d => d._stat?.status === 'paid').reduce((sum, d) => sum + d._calc.incentive, 0);
+    const totalKsoSplit = dealsWithIncentive.filter(d => d._stat?.status === 'kso_prorata').reduce((sum, d) => sum + d._calc.incentive * (d._stat.progress || 0), 0);
+    const ytdTotal = totalEstimated + totalReady + totalPaid + totalKsoSplit;
+    // Leaderboard (for CEO/Finance only) — always full team regardless of filter
+    const leaderboard = !isSales ? salesTeam.map(sales => {
+      const salesDeals = data.filter(s => s.salesOwner === sales.id && s.poStatus === 'issued');
+      const total = salesDeals.reduce((sum, s) => sum + calcIncentive(s).incentive, 0);
+      return { ...sales, total, dealsCount: salesDeals.length };
+    }).sort((a, b) => b.total - a.total) : [];
+    return { visibleData, poDeals, dealsWithIncentive, totalEstimated, totalReady, totalPaid, totalKsoSplit, ytdTotal, leaderboard };
+  }, [data, isSales, session.salesId, incFilterSales, salesTeam]);
+  const { visibleData, poDeals, dealsWithIncentive, totalEstimated, totalReady, totalPaid, totalKsoSplit, ytdTotal, leaderboard } = incentiveStats;
+
+  const [selectedDeal, setSelectedDeal] = useState(null);
+
+  // Update operasional % per deal
+  const updateOpsPercent = (id, opsPercent) => {
+    if (!canEdit && !isSales) return;
+    setData(prev => prev.map(s => s.id === id ? { ...s, opsPercent: Math.max(0, Math.min(0.5, opsPercent)) } : s));
+  };
+
+  return (
+    <div>
+      <div style={{marginBottom: '22px'}}>
+        <div style={{fontSize: '11px', letterSpacing: '0.3em', color: 'var(--ims-text-2)', textTransform: 'uppercase', marginBottom: '6px'}}>{t.nav_incentive}</div>
+        <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>
+          {isSales ? t.inc_my_incentive : t.inc_team_incentive}
+        </h1>
+        <div style={{fontSize: '13px', color: 'var(--ims-text-2)', marginTop: '6px'}}>{t.inc_subtitle}</div>
+      </div>
+
+      {isOfficeAccount && (
+        <div style={{padding: '14px 18px', background: 'rgba(200,169,106,0.15)', borderLeft: '3px solid var(--ims-accent)', marginBottom: '20px', fontSize: '12.5px', color: 'var(--ims-text)', lineHeight: 1.6}}>
+          <div style={{fontWeight: 700, marginBottom: '4px'}}>{t.inc_office_label}</div>
+          <div style={{fontSize: '11.5px'}}>{t.inc_office_note}</div>
+        </div>
+      )}
+
+      {/* Catatan #1: Per-sales filter (CEO/Finance only) to drill into each sales' incentive */}
+      {!isSales && (
+        <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', flexWrap: 'wrap'}}>
+          <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600}}>{lang === 'id' ? 'Filter Sales' : 'Filter Sales'}:</span>
+          <button onClick={() => setIncFilterSales('all')} style={{padding: '6px 14px', fontSize: '11px', fontFamily: 'inherit', background: incFilterSales === 'all' ? 'var(--ims-accent)' : 'transparent', color: incFilterSales === 'all' ? '#fff' : 'var(--ims-accent)', border: '1px solid var(--ims-border)', cursor: 'pointer', fontWeight: 600}}>{lang === 'id' ? 'Semua Tim' : 'All Team'}</button>
+          {salesTeam.map(s => (
+            <button key={s.id} onClick={() => setIncFilterSales(s.id)} style={{padding: '6px 14px', fontSize: '11px', fontFamily: 'inherit', background: incFilterSales === s.id ? s.accent : 'transparent', color: incFilterSales === s.id ? '#fff' : s.accent, border: `1px solid ${s.accent}`, cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px'}}>
+              <span style={{width: '16px', height: '16px', borderRadius: '50%', background: incFilterSales === s.id ? 'rgba(255,255,255,0.3)' : s.accent, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 700}}>{s.initial}</span>
+              {s.name.split(' ')[0]}
+            </button>
+          ))}
+        </div>
+      )}
+      {!isSales && incFilterSales !== 'all' && (
+        <div style={{padding: '10px 14px', marginBottom: '18px', background: 'rgba(26,41,66,0.04)', borderLeft: '3px solid var(--ims-border)', fontSize: '12px', color: 'var(--ims-text)'}}>
+          {lang === 'id' ? 'Menampilkan detail insentif & perhitungan untuk' : 'Showing incentive detail & calculation for'} <strong>{salesTeam.find(s => s.id === incFilterSales)?.name}</strong> · {poDeals.length} {lang === 'id' ? 'deal PO' : 'PO deals'} · {lang === 'id' ? 'Total insentif' : 'Total incentive'}: <strong>{fmt(ytdTotal)}</strong>
+        </div>
+      )}
+
+      {/* KPI Cards */}
+      <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: 'var(--ims-border)', marginBottom: '24px', border: '1px solid var(--ims-border)'}}>
+        <div style={{padding: '20px 22px', background: 'var(--ims-bg-card)'}}>
+          <div style={{fontSize: '10px', letterSpacing: '0.22em', color: 'var(--ims-text-2)', textTransform: 'uppercase'}}>{t.inc_total_estimated}</div>
+          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '6px', color: '#94a3b8'}}>{fmt(totalEstimated)}</div>
+          <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '6px'}}>📊 {t.inc_legend_est}</div>
+        </div>
+        <div style={{padding: '20px 22px', background: 'var(--ims-bg-card)'}}>
+          <div style={{fontSize: '10px', letterSpacing: '0.22em', color: 'var(--ims-text-2)', textTransform: 'uppercase'}}>{t.inc_total_ready}</div>
+          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '6px', color: 'var(--ims-accent)'}}>{fmt(totalReady)}</div>
+          <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '6px'}}>⏳ ≥50% paid / BAST done</div>
+        </div>
+        <div style={{padding: '20px 22px', background: 'var(--ims-bg-card)'}}>
+          <div style={{fontSize: '10px', letterSpacing: '0.22em', color: 'var(--ims-text-2)', textTransform: 'uppercase'}}>{t.inc_total_paid}</div>
+          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '6px', color: 'var(--ims-accent-2)'}}>{fmt(totalPaid)}</div>
+          <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '6px'}}>✅ {lang === 'id' ? 'Pembayaran 100%' : 'Fully paid'}</div>
+        </div>
+        <div style={{padding: '20px 22px', background: 'var(--ims-bg-alt)', color: 'var(--ims-text)'}}>
+          <div style={{fontSize: '10px', letterSpacing: '0.22em', color: 'var(--ims-accent)', textTransform: 'uppercase'}}>{t.inc_ytd}</div>
+          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '6px', color: '#fff'}}>{fmt(ytdTotal)}</div>
+          <div style={{fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginTop: '6px'}}>{dealsWithIncentive.length} deals · 1.5% × Net Sales</div>
+        </div>
+      </div>
+
+      {/* Status Legend */}
+      <div style={{padding: '12px 16px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', marginBottom: '20px'}}>
+        <div style={{fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600, marginBottom: '8px'}}>{t.inc_status_legend}</div>
+        <div style={{display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '11px', color: 'var(--ims-text)'}}>
+          <span>{t.inc_legend_est}</span>
+          <span>{t.inc_legend_ready}</span>
+          <span>{t.inc_legend_paid}</span>
+          <span>{t.inc_legend_kso}</span>
+        </div>
+      </div>
+
+      {/* Leaderboard for CEO/Finance */}
+      {!isSales && leaderboard.length > 0 && (
+        <div className="card" style={{marginBottom: '22px'}}>
+          <div className="card-title">{t.inc_leaderboard}</div>
+          <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px'}}>
+            {leaderboard.map((s, idx) => (
+              <div key={s.id} style={{padding: '14px', background: idx === 0 ? 'var(--ims-accent)' : 'var(--ims-bg-card)', color: idx === 0 ? 'var(--ims-text)' : 'var(--ims-accent)', border: '1px solid var(--ims-border)', position: 'relative'}}>
+                {idx === 0 && <span style={{position: 'absolute', top: '8px', right: '8px', padding: '1px 7px', fontSize: '9px', background: 'var(--ims-accent)', color: 'var(--ims-text)', fontWeight: 700, letterSpacing: '0.05em'}}>👑 #1</span>}
+                {s.isOffice && <span style={{position: 'absolute', top: '8px', right: '8px', padding: '1px 7px', fontSize: '9px', background: 'var(--ims-accent)', color: 'var(--ims-text)', fontWeight: 700, letterSpacing: '0.05em'}}>🎯 OFFICE</span>}
+                <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px'}}>
+                  <div style={{width: '34px', height: '34px', borderRadius: '50%', background: s.accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700}}>{s.initial}</div>
+                  <div>
+                    <div style={{fontSize: '12.5px', fontWeight: 600}}>{s.name}</div>
+                    <div style={{fontSize: '10px', opacity: 0.7}}>{lang === 'id' ? s.territory : s.territoryEn}</div>
+                  </div>
+                </div>
+                <div className="mono" style={{fontSize: '16px', fontWeight: 600, color: idx === 0 ? 'var(--ims-gold)' : 'var(--ims-accent)'}}>{fmt(s.total)}</div>
+                <div style={{fontSize: '10px', opacity: 0.7, marginTop: '2px'}}>{s.dealsCount} {t.project_count}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Deal table */}
+      <div style={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', overflowX: 'auto'}}>
+        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px', minWidth: '1000px'}}>
+          <thead>
+            <tr style={{background: 'var(--ims-bg-card-2)'}}>
+              <Th>{t.customer}</Th>
+              <Th>{t.modality}</Th>
+              {!isSales && <Th>{t.sales_owner}</Th>}
+              <Th align="right">{t.value}</Th>
+              <Th align="right">{t.inc_net_sales}</Th>
+              <Th align="right">{t.inc_amount}</Th>
+              <Th>{t.inc_status_legend.replace(' :', '')}</Th>
+              <Th align="right">{t.actions}</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {dealsWithIncentive.map(d => {
+              const sales = salesTeam.find(s => s.id === d.salesOwner);
+              return (
+                <tr key={d.id} className="hover-row" style={{borderTop: '1px solid var(--ims-border)'}}>
+                  <Td>
+                    <div style={{fontWeight: 500}}>{d.customer}</div>
+                    <div style={{fontSize: '10px', color: 'var(--ims-text-2)'}}>{t[`ptype_${d.projectType}`]} · <span className="mono">{d.sphNo}</span></div>
+                  </Td>
+                  <Td>
+                    <div>{d.modality}</div>
+                    <div style={{fontSize: '10px', color: 'var(--ims-text-2)'}}>{d.subModality}</div>
+                  </Td>
+                  {!isSales && <Td>{sales ? sales.name : d.salesOwner}</Td>}
+                  <Td align="right"><span className="mono">{fmt(d.totalValue)}</span></Td>
+                  <Td align="right"><span className="mono" style={{color: 'var(--ims-text-2)'}}>{fmt(d._calc.netSales)}</span></Td>
+                  <Td align="right"><span className="mono" style={{fontWeight: 700, color: 'var(--ims-text)'}}>{fmt(d._calc.incentive)}</span></Td>
+                  <Td>
+                    {d._stat && (
+                      <span style={{padding: '3px 8px', fontSize: '10px', background: d._stat.color + '25', color: d._stat.color, fontWeight: 600}}>
+                        {t[d._stat.label]}
+                      </span>
+                    )}
+                  </Td>
+                  <Td align="right">
+                    <button onClick={() => setSelectedDeal(d)} style={{background: 'transparent', border: '1px solid var(--ims-border)', padding: '4px 10px', fontSize: '10px', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--ims-text)'}}>{t.inc_view_detail}</button>
+                  </Td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {dealsWithIncentive.length === 0 && <div className="empty-state">{lang === 'id' ? 'Belum ada deal PO yang terbit' : 'No PO issued yet'}</div>}
+      </div>
+
+      {/* Detail Modal */}
+      {selectedDeal && (
+        <div className="modal-overlay" onClick={() => setSelectedDeal(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '580px'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px'}}>
+              <div>
+                <div className="lbl-tag">{t.inc_breakdown}</div>
+                <h2 className="serif" style={{fontSize: '22px', margin: '4px 0 0', fontWeight: 500}}>{selectedDeal.customer}</h2>
+                <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{selectedDeal.subModality}</div>
+              </div>
+              <button onClick={() => setSelectedDeal(null)} style={{background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--ims-text-2)'}}><X size={20} /></button>
+            </div>
+
+            <div style={{fontSize: '13px', lineHeight: 1.7}}>
+              <div style={{display: 'flex', justifyContent: 'space-between', padding: '6px 0'}}>
+                <span>{t.inc_gross_price}</span><span className="mono" style={{fontWeight: 500}}>{fmtFull(selectedDeal._calc.grossPrice)}</span>
+              </div>
+              <div style={{display: 'flex', justifyContent: 'space-between', padding: '6px 0', color: 'var(--ims-text-2)'}}>
+                <span>{t.inc_ppn}</span><span className="mono">− {fmtFull(selectedDeal._calc.ppn)}</span>
+              </div>
+              <div style={{display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderTop: '1px solid var(--ims-border)', borderBottom: '1px solid var(--ims-border)'}}>
+                <span style={{fontWeight: 600}}>{t.inc_dpp}</span><span className="mono" style={{fontWeight: 600}}>{fmtFull(selectedDeal._calc.dpp)}</span>
+              </div>
+              <div style={{display: 'flex', justifyContent: 'space-between', padding: '6px 0', color: 'var(--ims-text-2)'}}>
+                <span>{t.inc_pph23}</span><span className="mono">− {fmtFull(selectedDeal._calc.pph23)}</span>
+              </div>
+              <div style={{padding: '10px 12px', background: 'rgba(200,169,106,0.10)', border: '1px dashed var(--ims-gold)', marginTop: '4px', marginBottom: '4px'}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: 'var(--ims-text-2)', alignItems: 'center'}}>
+                  <span style={{fontWeight: 600, fontSize: '12px'}}>✏️ {t.inc_ops_cost} <span style={{fontSize: '10px', fontWeight: 400}}>{t.inc_ops_editable}</span></span>
+                  <span className="mono" style={{fontSize: '13px', fontWeight: 600, color: 'var(--ims-text)'}}>− {fmtFull(selectedDeal._calc.opsCost)}</span>
+                </div>
+                <div style={{display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap'}}>
+                  <span style={{fontSize: '10px', color: 'var(--ims-text-2)', letterSpacing: '0.1em', textTransform: 'uppercase'}}>{lang === 'id' ? 'Edit %:' : 'Edit %:'}</span>
+                  <input type="number" step="0.5" min="0" max="50" defaultValue={(selectedDeal._calc.opsPercent * 100).toFixed(1)} onChange={(e) => updateOpsPercent(selectedDeal.id, (parseFloat(e.target.value) || 0) / 100)} style={{width: '90px', padding: '6px 10px', fontSize: '13px', border: '1px solid var(--ims-accent)', fontWeight: 600}} />
+                  <span style={{fontSize: '13px', color: 'var(--ims-text)', fontWeight: 600}}>%</span>
+                  <span style={{fontSize: '10px', color: 'var(--ims-accent-2)', marginLeft: 'auto', fontStyle: 'italic'}}>✓ {lang === 'id' ? 'Otomatis tersimpan saat diubah' : 'Auto-saves on change'}</span>
+                </div>
+              </div>
+              <div style={{display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderTop: '2px solid var(--ims-border)', marginTop: '8px'}}>
+                <span style={{fontWeight: 700, fontSize: '14px'}}>{t.inc_net_sales}</span>
+                <span className="mono" style={{fontWeight: 700, fontSize: '14px'}}>{fmtFull(selectedDeal._calc.netSales)}</span>
+              </div>
+              <div style={{display: 'flex', justifyContent: 'space-between', padding: '8px 0', color: 'var(--ims-text-2)'}}>
+                <span>{t.inc_rate}</span><span className="mono">× 1.5%</span>
+              </div>
+              <div style={{display: 'flex', justifyContent: 'space-between', padding: '14px 16px', marginTop: '8px', background: 'linear-gradient(90deg, var(--ims-bg-alt), #2a3f5f)', color: 'var(--ims-accent)'}}>
+                <span style={{fontWeight: 700, fontSize: '15px'}}>{t.inc_amount}</span>
+                <span className="mono" style={{fontWeight: 700, fontSize: '17px'}}>{fmtFull(selectedDeal._calc.incentive)}</span>
+              </div>
+
+              {selectedDeal._stat && (
+                <div style={{marginTop: '14px', padding: '10px 14px', background: selectedDeal._stat.color + '15', borderLeft: `3px solid ${selectedDeal._stat.color}`}}>
+                  <div style={{fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: selectedDeal._stat.color, fontWeight: 700, marginBottom: '3px'}}>Status</div>
+                  <div style={{fontSize: '13px', fontWeight: 600, color: selectedDeal._stat.color}}>{t[selectedDeal._stat.label]}</div>
+                  {selectedDeal._stat.progress !== undefined && (
+                    <div style={{marginTop: '6px', height: '4px', background: 'var(--ims-bg-card-2)'}}>
+                      <div style={{height: '100%', width: `${(selectedDeal._stat.progress * 100).toFixed(0)}%`, background: selectedDeal._stat.color}} />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: '20px'}}>
+              <button className="btn-primary" onClick={() => setSelectedDeal(null)}>{t.inc_close}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export { IncentiveModule };

@@ -41,3 +41,7 @@ using (true)
 with check (true);
 
 -- Tidak membuka SELECT ke client biasa. Edge Function memakai service_role dan bypass RLS.
+
+-- Izin tulis/baca untuk client (anon + authenticated). Tanpa GRANT ini, save subscription gagal (save_failed).
+grant select, insert, update on public.push_subscriptions to anon, authenticated;
+grant all on public.push_subscriptions to service_role;

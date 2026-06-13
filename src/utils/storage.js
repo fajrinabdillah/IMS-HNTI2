@@ -127,11 +127,14 @@ const savePushSubscription = async (subscription, session) => {
       active: true,
       updated_at: new Date().toISOString(),
     };
-    const res = await _supaReq('push_subscriptions', {
+    const res = await _supaReq('push_subscriptions?on_conflict=endpoint', {
       method: 'POST',
       headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
       body: JSON.stringify(payload),
     });
+    if (!res.ok) {
+      try { console.warn('[IMS] push subscription save failed:', res.status, await res.text()); } catch {}
+    }
     return res.ok;
   } catch { return false; }
 };

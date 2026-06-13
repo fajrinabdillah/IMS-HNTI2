@@ -13,7 +13,27 @@ import { formatDuration } from '../utils/format.js';
 import { buildEditorTemplate, downloadCSV } from '../utils/documents.js';
 import { parsePaymentImport } from '../utils/csvImport.js';
 import { notify } from '../utils/notifications.js';
-function FinanceDashboardCharts({ filteredPoProjects, poProjects, financePerformance, lang, fmt, paymentTypeLabel, totalOpsCost = 0 }) {
+function FinanceDashboardCharts({ filteredPoProjects, poProjects, financePerformance, lang, fmt, paymentTypeLabel, totalOpsCost = 0, opsCostRows = [] }) {
+  const opsKey = lang === 'id' ? 'Biaya Ops' : 'Ops Cost';
+  const valueKey = lang === 'id' ? 'Nilai SPH' : 'SPH Value';
+  // Top 10 proyek dengan biaya operasional terbesar (Nilai SPH vs Biaya Ops)
+  const opsByProject = [...opsCostRows]
+    .sort((a, b) => b.opsCostValue - a.opsCostValue)
+    .slice(0, 10)
+    .map(r => ({
+      name: String(r.customer || r.sphNo || '-').slice(0, 18),
+      [opsKey]: Math.round(r.opsCostValue),
+      [valueKey]: Math.round(r.totalValue),
+    }));
+  // Komposisi biaya operasional per modalitas
+  const opsModalityMap = opsCostRows.reduce((acc, r) => {
+    const key = r.modality || r.subModality || (lang === 'id' ? 'Lainnya' : 'Other');
+    acc[key] = (acc[key] || 0) + r.opsCostValue;
+    return acc;
+  }, {});
+  const opsModalityPie = Object.entries(opsModalityMap)
+    .map(([name, value]) => ({ name, value: Math.round(value) }))
+    .sort((a, b) => b.value - a.value);
   const monthlyData = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'].map((m, idx) => {
     const key = `2026-${String(idx + 1).padStart(2, '0')}`;
     const rows = filteredPoProjects.flatMap(p => (p.paymentHistory || []).map(h => ({ p, h }))).filter(x => String(x.h.date || x.h.recordedAt || '').startsWith(key));
@@ -115,6 +135,35 @@ function FinanceDashboardCharts({ filteredPoProjects, poProjects, financePerform
           <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '6px'}}>{lang === 'id' ? 'Rata-rata PO ke DP' : 'Average PO to DP'}: <span className="mono" style={{fontWeight: 800}}>{formatDuration(financePerformance.avgDpMs, lang)}</span></div>
         </div>
       </div>
+      <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px'}}>
+        <div className="card">
+          <div className="card-title">{lang === 'id' ? 'Biaya Operasional Proyek — Top 10' : 'Project Operational Cost — Top 10'}</div>
+          <ResponsiveContainer width="100%" height={Math.max(280, opsByProject.length * 38)}>
+            <BarChart data={opsByProject} layout="vertical" margin={{top: 8, right: 18, left: 90, bottom: 8}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--ims-border)" horizontal={false} />
+              <XAxis type="number" stroke="var(--ims-text-2)" style={{fontSize: 10}} tickFormatter={(v) => v >= 1e9 ? `${(v / 1e9).toFixed(0)}M` : v >= 1e6 ? `${(v / 1e6).toFixed(0)}Jt` : v} />
+              <YAxis type="category" dataKey="name" stroke="var(--ims-text-2)" style={{fontSize: 10}} width={88} />
+              <Tooltip content={<ChartTooltip fmt={fmt} />} />
+              <Legend wrapperStyle={{fontSize: '11px'}} />
+              <Bar dataKey={valueKey} fill="#5b8def" radius={[0, 3, 3, 0]} />
+              <Bar dataKey={opsKey} fill="var(--ims-gold)" radius={[0, 3, 3, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+          <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '6px'}}>{lang === 'id' ? 'Total biaya operasional' : 'Total operational cost'}: <span className="mono" style={{fontWeight: 800, color: 'var(--ims-gold)'}}>{fmt(totalOpsCost)}</span></div>
+        </div>
+        <div className="card">
+          <div className="card-title">{lang === 'id' ? 'Biaya Ops per Modalitas' : 'Ops Cost by Modality'}</div>
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart>
+              <Pie data={opsModalityPie.length ? opsModalityPie : [{ name: '-', value: 0 }]} dataKey="value" nameKey="name" outerRadius={90} label>
+                {(opsModalityPie.length ? opsModalityPie : [{ name: '-', value: 0 }]).map((entry, index) => <Cell key={entry.name} fill={CHART_COLORS[(index + 1) % CHART_COLORS.length]} />)}
+              </Pie>
+              <Tooltip content={<ChartTooltip fmt={fmt} />} />
+              <Legend wrapperStyle={{fontSize: '11px'}} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
     </div>
   );
 }
@@ -194,7 +243,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
   // Nilai (biaya ops) = totalValue × opsPercent. TIDAK mempengaruhi nilai tagihan.
   const opsCostRows = useMemo(() => filteredPoProjects.map(p => {
     const opsPercent = p.opsPercent !== undefined ? p.opsPercent : OPS_COST_DEFAULT;
-    return { id: p.id, sphNo: p.sphNo, customer: p.customer, totalValue: Number(p.totalValue) || 0, opsPercent, opsCostValue: (Number(p.totalValue) || 0) * opsPercent };
+    return { id: p.id, sphNo: p.sphNo, customer: p.customer, modality: p.modality || '', subModality: p.subModality || '', issuedDate: p.issuedDate || p.poIssuedAt || p.lastUpdate || '', totalValue: Number(p.totalValue) || 0, opsPercent, opsCostValue: (Number(p.totalValue) || 0) * opsPercent };
   }), [filteredPoProjects]);
   const totalOpsCost = useMemo(() => opsCostRows.reduce((s, r) => s + r.opsCostValue, 0), [opsCostRows]);
 
@@ -500,7 +549,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
         })}
       </div>
 
-      {tab === 'dashboard' && <FinanceDashboardCharts filteredPoProjects={filteredPoProjects} poProjects={poProjects} financePerformance={financePerformance} lang={lang} fmt={fmt} paymentTypeLabel={paymentTypeLabel} totalOpsCost={totalOpsCost} />}
+      {tab === 'dashboard' && <FinanceDashboardCharts filteredPoProjects={filteredPoProjects} poProjects={poProjects} financePerformance={financePerformance} lang={lang} fmt={fmt} paymentTypeLabel={paymentTypeLabel} totalOpsCost={totalOpsCost} opsCostRows={opsCostRows} />}
       {tab === 'profit' && <NetProfitAnalysis data={data} t={t} lang={lang} fmt={fmt} />}
       {tab === 'opscost' && (
         <div>

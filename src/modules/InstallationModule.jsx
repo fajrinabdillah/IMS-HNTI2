@@ -1,7 +1,9 @@
 // Extracted from App.jsx during modular refactor.
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, ClipboardList, Download, Edit2, FileCheck, FileText, Plus, Search, Trash2, Users, Wrench, X } from 'lucide-react';
-import { ConfirmDialog, Field, LinkAttachment, ReadOnlyBanner, SortToggle } from '../components/ui.jsx';
+import { Activity, CheckCircle2, ClipboardList, Download, Edit2, FileCheck, FileText, Plus, Search, Trash2, Users, Wrench, X } from 'lucide-react';
+import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { ChartTooltip, ConfirmDialog, Field, LinkAttachment, ReadOnlyBanner, SortToggle } from '../components/ui.jsx';
+import { CHART_COLORS } from '../constants/theme.js';
 import { DocumentEditorModal } from '../components/DocumentEditorModal.jsx';
 import { DEFAULT_DOCUMENT_TEMPLATES, DOC_TYPE_LABELS } from '../constants/docs.js';
 import { MODALITY_COLORS } from '../constants/sales.js';
@@ -14,7 +16,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
     const html = buildEditorTemplate(docType, record, employees, fmt, documentTemplates, record.salesOwner || record.requesterId);
     setInstallEditor({ record, docType, html, title: (label || DOC_TYPE_LABELS[docType] || 'Dokumen') + ' — ' + (record.customer || '') });
   };
-  const [tab, setTab] = useState('records');
+  const [tab, setTab] = useState('dashboard');
   // Default to current year (2026) — sync with SPH module behavior
   const [filterYear, setFilterYear] = useState('2026');
   const [search, setSearch] = useState('');
@@ -315,6 +317,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
       {/* Tabs */}
       <div style={{display: 'flex', gap: '2px', marginBottom: '22px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
         {[
+          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: Activity },
           { id: 'records', label: t.inst_tab_records, icon: ClipboardList },
           { id: 'training', label: t.inst_tab_training, icon: Users },
           { id: 'bast', label: t.inst_tab_bast, icon: FileCheck },
@@ -329,6 +332,17 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
           );
         })}
       </div>
+
+      {tab === 'dashboard' && (
+        <InstallationDashboard
+          installRecords={installRecordsFiltered}
+          bastRecords={bastRecordsFiltered}
+          trainingRecords={trainingRecordsFiltered}
+          installProjects={installProjects}
+          kpis={kpis}
+          t={t} lang={lang} fmt={fmt} employees={employees}
+        />
+      )}
 
       {tab === 'progress' && (
         <div style={{display: 'flex', flexDirection: 'column', gap: '14px'}}>
@@ -441,6 +455,178 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
           }}
         />
       )}
+    </div>
+  );
+}
+function InstallationDashboard({ installRecords = [], bastRecords = [], trainingRecords = [], installProjects = [], kpis = {}, t, lang, fmt = (n) => n, employees = {} }) {
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const dash = useMemo(() => {
+    const total = installRecords.length;
+    // Tren bulanan: instalasi dimulai vs selesai
+    const monthly = MONTHS.map((m, idx) => {
+      const mm = String(idx + 1).padStart(2, '0');
+      const started = installRecords.filter(r => (r.installStart || '').substring(5, 7) === mm).length;
+      const completed = installRecords.filter(r => r.status === 'completed' && ((r.installEnd || r.installStart || '').substring(5, 7) === mm)).length;
+      return { month: m, [lang === 'id' ? 'Dimulai' : 'Started']: started, [lang === 'id' ? 'Selesai' : 'Completed']: completed };
+    });
+    // Status instalasi
+    const statusDef = [
+      { id: 'planning', color: '#94a3b8' },
+      { id: 'progress', color: 'var(--ims-gold)' },
+      { id: 'completed', color: 'var(--ims-accent-2)' },
+      { id: 'delayed', color: '#c03030' },
+    ];
+    const statusData = statusDef.map(s => ({ name: t[`inst_status_${s.id}`] || s.id, value: installRecords.filter(r => r.status === s.id).length, color: s.color })).filter(x => x.value > 0);
+    // Per Rumah Sakit (Top 10)
+    const customerMap = installRecords.reduce((acc, r) => { const k = r.customer || '-'; acc[k] = (acc[k] || 0) + 1; return acc; }, {});
+    const customerData = Object.entries(customerMap).map(([name, value]) => ({ name: String(name).slice(0, 22), value })).sort((a, b) => b.value - a.value).slice(0, 10);
+    // Per modalitas
+    const modalityMap = installRecords.reduce((acc, r) => { const k = r.modality || (lang === 'id' ? 'Lainnya' : 'Other'); acc[k] = (acc[k] || 0) + 1; return acc; }, {});
+    const modalityData = Object.entries(modalityMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+    // Penyelesaian tahapan (uji fungsi, paparan, kesesuaian, kalibrasi, BAST, training)
+    const stageData = [
+      { stage: lang === 'id' ? 'Uji Fungsi' : 'Function Test', value: installRecords.filter(r => r.status === 'completed' || r.calibrationDone).length },
+      { stage: lang === 'id' ? 'Uji Paparan' : 'Exposure Test', value: installRecords.filter(r => r.exposureTest).length },
+      { stage: lang === 'id' ? 'Uji Kesesuaian' : 'Compliance Test', value: installRecords.filter(r => r.complianceTest).length },
+      { stage: lang === 'id' ? 'Kalibrasi' : 'Calibration', value: installRecords.filter(r => r.calibrationDone).length },
+      { stage: 'BAST', value: kpis.bastSignedCount || 0 },
+      { stage: 'Training', value: kpis.trainingDoneCount || 0 },
+    ];
+    // Status BAST
+    const bastDef = [
+      { id: 'draft', color: '#94a3b8' },
+      { id: 'pending', color: 'var(--ims-gold)' },
+      { id: 'signed', color: 'var(--ims-accent-2)' },
+    ];
+    const bastData = bastDef.map(s => ({ name: t[`bast_status_${s.id}`] || s.id, value: bastRecords.filter(r => r.status === s.id).length, color: s.color })).filter(x => x.value > 0);
+    // Status training
+    const trainData = [
+      { name: t.train_completed || (lang === 'id' ? 'Selesai' : 'Completed'), value: trainingRecords.filter(r => r.status === 'completed').length, color: 'var(--ims-accent-2)' },
+      { name: t.train_pending || (lang === 'id' ? 'Menunggu' : 'Pending'), value: trainingRecords.filter(r => r.status !== 'completed').length, color: 'var(--ims-gold)' },
+    ].filter(x => x.value > 0);
+    const trainingParticipants = trainingRecords.filter(r => r.status === 'completed').reduce((s, r) => s + (Number(r.participants) || 0), 0);
+    return { total, monthly, statusData, customerData, modalityData, stageData, bastData, trainData, trainingParticipants };
+  }, [installRecords, bastRecords, trainingRecords, kpis, t, lang]);
+
+  if (dash.total === 0) {
+    return <div style={{padding: '40px', textAlign: 'center', color: 'var(--ims-text-2)', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>{t.no_data}</div>;
+  }
+
+  const renderPie = (data, offset = 0) => (
+    <ResponsiveContainer width="100%" height={260}>
+      <PieChart>
+        <Pie data={data.length ? data : [{ name: '-', value: 0 }]} dataKey="value" nameKey="name" outerRadius={88} innerRadius={44} paddingAngle={2} label>
+          {(data.length ? data : [{ name: '-', value: 0, color: 'var(--ims-border)' }]).map((entry, index) => <Cell key={entry.name} fill={entry.color || CHART_COLORS[(index + offset) % CHART_COLORS.length]} />)}
+        </Pie>
+        <Tooltip content={<ChartTooltip fmt={(v) => v} />} />
+        <Legend wrapperStyle={{fontSize: '11px'}} />
+      </PieChart>
+    </ResponsiveContainer>
+  );
+
+  return (
+    <div style={{display: 'grid', gap: '16px'}}>
+      {/* Ringkasan angka */}
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1px', background: 'var(--ims-border)', border: '1px solid var(--ims-border)'}}>
+        {[
+          { label: lang === 'id' ? 'Total Instalasi' : 'Total Installations', value: dash.total, color: 'var(--ims-text)' },
+          { label: lang === 'id' ? 'Selesai' : 'Completed', value: kpis.completedCount || 0, color: 'var(--ims-accent-2)' },
+          { label: lang === 'id' ? 'Sedang Proses' : 'In Progress', value: kpis.inProgressCount || 0, color: 'var(--ims-gold)' },
+          { label: 'BAST Signed', value: kpis.bastSignedCount || 0, color: '#1a4d8a' },
+          { label: lang === 'id' ? 'Training Selesai' : 'Training Done', value: kpis.trainingDoneCount || 0, color: '#7b3fb5' },
+          { label: lang === 'id' ? 'Total Peserta Training' : 'Total Trainees', value: dash.trainingParticipants, color: 'var(--ims-text)' },
+        ].map(s => (
+          <div key={s.label} style={{padding: '16px 18px', background: 'var(--ims-bg-card)'}}>
+            <div className="lbl-tag">{s.label}</div>
+            <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px', color: s.color}}>{s.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Row 1: Tren bulanan + Status instalasi */}
+      <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px'}}>
+        <div className="card">
+          <div className="card-title">{lang === 'id' ? 'Tren Instalasi Bulanan' : 'Monthly Installation Trend'}</div>
+          <ResponsiveContainer width="100%" height={280}>
+            <ComposedChart data={dash.monthly} margin={{top: 8, right: 16, left: 0, bottom: 8}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--ims-border)" vertical={false} />
+              <XAxis dataKey="month" stroke="var(--ims-text-2)" style={{fontSize: 10}} />
+              <YAxis allowDecimals={false} stroke="var(--ims-text-2)" style={{fontSize: 10}} />
+              <Tooltip content={<ChartTooltip fmt={(v) => v} />} />
+              <Legend wrapperStyle={{fontSize: '11px'}} />
+              <Bar dataKey={lang === 'id' ? 'Dimulai' : 'Started'} fill="#5b8def" radius={[3, 3, 0, 0]} />
+              <Area dataKey={lang === 'id' ? 'Selesai' : 'Completed'} fill="#2f8f6f33" stroke="#2f8f6f" strokeWidth={2} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="card">
+          <div className="card-title">{lang === 'id' ? 'Status Instalasi' : 'Installation Status'}</div>
+          {renderPie(dash.statusData)}
+        </div>
+      </div>
+
+      {/* Row 2: Per RS + Per modalitas */}
+      <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px'}}>
+        <div className="card">
+          <div className="card-title">{lang === 'id' ? 'Instalasi per Rumah Sakit (Top 10)' : 'Installations by Hospital (Top 10)'}</div>
+          <ResponsiveContainer width="100%" height={Math.max(260, dash.customerData.length * 34)}>
+            <BarChart data={dash.customerData} layout="vertical" margin={{top: 8, right: 24, left: 90, bottom: 8}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--ims-border)" horizontal={false} />
+              <XAxis type="number" allowDecimals={false} stroke="var(--ims-text-2)" style={{fontSize: 10}} />
+              <YAxis type="category" dataKey="name" stroke="var(--ims-text-2)" style={{fontSize: 10}} width={88} />
+              <Tooltip content={<ChartTooltip fmt={(v) => v} />} />
+              <Bar dataKey="value" name={lang === 'id' ? 'Jumlah Instalasi' : 'Installations'} fill="#1a4d8a" radius={[0, 3, 3, 0]}>
+                {dash.customerData.map((entry, index) => <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="card">
+          <div className="card-title">{lang === 'id' ? 'Instalasi per Modalitas' : 'Installations by Modality'}</div>
+          {renderPie(dash.modalityData, 2)}
+        </div>
+      </div>
+
+      {/* Row 3: Penyelesaian tahapan + Status BAST/Training */}
+      <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px'}}>
+        <div className="card">
+          <div className="card-title">{lang === 'id' ? 'Penyelesaian Tahapan (Uji Fungsi, Paparan, BAST, Training)' : 'Stage Completion (Function/Exposure Test, BAST, Training)'}</div>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={dash.stageData} margin={{top: 8, right: 16, left: 0, bottom: 8}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--ims-border)" vertical={false} />
+              <XAxis dataKey="stage" stroke="var(--ims-text-2)" style={{fontSize: 10}} interval={0} angle={-12} textAnchor="end" height={60} />
+              <YAxis allowDecimals={false} stroke="var(--ims-text-2)" style={{fontSize: 10}} />
+              <Tooltip content={<ChartTooltip fmt={(v) => v} />} />
+              <Bar dataKey="value" name={lang === 'id' ? 'Unit Selesai' : 'Units Done'} radius={[3, 3, 0, 0]}>
+                {dash.stageData.map((entry, index) => <Cell key={entry.stage} fill={CHART_COLORS[index % CHART_COLORS.length]} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '6px'}}>{lang === 'id' ? 'Dibandingkan total' : 'Out of total'} <strong>{dash.total}</strong> {lang === 'id' ? 'data instalasi' : 'installation records'}</div>
+        </div>
+        <div className="card" style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+          <div className="card-title">{lang === 'id' ? 'Status BAST' : 'BAST Status'}</div>
+          <ResponsiveContainer width="100%" height={130}>
+            <PieChart>
+              <Pie data={dash.bastData.length ? dash.bastData : [{ name: '-', value: 0 }]} dataKey="value" nameKey="name" outerRadius={56} label>
+                {(dash.bastData.length ? dash.bastData : [{ name: '-', value: 0, color: 'var(--ims-border)' }]).map((entry) => <Cell key={entry.name} fill={entry.color || 'var(--ims-border)'} />)}
+              </Pie>
+              <Tooltip content={<ChartTooltip fmt={(v) => v} />} />
+              <Legend wrapperStyle={{fontSize: '10px'}} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="card-title" style={{marginTop: '4px'}}>{lang === 'id' ? 'Status Training' : 'Training Status'}</div>
+          <ResponsiveContainer width="100%" height={130}>
+            <PieChart>
+              <Pie data={dash.trainData.length ? dash.trainData : [{ name: '-', value: 0 }]} dataKey="value" nameKey="name" outerRadius={56} label>
+                {(dash.trainData.length ? dash.trainData : [{ name: '-', value: 0, color: 'var(--ims-border)' }]).map((entry) => <Cell key={entry.name} fill={entry.color || 'var(--ims-border)'} />)}
+              </Pie>
+              <Tooltip content={<ChartTooltip fmt={(v) => v} />} />
+              <Legend wrapperStyle={{fontSize: '10px'}} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1016,4 +1202,4 @@ function TrainingCertModal({ record, onSave, onClose, t, lang, units = [], insta
   );
 }
 
-export { InstallationModule, InstallRecordsList, BASTList, TrainingCertList, UnitPickerField, findInstallRecordForUnit, installLeadTechnicianName, activeEmployeeNamesByRole, InstallRecordModal, BASTModal, TrainingCertModal };
+export { InstallationModule, InstallationDashboard, InstallRecordsList, BASTList, TrainingCertList, UnitPickerField, findInstallRecordForUnit, installLeadTechnicianName, activeEmployeeNamesByRole, InstallRecordModal, BASTModal, TrainingCertModal };

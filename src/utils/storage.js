@@ -95,10 +95,13 @@ const _supaReq = async (path, opts = {}) => {
   }
   return res;
 };
+// VAPID public key aman untuk dipublikasikan (bukan rahasia). Fallback hardcoded
+// dipakai jika env VITE_VAPID_PUBLIC_KEY tidak diset di Vercel, agar push tetap jalan.
+const _VAPID_PUBLIC_KEY_FALLBACK = 'BKP8dxr9JNspS7TgSKhI2AcXPMKRWj2K1zU34_TNyerXhS4VFxjNKYRGXUyY0jqB6e5YRbz_SG0vhiBYXrkh4Qc';
 const _pushVapidPublicKey = () =>
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_VAPID_PUBLIC_KEY)
     ? import.meta.env.VITE_VAPID_PUBLIC_KEY
-    : '';
+    : _VAPID_PUBLIC_KEY_FALLBACK;
 const _urlBase64ToUint8Array = (base64String) => {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');

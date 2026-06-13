@@ -5,6 +5,7 @@ import { BUSINESS_PARTNERS, MODALITY_COLORS, PROJECT_TYPES, STAGES } from '../co
 import { ChartTooltip, KPICard, PieCard } from '../components/ui.jsx';
 import { OPS_COST_DEFAULT } from '../constants/finance.js';
 import { getActiveSalesTeam, resolveEmpName } from '../utils/domain.js';
+import { currentYear } from '../utils/format.js';
 function Dashboard({ data, reports, products, t, lang, session, fmt, employees = {} }) {
   // PERFORMANCE FIX: All filters/maps wrapped in useMemo to avoid recomputing on every render
   // (was causing scroll lag with 613 SPH records)
@@ -57,9 +58,10 @@ function Dashboard({ data, reports, products, t, lang, session, fmt, employees =
   ].filter(d => d.value > 0), [activeData, t]);
 
   const monthlyTrend = useMemo(() => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May'];
+    const yr = currentYear();
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     return months.map((m, i) => {
-      const monthData = data.filter(s => { const d = new Date(s.issuedDate); return d.getFullYear() === 2026 && d.getMonth() === i; });
+      const monthData = data.filter(s => { const d = new Date(s.issuedDate); return d.getFullYear() === yr && d.getMonth() === i; });
       return {
         month: m,
         pipeline: monthData.reduce((s, p) => s + p.totalValue, 0),
@@ -168,47 +170,48 @@ function Dashboard({ data, reports, products, t, lang, session, fmt, employees =
 
       {/* Year-over-Year Growth Chart */}
       {(() => {
-        const sph2025 = data.filter(s => s.issuedDate?.startsWith('2025'));
-        const sph2026 = data.filter(s => s.issuedDate?.startsWith('2026'));
-        const po2025 = sph2025.filter(s => s.poStatus === 'issued');
-        const po2026 = sph2026.filter(s => s.poStatus === 'issued');
+        const cy = currentYear();
+        const py = cy - 1;
+        const sphPrev = data.filter(s => s.issuedDate?.startsWith(String(py)));
+        const sphCurr = data.filter(s => s.issuedDate?.startsWith(String(cy)));
+        const poPrev = sphPrev.filter(s => s.poStatus === 'issued');
+        const poCurr = sphCurr.filter(s => s.poStatus === 'issued');
 
-        // Jan-May comparison
-        const yoyData = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei'].map((m, i) => {
+        const yoyData = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'].map((m, i) => {
           const mn = String(i + 1).padStart(2, '0');
           return {
             month: m,
-            'SPH 2025': sph2025.filter(s => s.issuedDate.startsWith(`2025-${mn}`)).length,
-            'SPH 2026': sph2026.filter(s => s.issuedDate.startsWith(`2026-${mn}`)).length,
-            'PO 2025': po2025.filter(s => s.issuedDate.startsWith(`2025-${mn}`)).length,
-            'PO 2026': po2026.filter(s => s.issuedDate.startsWith(`2026-${mn}`)).length,
+            [`SPH ${py}`]: sphPrev.filter(s => s.issuedDate.startsWith(`${py}-${mn}`)).length,
+            [`SPH ${cy}`]: sphCurr.filter(s => s.issuedDate.startsWith(`${cy}-${mn}`)).length,
+            [`PO ${py}`]: poPrev.filter(s => s.issuedDate.startsWith(`${py}-${mn}`)).length,
+            [`PO ${cy}`]: poCurr.filter(s => s.issuedDate.startsWith(`${cy}-${mn}`)).length,
           };
         });
 
-        const totalSph2025 = sph2025.length, totalSph2026 = sph2026.length;
-        const totalPo2025 = po2025.length, totalPo2026 = po2026.length;
-        const sphGrowth = totalSph2025 ? ((totalSph2026 - totalSph2025) / totalSph2025 * 100) : 0;
-        const poGrowth = totalPo2025 ? ((totalPo2026 - totalPo2025) / totalPo2025 * 100) : 0;
+        const totalSphPrev = sphPrev.length, totalSphCurr = sphCurr.length;
+        const totalPoPrev = poPrev.length, totalPoCurr = poCurr.length;
+        const sphGrowth = totalSphPrev ? ((totalSphCurr - totalSphPrev) / totalSphPrev * 100) : 0;
+        const poGrowth = totalPoPrev ? ((totalPoCurr - totalPoPrev) / totalPoPrev * 100) : 0;
 
         return (
           <div className="card" style={{marginBottom: '20px'}}>
             <div className="card-title">{t.yoy_title} <span style={{fontSize: '10px', fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--ims-text-2)', marginLeft: '8px'}}>· {t.yoy_subtitle}</span></div>
             <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '14px', marginBottom: '20px'}}>
               <div style={{padding: '14px', background: 'rgba(94,135,184,0.10)', borderLeft: '3px solid #5b87b8'}}>
-                <div style={{fontSize: '10px', letterSpacing: '0.18em', color: 'var(--ims-text-2)', textTransform: 'uppercase'}}>{t.yoy_sph_2025}</div>
-                <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{totalSph2025}</div>
+                <div style={{fontSize: '10px', letterSpacing: '0.18em', color: 'var(--ims-text-2)', textTransform: 'uppercase'}}>SPH {py}</div>
+                <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{totalSphPrev}</div>
               </div>
               <div style={{padding: '14px', background: 'rgba(26,77,138,0.10)', borderLeft: '3px solid #1a4d8a'}}>
-                <div style={{fontSize: '10px', letterSpacing: '0.18em', color: 'var(--ims-text-2)', textTransform: 'uppercase'}}>{t.yoy_sph_2026}</div>
-                <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{totalSph2026} <span style={{fontSize: '12px', color: sphGrowth >= 0 ? 'var(--ims-accent-2)' : '#8b3a3a'}}>{sphGrowth >= 0 ? '↑' : '↓'}{Math.abs(sphGrowth).toFixed(0)}%</span></div>
+                <div style={{fontSize: '10px', letterSpacing: '0.18em', color: 'var(--ims-text-2)', textTransform: 'uppercase'}}>SPH {cy}</div>
+                <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{totalSphCurr} <span style={{fontSize: '12px', color: sphGrowth >= 0 ? 'var(--ims-accent-2)' : '#8b3a3a'}}>{sphGrowth >= 0 ? '↑' : '↓'}{Math.abs(sphGrowth).toFixed(0)}%</span></div>
               </div>
               <div style={{padding: '14px', background: 'rgba(200,169,106,0.12)', borderLeft: '3px solid var(--ims-accent)'}}>
-                <div style={{fontSize: '10px', letterSpacing: '0.18em', color: 'var(--ims-text-2)', textTransform: 'uppercase'}}>{t.yoy_po_2025}</div>
-                <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{totalPo2025}</div>
+                <div style={{fontSize: '10px', letterSpacing: '0.18em', color: 'var(--ims-text-2)', textTransform: 'uppercase'}}>PO {py}</div>
+                <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{totalPoPrev}</div>
               </div>
               <div style={{padding: '14px', background: 'rgba(58,107,58,0.10)', borderLeft: '3px solid var(--ims-accent-2)'}}>
-                <div style={{fontSize: '10px', letterSpacing: '0.18em', color: 'var(--ims-text-2)', textTransform: 'uppercase'}}>{t.yoy_po_2026}</div>
-                <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{totalPo2026} <span style={{fontSize: '12px', color: poGrowth >= 0 ? 'var(--ims-accent-2)' : '#8b3a3a'}}>{poGrowth >= 0 ? '↑' : '↓'}{Math.abs(poGrowth).toFixed(0)}%</span></div>
+                <div style={{fontSize: '10px', letterSpacing: '0.18em', color: 'var(--ims-text-2)', textTransform: 'uppercase'}}>PO {cy}</div>
+                <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{totalPoCurr} <span style={{fontSize: '12px', color: poGrowth >= 0 ? 'var(--ims-accent-2)' : '#8b3a3a'}}>{poGrowth >= 0 ? '↑' : '↓'}{Math.abs(poGrowth).toFixed(0)}%</span></div>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={260}>
@@ -218,10 +221,10 @@ function Dashboard({ data, reports, products, t, lang, session, fmt, employees =
                 <YAxis stroke="var(--ims-text-2)" style={{fontSize: 10}} />
                 <Tooltip content={<ChartTooltip />} />
                 <Legend wrapperStyle={{fontSize: '11px'}} />
-                <Bar dataKey="SPH 2025" fill="#5b87b8" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="SPH 2026" fill="#1a4d8a" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="PO 2025" fill="var(--ims-accent)" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="PO 2026" fill="var(--ims-accent-2)" radius={[3, 3, 0, 0]} />
+                <Bar dataKey={`SPH ${py}`} fill="#5b87b8" radius={[3, 3, 0, 0]} />
+                <Bar dataKey={`SPH ${cy}`} fill="#1a4d8a" radius={[3, 3, 0, 0]} />
+                <Bar dataKey={`PO ${py}`} fill="var(--ims-accent)" radius={[3, 3, 0, 0]} />
+                <Bar dataKey={`PO ${cy}`} fill="var(--ims-accent-2)" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

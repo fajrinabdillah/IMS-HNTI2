@@ -115,6 +115,20 @@ function _num(v) {
   const n = parseFloat(s);
   return isNaN(n) ? 0 : n;
 }
+/** Start of local calendar day — use for PM/expiry comparisons instead of hardcoded dates. */
+function todayStart() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+function currentYear() {
+  return new Date().getFullYear();
+}
+/** Return sorted copy — never mutate memoized/state arrays in render. */
+function sortCopy(arr, compareFn) {
+  return [...arr].sort(compareFn);
+}
+
 function _normDate(v) {
   const s = String(v || '').trim();
   if (!s) return '';
@@ -127,4 +141,4 @@ function _normDate(v) {
   return s;
 }
 
-export { initialOf, formatCurrency, formatCurrencyFull, formatDateTime, parseSafeDateMs, dateOnlyFromValue, addDateOnlyDays, normalizeExternalUrl, formatDuration, inferMimeFromName, formatFileSize, escapeHtml, safeDocFilename, _normHdr, _num, _normDate };
+export { initialOf, formatCurrency, formatCurrencyFull, formatDateTime, parseSafeDateMs, dateOnlyFromValue, addDateOnlyDays, normalizeExternalUrl, formatDuration, inferMimeFromName, formatFileSize, escapeHtml, safeDocFilename, _normHdr, _num, _normDate, todayStart, currentYear, sortCopy };

@@ -7,7 +7,7 @@ import { DocumentEditorModal } from '../components/DocumentEditorModal.jsx';
 import { DEFAULT_DOCUMENT_TEMPLATES } from '../constants/docs.js';
 import { CICILAN_DP_OPTIONS, CICILAN_TERM_OPTIONS, KSO_INVESTOR_PCT_OPTIONS, KSO_YEAR_OPTIONS, MODALITY_COLORS, PROJECT_TYPES, STAGES, TENDER_SUBSTAGES } from '../constants/sales.js';
 import { addDaysIso, computeInvoiceSchedule, detectSalesOwnerFromCustomer, getActiveSalesTeam, getFactoryProductionDays, resolveCustomerSector, resolveDealModel, resolveEmpName, resolveProductRecord } from '../utils/domain.js';
-import { formatDateTime, formatDuration, normalizeExternalUrl } from '../utils/format.js';
+import { formatDateTime, formatDuration, normalizeExternalUrl, todayStart } from '../utils/format.js';
 import { getProjectStageRows, SPH_WORKFLOW_LABELS } from '../utils/sphStage.js';
 import { buildEditorTemplate, downloadCSV, downloadSPHWord, downloadSPPWord, printHtmlStringAsPdf, printSPHPdf, printSPPPdf } from '../utils/documents.js';
 import { parseSPHImport } from '../utils/csvImport.js';
@@ -486,12 +486,13 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
   const productFilterOptions = useMemo(() => [...new Set(data.flatMap(s => [s.modality, s.subModality, s.productBrand, s.brand]).filter(Boolean))].sort(), [data]);
 
   const filteredStats = useMemo(() => {
-    const filtered = data.filter(s => {
+    const matched = data.filter(s => {
       const matchSearch = !search || s.sphNo.toLowerCase().includes(search.toLowerCase()) || s.customer.toLowerCase().includes(search.toLowerCase()) || s.subModality.toLowerCase().includes(search.toLowerCase());
       const matchYear = filterYear === 'all' || s.issuedDate?.startsWith(filterYear);
       const matchProduct = filterProduct === 'all' || [s.modality, s.subModality, s.productBrand, s.brand].filter(Boolean).includes(filterProduct);
       return matchSearch && matchYear && matchProduct && (filterPType === 'all' || s.projectType === filterPType) && (filterStatus === 'all' || s.status === filterStatus);
-    }).sort((a, b) => {
+    });
+    const filtered = [...matched].sort((a, b) => {
       if (sortSPH === 'value_desc') return (Number(b.totalValue) || 0) - (Number(a.totalValue) || 0);
       if (sortSPH === 'value_asc') return (Number(a.totalValue) || 0) - (Number(b.totalValue) || 0);
       if (sortSPH === 'product') return String(a.subModality || a.modality || '').localeCompare(String(b.subModality || b.modality || ''));
@@ -782,9 +783,9 @@ function PipelineBoard({ data, allData, setData, employees = {}, session, logAct
 
     // WIN RATE MODE — choose denominator carefully to avoid misleading numbers
     // 'current': year-filtered closed only (can be misleading early in year due to small sample)
-    // 'ttm': trailing 12 months from today (May 2026) — most representative for ongoing business
+    // 'ttm': trailing 12 months from today — most representative for ongoing business
     // 'all': cumulative since inception
-    const today = new Date('2026-05-31');
+    const today = todayStart();
     const ttmStart = new Date(today); ttmStart.setMonth(ttmStart.getMonth() - 12);
     const ttmDeals = data.filter(s => {
       const d = s.issuedDate ? new Date(s.issuedDate) : null;
@@ -1098,7 +1099,7 @@ function SalesModule({ data, reports, t, lang, fmt, employees = {} }) {
   const [dealFilter, setDealFilter] = useState('all');
   const allSelectedDeals = useMemo(() => {
     if (selectedSales === 'all') return [];
-    return data.filter(s => s.salesOwner === selectedSales).sort((a, b) => (Number(b.totalValue)||0) - (Number(a.totalValue)||0));
+    return [...data.filter(s => s.salesOwner === selectedSales)].sort((a, b) => (Number(b.totalValue)||0) - (Number(a.totalValue)||0));
   }, [data, selectedSales]);
   const dealCounts = useMemo(() => ({
     all: allSelectedDeals.length,

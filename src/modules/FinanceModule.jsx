@@ -9,7 +9,7 @@ import { OPS_COST_DEFAULT, NET_MARGIN_BY_MODALITY, NET_MARGIN_DEFAULT } from '..
 import { MODALITY_COLORS } from '../constants/sales.js';
 import { CHART_COLORS } from '../constants/theme.js';
 import { effectiveScheme, getPaymentSummary, calcNetProfit, generatePaymentSchedule } from '../utils/domain.js';
-import { formatDuration } from '../utils/format.js';
+import { formatDuration, currentYear } from '../utils/format.js';
 import { buildEditorTemplate, downloadCSV } from '../utils/documents.js';
 import { parsePaymentImport } from '../utils/csvImport.js';
 import { notify } from '../utils/notifications.js';
@@ -35,7 +35,7 @@ function FinanceDashboardCharts({ filteredPoProjects, poProjects, financePerform
     .map(([name, value]) => ({ name, value: Math.round(value) }))
     .sort((a, b) => b.value - a.value);
   const monthlyData = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'].map((m, idx) => {
-    const key = `2026-${String(idx + 1).padStart(2, '0')}`;
+    const key = `${currentYear()}-${String(idx + 1).padStart(2, '0')}`;
     const rows = filteredPoProjects.flatMap(p => (p.paymentHistory || []).map(h => ({ p, h }))).filter(x => String(x.h.date || x.h.recordedAt || '').startsWith(key));
     return {
       month: m,
@@ -903,9 +903,9 @@ function NetProfitAnalysis({ data, t, lang, fmt }) {
       return { modality: mod, revenue: rev, profit: prof, margin, count: deals.length, defaultMargin: NET_MARGIN_BY_MODALITY[mod] || NET_MARGIN_DEFAULT };
     }).sort((a, b) => b.profit - a.profit);
     // Monthly trend
-    const monthlyTrend = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei'].map((m, i) => {
+    const monthlyTrend = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'].map((m, i) => {
       const mn = String(i + 1).padStart(2, '0');
-      const monthDeals = realizedDeals.filter(s => s.issuedDate?.startsWith(`2026-${mn}`));
+      const monthDeals = realizedDeals.filter(s => s.issuedDate?.startsWith(`${currentYear()}-${mn}`));
       const rev = monthDeals.reduce((sum, s) => sum + calcNetProfit(s).revenue, 0);
       const prof = monthDeals.reduce((sum, s) => sum + calcNetProfit(s).netProfit, 0);
       return { month: m, [t.np_revenue]: rev, [t.np_profit]: prof };

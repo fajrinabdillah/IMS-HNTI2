@@ -1,5 +1,6 @@
 // Extracted from App.jsx during modular refactor.
 import { detectPaymentScheme, detectSalesOwnerFromCustomer, importPipelineLabel, normalizeImportPipelineStatus, normalizeProduct, projectHasDpReceived, resolveProductId, TECHNICIAN_NAMES } from '../utils/domain.js';
+import { todayStart } from '../utils/format.js';
 import { PRODUCT_MASTER_SEED } from '../constants/sales.js';
 import { SEED_BUSINESS_TRIPS, SEED_BT_REALIZATIONS } from '../constants/seedData.js';
 function generateHntiSph2026Seed() {
@@ -267,7 +268,7 @@ function generateInstalledUnits() {
     const installMonth = parseInt(installDate.substring(5, 7));
     const warrantyEnd = `${installYear + 2}-${String(installMonth).padStart(2, '0')}-${installDate.substring(8)}`;
     // PM SCHEDULE (#7): first PM exactly 6 calendar months after install, then every 6 months.
-    const today = new Date('2026-05-31');
+    const today = todayStart();
     const installD = new Date(installDate + 'T00:00:00');
     // Count completed 6-month cycles since install (first PM is at +6 months)
     let pmsDone = 0;

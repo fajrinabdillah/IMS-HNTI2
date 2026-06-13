@@ -8,7 +8,7 @@ import { MODALITY_COLORS } from '../constants/sales.js';
 import { REG_AUTHORITY, REG_PERMIT_PREFIX, REG_PNBP_DEFAULT, REG_STAGES_DEFAULT, REG_STAGE_COLORS, REG_STAGE_DATE_FIELD, REG_TYPE_LABELS } from '../constants/regulatory.js';
 import { UnitPickerField } from './InstallationModule.jsx';
 import { appendStageHistoryEntry, getRegStages, getStageMetrics, migrateRegRecord } from '../utils/domain.js';
-import { formatDuration, parseSafeDateMs } from '../utils/format.js';
+import { formatDuration, parseSafeDateMs, todayStart } from '../utils/format.js';
 import { notify } from '../utils/notifications.js';
 function RegulatoryDashboardCharts({ recordGroups, filterSearch = '', filterYear = 'all', t, lang }) {
   const rows = Object.entries(recordGroups || {}).flatMap(([type, list]) => (Array.isArray(list) ? list : []).map(r => ({ ...migrateRegRecord(r, type), recordType: type }))).filter(Boolean);
@@ -290,15 +290,17 @@ function UniformRegPipeline({ records, setRecords, recordType, t, lang, fmt = (v
     .sort((a, b) => a.customer.localeCompare(b.customer)) : [], [data, recordType]);
 
   // PI expiry enrichment
-  const piToday = new Date('2026-05-16');
-  const enriched = useMemo(() => recordType === 'pi' ? normRecords.map(r => {
-    if (r.stage !== 'issued' || !r.expiredDate) return { ...r, daysRemaining: null, computedStatus: r.stage === 'issued' ? (r.status || 'active') : null };
-    const expDate = new Date(r.expiredDate);
-    const daysRemaining = Math.ceil((expDate - piToday) / (1000 * 60 * 60 * 24));
-    let computedStatus = r.status || 'active';
-    if (computedStatus !== 'used' && daysRemaining < 0) computedStatus = 'expired';
-    return { ...r, daysRemaining, computedStatus };
-  }) : normRecords, [normRecords, recordType]);
+  const enriched = useMemo(() => {
+    const piToday = todayStart();
+    return recordType === 'pi' ? normRecords.map(r => {
+      if (r.stage !== 'issued' || !r.expiredDate) return { ...r, daysRemaining: null, computedStatus: r.stage === 'issued' ? (r.status || 'active') : null };
+      const expDate = new Date(r.expiredDate);
+      const daysRemaining = Math.ceil((expDate - piToday) / (1000 * 60 * 60 * 24));
+      let computedStatus = r.status || 'active';
+      if (computedStatus !== 'used' && daysRemaining < 0) computedStatus = 'expired';
+      return { ...r, daysRemaining, computedStatus };
+    }) : normRecords;
+  }, [normRecords, recordType]);
 
   const filteredRecords = useMemo(() => {
     const q = String(filterSearch || '').trim().toLowerCase();

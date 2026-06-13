@@ -232,7 +232,7 @@ function BusinessTripModule({ businessTrips, setBusinessTrips, realizations, set
     }
     arr = arr.filter(matchesBtFilters);
     // Sort: newest first
-    return arr.sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''));
+    return [...arr].sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''));
   }, [businessTrips, session, filterView, canManageAll, employees, btSearchTerm, btYear]);
 
   // Stats
@@ -413,7 +413,7 @@ function BusinessTripModule({ businessTrips, setBusinessTrips, realizations, set
       else arr = arr.filter(r => ['pending_finance', 'pending_mops', 'pending_gm'].includes(r.status));
     }
     arr = arr.filter(matchesBtFilters);
-    return arr.sort((a, b) => (b.submittedAt || b.updatedAt || '').localeCompare(a.submittedAt || a.updatedAt || ''));
+    return [...arr].sort((a, b) => (b.submittedAt || b.updatedAt || '').localeCompare(a.submittedAt || a.updatedAt || ''));
   }, [realizations, session, filterView, canManageAll, employees, btSearchTerm, btYear]);
 
   // Stats for realization tab

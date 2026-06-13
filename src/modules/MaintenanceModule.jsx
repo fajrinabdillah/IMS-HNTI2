@@ -1,11 +1,261 @@
 // Extracted from App.jsx during modular refactor.
 import { useMemo, useState } from 'react';
-import { AlertTriangle, CalendarDays, Edit2, Plus, Search, Trash2, Wrench, X } from 'lucide-react';
-import { ConfirmDialog, Field, ReadOnlyBanner, SortToggle, Td, Th } from '../components/ui.jsx';
+import { AlertTriangle, CalendarDays, Edit2, LayoutDashboard, Plus, Search, Sparkles, Trash2, Wrench, X, Zap } from 'lucide-react';
+import { Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, PieChart, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { ChartTooltip, ConfirmDialog, Field, ReadOnlyBanner, SortToggle, Td, Th } from '../components/ui.jsx';
+import { CHART_COLORS } from '../constants/theme.js';
 import { MODALITY_COLORS } from '../constants/sales.js';
 import { TECHNICIAN_NAMES, resolveEmpName } from '../utils/domain.js';
+import { todayStart } from '../utils/format.js';
+
+const MT_GLASS = {
+  background: 'linear-gradient(145deg, rgba(192,48,48,0.08) 0%, rgba(91,141,239,0.06) 45%, rgba(47,143,111,0.05) 100%)',
+  border: '1px solid rgba(192,48,48,0.18)',
+  boxShadow: '0 0 28px rgba(192,48,48,0.06), inset 0 1px 0 rgba(255,255,255,0.05)',
+};
+
+const SYMPTOM_STOP = new Set(['dan', 'atau', 'yang', 'dengan', 'pada', 'tidak', 'ada', 'sudah', 'dari', 'untuk', 'the', 'and', 'with', 'from', 'this', 'that', 'adalah', 'akan', 'telah', 'masih', 'sangat', 'lebih', 'unit', 'alat', 'rs']);
+
+function topSymptoms(issues, limit = 10) {
+  const freq = {};
+  issues.forEach(i => {
+    `${i.issue || ''} ${i.note || ''} ${i.resolutionNote || ''}`.toLowerCase().split(/[\s,;./\\-]+/).forEach(w => {
+      w = w.replace(/[^a-z0-9]/gi, '').trim();
+      if (w.length < 4 || SYMPTOM_STOP.has(w)) return;
+      freq[w] = (freq[w] || 0) + 1;
+    });
+  });
+  return Object.entries(freq).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, limit);
+}
+
+function equipmentFailureRank(issues, units) {
+  const freq = {};
+  issues.forEach(i => {
+    const unit = i.unitId ? units.find(u => u.id === i.unitId) : null;
+    const label = unit
+      ? `${unit.customer} · ${unit.subModality || unit.modality}`
+      : `${i.customer || '?'} · ${i.subModality || i.modality || '?'}`;
+    freq[label] = (freq[label] || 0) + 1;
+  });
+  return Object.entries(freq).map(([name, value]) => ({ name: name.length > 32 ? name.slice(0, 29) + '…' : name, value })).sort((a, b) => b.value - a.value).slice(0, 10);
+}
+
+function MaintenanceDashboard({ units, issues, pmSchedule, unitsByPmStatus, repairs, complaints, pmNotifications, lang, t, onNavigateTab }) {
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const dash = useMemo(() => {
+    const allIssues = [...repairs, ...complaints];
+    const openIssues = issues.filter(i => i.status !== 'resolved');
+    const pmOverdue = unitsByPmStatus.filter(u => u.pmStatus === 'overdue').length;
+    const pmUpcoming = unitsByPmStatus.filter(u => u.pmStatus === 'upcoming').length;
+    const byModality = allIssues.reduce((acc, i) => { const k = i.modality || 'Other'; acc[k] = (acc[k] || 0) + 1; return acc; }, {});
+    const modalityData = Object.entries(byModality).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+    const bySubModality = allIssues.reduce((acc, i) => {
+      const k = i.subModality || i.modality || 'Unknown';
+      acc[k] = (acc[k] || 0) + 1;
+      return acc;
+    }, {});
+    const componentData = Object.entries(bySubModality).map(([name, value]) => ({ name: name.length > 22 ? name.slice(0, 20) + '…' : name, value })).sort((a, b) => b.value - a.value).slice(0, 10);
+    const monthlyIssues = MONTHS.map((m, idx) => {
+      const mm = String(idx + 1).padStart(2, '0');
+      return {
+        month: m,
+        [lang === 'id' ? 'Perbaikan' : 'Repairs']: repairs.filter(i => (i.reportedDate || '').substring(5, 7) === mm).length,
+        [lang === 'id' ? 'Keluhan' : 'Complaints']: complaints.filter(i => (i.reportedDate || '').substring(5, 7) === mm).length,
+      };
+    });
+    const statusData = [
+      { name: lang === 'id' ? 'Terbuka' : 'Open', value: issues.filter(i => i.status === 'open').length, color: '#c03030' },
+      { name: lang === 'id' ? 'Proses' : 'In Progress', value: issues.filter(i => i.status === 'progress').length, color: 'var(--ims-gold)' },
+      { name: lang === 'id' ? 'Selesai' : 'Resolved', value: issues.filter(i => i.status === 'resolved').length, color: 'var(--ims-accent-2)' },
+    ].filter(x => x.value > 0);
+    const priorityData = ['critical', 'high', 'medium', 'low'].map(p => ({
+      name: t[`mt_priority_${p}`] || p,
+      value: issues.filter(i => i.priority === p).length,
+      color: { critical: '#7b1f1f', high: '#c03030', medium: 'var(--ims-gold)', low: '#5b87b8' }[p],
+    })).filter(x => x.value > 0);
+    const topEquipment = equipmentFailureRank(allIssues, units);
+    const topSymptomWords = topSymptoms(allIssues);
+    const radarData = [
+      { pillar: 'PM', score: Math.min(100, Math.max(0, 100 - pmOverdue * 8 - pmUpcoming * 3)), full: 100 },
+      { pillar: lang === 'id' ? 'Perbaikan' : 'Repairs', score: Math.min(100, repairs.length * 6), full: 100 },
+      { pillar: lang === 'id' ? 'Keluhan' : 'Complaints', score: Math.min(100, complaints.length * 6), full: 100 },
+      { pillar: lang === 'id' ? 'Terbuka' : 'Open', score: Math.min(100, openIssues.length * 10), full: 100 },
+      { pillar: lang === 'id' ? 'Unit' : 'Units', score: Math.min(100, units.length * 2), full: 100 },
+    ];
+    return { allIssues, openIssues, pmOverdue, pmUpcoming, modalityData, componentData, monthlyIssues, statusData, priorityData, topEquipment, topSymptomWords, radarData, pmRecords: pmSchedule.length };
+  }, [units, issues, pmSchedule, unitsByPmStatus, repairs, complaints, lang, t]);
+
+  const quickLinks = [
+    { id: 'schedule', label: t.mt_tab_schedule, count: units.length, icon: CalendarDays, color: '#5b8def' },
+    { id: 'repair', label: t.mt_tab_repair, count: repairs.length, icon: Wrench, color: '#c03030' },
+    { id: 'complaint', label: t.mt_tab_complaint, count: complaints.length, icon: AlertTriangle, color: 'var(--ims-gold)' },
+  ];
+
+  return (
+    <div style={{display: 'grid', gap: '18px'}}>
+      <div style={{...MT_GLASS, padding: '22px 24px', position: 'relative', overflow: 'hidden'}}>
+        <div style={{position: 'absolute', top: '-30px', right: '-10px', width: '160px', height: '160px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(192,48,48,0.15) 0%, transparent 70%)', pointerEvents: 'none'}} />
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap'}}>
+          <div>
+            <div style={{display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', letterSpacing: '0.25em', textTransform: 'uppercase', color: '#c03030', marginBottom: '8px'}}>
+              <Sparkles size={13} /> {lang === 'id' ? 'Maintenance Command Center' : 'Maintenance Command Center'}
+            </div>
+            <h2 className="serif" style={{fontSize: '28px', fontWeight: 500, margin: 0}}>{lang === 'id' ? 'Dashboard Pemeliharaan' : 'Maintenance Dashboard'}</h2>
+            <p style={{fontSize: '12px', color: 'var(--ims-text-2)', margin: '8px 0 0', maxWidth: '540px'}}>
+              {lang === 'id' ? 'Pantau alat paling sering rusak, gejala/komponen bermasalah, jadwal PM, perbaikan & keluhan — terintegrasi realtime.' : 'Monitor failure-prone equipment, recurring symptoms/components, PM schedule, repairs & complaints — realtime integrated.'}
+            </p>
+          </div>
+          <div style={{display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', border: '1px solid rgba(47,143,111,0.35)', background: 'rgba(47,143,111,0.08)', fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ims-accent-2)'}}>
+            <Zap size={12} /> LIVE SYNC
+          </div>
+        </div>
+      </div>
+
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1px', background: 'var(--ims-border)', border: '1px solid var(--ims-border)'}}>
+        {[
+          { label: t.mt_total_units, value: units.length, sub: `${dash.pmOverdue} PM ${lang === 'id' ? 'terlewat' : 'overdue'}`, color: 'var(--ims-text)' },
+          { label: t.mt_open_issues, value: dash.openIssues.length, sub: `${repairs.length} ${lang === 'id' ? 'perbaikan' : 'repairs'}`, color: '#c03030' },
+          { label: t.mt_tab_complaint, value: complaints.length, sub: lang === 'id' ? 'keluhan pelanggan' : 'customer complaints', color: 'var(--ims-gold)' },
+          { label: lang === 'id' ? 'PM Bulan Ini' : 'PM This Month', value: dash.pmUpcoming + dash.pmOverdue, sub: `${pmNotifications.length} ${lang === 'id' ? 'alert aktif' : 'active alerts'}`, color: '#5b8def' },
+          { label: lang === 'id' ? 'Catatan PM Manual' : 'Manual PM Records', value: dash.pmRecords, sub: lang === 'id' ? 'oleh teknisi' : 'by technicians', color: '#7b3fb5' },
+        ].map(k => (
+          <div key={k.label} style={{padding: '16px 18px', background: 'var(--ims-bg-card)'}}>
+            <div className="lbl-tag">{k.label}</div>
+            <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: k.color}}>{k.value}</div>
+            <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '4px'}}>{k.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px'}}>
+        {quickLinks.map(link => {
+          const Icon = link.icon;
+          return (
+            <button key={link.id} onClick={() => onNavigateTab(link.id)} style={{...MT_GLASS, padding: '14px 16px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '12px'}}>
+              <div style={{width: '36px', height: '36px', borderRadius: '8px', background: link.color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', color: link.color}}><Icon size={18} /></div>
+              <div><div style={{fontSize: '12px', fontWeight: 600}}>{link.label}</div><div style={{fontSize: '20px', fontWeight: 700, color: link.color}}>{link.count}</div></div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '16px'}}>
+        <div style={{...MT_GLASS, padding: '18px 20px'}}>
+          <div className="card-title">{lang === 'id' ? '🔧 Alat Paling Sering Bermasalah (Top 10)' : '🔧 Top 10 Failure-Prone Equipment'}</div>
+          {dash.topEquipment.length > 0 ? (
+            <ResponsiveContainer width="100%" height={Math.max(220, dash.topEquipment.length * 34)}>
+              <BarChart data={dash.topEquipment} layout="vertical" margin={{left: 4, right: 12}}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(192,48,48,0.1)" horizontal={false} />
+                <XAxis type="number" allowDecimals={false} tick={{fontSize: 9}} />
+                <YAxis type="category" dataKey="name" width={110} tick={{fontSize: 9, fill: 'var(--ims-text-2)'}} />
+                <Tooltip content={<ChartTooltip fmt={v => v} />} />
+                <Bar dataKey="value" name={lang === 'id' ? 'Insiden' : 'Incidents'} fill="#c03030" radius={[0, 4, 4, 0]}>
+                  {dash.topEquipment.map((e, i) => <Cell key={e.name} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <div className="empty-state">{lang === 'id' ? 'Belum ada data perbaikan/keluhan.' : 'No repair/complaint data yet.'}</div>}
+        </div>
+        <div style={{...MT_GLASS, padding: '18px 20px'}}>
+          <div className="card-title">{lang === 'id' ? 'Radar Kesehatan Alat' : 'Equipment Health Radar'}</div>
+          <ResponsiveContainer width="100%" height={260}>
+            <RadarChart data={dash.radarData} outerRadius="72%">
+              <PolarGrid stroke="rgba(192,48,48,0.15)" />
+              <PolarAngleAxis dataKey="pillar" tick={{fill: 'var(--ims-text-2)', fontSize: 10}} />
+              <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
+              <Radar dataKey="score" stroke="#c03030" fill="#c03030" fillOpacity={0.3} />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px'}}>
+        <div style={{...MT_GLASS, padding: '18px 20px'}}>
+          <div className="card-title">{lang === 'id' ? 'Gejala/Keluhan Sering (Kata Kunci)' : 'Frequent Symptoms (Keywords)'}</div>
+          {dash.topSymptomWords.length > 0 ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={dash.topSymptomWords} layout="vertical" margin={{left: 4}}>
+                <XAxis type="number" hide />
+                <YAxis type="category" dataKey="name" width={72} tick={{fontSize: 9}} />
+                <Tooltip content={<ChartTooltip fmt={v => v} />} />
+                <Bar dataKey="value" fill="#d4780a" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <div className="empty-state" style={{padding: '30px'}}>{lang === 'id' ? 'Isi deskripsi issue untuk analisis gejala.' : 'Add issue descriptions for symptom analysis.'}</div>}
+        </div>
+        <div style={{...MT_GLASS, padding: '18px 20px'}}>
+          <div className="card-title">{lang === 'id' ? 'Komponen/Tipe Alat Bermasalah' : 'Problematic Components/Types'}</div>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={dash.componentData.length ? dash.componentData : [{name: '-', value: 0}]}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(91,141,239,0.1)" vertical={false} />
+              <XAxis dataKey="name" tick={{fontSize: 8, fill: 'var(--ims-text-2)'}} interval={0} angle={-20} textAnchor="end" height={50} />
+              <YAxis allowDecimals={false} tick={{fontSize: 9}} />
+              <Tooltip content={<ChartTooltip fmt={v => v} />} />
+              <Bar dataKey="value" fill="#1a4d8a" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div style={{...MT_GLASS, padding: '18px 20px'}}>
+          <div className="card-title">{lang === 'id' ? 'Insiden per Modalitas' : 'Incidents by Modality'}</div>
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart>
+              <Pie data={dash.modalityData.length ? dash.modalityData : [{name: '-', value: 1}]} dataKey="value" nameKey="name" innerRadius={40} outerRadius={72} paddingAngle={2}>
+                {(dash.modalityData.length ? dash.modalityData : [{name: '-', value: 1}]).map((e, i) => <Cell key={e.name} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+              </Pie>
+              <Tooltip content={<ChartTooltip fmt={v => v} />} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div style={{display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: '16px'}}>
+        <div style={{...MT_GLASS, padding: '18px 20px'}}>
+          <div className="card-title">{lang === 'id' ? 'Tren Insiden Bulanan' : 'Monthly Incident Trend'}</div>
+          <ResponsiveContainer width="100%" height={240}>
+            <ComposedChart data={dash.monthlyIssues}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(91,141,239,0.1)" vertical={false} />
+              <XAxis dataKey="month" tick={{fontSize: 10}} />
+              <YAxis allowDecimals={false} tick={{fontSize: 10}} />
+              <Tooltip content={<ChartTooltip fmt={v => v} />} />
+              <Legend wrapperStyle={{fontSize: 10}} />
+              <Bar dataKey={lang === 'id' ? 'Perbaikan' : 'Repairs'} fill="#c03030" radius={[3, 3, 0, 0]} />
+              <Line type="monotone" dataKey={lang === 'id' ? 'Keluhan' : 'Complaints'} stroke="var(--ims-gold)" strokeWidth={2} dot={{r: 3}} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+        <div style={{...MT_GLASS, padding: '18px 20px'}}>
+          <div className="card-title">{lang === 'id' ? 'Status Insiden' : 'Issue Status'}</div>
+          <ResponsiveContainer width="100%" height={240}>
+            <PieChart>
+              <Pie data={dash.statusData.length ? dash.statusData : [{name: '-', value: 1, color: 'var(--ims-border)'}]} dataKey="value" nameKey="name" innerRadius={48} outerRadius={78}>
+                {(dash.statusData.length ? dash.statusData : [{name: '-', value: 1, color: 'var(--ims-border)'}]).map(e => <Cell key={e.name} fill={e.color} />)}
+              </Pie>
+              <Tooltip content={<ChartTooltip fmt={v => v} />} />
+              <Legend wrapperStyle={{fontSize: 10}} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div style={{...MT_GLASS, padding: '18px 20px'}}>
+          <div className="card-title">{lang === 'id' ? 'Prioritas Insiden' : 'Issue Priority'}</div>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={dash.priorityData.length ? dash.priorityData : [{name: '-', value: 0}]}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(192,48,48,0.1)" vertical={false} />
+              <XAxis dataKey="name" tick={{fontSize: 9}} />
+              <YAxis allowDecimals={false} tick={{fontSize: 9}} />
+              <Tooltip content={<ChartTooltip fmt={v => v} />} />
+              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                {dash.priorityData.map(e => <Cell key={e.name} fill={e.color} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule, t, lang, canEdit, session, liveTechnicians = [], unitTechMap = {}, setUnitTechMap, employees = {} }) {
-  const [tab, setTab] = useState('schedule');
+  const [tab, setTab] = useState('dashboard');
   const [issueModalOpen, setIssueModalOpen] = useState(false);
   const [editingIssue, setEditingIssue] = useState(null);
   const [pmModalOpen, setPmModalOpen] = useState(false);
@@ -22,8 +272,9 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
 
   // PERFORMANCE: Categorize units + KPIs all in one useMemo block (now year-aware)
   const unitsAndStats = useMemo(() => {
-    const today = new Date('2026-05-16');
-    const monthAhead = new Date('2026-06-16');
+    const today = todayStart();
+    const monthAhead = new Date(today);
+    monthAhead.setMonth(monthAhead.getMonth() + 1);
     // Apply year + search filters to units
     const filteredUnits = units.filter(u => {
       if (filterYear !== 'all' && !u.installDate?.startsWith(filterYear)) return false;
@@ -80,6 +331,11 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
 
   const sortedRepairs = useMemo(() => sortByPriorityAndDate(repairs, repairsSortBy), [repairs, repairsSortBy]);
   const sortedComplaints = useMemo(() => sortByPriorityAndDate(complaints, complaintsSortBy), [complaints, complaintsSortBy]);
+
+  const sortedUnitsForSchedule = useMemo(
+    () => [...unitsByPmStatus].sort((a, b) => new Date(a.nextPmDate) - new Date(b.nextPmDate)).slice(0, 80),
+    [unitsByPmStatus]
+  );
 
   const updateIssueStatus = (id, newStatus) => {
     if (!canEdit) return;
@@ -148,7 +404,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
   const canSeePmNotif = ['technician', 'admin', 'manager_ops', 'gm', 'super_admin'].includes(session?.role);
   const pmNotifications = useMemo(() => {
     if (!canSeePmNotif) return [];
-    const today = new Date('2026-05-31T00:00:00');
+    const today = todayStart();
     const MS = 24 * 60 * 60 * 1000;
     const doneCycles = new Set((pmSchedule || []).filter(p => p.status === 'done' && p.unitId && p.dueDate).map(p => p.unitId + '|' + p.dueDate));
     const notifs = [];
@@ -217,7 +473,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
         </div>
       )}
 
-      <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: 'var(--ims-border)', marginBottom: '22px', border: '1px solid var(--ims-border)'}}>
+      <div className="kpi-grid-4" style={{display: tab === 'dashboard' ? 'none' : 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: 'var(--ims-border)', marginBottom: '22px', border: '1px solid var(--ims-border)'}}>
         <div className="card-pad">
           <div className="lbl-tag">{t.mt_total_units}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{totalUnits}</div>
@@ -237,7 +493,8 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
         </div>
       </div>
 
-      {/* Year filter + search */}
+      {/* Year filter + search — hidden on dashboard */}
+      {tab !== 'dashboard' && (
       <div style={{display: 'flex', gap: '10px', marginBottom: '14px', alignItems: 'center', flexWrap: 'wrap'}}>
         <div style={{position: 'relative', flex: '1 1 260px', maxWidth: '380px'}}>
           <Search size={14} style={{position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--ims-text-2)'}} />
@@ -249,9 +506,11 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
           {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
         </select>
       </div>
+      )}
 
       <div style={{display: 'flex', gap: '2px', marginBottom: '22px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
         {[
+          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: LayoutDashboard },
           { id: 'schedule', label: t.mt_tab_schedule, icon: CalendarDays },
           { id: 'repair', label: t.mt_tab_repair, icon: Wrench },
           { id: 'complaint', label: t.mt_tab_complaint, icon: AlertTriangle },
@@ -265,6 +524,21 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
           );
         })}
       </div>
+
+      {tab === 'dashboard' && (
+        <MaintenanceDashboard
+          units={units}
+          issues={issues}
+          pmSchedule={pmSchedule}
+          unitsByPmStatus={unitsByPmStatus}
+          repairs={repairs}
+          complaints={complaints}
+          pmNotifications={pmNotifications}
+          lang={lang}
+          t={t}
+          onNavigateTab={setTab}
+        />
+      )}
 
       {tab === 'schedule' && (
         <div>
@@ -332,7 +606,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
               </tr>
             </thead>
             <tbody>
-              {unitsByPmStatus.sort((a, b) => new Date(a.nextPmDate) - new Date(b.nextPmDate)).slice(0, 80).map(u => {
+              {sortedUnitsForSchedule.map(u => {
                 const pmColor = u.pmStatus === 'overdue' ? '#c03030' : u.pmStatus === 'upcoming' ? 'var(--ims-gold)' : 'var(--ims-accent-2)';
                 const pmLabel = u.pmStatus === 'overdue' ? t.mt_pm_overdue : u.pmStatus === 'upcoming' ? t.mt_pm_upcoming : t.mt_pm_done;
                 return (

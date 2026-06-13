@@ -5,7 +5,7 @@ import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Pie, P
 import { ChartTooltip, ConfirmDialog, Field, LinkAttachment, ReadOnlyBanner, SortToggle, Td, Th } from '../components/ui.jsx';
 import { CHART_COLORS } from '../constants/theme.js';
 import { IMPORT_PIPELINE_STEPS } from '../constants/regulatory.js';
-import { addDateOnlyDays, dateOnlyFromValue, formatDateTime } from '../utils/format.js';
+import { addDateOnlyDays, dateOnlyFromValue, formatDateTime, currentYear } from '../utils/format.js';
 import { addDaysIso, getFactoryProductionDays, getFactoryProductionInfo, importPipelineLabel, manifestMatchesProject, normalizeImportPipelineStatus, normalizeProductLookupText, projectHasDpReceived } from '../utils/domain.js';
 import { flushPersist } from '../utils/storage.js';
 import { notify } from '../utils/notifications.js';
@@ -78,7 +78,7 @@ function OperationsDashboardCharts({ poProjects, visibleManifests, visibleCustom
     { name: lang === 'id' ? 'Tiba di RS' : 'Arrived', value: localProjects.filter(p => p.localDeliveryStatus === 'delivered_to_rs' || p.shippingStatus === 'client_received').length },
   ];
   const monthlyManifest = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'].map((m, idx) => {
-    const key = `2026-${String(idx + 1).padStart(2, '0')}`;
+    const key = `${currentYear()}-${String(idx + 1).padStart(2, '0')}`;
     return {
       month: m,
       Manifest: visibleManifests.filter(x => String(x.etd || x.eta || '').startsWith(key)).length,
@@ -962,7 +962,7 @@ function CustomsDocsList({ customsDocs, setCustomsDocs, manifests, setManifests,
   const sortedDocs = useMemo(() => {
     const manifestRows = (manifests || []).map(m => {
       const docs = (customsDocs || []).filter(d => d.manifestRef === m.manifestNo || d.manifestRef === m.id || d.manifestNo === m.manifestNo);
-      const latest = docs.sort((a, b) => (b.statusUpdatedAt || b.updatedAt || b.docDate || '').localeCompare(a.statusUpdatedAt || a.updatedAt || a.docDate || ''))[0];
+      const latest = [...docs].sort((a, b) => (b.statusUpdatedAt || b.updatedAt || b.docDate || '').localeCompare(a.statusUpdatedAt || a.updatedAt || a.docDate || ''))[0];
       return { ...(latest || {}), ...m, id: latest?.id || `cdoc_${m.id}`, manifestId: m.id, manifestRef: m.manifestNo, status: latest?.status || 'submitted', docDate: latest?.docDate || m.eta || m.etd || '', docNo: latest?.docNo || m.manifestNo };
     });
     const orphanDocs = (customsDocs || []).filter(d => !(manifests || []).some(m => d.manifestRef === m.manifestNo || d.manifestRef === m.id || d.manifestNo === m.manifestNo));

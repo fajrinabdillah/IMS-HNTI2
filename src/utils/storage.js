@@ -116,7 +116,7 @@ const registerServiceWorker = async () => {
   return navigator.serviceWorker.register('/sw.js').then(() => navigator.serviceWorker.ready);
 };
 const savePushSubscription = async (subscription, session) => {
-  if (!_supaEnabled() || !subscription || !session?.username) return false;
+  if (!_supaEnabled() || !subscription || !session?.username) return { ok: false, error: 'invalid_session' };
   try {
     const payload = {
       username: session.username,
@@ -127,18 +127,33 @@ const savePushSubscription = async (subscription, session) => {
       active: true,
       updated_at: new Date().toISOString(),
     };
-    // Pakai anon key (bukan JWT user) — RLS insert/update sudah diizinkan via GRANT.
-    // Menghindari save_failed saat JWT user expired/error (Realtime OFFLINE).
+    // Utama: Edge Function register-push (service_role, bypass RLS).
+    try {
+      const fnRes = await fetch(`${_SUPA_URL}/functions/v1/register-push`, {
+        method: 'POST',
+        headers: { apikey: _SUPA_KEY, Authorization: `Bearer ${_SUPA_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (fnRes.ok) {
+        const d = await fnRes.json().catch(() => ({}));
+        if (d.ok) return { ok: true };
+      }
+    } catch {}
+    // Fallback: REST langsung via anon key.
     const res = await _supaFetch('push_subscriptions?on_conflict=endpoint', {
       method: 'POST',
       headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
       body: JSON.stringify(payload),
     }, null);
     if (!res.ok) {
-      try { console.warn('[IMS] push subscription save failed:', res.status, await res.text()); } catch {}
+      let detail = '';
+      try { detail = await res.text(); console.warn('[IMS] push subscription save failed:', res.status, detail); } catch {}
+      return { ok: false, error: detail.includes('row-level security') ? 'rls_policy_missing' : `http_${res.status}` };
     }
-    return res.ok;
-  } catch { return false; }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e?.message || 'network_error' };
+  }
 };
 const enablePushNotifications = async (session) => {
   if (!pushSupported()) return { ok: false, reason: 'unsupported' };
@@ -159,7 +174,7 @@ const enablePushNotifications = async (session) => {
       });
     }
     const saved = await savePushSubscription(subscription.toJSON ? subscription.toJSON() : subscription, session);
-    return saved ? { ok: true } : { ok: false, reason: 'save_failed' };
+    return saved.ok ? { ok: true } : { ok: false, reason: saved.error || 'save_failed' };
   } catch (err) {
     return { ok: false, reason: err?.message || 'failed' };
   }

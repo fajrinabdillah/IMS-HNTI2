@@ -1,5 +1,5 @@
 -- IMS HNTI Push Notifications
--- Jalankan file ini di Supabase SQL Editor.
+-- Jalankan SELURUH file ini di Supabase SQL Editor (bukan hanya GRANT saja).
 
 create table if not exists public.push_subscriptions (
   id uuid primary key default gen_random_uuid(),
@@ -23,25 +23,21 @@ create index if not exists idx_push_subscriptions_role
 
 alter table public.push_subscriptions enable row level security;
 
--- Frontend hanya perlu menyimpan / memperbarui subscription perangkat.
--- Pengiriman push tetap memakai Edge Function dengan service role key.
+-- WAJIB: policy RLS (tanpa ini → save_failed / row-level security violation)
 drop policy if exists "push_subscriptions_insert" on public.push_subscriptions;
 create policy "push_subscriptions_insert"
-on public.push_subscriptions
-for insert
-to anon, authenticated
-with check (true);
+on public.push_subscriptions for insert to anon, authenticated with check (true);
 
 drop policy if exists "push_subscriptions_update" on public.push_subscriptions;
 create policy "push_subscriptions_update"
-on public.push_subscriptions
-for update
-to anon, authenticated
-using (true)
-with check (true);
+on public.push_subscriptions for update to anon, authenticated using (true) with check (true);
 
--- Tidak membuka SELECT ke client biasa. Edge Function memakai service_role dan bypass RLS.
+drop policy if exists "push_subscriptions_select" on public.push_subscriptions;
+create policy "push_subscriptions_select"
+on public.push_subscriptions for select to anon, authenticated using (true);
 
--- Izin tulis/baca untuk client (anon + authenticated). Tanpa GRANT ini, save subscription gagal (save_failed).
+-- WAJIB: GRANT (tanpa ini → permission denied)
 grant select, insert, update on public.push_subscriptions to anon, authenticated;
 grant all on public.push_subscriptions to service_role;
+
+notify pgrst, 'reload schema';

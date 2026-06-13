@@ -70,6 +70,8 @@ function Header({ session, setSession, lang, setLang, theme = 've', setTheme, vi
           ? (lang === 'id' ? 'Izin notifikasi ditolak di browser/perangkat.' : 'Notification permission was denied.')
           : result.reason === 'unsupported'
             ? (lang === 'id' ? 'Perangkat/browser ini belum mendukung push notification.' : 'This device/browser does not support push notification.')
+          : result.reason === 'rls_policy_missing'
+            ? (lang === 'id' ? 'Policy RLS belum diset di Supabase. Jalankan SQL fix di chat/panduan.' : 'RLS policy missing in Supabase. Run the SQL fix from the guide.')
             : (lang === 'id' ? `Push notification belum aktif: ${result.reason}` : `Push notification not enabled: ${result.reason}`);
       showToast(msg, 'error');
     }

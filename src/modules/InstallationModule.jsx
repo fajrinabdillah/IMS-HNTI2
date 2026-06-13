@@ -19,7 +19,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
   };
   const [tab, setTab] = useState(forcedTab || 'dashboard');
   // Default to current year (2026) — sync with SPH module behavior
-  const [filterYear, setFilterYear] = useState('2026');
+  const [filterYear, setFilterYear] = useState(contentOnly ? 'all' : '2026');
   const [search, setSearch] = useState('');
   const searchTerm = search.trim().toLowerCase();
   const matchesSearch = (...parts) => !searchTerm || parts.some(p => String(p || '').toLowerCase().includes(searchTerm));
@@ -27,6 +27,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
   const CARD_PAGE = 24;
   const [visibleCount, setVisibleCount] = useState(CARD_PAGE);
   useEffect(() => { setVisibleCount(CARD_PAGE); }, [filterYear, search, tab]);
+  useEffect(() => { if (forcedTab) setTab(forcedTab); }, [forcedTab]);
 
   // Available years derived from data (PO issue years OR install-record years)
   const availableYears = useMemo(() => {
@@ -421,7 +422,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
   if (contentOnly) {
     return (
       <div>
-        {activeTab !== 'dashboard' && filterBar}
+        {filterBar}
         {tabPanels}
       </div>
     );

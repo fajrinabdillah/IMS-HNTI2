@@ -1,5 +1,5 @@
 // Extracted from App.jsx during modular refactor.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CalendarDays, Edit2, LayoutDashboard, Plus, Search, Sparkles, Trash2, Wrench, X, Zap } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, PieChart, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartTooltip, ConfirmDialog, Field, ReadOnlyBanner, SortToggle, Td, Th } from '../components/ui.jsx';
@@ -7,7 +7,7 @@ import { CHART_COLORS } from '../constants/theme.js';
 import { MODALITY_COLORS } from '../constants/sales.js';
 import { resolveEmpName } from '../utils/domain.js';
 import { todayStart } from '../utils/format.js';
-import { addMonthsIso, defaultTechnician, getTechnicianOptions, healTechnicianName } from '../utils/technicalSupport.js';
+import { addMonthsIso, defaultTechnician, getTechnicianOptions, healTechnicianName, mergeUnitsWithPmSchedule, pmDoneCycleKeys } from '../utils/technicalSupport.js';
 
 const MT_GLASS = {
   background: 'linear-gradient(145deg, rgba(192,48,48,0.08) 0%, rgba(91,141,239,0.06) 45%, rgba(47,143,111,0.05) 100%)',
@@ -255,8 +255,17 @@ function MaintenanceDashboard({ units, issues, pmSchedule, unitsByPmStatus, repa
   );
 }
 
-function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule, t, lang, canEdit, session, liveTechnicians = [], unitTechMap = {}, setUnitTechMap, employees = {}, contentOnly = false, forcedTab = null }) {
+function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule, t, lang, canEdit, session, liveTechnicians = [], unitTechMap = {}, setUnitTechMap, employees = {}, contentOnly = false, forcedTab = null, onNavigateTab = null }) {
   const [tab, setTab] = useState(forcedTab || 'dashboard');
+  useEffect(() => { if (forcedTab) setTab(forcedTab); }, [forcedTab]);
+
+  const effectiveUnits = useMemo(
+    () => mergeUnitsWithPmSchedule(units, pmSchedule).map(u => ({
+      ...u,
+      technician: healTechnicianName(unitTechMap[u.id] || u.technician, liveTechnicians, employees),
+    })),
+    [units, pmSchedule, liveTechnicians, employees, unitTechMap]
+  );
   const [issueModalOpen, setIssueModalOpen] = useState(false);
   const [editingIssue, setEditingIssue] = useState(null);
   const [pmModalOpen, setPmModalOpen] = useState(false);
@@ -267,9 +276,9 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
 
   const availableYears = useMemo(() => {
     const years = new Set();
-    units.forEach(u => { if (u.installDate) years.add(u.installDate.substring(0, 4)); });
+    effectiveUnits.forEach(u => { if (u.installDate) years.add(u.installDate.substring(0, 4)); });
     return Array.from(years).sort().reverse();
-  }, [units]);
+  }, [effectiveUnits]);
 
   // PERFORMANCE: Categorize units + KPIs all in one useMemo block (now year-aware)
   const unitsAndStats = useMemo(() => {
@@ -277,7 +286,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
     const monthAhead = new Date(today);
     monthAhead.setMonth(monthAhead.getMonth() + 1);
     // Apply year + search filters to units
-    const filteredUnits = units.filter(u => {
+    const filteredUnits = effectiveUnits.filter(u => {
       if (filterYear !== 'all' && !u.installDate?.startsWith(filterYear)) return false;
       if (search) {
         const q = search.toLowerCase();
@@ -304,14 +313,14 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
       };
     });
     const totalUnits = filteredUnits.length;
-    const totalAllYears = units.length;
+    const totalAllYears = effectiveUnits.length;
     const underWarranty = unitsByPmStatus.filter(u => u.underWarranty).length;
     const pmThisMonth = unitsByPmStatus.filter(u => u.pmStatus === 'overdue' || u.pmStatus === 'upcoming').length;
     const openIssues = issues.filter(i => i.status !== 'resolved').length;
     const repairs = issues.filter(i => i.type === 'repair');
     const complaints = issues.filter(i => i.type === 'complaint');
     return { unitsByPmStatus, totalUnits, totalAllYears, underWarranty, pmThisMonth, openIssues, repairs, complaints };
-  }, [units, issues, filterYear, search]);
+  }, [effectiveUnits, issues, filterYear, search, liveTechnicians, employees]);
   const { unitsByPmStatus, totalUnits, totalAllYears, underWarranty, pmThisMonth, openIssues, repairs, complaints } = unitsAndStats;
 
   // Sort by priority (critical→high→medium→low), then by date desc
@@ -404,7 +413,23 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
       status: 'done',
       notes: lang === 'id' ? 'PM rutin 6 bulan selesai' : 'Routine 6-month PM completed',
     };
-    setPmSchedule(prev => [...prev, newPm]);
+    setPmSchedule(prev => {
+      const withoutCycle = prev.filter(p => !(p.unitId === uid && p.status === 'done' && p.dueDate === dueDate));
+      return [...withoutCycle, newPm];
+    });
+  };
+
+  const undoPmForUnit = (unit) => {
+    if (!canEdit) return;
+    const uid = unit.id;
+    const recordId = unit._pmRecordId;
+    setPmSchedule(prev => {
+      if (recordId) return prev.filter(p => p.id !== recordId);
+      const dones = prev.filter(p => p.unitId === uid && p.status === 'done');
+      if (!dones.length) return prev;
+      const latest = [...dones].sort((a, b) => (b.lastPmDate || '').localeCompare(a.lastPmDate || ''))[0];
+      return prev.filter(p => p.id !== latest.id);
+    });
   };
 
   // PM Notifications (#7) — 4 grades, dismissed after "Tandai Selesai".
@@ -414,11 +439,11 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
     if (!canSeePmNotif) return [];
     const today = todayStart();
     const MS = 24 * 60 * 60 * 1000;
-    const doneCycles = new Set((pmSchedule || []).filter(p => p.status === 'done' && p.unitId && p.dueDate).map(p => p.unitId + '|' + p.dueDate));
+    const doneCycles = pmDoneCycleKeys(pmSchedule);
     const notifs = [];
-    units.forEach(u => {
+    effectiveUnits.forEach(u => {
       if (!u.nextPmDate) return;
-      if (doneCycles.has(u.id + '|' + u.nextPmDate)) return; // completed → no notification
+      if (doneCycles.has(`${u.id}|${u.nextPmDate}`)) return;
       const due = new Date(u.nextPmDate + 'T00:00:00');
       const daysUntil = Math.round((due - today) / MS);
       let grade = null;
@@ -429,7 +454,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
       if (grade) notifs.push({ ...u, daysUntil, grade });
     });
     return notifs.sort((a, b) => a.daysUntil - b.daysUntil);
-  }, [units, pmSchedule, canSeePmNotif]);
+  }, [effectiveUnits, pmSchedule, canSeePmNotif]);
 
   const PM_GRADE = {
     overdue:  { color: '#7b1f1f', bg: 'rgba(123,31,31,0.10)', label: lang === 'id' ? 'TERLEWAT' : 'OVERDUE' },
@@ -460,8 +485,8 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
     <div>
       {shellHeader}
 
-      {/* PM Notifications (#7) — 4 grades, dismissed via "Tandai Selesai" */}
-      {!contentOnly && canSeePmNotif && pmNotifications.length > 0 && (
+      {/* PM Notifications — visible on schedule tab (including embedded Technical Support) */}
+      {canSeePmNotif && pmNotifications.length > 0 && (!contentOnly || activeTab === 'schedule') && (
         <div style={{marginBottom: '22px', border: '1px solid var(--ims-border)', background: 'var(--ims-bg-card)'}}>
           <div style={{padding: '12px 16px', borderBottom: '1px solid var(--ims-border)', display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(192,48,48,0.04)'}}>
             <AlertTriangle size={16} color="#c03030" strokeWidth={2} />
@@ -544,9 +569,9 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
       </div>
       )}
 
-      {!contentOnly && tab === 'dashboard' && (
+      {((!contentOnly && tab === 'dashboard') || (contentOnly && activeTab === 'dashboard')) && (
         <MaintenanceDashboard
-          units={units}
+          units={effectiveUnits}
           issues={issues}
           pmSchedule={pmSchedule}
           unitsByPmStatus={unitsByPmStatus}
@@ -555,7 +580,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
           pmNotifications={pmNotifications}
           lang={lang}
           t={t}
-          onNavigateTab={setTab}
+          onNavigateTab={onNavigateTab || setTab}
         />
       )}
 
@@ -581,7 +606,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
                 </thead>
                 <tbody>
                   {pmSchedule.map(pm => {
-                    const unit = units.find(u => u.id === pm.unitId);
+                    const unit = effectiveUnits.find(u => u.id === pm.unitId);
                     const statusColor = pm.status === 'done' ? 'var(--ims-accent-2)' : pm.status === 'overdue' ? '#c03030' : 'var(--ims-gold)';
                     return (
                       <tr key={pm.id} className="hover-row" style={{borderTop: '1px solid var(--ims-border)'}}>
@@ -627,7 +652,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
             <tbody>
               {sortedUnitsForSchedule.map(u => {
                 const pmColor = u.pmStatus === 'overdue' ? '#c03030' : u.pmStatus === 'upcoming' ? 'var(--ims-gold)' : 'var(--ims-accent-2)';
-                const pmLabel = u.pmStatus === 'overdue' ? t.mt_pm_overdue : u.pmStatus === 'upcoming' ? t.mt_pm_upcoming : t.mt_pm_done;
+                const pmLabel = u.pmStatus === 'overdue' ? t.mt_pm_overdue : u.pmStatus === 'upcoming' ? t.mt_pm_upcoming : t.mt_pm_status_scheduled;
                 return (
                   <tr key={u.id} className="hover-row" style={{borderTop: '1px solid var(--ims-border)'}}>
                     <Td>
@@ -657,8 +682,11 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
                       )}
                     </Td>
                     {canEdit && (
-                      <Td align="right">
-                        <button onClick={() => markPmDone(u)} style={{padding: '4px 8px', fontSize: '10px', background: 'var(--ims-accent-2)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.05em'}}>{t.mt_mark_done}</button>
+                      <Td align="right" style={{ whiteSpace: 'nowrap' }}>
+                        <button onClick={() => markPmDone(u)} style={{padding: '4px 8px', fontSize: '10px', background: 'var(--ims-accent-2)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.05em', marginRight: u.pmCompleted ? '4px' : 0}}>{t.mt_mark_done}</button>
+                        {u.pmCompleted && (
+                          <button onClick={() => undoPmForUnit(u)} title={lang === 'id' ? 'Batalkan PM terakhir' : 'Undo last PM'} style={{padding: '4px 8px', fontSize: '10px', background: 'transparent', color: '#c03030', border: '1px solid var(--ims-border)', cursor: 'pointer', fontFamily: 'inherit'}}><Trash2 size={11} /></button>
+                        )}
                       </Td>
                     )}
                   </tr>
@@ -666,8 +694,8 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
               })}
             </tbody>
           </table>
-          {units.length === 0 && <div className="empty-state">{t.no_data}</div>}
-          {units.length > 80 && <div style={{padding: '12px', textAlign: 'center', fontSize: '11px', color: 'var(--ims-text-2)', borderTop: '1px solid var(--ims-border)'}}>{lang === 'id' ? `Menampilkan 80 dari ${units.length} unit. Filter & pagination tersedia di versi production.` : `Showing 80 of ${units.length} units. Filter & pagination available in production version.`}</div>}
+          {effectiveUnits.length === 0 && <div className="empty-state">{t.no_data}</div>}
+          {effectiveUnits.length > 80 && <div style={{padding: '12px', textAlign: 'center', fontSize: '11px', color: 'var(--ims-text-2)', borderTop: '1px solid var(--ims-border)'}}>{lang === 'id' ? `Menampilkan 80 dari ${effectiveUnits.length} unit.` : `Showing 80 of ${effectiveUnits.length} units.`}</div>}
           </div>
         </div>
       )}
@@ -777,8 +805,8 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
           {complaints.length === 0 && <div className="empty-state">{t.no_data}</div>}
         </div>
       )}
-      {issueModalOpen && <MaintenanceIssueModal record={editingIssue} onSave={handleSaveIssue} onClose={() => { setIssueModalOpen(false); setEditingIssue(null); }} t={t} lang={lang} units={units} liveTechnicians={liveTechnicians} employees={employees} />}
-      {pmModalOpen && <PMScheduleModal record={editingPm} onSave={handleSavePm} onClose={() => { setPmModalOpen(false); setEditingPm(null); }} t={t} lang={lang} units={units} liveTechnicians={liveTechnicians} employees={employees} />}
+      {issueModalOpen && <MaintenanceIssueModal record={editingIssue} onSave={handleSaveIssue} onClose={() => { setIssueModalOpen(false); setEditingIssue(null); }} t={t} lang={lang} units={effectiveUnits} liveTechnicians={liveTechnicians} employees={employees} />}
+      {pmModalOpen && <PMScheduleModal record={editingPm} onSave={handleSavePm} onClose={() => { setPmModalOpen(false); setEditingPm(null); }} t={t} lang={lang} units={effectiveUnits} liveTechnicians={liveTechnicians} employees={employees} />}
       <ConfirmDialog open={!!deleteIssueId} title={lang === 'id' ? 'Hapus Catatan?' : 'Delete Record?'} message={lang === 'id' ? 'Yakin ingin menghapus catatan perbaikan/keluhan ini?' : 'Are you sure you want to delete this issue/complaint?'} onConfirm={confirmDeleteIssue} onCancel={() => setDeleteIssueId(null)} danger lang={lang} />
       <ConfirmDialog open={!!deletePmId} title={lang === 'id' ? 'Hapus Jadwal PM?' : 'Delete PM Schedule?'} message={lang === 'id' ? 'Yakin ingin menghapus jadwal preventive maintenance ini?' : 'Are you sure you want to delete this PM schedule?'} onConfirm={confirmDeletePm} onCancel={() => setDeletePmId(null)} danger lang={lang} />
     </div>

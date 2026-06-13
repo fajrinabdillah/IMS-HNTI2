@@ -33,6 +33,7 @@ function defaultTechnician(liveTechnicians = []) {
 /**
  * Merge base installed units with pmSchedule state so PM dates react to mark-done / delete.
  * Uses the latest `done` PM record per unit (by lastPmDate).
+ * Idempotent: safe if baseUnits were already merged.
  */
 function mergeUnitsWithPmSchedule(baseUnits = [], pmSchedule = []) {
   const latestDoneByUnit = new Map();
@@ -46,11 +47,24 @@ function mergeUnitsWithPmSchedule(baseUnits = [], pmSchedule = []) {
 
   return baseUnits.map(u => {
     const pm = latestDoneByUnit.get(u.id);
-    if (!pm) return u;
+    if (!pm) {
+      // Strip stale merge flags if PM record was deleted
+      const { pmCompleted, ...rest } = u;
+      return rest;
+    }
     const lastPmDate = pm.lastPmDate || u.lastPmDate;
     const nextPmDate = pm.nextPmDate || addMonthsIso(lastPmDate, 6);
-    return { ...u, lastPmDate, nextPmDate, pmCompleted: true };
+    return { ...u, lastPmDate, nextPmDate, pmCompleted: true, _pmRecordId: pm.id };
   });
+}
+
+/** PM notification cycles already marked done (unitId|dueDate). */
+function pmDoneCycleKeys(pmSchedule = []) {
+  return new Set(
+    pmSchedule
+      .filter(p => p.status === 'done' && p.unitId && p.dueDate)
+      .map(p => `${p.unitId}|${p.dueDate}`)
+  );
 }
 
 /** Migrate legacy installation/maintenance module IDs in CEO access overrides. */
@@ -80,4 +94,5 @@ export {
   defaultTechnician,
   mergeUnitsWithPmSchedule,
   migrateModuleAccess,
+  pmDoneCycleKeys,
 };

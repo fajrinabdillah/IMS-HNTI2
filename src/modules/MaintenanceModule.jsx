@@ -5,8 +5,9 @@ import { Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, P
 import { ChartTooltip, ConfirmDialog, Field, ReadOnlyBanner, SortToggle, Td, Th } from '../components/ui.jsx';
 import { CHART_COLORS } from '../constants/theme.js';
 import { MODALITY_COLORS } from '../constants/sales.js';
-import { TECHNICIAN_NAMES, resolveEmpName } from '../utils/domain.js';
+import { resolveEmpName } from '../utils/domain.js';
 import { todayStart } from '../utils/format.js';
+import { addMonthsIso, defaultTechnician, getTechnicianOptions, healTechnicianName } from '../utils/technicalSupport.js';
 
 const MT_GLASS = {
   background: 'linear-gradient(145deg, rgba(192,48,48,0.08) 0%, rgba(91,141,239,0.06) 45%, rgba(47,143,111,0.05) 100%)',
@@ -254,8 +255,8 @@ function MaintenanceDashboard({ units, issues, pmSchedule, unitsByPmStatus, repa
   );
 }
 
-function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule, t, lang, canEdit, session, liveTechnicians = [], unitTechMap = {}, setUnitTechMap, employees = {} }) {
-  const [tab, setTab] = useState('dashboard');
+function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule, t, lang, canEdit, session, liveTechnicians = [], unitTechMap = {}, setUnitTechMap, employees = {}, contentOnly = false, forcedTab = null }) {
+  const [tab, setTab] = useState(forcedTab || 'dashboard');
   const [issueModalOpen, setIssueModalOpen] = useState(false);
   const [editingIssue, setEditingIssue] = useState(null);
   const [pmModalOpen, setPmModalOpen] = useState(false);
@@ -295,7 +296,12 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
       else pmStatus = 'scheduled';
       const warrantyEnd = new Date(u.warrantyEnd);
       const underWarranty = warrantyEnd >= today;
-      return { ...u, pmStatus, underWarranty };
+      return {
+        ...u,
+        pmStatus,
+        underWarranty,
+        technician: healTechnicianName(u.technician, liveTechnicians, employees),
+      };
     });
     const totalUnits = filteredUnits.length;
     const totalAllYears = units.length;
@@ -344,9 +350,11 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
 
   // CRUD handlers for issues
   const handleSaveIssue = (issue) => {
+    const tech = healTechnicianName(issue.technician, liveTechnicians, employees) || defaultTechnician(liveTechnicians);
+    const payload = { ...issue, technician: tech };
     setIssues(prev => {
-      const exists = prev.find(i => i.id === issue.id);
-      return exists ? prev.map(i => i.id === issue.id ? issue : i) : [...prev, issue];
+      const exists = prev.find(i => i.id === payload.id);
+      return exists ? prev.map(i => i.id === payload.id ? payload : i) : [...prev, payload];
     });
     setIssueModalOpen(false); setEditingIssue(null);
   };
@@ -362,9 +370,11 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
 
   // CRUD handlers for PM
   const handleSavePm = (pm) => {
+    const tech = healTechnicianName(pm.technician, liveTechnicians, employees) || defaultTechnician(liveTechnicians);
+    const payload = { ...pm, technician: tech };
     setPmSchedule(prev => {
-      const exists = prev.find(p => p.id === pm.id);
-      return exists ? prev.map(p => p.id === pm.id ? pm : p) : [...prev, pm];
+      const exists = prev.find(p => p.id === payload.id);
+      return exists ? prev.map(p => p.id === payload.id ? payload : p) : [...prev, payload];
     });
     setPmModalOpen(false); setEditingPm(null);
   };
@@ -383,18 +393,16 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
     const uid = typeof unit === 'string' ? unit : unit.id;
     const dueDate = typeof unit === 'string' ? null : unit.nextPmDate;
     const today = new Date().toISOString().split('T')[0];
-    // next PM = 6 calendar months after the due date (or today if unknown)
-    const base = dueDate ? new Date(dueDate + 'T00:00:00') : new Date();
-    const nd = new Date(base); nd.setMonth(nd.getMonth() + 6);
+    const tech = healTechnicianName(unitTechMap[uid] || unit?.technician, liveTechnicians, employees) || defaultTechnician(liveTechnicians);
     const newPm = {
       id: 'pm_' + Date.now(),
       unitId: uid,
-      dueDate, // the cycle this completion satisfies — used to dismiss its notification
+      dueDate,
       lastPmDate: today,
-      nextPmDate: nd.toISOString().split('T')[0],
-      technician: session?.name || (TECHNICIAN_NAMES[0] || 'Teknisi'),
+      nextPmDate: addMonthsIso(today, 6),
+      technician: tech,
       status: 'done',
-      notes: lang === 'id' ? 'PM rutin 6 bulan selesai' : 'Routine 6-month PM completed'
+      notes: lang === 'id' ? 'PM rutin 6 bulan selesai' : 'Routine 6-month PM completed',
     };
     setPmSchedule(prev => [...prev, newPm]);
   };
@@ -432,9 +440,12 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
 
   const priorityColors = { low: '#5b87b8', medium: 'var(--ims-gold)', high: '#c03030', critical: '#7b1f1f' };
   const statusColors = { open: '#c03030', progress: 'var(--ims-gold)', resolved: 'var(--ims-accent-2)' };
+  const activeTab = forcedTab || tab;
+  const showRepair = activeTab === 'repair' || activeTab === 'issues';
+  const showComplaint = activeTab === 'complaint' || activeTab === 'issues';
 
-  return (
-    <div>
+  const shellHeader = !contentOnly && (
+    <>
       <div style={{marginBottom: '22px'}}>
         <div style={{fontSize: '11px', letterSpacing: '0.3em', color: 'var(--ims-text-2)', textTransform: 'uppercase', marginBottom: '6px'}}>{t.nav_maintenance}</div>
         <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{t.mt_title}</h1>
@@ -442,9 +453,15 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
       </div>
 
       {!canEdit && <ReadOnlyBanner t={t} />}
+    </>
+  );
+
+  return (
+    <div>
+      {shellHeader}
 
       {/* PM Notifications (#7) — 4 grades, dismissed via "Tandai Selesai" */}
-      {canSeePmNotif && pmNotifications.length > 0 && (
+      {!contentOnly && canSeePmNotif && pmNotifications.length > 0 && (
         <div style={{marginBottom: '22px', border: '1px solid var(--ims-border)', background: 'var(--ims-bg-card)'}}>
           <div style={{padding: '12px 16px', borderBottom: '1px solid var(--ims-border)', display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(192,48,48,0.04)'}}>
             <AlertTriangle size={16} color="#c03030" strokeWidth={2} />
@@ -473,7 +490,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
         </div>
       )}
 
-      <div className="kpi-grid-4" style={{display: tab === 'dashboard' ? 'none' : 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: 'var(--ims-border)', marginBottom: '22px', border: '1px solid var(--ims-border)'}}>
+      <div className="kpi-grid-4" style={{display: !contentOnly && tab !== 'dashboard' ? 'grid' : 'none', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: 'var(--ims-border)', marginBottom: '22px', border: '1px solid var(--ims-border)'}}>
         <div className="card-pad">
           <div className="lbl-tag">{t.mt_total_units}</div>
           <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{totalUnits}</div>
@@ -493,8 +510,8 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
         </div>
       </div>
 
-      {/* Year filter + search — hidden on dashboard */}
-      {tab !== 'dashboard' && (
+      {/* Year filter + search */}
+      {activeTab !== 'dashboard' && (
       <div style={{display: 'flex', gap: '10px', marginBottom: '14px', alignItems: 'center', flexWrap: 'wrap'}}>
         <div style={{position: 'relative', flex: '1 1 260px', maxWidth: '380px'}}>
           <Search size={14} style={{position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--ims-text-2)'}} />
@@ -508,6 +525,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
       </div>
       )}
 
+      {!contentOnly && (
       <div style={{display: 'flex', gap: '2px', marginBottom: '22px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
         {[
           { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: LayoutDashboard },
@@ -524,8 +542,9 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
           );
         })}
       </div>
+      )}
 
-      {tab === 'dashboard' && (
+      {!contentOnly && tab === 'dashboard' && (
         <MaintenanceDashboard
           units={units}
           issues={issues}
@@ -540,7 +559,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
         />
       )}
 
-      {tab === 'schedule' && (
+      {(activeTab === 'schedule') && (
         <div>
           {/* Manual PM Records (CRUD) */}
           <div style={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', marginBottom: '14px'}}>
@@ -653,7 +672,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
         </div>
       )}
 
-      {tab === 'repair' && (
+      {showRepair && (
         <div style={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
           <div style={{padding: '14px 18px', borderBottom: '1px solid var(--ims-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px'}}>
             <div className="serif" style={{fontSize: '17px', fontWeight: 500}}>{t.mt_repair_title}</div>
@@ -697,7 +716,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
               <div style={{fontSize: '13px', marginBottom: '6px', lineHeight: 1.5}}>{r.issue}</div>
               <div style={{display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '11px', color: 'var(--ims-text-2)'}}>
                 <span><strong>{t.mt_reported_date}:</strong> <span className="mono">{r.reportedDate}</span></span>
-                <span><strong>{t.mt_technician}:</strong> {resolveEmpName(employees, r.technician)}</span>
+                <span><strong>{t.mt_technician}:</strong> {resolveEmpName(employees, healTechnicianName(r.technician, liveTechnicians, employees))}</span>
               </div>
               {r.note && <div style={{marginTop: '8px', padding: '8px 10px', background: 'var(--ims-bg-card-2)', fontSize: '11px', fontStyle: 'italic', color: 'var(--ims-text)'}}>📝 {r.note}</div>}
             </div>
@@ -706,7 +725,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
         </div>
       )}
 
-      {tab === 'complaint' && (
+      {showComplaint && (
         <div style={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
           <div style={{padding: '14px 18px', borderBottom: '1px solid var(--ims-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px'}}>
             <div className="serif" style={{fontSize: '17px', fontWeight: 500}}>{t.mt_complaint_title}</div>
@@ -750,7 +769,7 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
               <div style={{fontSize: '13px', marginBottom: '6px', lineHeight: 1.5}}>{c.issue}</div>
               <div style={{display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '11px', color: 'var(--ims-text-2)'}}>
                 <span><strong>{t.mt_reported_date}:</strong> <span className="mono">{c.reportedDate}</span></span>
-                <span><strong>{t.mt_technician}:</strong> {c.technician}</span>
+                <span><strong>{t.mt_technician}:</strong> {healTechnicianName(c.technician, liveTechnicians, employees) || '—'}</span>
               </div>
               {c.note && <div style={{marginTop: '8px', padding: '8px 10px', background: 'var(--ims-bg-card-2)', fontSize: '11px', fontStyle: 'italic', color: 'var(--ims-text)'}}>📝 {c.note}</div>}
             </div>
@@ -758,14 +777,15 @@ function MaintenanceModule({ units, issues, setIssues, pmSchedule, setPmSchedule
           {complaints.length === 0 && <div className="empty-state">{t.no_data}</div>}
         </div>
       )}
-      {issueModalOpen && <MaintenanceIssueModal record={editingIssue} onSave={handleSaveIssue} onClose={() => { setIssueModalOpen(false); setEditingIssue(null); }} t={t} lang={lang} units={units} session={session} liveTechnicians={liveTechnicians} />}
-      {pmModalOpen && <PMScheduleModal record={editingPm} onSave={handleSavePm} onClose={() => { setPmModalOpen(false); setEditingPm(null); }} t={t} lang={lang} units={units} session={session} liveTechnicians={liveTechnicians} />}
+      {issueModalOpen && <MaintenanceIssueModal record={editingIssue} onSave={handleSaveIssue} onClose={() => { setIssueModalOpen(false); setEditingIssue(null); }} t={t} lang={lang} units={units} liveTechnicians={liveTechnicians} employees={employees} />}
+      {pmModalOpen && <PMScheduleModal record={editingPm} onSave={handleSavePm} onClose={() => { setPmModalOpen(false); setEditingPm(null); }} t={t} lang={lang} units={units} liveTechnicians={liveTechnicians} employees={employees} />}
       <ConfirmDialog open={!!deleteIssueId} title={lang === 'id' ? 'Hapus Catatan?' : 'Delete Record?'} message={lang === 'id' ? 'Yakin ingin menghapus catatan perbaikan/keluhan ini?' : 'Are you sure you want to delete this issue/complaint?'} onConfirm={confirmDeleteIssue} onCancel={() => setDeleteIssueId(null)} danger lang={lang} />
       <ConfirmDialog open={!!deletePmId} title={lang === 'id' ? 'Hapus Jadwal PM?' : 'Delete PM Schedule?'} message={lang === 'id' ? 'Yakin ingin menghapus jadwal preventive maintenance ini?' : 'Are you sure you want to delete this PM schedule?'} onConfirm={confirmDeletePm} onCancel={() => setDeletePmId(null)} danger lang={lang} />
     </div>
   );
 }
-function MaintenanceIssueModal({ record, onSave, onClose, t, lang, units, session, liveTechnicians = [] }) {
+function MaintenanceIssueModal({ record, onSave, onClose, t, lang, units, liveTechnicians = [], employees = {} }) {
+  const techOptions = getTechnicianOptions(employees, liveTechnicians);
   const [form, setForm] = useState(record?.id ? record : {
     id: 'iss_' + Date.now(),
     type: record?.type || 'repair',
@@ -777,7 +797,7 @@ function MaintenanceIssueModal({ record, onSave, onClose, t, lang, units, sessio
     priority: 'medium',
     status: 'open',
     reportedDate: new Date().toISOString().split('T')[0],
-    technician: session?.name || 'Robby Dwi Setiawan',
+    technician: healTechnicianName(record?.technician, liveTechnicians, employees) || defaultTechnician(liveTechnicians),
     note: '',
     estimatedCost: 0,
     resolvedDate: null,
@@ -830,7 +850,12 @@ function MaintenanceIssueModal({ record, onSave, onClose, t, lang, units, sessio
             </select>
           </Field>
           <Field label={t.mt_reported_date}><input type="date" value={form.reportedDate} onChange={e => update('reportedDate', e.target.value)} /></Field>
-          <Field label={t.mt_assigned_to}><input list="tech-roster" value={form.technician} onChange={e => update('technician', e.target.value)} /><datalist id="tech-roster">{(liveTechnicians.length ? liveTechnicians : TECHNICIAN_NAMES).map(n => <option key={n} value={n} />)}</datalist></Field>
+          <Field label={t.mt_assigned_to}>
+            <select value={form.technician || ''} onChange={e => update('technician', e.target.value)}>
+              <option value="">{lang === 'id' ? '— Pilih Teknisi —' : '— Select Technician —'}</option>
+              {techOptions.map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </Field>
           <Field label={t.mt_estimated_cost}><input type="number" value={form.estimatedCost} onChange={e => update('estimatedCost', parseFloat(e.target.value) || 0)} placeholder="Rp" /></Field>
           {form.status === 'resolved' && (
             <>
@@ -848,13 +873,14 @@ function MaintenanceIssueModal({ record, onSave, onClose, t, lang, units, sessio
     </div>
   );
 }
-function PMScheduleModal({ record, onSave, onClose, t, lang, units, session, liveTechnicians = [] }) {
+function PMScheduleModal({ record, onSave, onClose, t, lang, units, liveTechnicians = [], employees = {} }) {
+  const techOptions = getTechnicianOptions(employees, liveTechnicians);
   const [form, setForm] = useState(record?.id ? record : {
     id: 'pm_' + Date.now(),
     unitId: '',
     lastPmDate: new Date().toISOString().split('T')[0],
     nextPmDate: '',
-    technician: session?.name || 'Robby Dwi Setiawan',
+    technician: healTechnicianName(record?.technician, liveTechnicians, employees) || defaultTechnician(liveTechnicians),
     status: 'scheduled',
     notes: '',
   });
@@ -877,7 +903,12 @@ function PMScheduleModal({ record, onSave, onClose, t, lang, units, session, liv
           </Field>
           <Field label={t.mt_pm_last_date}><input type="date" value={form.lastPmDate} onChange={e => update('lastPmDate', e.target.value)} /></Field>
           <Field label={t.mt_pm_next_date}><input type="date" value={form.nextPmDate} onChange={e => update('nextPmDate', e.target.value)} /></Field>
-          <Field label={t.mt_pm_technician}><input list="tech-roster-pm" value={form.technician} onChange={e => update('technician', e.target.value)} /><datalist id="tech-roster-pm">{(liveTechnicians.length ? liveTechnicians : TECHNICIAN_NAMES).map(n => <option key={n} value={n} />)}</datalist></Field>
+          <Field label={t.mt_pm_technician}>
+            <select value={form.technician || ''} onChange={e => update('technician', e.target.value)}>
+              <option value="">{lang === 'id' ? '— Pilih Teknisi —' : '— Select Technician —'}</option>
+              {techOptions.map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </Field>
           <Field label={t.mt_pm_status}>
             <select value={form.status} onChange={e => update('status', e.target.value)}>
               <option value="scheduled">{t.mt_pm_status_scheduled}</option>

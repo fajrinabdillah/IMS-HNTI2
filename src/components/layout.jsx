@@ -9,7 +9,7 @@ import { initialOf } from '../utils/format.js';
 import { IMS_THEMES } from '../constants/theme.js';
 import logoSidebar from '../../logo2.png';
 function Header({ session, setSession, lang, setLang, theme = 've', setTheme, view, setView, allowedNav, t, mobileMenuOpen, setMobileMenuOpen, exchangeRate, setExchangeRate, businessTrips, realizations, reports, reportsSeen = {}, onChangePassword, syncStatus = 'offline', notifications = [], setNotifications }) {
-  const navIcons = { dashboard: Activity, sph: FileText, pipeline: Briefcase, product_support: FileBarChart, kpi_scorecard: Target, sales: Users, sales_report: ClipboardList, incentive: DollarSign, finance: Wallet, operations: Truck, installation: Wrench, maintenance: Settings, regulatory: ShieldCheck, valuation: TrendingUp, employees: UserPlus, business_trip: Plane, audit_log: History, products: Layers, document_templates: FileCheck, cashflow: TrendingUp, exec_summary: FileText };
+  const navIcons = { dashboard: Activity, sph: FileText, pipeline: Briefcase, product_support: FileBarChart, kpi_scorecard: Target, sales: Users, sales_report: ClipboardList, incentive: DollarSign, finance: Wallet, operations: Truck, technical_support: Wrench, regulatory: ShieldCheck, valuation: TrendingUp, employees: UserPlus, business_trip: Plane, audit_log: History, products: Layers, document_templates: FileCheck, cashflow: TrendingUp, exec_summary: FileText };
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [rateMenuOpen, setRateMenuOpen] = useState(false);
   const [tempRate, setTempRate] = useState(exchangeRate);
@@ -206,7 +206,7 @@ function Header({ session, setSession, lang, setLang, theme = 've', setTheme, vi
   );
 }
 function HoverSidebar({ allowedNav, view, setView, t, lang, btNotifCount, srNotifCount = 0 }) {
-  const navIcons = { dashboard: Activity, sph: FileText, pipeline: Briefcase, product_support: FileBarChart, kpi_scorecard: Target, sales: Users, sales_report: ClipboardList, incentive: DollarSign, finance: Wallet, operations: Truck, installation: Wrench, maintenance: Settings, regulatory: ShieldCheck, valuation: TrendingUp, employees: UserPlus, business_trip: Plane, audit_log: History, products: Layers, document_templates: FileCheck, cashflow: TrendingUp, exec_summary: FileText };
+  const navIcons = { dashboard: Activity, sph: FileText, pipeline: Briefcase, product_support: FileBarChart, kpi_scorecard: Target, sales: Users, sales_report: ClipboardList, incentive: DollarSign, finance: Wallet, operations: Truck, technical_support: Wrench, regulatory: ShieldCheck, valuation: TrendingUp, employees: UserPlus, business_trip: Plane, audit_log: History, products: Layers, document_templates: FileCheck, cashflow: TrendingUp, exec_summary: FileText };
   const [open, setOpen] = useState(false);
 
   return (

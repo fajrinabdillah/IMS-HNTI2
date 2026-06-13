@@ -400,7 +400,7 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
       : {};
     setData(prev => prev.map(s => s.id === id ? { ...s, shippingStatus: status, ...extra } : s));
     if (status === 'sent_client' || status === 'client_received') {
-      notify({ role: 'technician' }, { type: 'install_pending', message: 'Barang sudah dikirim ke klien. Teknisi perlu mengatur jadwal instalasi.', link: { view: 'installation', id } });
+      notify({ role: 'technician' }, { type: 'install_pending', message: 'Barang sudah dikirim ke klien. Teknisi perlu mengatur jadwal instalasi.', link: { view: 'technical_support', id } });
     }
   };
   const updateCustoms = (id, status) => {
@@ -447,7 +447,7 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
         notify({ role: 'technician' }, {
           type: 'install_pending',
           message: `Barang proyek akan tiba di RS sekitar ${patch.localEta}. Tim teknisi perlu persiapan instalasi.`,
-          link: { view: 'installation', id },
+          link: { view: 'technical_support', id },
         });
       }
     }

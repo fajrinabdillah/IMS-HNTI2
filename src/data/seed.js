@@ -244,7 +244,7 @@ function buildSeedNotificationsFromSph(projects = ALL_SPH) {
     rows.push(mkNotif(`seed_notif_ops_${i}`, 'manager_ops', 'operations_sync', `${s.customer} sudah DP diterima. Status operasional: ${importPipelineLabel(s.shippingStatus || 'plan_order', 'id')}.`, { view: 'operations', id: s.id }));
   });
   projects.filter(s => s.shippingStatus === 'client_received' && !s.installationStatus).forEach((s, i) => {
-    rows.push(mkNotif(`seed_notif_tech_${i}`, 'technician', 'install_pending', `Barang ${s.customer} sudah diterima klien. Teknisi perlu jadwal instalasi.`, { view: 'installation', id: s.id }));
+    rows.push(mkNotif(`seed_notif_tech_${i}`, 'technician', 'install_pending', `Barang ${s.customer} sudah diterima klien. Teknisi perlu jadwal instalasi.`, { view: 'technical_support', id: s.id }));
   });
   projects.filter(s => s.installationStatus === 'installed' && s.regulatoryStage !== 'issued').forEach((s, i) => {
     rows.push(mkNotif(`seed_notif_reg_${i}`, 'regulatory', 'regulatory_pending', `BAST ${s.customer} selesai. Regulatory perlu proses izin BAPETEN.`, { view: 'regulatory', id: s.id }));

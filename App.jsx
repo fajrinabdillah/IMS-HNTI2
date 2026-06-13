@@ -39,8 +39,10 @@ import { ModuleAccessPanel, EmployeesModule, EmployeeModal } from './src/modules
 import { BusinessTripModule, BusinessTripCard, BusinessTripForm, BusinessTripDetail, BusinessTripRealizationCard, BusinessTripRealizationForm, BusinessTripRealizationDetail, BusinessTripDashboard } from './src/modules/BusinessTripModule.jsx';
 import { CustomsNoteEditor, localDeliveryStatusLabel, getLocalDeliveryDefaults, EditableLocalDeliveryField, OperationsDashboardCharts, OperationsModule, ManifestList, CustomsDocsList, ManifestModal, CustomsDocModal } from './src/modules/OperationsModule.jsx';
 import { MaintenanceModule, MaintenanceIssueModal, PMScheduleModal } from './src/modules/MaintenanceModule.jsx';
+import { TechnicalSupportModule } from './src/modules/TechnicalSupportModule.jsx';
 import { IncentiveModule } from './src/modules/IncentiveModule.jsx';
 import { InstallationModule, InstallRecordsList, BASTList, TrainingCertList, UnitPickerField, findInstallRecordForUnit, installLeadTechnicianName, activeEmployeeNamesByRole, InstallRecordModal, BASTModal, TrainingCertModal } from './src/modules/InstallationModule.jsx';
+import { healTechnicianName, mergeUnitsWithPmSchedule, migrateModuleAccess } from './src/utils/technicalSupport.js';
 import { Dashboard } from './src/modules/Dashboard.jsx';
 import { RegulatoryDashboardCharts, RegulatoryModule, regStageLabel, RegDurationTimeline, UniformRegPipeline, RegulatoryRecordModal } from './src/modules/RegulatoryModule.jsx';
 
@@ -624,7 +626,7 @@ export default function App() {
       const rsStored = await storeGet('ims_hnti:reports_seen_v1');
       if (rsStored) try { setReportsSeen(JSON.parse(rsStored)); } catch {}
       const maStored = await storeGet('ims_hnti:access_v1');
-      if (maStored) try { setModuleAccess(JSON.parse(maStored)); } catch {}
+      if (maStored) try { setModuleAccess(migrateModuleAccess(JSON.parse(maStored))); } catch {}
       const psActivitiesStored = await storeGet(PRODUCT_SUPPORT_ACTIVITIES_KEY);
       if (psActivitiesStored) try { setProductSupportActivities(JSON.parse(psActivitiesStored)); } catch {}
       const psFilesStored = await storeGet(PRODUCT_SUPPORT_FILES_KEY);
@@ -686,7 +688,8 @@ export default function App() {
       safe(train, setTrainingRecords); safe(emp, setEmployees); safe(bt, setBusinessTrips);
       safe(btr, setRealizations); safe(audit, setAuditLog); safe(prod, setProducts);
       safe(ann, setAnnotations); safe(ut, setUnitTechMap); safe(rs, setReportsSeen);
-      safe(ma, setModuleAccess); if (notif) try { setNotifications(pruneNotifications(JSON.parse(notif))); } catch {}
+      if (ma) try { setModuleAccess(migrateModuleAccess(JSON.parse(ma))); } catch {}
+      if (notif) try { setNotifications(pruneNotifications(JSON.parse(notif))); } catch {}
       safe(psAct, setProductSupportActivities); safe(psFiles, setProductSupportFiles);
       if (docTpl) try {
         const parsed = JSON.parse(docTpl);
@@ -791,7 +794,7 @@ export default function App() {
         case ANNOTATIONS_KEY: setAnnotations(v); break;
         case 'ims_hnti:unittech_v1': setUnitTechMap(v); break;
         case 'ims_hnti:reports_seen_v1': setReportsSeen(v); break;
-        case 'ims_hnti:access_v1': setModuleAccess(v); break;
+        case 'ims_hnti:access_v1': setModuleAccess(migrateModuleAccess(v)); break;
         default: return;
       }
       setLastSync(Date.now());
@@ -876,8 +879,13 @@ export default function App() {
   const installedUnits = useMemo(() => {
     const base = generateInstalledUnits();
     const techs = liveTechnicians.length ? liveTechnicians : TECHNICIAN_NAMES;
-    return base.map((u, i) => ({ ...u, technician: unitTechMap[u.id] || techs[i % techs.length] }));
-  }, [data, liveTechnicians, unitTechMap]);
+    const withTech = base.map((u, i) => ({ ...u, technician: unitTechMap[u.id] || techs[i % techs.length] }));
+    const merged = mergeUnitsWithPmSchedule(withTech, pmSchedule);
+    return merged.map(u => ({
+      ...u,
+      technician: healTechnicianName(unitTechMap[u.id] || u.technician, liveTechnicians, employees),
+    }));
+  }, [liveTechnicians, unitTechMap, pmSchedule, employees]);
 
   const t = translations[lang];
   const fmt = (n) => formatCurrency(n, lang, exchangeRate);
@@ -1016,15 +1024,27 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
   // super_admin (CEO) always retains full access so the authorization panel can never lock itself out.
   const allowedNav = useMemo(() => {
     const FULL = NAV_BY_ROLE.super_admin;
+    const migrateNav = (mods) => {
+      const set = new Set(mods);
+      if (set.has('installation') || set.has('maintenance')) {
+        set.delete('installation');
+        set.delete('maintenance');
+        set.add('technical_support');
+      }
+      return FULL.filter(id => set.has(id));
+    };
     if (session.role === 'super_admin') return FULL;
     const ov = moduleAccess[session.username];
     if (ov && Array.isArray(ov)) {
-      const set = new Set(ov);
-      const ordered = FULL.filter(id => set.has(id));
+      const ordered = migrateNav(ov);
       return ordered.length ? ordered : ['dashboard'];
     }
     return NAV_BY_ROLE[session.role] || ['dashboard'];
   }, [session.role, session.username, moduleAccess]);
+
+  useEffect(() => {
+    if (view === 'installation' || view === 'maintenance') setView('technical_support');
+  }, [view]);
 
   // Business-trip notification count (shared by HoverSidebar + Header)
   const navBtNotifCount = useMemo(() => {
@@ -1312,8 +1332,7 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
         {view === 'sales_report' && canRead('sales_report') && <SalesReport reports={reports} setReports={setReports} t={t} lang={lang} session={session} fmt={fmt} employees={employees} reportsSeen={reportsSeen} setReportsSeen={setReportsSeen} />}
         {view === 'finance' && canRead('finance') && <FinanceModule data={data} setData={setData} t={t} lang={lang} canEdit={canEdit('finance')} fmt={fmt} onWorkflowUpdate={handleWorkflowUpdate} session={session} documentTemplates={documentTemplates} employees={employees} onSaveDocument={handleSaveDocument} />}
         {view === 'operations' && canRead('operations') && <OperationsModule data={data} setData={setData} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} t={t} lang={lang} canEdit={canEdit('operations')} fmt={fmt} session={session} />}
-        {view === 'installation' && canRead('installation') && <InstallationModule data={data} setData={setData} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} t={t} lang={lang} canEdit={canEdit('installation')} fmt={fmt} employees={employees} liveTechnicians={liveTechnicians} regRecords={regRecords} products={products} documentTemplates={documentTemplates} onSaveDocument={handleSaveDocument} session={session} />}
-        {view === 'maintenance' && canRead('maintenance') && <MaintenanceModule units={installedUnits} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} t={t} lang={lang} canEdit={canEdit('maintenance')} session={session} liveTechnicians={liveTechnicians} unitTechMap={unitTechMap} setUnitTechMap={setUnitTechMap} employees={employees} />}
+        {view === 'technical_support' && canRead('technical_support') && <TechnicalSupportModule data={data} setData={setData} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} units={installedUnits} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} t={t} lang={lang} canEdit={canEdit('technical_support')} fmt={fmt} employees={employees} liveTechnicians={liveTechnicians} regRecords={regRecords} products={products} documentTemplates={documentTemplates} onSaveDocument={handleSaveDocument} session={session} unitTechMap={unitTechMap} setUnitTechMap={setUnitTechMap} />}
         {view === 'regulatory' && canRead('regulatory') && <RegulatoryModule records={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} units={installedUnits} t={t} lang={lang} fmt={fmt} canEdit={canEdit('regulatory')} data={data} setData={setData} products={products} />}
         {view === 'incentive' && canRead('incentive') && <IncentiveModule data={data} setData={setData} t={t} lang={lang} session={session} fmt={fmt} fmtFull={fmtFull} canEdit={canEdit('incentive')} employees={employees} />}
         {view === 'valuation' && canRead('valuation') && <Valuation data={data} t={t} lang={lang} fmt={fmt} />}

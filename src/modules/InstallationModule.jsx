@@ -11,13 +11,13 @@ import { buildEditorTemplate, downloadBASTBarangDoc, downloadBATrainingDoc, prin
 import { notify } from '../utils/notifications.js';
 import { resolveEmpName, resolveNamesInText } from '../utils/domain.js';
 import { DASHBOARD_GLASS, DashboardHero, GlassPanel } from '../components/FuturisticDashboardShell.jsx';
-function InstallationModule({ data, setData, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, t, lang, canEdit, fmt, employees = {}, liveTechnicians = [], regRecords = [], products = [], documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, onSaveDocument, session = {} }) {
+function InstallationModule({ data, setData, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, t, lang, canEdit, fmt, employees = {}, liveTechnicians = [], regRecords = [], products = [], documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, onSaveDocument, session = {}, contentOnly = false, forcedTab = null }) {
   const [installEditor, setInstallEditor] = useState(null); // { record, docType, html, title }
   const openInstallEditor = (docType, record, label) => {
     const html = buildEditorTemplate(docType, record, employees, fmt, documentTemplates, record.salesOwner || record.requesterId);
     setInstallEditor({ record, docType, html, title: (label || DOC_TYPE_LABELS[docType] || 'Dokumen') + ' — ' + (record.customer || '') });
   };
-  const [tab, setTab] = useState('dashboard');
+  const [tab, setTab] = useState(forcedTab || 'dashboard');
   // Default to current year (2026) — sync with SPH module behavior
   const [filterYear, setFilterYear] = useState('2026');
   const [search, setSearch] = useState('');
@@ -262,79 +262,32 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
     return { totalRecords: installRecordsFiltered.length, inProgressCount: inProg, completedCount: comp, bastSignedCount: bastS, trainingDoneCount: trainD };
   }, [installRecordsFiltered, bastRecordsFiltered, trainingRecordsFiltered]);
   const { totalRecords, inProgressCount, completedCount, bastSignedCount, trainingDoneCount } = kpis;
+  const activeTab = forcedTab || tab;
 
-  return (
-    <div>
-      <div style={{marginBottom: '22px'}}>
-        <div style={{fontSize: '11px', letterSpacing: '0.3em', color: 'var(--ims-text-2)', textTransform: 'uppercase', marginBottom: '6px'}}>{t.nav_installation}</div>
-        <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{t.installation_title}</h1>
-        <div style={{fontSize: '13px', color: 'var(--ims-text-2)', marginTop: '6px'}}>{t.installation_subtitle}</div>
+  const filterBar = (
+    <div style={{display: 'flex', gap: '10px', marginBottom: '14px', alignItems: 'center', flexWrap: 'wrap'}}>
+      <div style={{position: 'relative', flex: '1 1 260px', maxWidth: '380px'}}>
+        <Search size={14} style={{position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--ims-text-2)'}} />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder={lang === 'id' ? 'Cari pelanggan, SPH, atau modalitas...' : 'Search customer, SPH, or modality...'} style={{paddingLeft: '36px'}} />
       </div>
-      {!canEdit && <ReadOnlyBanner t={t} />}
-
-      {/* KPI Cards */}
-      <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1px', background: 'var(--ims-border)', marginBottom: '22px', border: '1px solid var(--ims-border)'}}>
-        <div style={{padding: '16px 18px', background: 'var(--ims-bg-card)'}}>
-          <div className="lbl-tag">{t.inst_total_records}</div>
-          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px'}}>{totalRecords}</div>
-          <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{lang === 'id' ? `data instalasi${filterYear !== 'all' ? ` ${filterYear}` : ''}${searchTerm ? ' sesuai pencarian' : ''}` : `installation data${filterYear !== 'all' ? ` ${filterYear}` : ''}${searchTerm ? ' matching search' : ''}`}</div>
-        </div>
-        <div style={{padding: '16px 18px', background: 'var(--ims-bg-card)'}}>
-          <div className="lbl-tag">{t.inst_in_progress}</div>
-          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px', color: 'var(--ims-accent)'}}>{inProgressCount}</div>
-        </div>
-        <div style={{padding: '16px 18px', background: 'var(--ims-bg-card)'}}>
-          <div className="lbl-tag">{t.inst_completed_count}</div>
-          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px', color: 'var(--ims-accent-2)'}}>{completedCount}</div>
-        </div>
-        <div style={{padding: '16px 18px', background: 'var(--ims-bg-card)'}}>
-          <div className="lbl-tag">{t.inst_bast_signed}</div>
-          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px', color: '#1a4d8a'}}>{bastSignedCount}</div>
-        </div>
-        <div style={{padding: '16px 18px', background: 'var(--ims-bg-card)'}}>
-          <div className="lbl-tag">{t.inst_training_done}</div>
-          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px', color: '#7b3fb5'}}>{trainingDoneCount}</div>
-        </div>
-      </div>
-
-      {/* Year filter + search bar */}
-      <div style={{display: 'flex', gap: '10px', marginBottom: '14px', alignItems: 'center', flexWrap: 'wrap'}}>
-        <div style={{position: 'relative', flex: '1 1 260px', maxWidth: '380px'}}>
-          <Search size={14} style={{position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--ims-text-2)'}} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={lang === 'id' ? 'Cari pelanggan, SPH, atau modalitas...' : 'Search customer, SPH, or modality...'} style={{paddingLeft: '36px'}} />
-        </div>
-        <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600}}>{lang === 'id' ? 'Tahun PO' : 'PO Year'}:</span>
-        <select value={filterYear} onChange={e => setFilterYear(e.target.value)} style={{width: 'auto', minWidth: '110px'}}>
-          <option value="all">{lang === 'id' ? 'Semua Tahun' : 'All Years'}</option>
-          {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
-        </select>
+      <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600}}>{lang === 'id' ? 'Tahun PO' : 'PO Year'}:</span>
+      <select value={filterYear} onChange={e => setFilterYear(e.target.value)} style={{width: 'auto', minWidth: '110px'}}>
+        <option value="all">{lang === 'id' ? 'Semua Tahun' : 'All Years'}</option>
+        {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+      </select>
+      {!contentOnly && (
         <span style={{fontSize: '11px', color: 'var(--ims-text-2)', fontStyle: 'italic'}}>
           {lang === 'id'
             ? `${totalRecords} data instalasi${filterYear !== 'all' ? ` di ${filterYear}` : ''} · ${inProgressCount} sedang berlangsung · ${installProjects.length} proyek di pipeline`
             : `${totalRecords} installation records${filterYear !== 'all' ? ` in ${filterYear}` : ''} · ${inProgressCount} in progress · ${installProjects.length} projects in pipeline`}
         </span>
-      </div>
+      )}
+    </div>
+  );
 
-      {/* Tabs */}
-      <div style={{display: 'flex', gap: '2px', marginBottom: '22px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
-        {[
-          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: Activity },
-          { id: 'records', label: t.inst_tab_records, icon: ClipboardList },
-          { id: 'training', label: t.inst_tab_training, icon: Users },
-          { id: 'bast', label: t.inst_tab_bast, icon: FileCheck },
-          { id: 'progress', label: t.inst_tab_progress, icon: Wrench },
-        ].map(tb => {
-          const Icon = tb.icon;
-          const active = tab === tb.id;
-          return (
-            <button key={tb.id} onClick={() => setTab(tb.id)} style={{background: 'transparent', border: 'none', padding: '10px 16px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 500, color: active ? 'var(--ims-accent)' : 'var(--ims-text-2)', borderBottom: active ? '2px solid var(--ims-border)' : '2px solid transparent', marginBottom: '-1px', display: 'flex', alignItems: 'center', gap: '7px', letterSpacing: '0.03em'}}>
-              <Icon size={14} strokeWidth={1.5} />{tb.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {tab === 'dashboard' && (
+  const tabPanels = (
+    <>
+      {activeTab === 'dashboard' && (
         <InstallationDashboard
           installRecords={installRecordsFiltered}
           bastRecords={bastRecordsFiltered}
@@ -345,7 +298,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
         />
       )}
 
-      {tab === 'progress' && (
+      {activeTab === 'progress' && (
         <div style={{display: 'flex', flexDirection: 'column', gap: '14px'}}>
           <div style={{padding: '10px 14px', background: 'var(--ims-accent-2)10', borderLeft: '3px solid var(--ims-accent-2)', fontSize: '11px', color: '#1a4d2a'}}>
             🔗 {t.inst_prog_auto_synced}
@@ -436,9 +389,15 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
         </div>
       )}
 
-      {tab === 'records' && <InstallRecordsList records={installRecordsFiltered} setRecords={setInstallRecords} t={t} lang={lang} canEdit={canEdit} employees={employees} units={deliveredUnits} products={products} fmt={fmt} documentTemplates={documentTemplates} onOpenEditor={openInstallEditor} />}
-      {tab === 'bast' && <BASTList products={products} records={bastRecordsForView} setRecords={setBastRecords} t={t} lang={lang} canEdit={canEdit} units={installRecordUnits} installRecords={installRecords} employees={employees} documentTemplates={documentTemplates} fmt={fmt} onOpenEditor={openInstallEditor} />}
-      {tab === 'training' && <TrainingCertList records={trainingRecordsForView} setRecords={setTrainingRecords} t={t} lang={lang} canEdit={canEdit} employees={employees} units={installRecordUnits} installRecords={installRecords} products={products} documentTemplates={documentTemplates} fmt={fmt} onOpenEditor={openInstallEditor} />}
+      {activeTab === 'records' && <InstallRecordsList records={installRecordsFiltered} setRecords={setInstallRecords} t={t} lang={lang} canEdit={canEdit} employees={employees} units={deliveredUnits} products={products} fmt={fmt} documentTemplates={documentTemplates} onOpenEditor={openInstallEditor} />}
+      {activeTab === 'bast' && <BASTList products={products} records={bastRecordsForView} setRecords={setBastRecords} t={t} lang={lang} canEdit={canEdit} units={installRecordUnits} installRecords={installRecords} employees={employees} documentTemplates={documentTemplates} fmt={fmt} onOpenEditor={openInstallEditor} />}
+      {activeTab === 'training' && <TrainingCertList records={trainingRecordsForView} setRecords={setTrainingRecords} t={t} lang={lang} canEdit={canEdit} employees={employees} units={installRecordUnits} installRecords={installRecords} products={products} documentTemplates={documentTemplates} fmt={fmt} onOpenEditor={openInstallEditor} />}
+      {activeTab === 'history_bast' && (
+        <div style={{display: 'flex', flexDirection: 'column', gap: '24px'}}>
+          <InstallRecordsList records={installRecordsFiltered} setRecords={setInstallRecords} t={t} lang={lang} canEdit={canEdit} employees={employees} units={deliveredUnits} products={products} fmt={fmt} documentTemplates={documentTemplates} onOpenEditor={openInstallEditor} />
+          <BASTList products={products} records={bastRecordsForView} setRecords={setBastRecords} t={t} lang={lang} canEdit={canEdit} units={installRecordUnits} installRecords={installRecords} employees={employees} documentTemplates={documentTemplates} fmt={fmt} onOpenEditor={openInstallEditor} />
+        </div>
+      )}
 
       {installEditor && (
         <DocumentEditorModal
@@ -456,9 +415,76 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
           }}
         />
       )}
+    </>
+  );
+
+  if (contentOnly) {
+    return (
+      <div>
+        {activeTab !== 'dashboard' && filterBar}
+        {tabPanels}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{marginBottom: '22px'}}>
+        <div style={{fontSize: '11px', letterSpacing: '0.3em', color: 'var(--ims-text-2)', textTransform: 'uppercase', marginBottom: '6px'}}>{t.nav_installation}</div>
+        <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{t.installation_title}</h1>
+        <div style={{fontSize: '13px', color: 'var(--ims-text-2)', marginTop: '6px'}}>{t.installation_subtitle}</div>
+      </div>
+      {!canEdit && <ReadOnlyBanner t={t} />}
+
+      <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1px', background: 'var(--ims-border)', marginBottom: '22px', border: '1px solid var(--ims-border)'}}>
+        <div style={{padding: '16px 18px', background: 'var(--ims-bg-card)'}}>
+          <div className="lbl-tag">{t.inst_total_records}</div>
+          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px'}}>{totalRecords}</div>
+          <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{lang === 'id' ? `data instalasi${filterYear !== 'all' ? ` ${filterYear}` : ''}${searchTerm ? ' sesuai pencarian' : ''}` : `installation data${filterYear !== 'all' ? ` ${filterYear}` : ''}${searchTerm ? ' matching search' : ''}`}</div>
+        </div>
+        <div style={{padding: '16px 18px', background: 'var(--ims-bg-card)'}}>
+          <div className="lbl-tag">{t.inst_in_progress}</div>
+          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px', color: 'var(--ims-accent)'}}>{inProgressCount}</div>
+        </div>
+        <div style={{padding: '16px 18px', background: 'var(--ims-bg-card)'}}>
+          <div className="lbl-tag">{t.inst_completed_count}</div>
+          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px', color: 'var(--ims-accent-2)'}}>{completedCount}</div>
+        </div>
+        <div style={{padding: '16px 18px', background: 'var(--ims-bg-card)'}}>
+          <div className="lbl-tag">{t.inst_bast_signed}</div>
+          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px', color: '#1a4d8a'}}>{bastSignedCount}</div>
+        </div>
+        <div style={{padding: '16px 18px', background: 'var(--ims-bg-card)'}}>
+          <div className="lbl-tag">{t.inst_training_done}</div>
+          <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '4px', color: '#7b3fb5'}}>{trainingDoneCount}</div>
+        </div>
+      </div>
+
+      {filterBar}
+
+      <div style={{display: 'flex', gap: '2px', marginBottom: '22px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
+        {[
+          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: Activity },
+          { id: 'records', label: t.inst_tab_records, icon: ClipboardList },
+          { id: 'training', label: t.inst_tab_training, icon: Users },
+          { id: 'bast', label: t.inst_tab_bast, icon: FileCheck },
+          { id: 'progress', label: t.inst_tab_progress, icon: Wrench },
+        ].map(tb => {
+          const Icon = tb.icon;
+          const active = tab === tb.id;
+          return (
+            <button key={tb.id} onClick={() => setTab(tb.id)} style={{background: 'transparent', border: 'none', padding: '10px 16px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 500, color: active ? 'var(--ims-accent)' : 'var(--ims-text-2)', borderBottom: active ? '2px solid var(--ims-border)' : '2px solid transparent', marginBottom: '-1px', display: 'flex', alignItems: 'center', gap: '7px', letterSpacing: '0.03em'}}>
+              <Icon size={14} strokeWidth={1.5} />{tb.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {tabPanels}
     </div>
   );
 }
+
 function InstallationDashboard({ installRecords = [], bastRecords = [], trainingRecords = [], installProjects = [], kpis = {}, t, lang, fmt = (n) => n, employees = {} }) {
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
   const dash = useMemo(() => {
@@ -785,7 +811,7 @@ function BASTList({ records, products = [], setRecords, t, lang, canEdit, units 
         const statusColor = statusColors[r.status];
         const syncedTech = installLeadTechnicianName(installRecords, employees, r.customer, r.modality, r.subModality);
         const technicianNames = activeEmployeeNamesByRole(employees, 'technician');
-        const displayHntiRep = r.hntiRep && technicianNames.includes(r.hntiRep) ? r.hntiRep : (syncedTech || r.hntiRep);
+        const displayHntiRep = (r.hntiRep && technicianNames.includes(r.hntiRep) ? r.hntiRep : '') || syncedTech || '—';
         return (
           <div key={r.id} style={{padding: '16px 18px', borderTop: '1px solid var(--ims-border)'}}>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '10px'}}>
@@ -854,7 +880,7 @@ function TrainingCertList({ records, setRecords, t, lang, canEdit, employees = {
             message: (typeof t === 'object' && t.lang === 'en')
               ? `Training ${cleanRec.modality} at ${cleanRec.customer} scheduled ${cleanRec.sessionDate}. Instructor: ${cleanRec.instructor || '-'}.`
               : `Training ${cleanRec.modality} di ${cleanRec.customer} dijadwalkan ${cleanRec.sessionDate}. Instruktur: ${cleanRec.instructor || '-'}.`,
-            link: { view: 'installation' }
+            link: { view: 'technical_support' }
           });
         } catch {}
       }
@@ -1073,8 +1099,8 @@ function BASTModal({ record, onSave, onClose, t, lang, units = [], installRecord
   const update = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
   const syncedTech = installLeadTechnicianName(installRecords, employees, form.customer, form.modality, form.subModality);
   const technicianNames = activeEmployeeNamesByRole(employees, 'technician');
-  const selectedHntiRep = form.hntiRep && technicianNames.includes(form.hntiRep) ? form.hntiRep : (syncedTech || form.hntiRep || '');
-  const hntiRepOptions = [...new Set([syncedTech, ...technicianNames, form.hntiRep].filter(Boolean))];
+  const selectedHntiRep = (form.hntiRep && technicianNames.includes(form.hntiRep) ? form.hntiRep : '') || syncedTech || '';
+  const hntiRepOptions = [...new Set([syncedTech, ...technicianNames].filter(Boolean))];
 
   return (
     <div className="modal-overlay" onClick={onClose}>

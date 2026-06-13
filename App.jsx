@@ -639,7 +639,8 @@ export default function App() {
       if (reg) {
         try { setRegRecords(JSON.parse(reg)); } catch {}
       } else {
-        const units = generateInstalledUnits();
+        const sphData = d ? normalizePoWon(JSON.parse(d)) : ALL_SPH;
+        const units = generateInstalledUnits(sphData);
         setRegRecords(generateRegulatoryRecords(units));
       }
       setLoading(false);
@@ -877,19 +878,29 @@ export default function App() {
 
   // Base installed units (without PM schedule overlay — PM merge happens in MaintenanceModule + for Regulatory display)
   const baseInstalledUnits = useMemo(() => {
-    const base = generateInstalledUnits();
+    const base = generateInstalledUnits(data);
     const techs = liveTechnicians.length ? liveTechnicians : TECHNICIAN_NAMES;
     return base.map((u, i) => ({
       ...u,
       technician: healTechnicianName(unitTechMap[u.id] || techs[i % techs.length], liveTechnicians, employees),
     }));
-  }, [liveTechnicians, unitTechMap, employees]);
+  }, [data, liveTechnicians, unitTechMap, employees]);
 
   // Regulatory & cross-module views: include PM overlay
   const installedUnits = useMemo(
     () => mergeUnitsWithPmSchedule(baseInstalledUnits, pmSchedule),
     [baseInstalledUnits, pmSchedule]
   );
+
+  // Hapus catatan PM manual untuk unit yang sudah tidak terinstal (sinkron dengan state data)
+  useEffect(() => {
+    if (loading) return;
+    const validUnitIds = new Set(baseInstalledUnits.map(u => u.id));
+    setPmSchedule(prev => {
+      const next = prev.filter(p => !p.unitId || validUnitIds.has(p.unitId));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [baseInstalledUnits, loading]);
 
   const t = translations[lang];
   const fmt = (n) => formatCurrency(n, lang, exchangeRate);

@@ -251,8 +251,9 @@ function buildSeedNotificationsFromSph(projects = ALL_SPH) {
   });
   return rows;
 }
-function generateInstalledUnits() {
-  const wonProjects = ALL_SPH.filter(s => s.status === 'won' && s.installationStatus === 'installed');
+function generateInstalledUnits(sourceData) {
+  if (!sourceData) return [];
+  const wonProjects = sourceData.filter(s => s.status === 'won' && s.installationStatus === 'installed');
   // Helper: add N calendar months to a YYYY-MM-DD date (clean, no 30-day drift)
   const addMonths = (dateStr, n) => {
     const d = new Date(dateStr + 'T00:00:00');

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IMS HNTI — Integrated Monitoring System</title>
+    <meta name="description" content="Sistem manajemen terintegrasi PT Harmoni Nasional Teknologi Indonesia — distributor alat radiologi medis." />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/logoapps.png" />
+
+    <!-- PWA: manifest & theme color -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#05130c" />
+    <meta name="application-name" content="IMS HNTI" />
+
+    <!-- iOS PWA support -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="IMS HNTI" />
+    <link rel="apple-touch-icon" href="/logoapps.png" />
+
+    <!-- Service Worker registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((reg) => {
+              console.log('[IMS PWA] Service worker registered', reg.scope);
+              reg.addEventListener('updatefound', () => {
+                const sw = reg.installing;
+                if (!sw) return;
+                sw.addEventListener('statechange', () => {
+                  if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+                    sw.postMessage({ type: 'SKIP_WAITING' });
+                  }
+                });
+              });
+            })
+            .catch((err) => console.warn('[IMS PWA] SW registration failed', err));
+        });
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/main.jsx"></script>
+  </body>
+</html>

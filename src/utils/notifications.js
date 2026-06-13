@@ -65,16 +65,68 @@ function countUnreadNotifications(notifications, session) {
   if (!Array.isArray(notifications)) return 0;
   return notifications.filter(n => !n.readAt && isNotificationForUser(n, session)).length;
 }
-function triggerBrowserNotification(payload = {}) {
+// Judul OS notification yang profesional, dipetakan dari tipe notifikasi internal.
+const NOTIF_TITLE_MAP = {
+  id: {
+    sph_request: 'Permintaan SPH Baru', sph_ready: 'SPH Siap Dikirim', sph_sent: 'SPH Terkirim',
+    po_won: 'PO Dimenangkan', dp_paid: 'DP / Deposit Diterima', dp_followup: 'Follow-up DP',
+    invoice_ready: 'Invoice Siap', billing_due: 'Tagihan Jatuh Tempo', pnbp_due: 'PNBP Jatuh Tempo',
+    install_pending: 'Instalasi Menunggu', training_scheduled: 'Jadwal Training', shipping_arrived: 'Barang Tiba',
+    factory_po_sent: 'PO ke Pabrik Terkirim', factory_dp_paid: 'DP Pabrik Dibayar', pib_paid: 'PIB Terbayar',
+    system: 'Notifikasi IMS',
+  },
+  en: {
+    sph_request: 'New SPH Request', sph_ready: 'SPH Ready to Send', sph_sent: 'SPH Sent',
+    po_won: 'PO Won', dp_paid: 'DP / Deposit Received', dp_followup: 'DP Follow-up',
+    invoice_ready: 'Invoice Ready', billing_due: 'Billing Due', pnbp_due: 'PNBP Due',
+    install_pending: 'Installation Pending', training_scheduled: 'Training Scheduled', shipping_arrived: 'Goods Arrived',
+    factory_po_sent: 'Factory PO Sent', factory_dp_paid: 'Factory DP Paid', pib_paid: 'PIB Paid',
+    system: 'IMS Notification',
+  },
+};
+function notificationTitle(type, lang = 'id') {
+  const map = NOTIF_TITLE_MAP[lang] || NOTIF_TITLE_MAP.id;
+  return map[type] || map.system;
+}
+// Minta izin notifikasi desktop dari browser (dipanggil sekali setelah login).
+function requestNotificationPermission() {
+  if (typeof window === 'undefined' || !('Notification' in window)) return Promise.resolve('unsupported');
+  if (Notification.permission === 'granted' || Notification.permission === 'denied') {
+    return Promise.resolve(Notification.permission);
+  }
+  try {
+    return Notification.requestPermission().catch(() => 'default');
+  } catch {
+    return Promise.resolve('default');
+  }
+}
+// Tampilkan OS-level notification (di luar tab browser) + klik → fokus tab & buka modul terkait.
+function triggerBrowserNotification(payload = {}, lang = 'id') {
   if (typeof window === 'undefined') return;
   try {
     if (navigator?.vibrate) navigator.vibrate([120, 40, 120]);
     if (!('Notification' in window)) return;
-    const show = () => new Notification('IMS HNTI', {
-      body: payload.message || 'Notifikasi baru',
-      tag: payload.type || 'ims-hnti',
-      icon: '/favicon.ico',
-    });
+    const title = `IMS HNTI — ${notificationTitle(payload.type, lang)}`;
+    const show = () => {
+      try {
+        const n = new Notification(title, {
+          body: payload.message || (lang === 'en' ? 'New notification' : 'Notifikasi baru'),
+          tag: payload.type || 'ims-hnti',
+          icon: '/logoapps.png',
+          badge: '/logoapps.png',
+          renotify: false,
+          data: { link: payload.link || null, type: payload.type || 'system' },
+        });
+        n.onclick = (event) => {
+          try { event.preventDefault(); } catch {}
+          try { window.focus(); } catch {}
+          try {
+            if (payload.link) window.dispatchEvent(new CustomEvent('ims:navigate', { detail: { link: payload.link } }));
+          } catch {}
+          try { n.close(); } catch {}
+        };
+      } catch {}
+    };
     if (Notification.permission === 'granted') show();
     else if (Notification.permission !== 'denied') {
       Notification.requestPermission().then(permission => { if (permission === 'granted') show(); });
@@ -119,4 +171,4 @@ function formatNotifTime(iso, lang = 'id') {
   }
 }
 
-export { appendAuditLog, pushDedupeMemory, notificationDedupeKey, pruneNotifications, hasRecentDuplicateNotification, pushNotificationToList, isNotificationForUser, countUnreadNotifications, triggerBrowserNotification, notify, formatNotifTime };
+export { appendAuditLog, pushDedupeMemory, notificationDedupeKey, pruneNotifications, hasRecentDuplicateNotification, pushNotificationToList, isNotificationForUser, countUnreadNotifications, notificationTitle, requestNotificationPermission, triggerBrowserNotification, notify, formatNotifTime };

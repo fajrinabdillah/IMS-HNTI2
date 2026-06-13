@@ -20,7 +20,7 @@ import { generateHntiSph2026Seed, _RAW_ALL_SPH, ALL_SPH, buildSeedNotificationsF
 import { TOAST_EVENT, showToast } from './src/utils/toast.js';
 import { mergeDocumentTemplates, downloadDataUrl, downloadUploadedTemplate, previewUploadedTemplate, getUploadedDocumentTemplate, openDocumentTemplateOrHtml, downloadDocumentTemplateOrDoc, downloadCSV, downloadHtmlDoc, openPrintableHtml, getUserSignature, getUserDisplayName, findUserByRole, printHtmlStringAsPdf, renderDocLines, renderDocFooter, renderSignatureBlock, wrapDocumentInLetterhead, buildTextLetterheadHtml, buildHntiLetterheadHtml, renderDualSignatureHtml, buildEditorTemplate, getTemplateHtmlBody, fillTemplatePlaceholders, buildEditorBody, buildSPHDocumentHtml, downloadSPHWord, printSPHPdf, buildSPPDocumentHtml, downloadSPPWord, printSPPPdf, buildInvoiceKwitansiHtml, buildPrincipalPoHtml, buildBAIDocumentHtml, printBAIPdf, buildBAUjiFungsiDocumentHtml, printBAUjiFungsiPdf, buildBATrainingDocumentHtml, downloadBATrainingDoc, printBATrainingPdf, buildBASTBarangDocumentHtml, downloadBASTBarangDoc, printBASTBarangPdf, buildKwitansiHtml } from './src/utils/documents.js';
 import { parseCSV, buildColMap, SPH_IMPORT_ALIASES, _STATUS_ALIASES, _STAGE_VALID, parseSPHImport, PAY_IMPORT_ALIASES, _PAYTYPE_ALIASES, parsePaymentImport } from './src/utils/csvImport.js';
-import { appendAuditLog, pushDedupeMemory, notificationDedupeKey, pruneNotifications, hasRecentDuplicateNotification, pushNotificationToList, isNotificationForUser, countUnreadNotifications, triggerBrowserNotification, notify, formatNotifTime } from './src/utils/notifications.js';
+import { appendAuditLog, pushDedupeMemory, notificationDedupeKey, pruneNotifications, hasRecentDuplicateNotification, pushNotificationToList, isNotificationForUser, countUnreadNotifications, requestNotificationPermission, triggerBrowserNotification, notify, formatNotifTime } from './src/utils/notifications.js';
 import { getStoredTheme, setStoredTheme } from './src/utils/theme.js';
 import { IMSLogo, GlobalStyles, WIBClock, ChartTooltip, PieCard, KPICard, ReadOnlyBanner, Field, ConfirmDialog, LinkAttachment, SortToggle, Th, Td, SyncIndicator, ModuleErrorBoundary } from './src/components/ui.jsx';
 import { DocumentEditorModal } from './src/components/DocumentEditorModal.jsx';
@@ -358,13 +358,17 @@ export default function App() {
       const uiRecentlyShown = Date.now() - (pushDedupeMemory.get(uiKey) || 0) <= NOTIFICATION_DEDUPE_MS;
       if (isNotificationForUser(previewNotif, session) && !uiRecentlyShown && !hasRecentDuplicateNotification(notifications, target, payload)) {
         pushDedupeMemory.set(uiKey, Date.now());
-        triggerBrowserNotification(payload);
+        triggerBrowserNotification(payload, lang);
       }
       setNotifications(prev => pushNotificationToList(prev, target, payload, fromUser));
     };
     window.addEventListener('ims:notify', onNotify);
     return () => window.removeEventListener('ims:notify', onNotify);
-  }, [session, notifications]);
+  }, [session, notifications, lang]);
+  // OS-level push: minta izin notifikasi desktop sekali setelah pengguna berhasil login.
+  useEffect(() => {
+    if (session) { try { requestNotificationPermission(); } catch {} }
+  }, [session]);
   const [loading, setLoading] = useState(true);
   // Last sync timestamp - updated on every storage write (data changed) or manual refresh
   const [lastSync, setLastSync] = useState(Date.now());
@@ -989,6 +993,17 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [changePwOpen, setChangePwOpen] = useState(false);
 
+  // Navigasi dari klik OS-level push notification: fokus tab + buka modul terkait.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onNavigate = (e) => {
+      const link = e.detail?.link;
+      if (link?.view) { try { setView(link.view); } catch {} }
+    };
+    window.addEventListener('ims:navigate', onNavigate);
+    return () => window.removeEventListener('ims:navigate', onNavigate);
+  }, []);
+
   // Self-service password change for the logged-in user
   const handleChangePassword = (newPassword) => {
     setEmployees(prev => ({ ...prev, [session.username]: { ...prev[session.username], password: newPassword, mustChangePassword: false } }));
@@ -1295,7 +1310,7 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
         {view === 'products' && <ProductMasterModule products={products} setProducts={setProducts} t={t} lang={lang} canEdit={session.role === 'super_admin' || session.role === 'gm' || session.role === 'manager_ops' || session.role === 'admin'} logAction={logAction} data={data} />}
         {view === 'document_templates' && canRead('document_templates') && <DocumentTemplateModule templates={documentTemplates} setTemplates={setDocumentTemplates} data={data} employees={employees} t={t} lang={lang} fmt={fmt} canEdit={canEdit('document_templates')} logAction={logAction} />}
         {view === 'product_support' && canRead('product_support') && <ProductSupportModule data={data} trainingRecords={trainingRecords} products={products} employees={employees} session={session} t={t} lang={lang} canEdit={canEdit('product_support')} fmt={fmt} activities={productSupportActivities} setActivities={setProductSupportActivities} files={productSupportFiles} setFiles={setProductSupportFiles} />}
-        {view === 'kpi_scorecard' && canRead('kpi_scorecard') && <LifecycleKpiScorecard data={data} employees={employees} session={session} t={t} lang={lang} fmt={fmt} />}
+        {view === 'kpi_scorecard' && canRead('kpi_scorecard') && <LifecycleKpiScorecard data={data} employees={employees} installRecords={installRecords} bastRecords={bastRecords} trainingRecords={trainingRecords} issues={issues} session={session} t={t} lang={lang} fmt={fmt} canEdit={canEdit('kpi_scorecard')} />}
 
         {view === 'cashflow' && <CashFlowProjection data={data} t={t} lang={lang} fmt={fmt} />}
         {view === 'exec_summary' && <ExecutiveSummary data={data} reports={reports} annotations={annotations} products={products} t={t} lang={lang} fmt={fmt} session={session} exchangeRate={exchangeRate} employees={employees} />}

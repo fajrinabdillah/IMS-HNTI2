@@ -1,12 +1,12 @@
 // Extracted from App.jsx during modular refactor.
-import { useMemo, useState } from 'react';
-import { AlertCircle, CalendarDays, ClipboardList, Download, Edit2, FileBarChart, FileText, FolderOpen, Trash2, Users } from 'lucide-react';
-import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { useEffect, useMemo, useState } from 'react';
+import { AlertCircle, Award, CalendarDays, ClipboardList, Download, Edit2, FileBarChart, FileText, FolderOpen, Target, Trash2, Users } from 'lucide-react';
+import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, PieChart, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartTooltip, ConfirmDialog, Field, KPICard, LinkAttachment, ReadOnlyBanner, Td, Th } from '../components/ui.jsx';
 import { MODALITY_COLORS } from '../constants/sales.js';
 import { PRODUCT_FILE_TYPES } from './ProductMasterModule.jsx';
 import { downloadCSV, openPrintableHtml } from '../utils/documents.js';
-import { getActiveSalesTeam, getProductFileUrl, resolveEmpName, resolveNamesInText, resolveProductRecord } from '../utils/domain.js';
+import { getActiveSalesTeam, getPaymentSummary, getProductFileUrl, resolveEmpName, resolveNamesInText, resolveProductRecord } from '../utils/domain.js';
 import { normalizeExternalUrl } from '../utils/format.js';
 import { notify } from '../utils/notifications.js';
 function ProductSupportModule({ data, trainingRecords, products, employees, session, t, lang, canEdit, fmt, activities = [], setActivities = () => {}, files = [], setFiles = () => {} }) {
@@ -273,10 +273,24 @@ function ProductSupportModule({ data, trainingRecords, products, employees, sess
     </div>
   );
 }
-function LifecycleKpiScorecard({ data, employees, session, t, lang, fmt }) {
+// ============================================================================
+// Balanced Scorecard (BSC) — dashboard evaluasi karyawan berbasis data.
+// 4 pilar: Keuangan, Pelanggan, Proses Internal, Pembelajaran & Pertumbuhan.
+// Skor ditarik otomatis dari Modul Sales (konversi deals), Finance (invoice
+// terbayar), Instalasi (waktu penyelesaian) & Maintenance (komplain). Pilar
+// observasional (Pembelajaran) diisi HR/Manager lewat form (disimpan lokal).
+// ============================================================================
+const BSC_WEIGHTS = { financial: 0.30, customer: 0.25, process: 0.25, learning: 0.20 };
+const BSC_ASSESS_KEY = 'ims_bsc_assessments_v1';
+const clampScore = (v, a = 0, b = 100) => Math.max(a, Math.min(b, Math.round(Number.isFinite(v) ? v : 0)));
+function loadBscAssessments() {
+  try { return JSON.parse(window.localStorage.getItem(BSC_ASSESS_KEY) || '{}') || {}; } catch { return {}; }
+}
+function LifecycleKpiScorecard({ data, employees, installRecords = [], bastRecords = [], trainingRecords = [], issues = [], session, t, lang, fmt, canEdit = false }) {
   const [kpiTab, setKpiTab] = useState('scorecard');
   const [roleFilter, setRoleFilter] = useState('all');
   const [employeeFilter, setEmployeeFilter] = useState('all');
+  const [assessments, setAssessments] = useState(() => loadBscAssessments());
   const employeeList = useMemo(() => Object.entries(employees || {})
     .filter(([username, emp]) => emp.active !== false)
     .map(([username, emp]) => ({ username, ...emp }))
@@ -294,210 +308,185 @@ function LifecycleKpiScorecard({ data, employees, session, t, lang, fmt }) {
     { id: 'office_support', label: 'Office Support' },
     { id: 'other', label: lang === 'id' ? 'Lainnya' : 'Other' },
   ];
+  const PILLARS = [
+    { key: 'financial', label: lang === 'id' ? 'Keuangan' : 'Financial', color: '#d4af37' },
+    { key: 'customer', label: lang === 'id' ? 'Pelanggan' : 'Customer', color: '#5b8def' },
+    { key: 'process', label: lang === 'id' ? 'Proses Internal' : 'Internal Process', color: '#2f8f6f' },
+    { key: 'learning', label: lang === 'id' ? 'Pembelajaran' : 'Learning & Growth', color: '#7b3fb5' },
+  ];
   const filteredEmployees = useMemo(() => employeeList.filter(emp => {
     if (roleFilter === 'all') return true;
     if (roleFilter === 'other') return !roleOptions.some(r => r.id === emp.role);
     return emp.role === roleFilter;
   }), [employeeList, roleFilter]);
   const selectedEmployee = employeeFilter === 'all' ? null : employeeList.find(e => e.username === employeeFilter);
-  const scoreEmployees = selectedEmployee ? [selectedEmployee] : filteredEmployees;
-  const activeRole = selectedEmployee?.role || roleFilter;
-  const rows = useMemo(() => data.map(s => {
-    const history = s.stageHistory || [];
-    const first = history[0]?.at || s.sphRequestedAt || s.issuedDate;
-    const last = s.bastDate || s.dpConfirmedAt || s.principalPoSentAt || s.lastUpdate || s.issuedDate;
-    const totalDays = first && last ? Math.max(0, Math.round((new Date(last) - new Date(first)) / 86400000)) : 0;
-    const blockedStage = s.customsStatus === 'hold' ? 'Customs hold' : s.sphWorkflowStatus === 'requested' ? 'Admin SPH' : s.sphWorkflowStatus === 'dp_claimed_paid' ? 'Finance cek DP' : s.stage;
-    return { ...s, totalDays, blockedStage };
-  }), [data]);
-  const scoped = useMemo(() => {
-    let arr = session.role === 'sales' && session.salesId ? rows.filter(r => r.salesOwner === session.salesId) : rows;
-    const salesIds = filteredEmployees.filter(e => e.role === 'sales').map(e => e.salesId || e.username);
-    if (selectedEmployee?.role === 'sales') arr = arr.filter(r => r.salesOwner === (selectedEmployee.salesId || selectedEmployee.username));
-    else if (roleFilter === 'sales') arr = arr.filter(r => salesIds.includes(r.salesOwner));
-    else if (activeRole === 'admin') arr = arr.filter(r => ['requested', 'admin_drafting', 'ready_for_sales'].includes(r.sphWorkflowStatus) || r.stage === 'sph_sent');
-    else if (activeRole === 'finance') arr = arr.filter(r => ['po_issued', 'invoice_ready', 'dp_claimed_paid', 'dp_confirmed'].includes(r.sphWorkflowStatus) || r.poStatus === 'issued');
-    else if (activeRole === 'operations') arr = arr.filter(r => ['dp_confirmed', 'principal_po_sent', 'factory_po_sent', 'factory_dp_paid', 'factory_production', 'factory_production_done', 'goods_sent_client', 'goods_received_client', 'local_delivery'].includes(r.sphWorkflowStatus) || ['plan_order', 'factory_production', 'ready_to_ship', 'on_shipment', 'arrived_clearance', 'sent_client', 'client_received', 'delivered'].includes(r.shippingStatus));
-    else if (activeRole === 'technician') arr = arr.filter(r => r.poStatus === 'issued' || ['local_delivery', 'installed_bast'].includes(r.sphWorkflowStatus) || r.installationStatus);
-    else if (activeRole === 'regulatory') arr = arr.filter(r => r.modality && ['CT Scan', 'C-Arm', 'Mammography', 'X-Ray', 'MRI'].some(m => String(r.modality).includes(m)));
-    else if (activeRole === 'product_specialist') arr = arr.filter(r => r.stage === 'presentation_scheduled' || r.stage === 'presentation_done' || r.tenderSubStage === 'presentation' || r.trainingCert);
-    else if (['security', 'office_support'].includes(activeRole)) arr = [];
-    return arr;
-  }, [rows, session, filteredEmployees, selectedEmployee, roleFilter, activeRole]);
-  const byPic = useMemo(() => {
-    const map = new Map();
-    scoped.forEach(r => {
-      const key = r.salesOwner || 'unknown';
-      if (!map.has(key)) map.set(key, { pic: key, count: 0, totalDays: 0, won: 0, lost: 0, value: 0 });
-      const m = map.get(key);
-      m.count++; m.totalDays += r.totalDays; m.value += Number(r.totalValue) || 0;
-      if (r.status === 'won') m.won++; if (r.status === 'lost') m.lost++;
+
+  // Helper pencocokan karyawan ↔ record dari modul lain
+  const ledByTech = (emp, r) => r.leadTechnician === emp.username || resolveEmpName(employees, r.leadTechnician) === emp.name;
+  const nameMatch = (val, emp) => { const v = String(val || ''); return !!emp.name && (v === emp.name || v.includes(emp.name)); };
+
+  // ---- Mesin perhitungan Balanced Scorecard (data-driven) ----
+  const bsc = useMemo(() => {
+    const salesEmployees = employeeList.filter(e => e.role === 'sales');
+    const paidBySales = {};
+    salesEmployees.forEach(e => {
+      const sid = e.salesId || e.username;
+      paidBySales[sid] = data.filter(d => d.salesOwner === sid && d.poStatus === 'issued').reduce((s, p) => s + getPaymentSummary(p).totalPaid, 0);
     });
-    return Array.from(map.values()).map(m => ({ ...m, avgDays: m.count ? Math.round(m.totalDays / m.count) : 0, winRate: (m.won + m.lost) ? (m.won / (m.won + m.lost) * 100) : 0 })).sort((a, b) => b.value - a.value);
-  }, [scoped]);
-  const avgDays = scoped.length ? Math.round(scoped.reduce((sum, r) => sum + r.totalDays, 0) / scoped.length) : 0;
-  const roleKpis = useMemo(() => {
-    const won = scoped.filter(s => s.status === 'won').length;
-    const active = scoped.filter(s => s.status === 'active').length;
-    const poIssued = scoped.filter(s => s.poStatus === 'issued').length;
-    const pendingAdmin = scoped.filter(s => ['requested', 'admin_drafting'].includes(s.sphWorkflowStatus)).length;
-    const financeDue = scoped.filter(s => ['po_issued', 'dp_claimed_paid', 'invoice_ready'].includes(s.sphWorkflowStatus)).length;
-    const opsDue = scoped.filter(s => ['dp_confirmed', 'principal_po_sent', 'factory_po_sent', 'factory_dp_paid', 'factory_production', 'factory_production_done', 'goods_sent_client', 'goods_received_client', 'local_delivery'].includes(s.sphWorkflowStatus) || ['plan_order', 'factory_production', 'ready_to_ship', 'on_shipment', 'arrived_clearance', 'sent_client', 'client_received', 'loading', 'shipped', 'arrived'].includes(s.shippingStatus)).length;
-    const regDue = scoped.filter(s => s.modality && ['CT Scan', 'C-Arm', 'Mammography', 'X-Ray', 'MRI'].some(m => s.modality.includes(m))).length;
-    const installDue = scoped.filter(s => s.poStatus === 'issued' && s.status === 'won').length;
-    const defs = {
-      all: [['Cycle Time', `${avgDays || 0} hari`, 'Request SPH sampai status terakhir'], ['Bottleneck Aktif', scoped.filter(s => ['requested', 'dp_claimed_paid'].includes(s.sphWorkflowStatus) || s.customsStatus === 'hold').length, 'Stage yang perlu eskalasi'], ['PO Terbit', poIssued, 'Proyek menang lintas modul']],
-      sales: [['Win Rate', `${byPic.length ? Math.round(byPic.reduce((sum, p) => sum + p.winRate, 0) / byPic.length) : 0}%`, 'Menang vs kalah'], ['Follow-up DP', scoped.filter(s => ['invoice_ready', 'dp_followup', 'dp_claimed_paid'].includes(s.sphWorkflowStatus)).length, 'Invoice sampai DP diterima'], ['Nilai Pipeline', fmt(scoped.reduce((sum, s) => sum + (Number(s.totalValue) || 0), 0)), 'Pipeline/PO PIC sales']],
-      admin: [['Request SPH', pendingAdmin, 'Antrian SPH yang harus dibuat'], ['SPH Ready', scoped.filter(s => s.sphWorkflowStatus === 'ready_for_sales').length, 'SPH selesai dibuat dan dikirim ke sales'], ['Akurasi Data', 'Master-linked', 'Produk dan sales ditarik dari master data']],
-      finance: [['Dokumen Finance', financeDue, 'Invoice/Kwitansi/KP dan cek DP'], ['DP Confirmed', scoped.filter(s => s.sphWorkflowStatus === 'dp_confirmed').length, 'DP diterima dan siap PO principal'], ['Reminder Tagihan', scoped.filter(s => s.bastDate || s.bastDone).length, 'Reminder termin setelah BAST']],
-      operations: [['PO Principal/Shipping', opsDue, 'PO principal sampai local delivery'], ['Customs Hold', scoped.filter(s => s.customsStatus === 'hold').length, 'Dokumen tertahan Bea Cukai'], ['Local Trucking', scoped.filter(s => s.sphWorkflowStatus === 'local_delivery').length, 'ETA pengiriman lokal']],
-      technician: [['Instalasi/BAST', installDue, 'PO menang yang masuk alur instalasi'], ['Training Produk', scoped.filter(s => s.trainingCert).length, 'Training yang harus dijadwalkan/dilaporkan'], ['Sync PIC', 'Riwayat instalasi', 'Instruktur dan BAST wajib tarik teknisi instalasi']],
-      regulatory: [['Izin Terkait Produk', regDue, 'Produk radiologi yang membutuhkan regulatory'], ['PNBP Trigger', 'Aktif', 'Notifikasi Finance saat PNBP terbit'], ['Pipeline Compliance', '6 stage', 'Dokumen sampai izin terbit']],
-      product_specialist: [['Presentasi Produk', scoped.filter(s => s.stage === 'presentation_scheduled' || s.tenderSubStage === 'presentation').length, 'Notifikasi jadwal presentasi'], ['Training Produk', scoped.filter(s => s.trainingCert).length, 'Koordinasi training dari teknisi'], ['Support Activity', 'Terekam', 'Visit, isu kompetitor, solusi, file produk']],
-      security: [['Kedisiplinan Laporan', 'N/A', 'Parameter operasional non-project'], ['Kehadiran/Shift', 'N/A', 'Perlu modul attendance jika ingin otomatis'], ['Compliance', 'N/A', 'Tidak terkait SPH langsung']],
-      office_support: [['Dukungan Operasional', 'N/A', 'Parameter non-project'], ['Respons Tugas', 'N/A', 'Perlu modul task/attendance jika ingin otomatis'], ['Compliance', 'N/A', 'Tidak terkait SPH langsung']],
-      other: [['Kontribusi Umum', active + won, 'Aktivitas lintas modul'], ['Bottleneck', scoped.filter(s => s.totalDays > avgDays && avgDays > 0).length, 'Proyek di atas rata-rata durasi'], ['Kolaborasi', filteredEmployees.length, 'Jumlah karyawan dalam filter']],
-    };
-    return defs[roleFilter] || defs.all;
-  }, [scoped, roleFilter, avgDays, byPic, fmt, filteredEmployees]);
-  const bottlenecks = [...scoped].sort((a, b) => b.totalDays - a.totalDays).slice(0, 12);
-  const roleKpiStandards = {
-    sales: ['Revenue & win rate', 'CRM discipline', 'Customer follow-up', 'Forecast accuracy'],
-    admin: ['Document SLA', 'Data accuracy', 'Template compliance', 'Internal service quality'],
-    finance: ['AR collection', 'Invoice accuracy', 'Cash reporting', 'Compliance & control'],
-    operations: ['OTD logistics', 'Customs resolution', 'ETA accuracy', 'Supplier coordination'],
-    technician: ['Installation SLA', 'First-time-right', 'BAST completion', 'Training handover'],
-    regulatory: ['Permit SLA', 'PNBP readiness', 'Submission quality', 'Regulatory compliance'],
-    product_specialist: ['Presentation support', 'Product knowledge base', 'Competitor intelligence', 'Training delivery'],
-    security: ['Attendance discipline', 'Incident prevention', 'Facility compliance', 'Response time'],
-    office_support: ['Task completion', 'Internal service SLA', 'Asset readiness', 'Administrative accuracy'],
-    other: ['Task delivery', 'Collaboration', 'Compliance', 'Continuous improvement'],
-  };
-  const divisionBottleneckRows = useMemo(() => {
-    const source = scoped.length ? scoped : rows;
-    const mk = (module, parameter, days, pic, note) => ({ id: `${module}_${parameter}_${pic}`, module, parameter, days, pic, note });
-    const maps = {
-      all: [...source].sort((a, b) => b.totalDays - a.totalDays).slice(0, 12).map(r => mk('SPH Lifecycle', r.blockedStage, r.totalDays, resolveEmpName(employees, r.salesOwner), r.customer)),
-      sales: source.filter(s => ['invoice_ready', 'dp_followup', 'dp_claimed_paid'].includes(s.sphWorkflowStatus) || s.status === 'active').slice(0, 12).map(s => mk('Sales', 'Follow-up customer / closing discipline', s.totalDays, resolveEmpName(employees, s.salesOwner), s.customer)),
-      admin: source.filter(s => ['requested', 'admin_drafting', 'ready_for_sales'].includes(s.sphWorkflowStatus)).slice(0, 12).map(s => mk('Admin', 'SLA dokumen SPH/SPP & akurasi input', s.totalDays, 'Admin', s.customer)),
-      finance: source.filter(s => s.poStatus === 'issued' || ['invoice_ready', 'dp_claimed_paid', 'dp_confirmed'].includes(s.sphWorkflowStatus)).slice(0, 12).map(s => mk('Finance', s.dpPaid ? 'AR / termin monitoring' : 'Cek DP & invoice accuracy', s.totalDays, 'Finance', s.customer)),
-      operations: source.filter(s => s.poStatus === 'issued' || s.shippingStatus || s.customsStatus).slice(0, 12).map(s => mk('Operations', s.customsStatus === 'hold' ? 'Customs hold resolution' : 'ETA, shipment, local trucking', s.totalDays, 'Operations', s.customer)),
-      technician: source.filter(s => s.poStatus === 'issued' || s.installationStatus).slice(0, 12).map(s => mk('Installation', s.bastDate ? 'Training handover readiness' : 'Installation SLA & BAST completion', s.totalDays, 'Teknisi', s.customer)),
-      regulatory: source.filter(s => s.modality).slice(0, 12).map(s => mk('Regulatory', s.utilizationPermitDoneAt ? 'Permit archive completeness' : 'Permit SLA / PNBP readiness', s.totalDays, 'Regulatory', s.customer)),
-      product_specialist: source.filter(s => s.stage === 'presentation_scheduled' || s.tenderSubStage === 'presentation' || s.trainingCert).slice(0, 12).map(s => mk('Product Support', 'Presentation, competitor intelligence, training support', s.totalDays, 'Product Specialist', s.customer)),
-      security: [mk('Security', 'Attendance discipline & incident prevention', 0, 'Security', 'Gunakan modul attendance/shift untuk otomasi penuh'), mk('Security', 'Visitor/vendor access log accuracy', 0, 'Security', 'Parameter non-SPH')],
-      office_support: [mk('Office Support', 'Task completion & internal service SLA', 0, 'Office Support', 'Gunakan modul task untuk otomasi penuh'), mk('Office Support', 'Asset readiness and admin accuracy', 0, 'Office Support', 'Parameter non-SPH')],
-      other: [mk('General', 'Collaboration & compliance score', 0, 'PIC terkait', 'Parameter lintas modul')],
-    };
-    return maps[activeRole] || maps.all;
-  }, [activeRole, scoped, rows, employees]);
-  const kpiCriteria = useMemo(() => {
-    const map = {
-      all: 'Cycle time lintas modul, jumlah bottleneck aktif, dan PO terbit.',
-      sales: 'Win rate, nilai pipeline, follow-up DP, dan durasi dari SPH sampai closing.',
-      admin: 'Kecepatan request SPH diproses, SPH ready dikirim ke sales, dan akurasi master data.',
-      finance: 'Invoice/AR/cek DP, konfirmasi pembayaran, dan reminder tagihan setelah BAST.',
-      operations: 'PO principal, shipping, customs, local trucking, dan update ETA.',
-      technician: 'Kesiapan instalasi, BAST, training produk, dan sinkronisasi teknisi pelaksana.',
-      regulatory: 'Progress izin produk, PNBP trigger ke Finance, dan waktu sampai izin terbit.',
-      product_specialist: 'Jadwal presentasi, activity report, dukungan training, dan kelengkapan file produk.',
-      security: 'Belum terkait langsung dengan SPH; butuh modul attendance/shift untuk KPI otomatis.',
-      office_support: 'Belum terkait langsung dengan SPH; butuh modul task/attendance untuk KPI otomatis.',
-      other: 'Kontribusi umum lintas modul dan aktivitas yang tercatat.',
-    };
-    return map[activeRole] || map.all;
-  }, [activeRole]);
-  const employeeScoreRows = useMemo(() => {
-    return scoreEmployees.map(emp => {
+    const maxPaid = Math.max(1, ...Object.values(paidBySales), 0);
+
+    const compute = (emp) => {
+      const sid = emp.salesId || emp.username;
       const roleLabel = roleOptions.find(r => r.id === emp.role)?.label || emp.role;
-      const standards = roleKpiStandards[emp.role] || roleKpiStandards.other;
-      const scoreBase = emp.role === 'admin' ? scoped.filter(s => ['requested', 'admin_drafting', 'ready_for_sales'].includes(s.sphWorkflowStatus)).length
-        : emp.role === 'finance' ? scoped.filter(s => ['invoice_ready', 'dp_claimed_paid', 'dp_confirmed'].includes(s.sphWorkflowStatus)).length
-        : emp.role === 'operations' ? scoped.filter(s => ['principal_po_sent', 'factory_po_sent', 'factory_dp_paid', 'factory_production', 'factory_production_done', 'goods_sent_client', 'goods_received_client', 'local_delivery'].includes(s.sphWorkflowStatus) || ['plan_order', 'factory_production', 'ready_to_ship', 'on_shipment', 'arrived_clearance', 'sent_client', 'client_received', 'loading', 'shipped', 'arrived'].includes(s.shippingStatus)).length
-        : emp.role === 'technician' ? scoped.filter(s => s.poStatus === 'issued' && s.status === 'won').length
-        : emp.role === 'regulatory' ? scoped.filter(s => s.modality).length
-        : emp.role === 'product_specialist' ? scoped.filter(s => s.stage === 'presentation_scheduled' || s.tenderSubStage === 'presentation').length
-        : 0;
-      const output = Math.min(100, 65 + scoreBase * 5);
-      const quality = emp.role === 'sales' ? Math.min(100, 70 + (scoped.filter(s => s.status === 'won').length * 2)) : 86;
-      const timeliness = Math.max(55, 100 - Math.min(40, avgDays / 5));
-      const collaboration = ['security', 'office_support', 'other'].includes(emp.role) ? 82 : 88;
-      const score = Math.round(output * 0.40 + quality * 0.25 + timeliness * 0.20 + collaboration * 0.15);
-      return { username: emp.username, name: emp.name, role: emp.role, roleLabel, primary: standards.join(' · '), scoreBase, output, quality, timeliness: Math.round(timeliness), collaboration, score };
+      const meta = {};
+      // ---------- PILAR KEUANGAN ----------
+      let financial = null;
+      if (emp.role === 'sales') {
+        const owned = data.filter(d => d.salesOwner === sid);
+        const won = owned.filter(d => d.status === 'won').length;
+        const lost = owned.filter(d => d.status === 'lost').length;
+        const conversion = (won + lost) > 0 ? (won / (won + lost)) * 100 : 0;
+        const paid = paidBySales[sid] || 0;
+        const paidShare = maxPaid > 0 ? (paid / maxPaid) * 100 : 0;
+        financial = clampScore(conversion * 0.6 + paidShare * 0.4);
+        Object.assign(meta, { conversion: Math.round(conversion), won, lost, paid, deals: owned.length });
+      } else if (emp.role === 'technician') {
+        const led = installRecords.filter(r => ledByTech(emp, r));
+        const value = led.reduce((s, r) => s + (Number((data.find(d => d.customer === r.customer && (d.subModality || '') === (r.subModality || '')) || data.find(d => d.customer === r.customer))?.totalValue) || 0), 0);
+        financial = clampScore(45 + Math.min(55, led.length * 8));
+        Object.assign(meta, { deliveredUnits: led.length, deliveredValue: value });
+      }
+      // ---------- PILAR PELANGGAN ----------
+      let myComplaints = [];
+      if (emp.role === 'sales') {
+        const owned = new Set(data.filter(d => d.salesOwner === sid).map(d => d.customer));
+        myComplaints = (issues || []).filter(i => i.type === 'complaint' && owned.has(i.customer));
+      } else if (emp.role === 'technician') {
+        myComplaints = (issues || []).filter(i => i.type === 'complaint' && (nameMatch(i.technician, emp)));
+      }
+      const openC = myComplaints.filter(i => i.status !== 'resolved' && !i.resolvedDate).length;
+      const resolvedC = myComplaints.length - openC;
+      const resRate = myComplaints.length ? (resolvedC / myComplaints.length) * 100 : 100;
+      let customer = myComplaints.length === 0 ? 92 : clampScore(100 - openC * 12 - (100 - resRate) * 0.1);
+      Object.assign(meta, { complaints: myComplaints.length, openComplaints: openC, resolutionRate: Math.round(resRate) });
+      // ---------- PILAR PROSES INTERNAL ----------
+      let process;
+      if (emp.role === 'technician') {
+        const ledAll = installRecords.filter(r => ledByTech(emp, r));
+        const done = ledAll.filter(r => r.status === 'completed');
+        const durs = done.map(r => Number(r.duration) || (r.installStart && r.installEnd ? Math.max(1, Math.round((new Date(r.installEnd) - new Date(r.installStart)) / 86400000) + 1) : null)).filter(Boolean);
+        const avgDur = durs.length ? durs.reduce((a, b) => a + b, 0) / durs.length : null;
+        const durScore = avgDur == null ? 70 : clampScore(100 - Math.max(0, avgDur - 7) * 4);
+        const compRatio = ledAll.length ? (done.length / ledAll.length) * 100 : 70;
+        process = clampScore(durScore * 0.6 + compRatio * 0.4);
+        Object.assign(meta, { avgInstallDays: avgDur != null ? Math.round(avgDur) : null, completedInstalls: done.length, assignedInstalls: ledAll.length });
+      } else if (emp.role === 'sales') {
+        const owned = data.filter(d => d.salesOwner === sid);
+        const cyc = owned.map(d => { const f = d.sphRequestedAt || d.issuedDate; const l = d.bastDate || d.dpConfirmedAt || d.lastUpdate || d.issuedDate; return f && l ? Math.max(0, Math.round((new Date(l) - new Date(f)) / 86400000)) : null; }).filter(v => v != null);
+        const avgCyc = cyc.length ? cyc.reduce((a, b) => a + b, 0) / cyc.length : null;
+        process = avgCyc == null ? 72 : clampScore(100 - Math.max(0, avgCyc - 30) * 1.1);
+        Object.assign(meta, { avgCycleDays: avgCyc != null ? Math.round(avgCyc) : null });
+      } else {
+        process = 75;
+        meta.processNote = lang === 'id' ? 'Baseline (butuh modul SLA/task untuk otomasi penuh)' : 'Baseline (needs SLA/task module for full automation)';
+      }
+      if (financial == null) { financial = clampScore(process * 0.85); meta.financialIndirect = true; }
+      // ---------- PILAR PEMBELAJARAN & PERTUMBUHAN (observasional) ----------
+      let learning;
+      const a = assessments[emp.username];
+      if (a && (a.certification != null || a.attendance != null || a.initiative != null)) {
+        const vals = [a.certification, a.attendance, a.initiative].map(x => Number(x) || 0);
+        learning = clampScore(vals.reduce((s, v) => s + v, 0) / vals.length);
+        meta.learningManual = true;
+      } else {
+        const trainingDelivered = (trainingRecords || []).filter(tr => String(tr.instructor || '').includes(emp.name)).length;
+        learning = clampScore(70 + Math.min(20, trainingDelivered * 5));
+        Object.assign(meta, { learningManual: false, trainingDelivered });
+      }
+      const overall = clampScore(financial * BSC_WEIGHTS.financial + customer * BSC_WEIGHTS.customer + process * BSC_WEIGHTS.process + learning * BSC_WEIGHTS.learning);
+      return { username: emp.username, name: emp.name, role: emp.role, roleLabel, financial, customer, process, learning, overall, meta };
+    };
+
+    const rows = filteredEmployees.map(compute).sort((x, y) => y.overall - x.overall);
+    const avg = (key) => rows.length ? Math.round(rows.reduce((s, r) => s + r[key], 0) / rows.length) : 0;
+    const deptAvg = { financial: avg('financial'), customer: avg('customer'), process: avg('process'), learning: avg('learning'), overall: avg('overall') };
+    const selected = selectedEmployee ? compute(selectedEmployee) : null;
+    return { rows, deptAvg, selected, compute };
+  }, [filteredEmployees, employeeList, data, issues, installRecords, trainingRecords, assessments, selectedEmployee, lang]);
+
+  // ---- ComposedChart: indeks aktivitas bulanan (Individu vs Rata-rata Dept), 6 bulan terakhir ----
+  const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', lang === 'id' ? 'Mei' : 'May', 'Jun', 'Jul', lang === 'id' ? 'Agu' : 'Aug', 'Sep', 'Okt', 'Nov', 'Des'];
+  const indKey = lang === 'id' ? 'Individu' : 'Individual';
+  const deptKey = lang === 'id' ? 'Rata-rata Dept' : 'Dept Average';
+  const monthChart = useMemo(() => {
+    const base = new Date();
+    const months = [];
+    for (let i = 5; i >= 0; i--) { const d = new Date(base.getFullYear(), base.getMonth() - i, 1); months.push({ ym: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, label: MONTH_LABELS[d.getMonth()] }); }
+    const idx = (emp, ym) => {
+      const hasEvents = ['sales', 'technician', 'product_specialist'].includes(emp.role);
+      if (!hasEvents) return bsc.compute(emp).overall;
+      let n = 0; const sid = emp.salesId || emp.username;
+      if (emp.role === 'sales') {
+        n += data.filter(d => d.salesOwner === sid && d.status === 'won' && String(d.issuedDate || '').slice(0, 7) === ym).length;
+        n += data.filter(d => d.salesOwner === sid).reduce((a, d) => a + ((d.paymentHistory || []).filter(h => String(h.date || '').slice(0, 7) === ym).length), 0);
+      } else if (emp.role === 'technician') {
+        n += installRecords.filter(r => ledByTech(emp, r) && String((r.installEnd || r.installStart) || '').slice(0, 7) === ym).length;
+        n += bastRecords.filter(b => String(b.signedDate || '').slice(0, 7) === ym && nameMatch(b.hntiRep, emp)).length;
+      } else {
+        n += (trainingRecords || []).filter(tr => String(tr.sessionDate || '').slice(0, 7) === ym && String(tr.instructor || '').includes(emp.name)).length;
+      }
+      return n === 0 ? 0 : Math.min(100, 45 + n * 14);
+    };
+    return months.map(m => {
+      const dept = filteredEmployees.length ? Math.round(filteredEmployees.reduce((s, e) => s + idx(e, m.ym), 0) / filteredEmployees.length) : 0;
+      const ind = selectedEmployee ? idx(selectedEmployee, m.ym) : dept;
+      return { month: m.label, [indKey]: ind, [deptKey]: dept };
     });
-  }, [scoreEmployees, roleOptions, scoped, avgDays]);
-  const salesScoreRows = useMemo(() => byPic.map(r => ({
-    username: r.pic,
-    name: resolveEmpName(employees, r.pic),
-    role: 'sales',
-    roleLabel: 'Sales',
-    primary: 'Revenue & win rate · CRM discipline · Customer follow-up · Forecast accuracy',
-    scoreBase: r.count,
-    output: Math.min(100, 60 + r.count * 3),
-    quality: Math.round(r.winRate || 0),
-    timeliness: Math.max(55, 100 - Math.min(40, r.avgDays / 4)),
-    collaboration: 88,
-    score: Math.round(Math.min(100, 60 + r.count * 3) * 0.40 + (r.winRate || 0) * 0.25 + Math.max(55, 100 - Math.min(40, r.avgDays / 4)) * 0.20 + 88 * 0.15),
-    value: r.value,
-  })), [byPic, employees]);
-  const displayScoreRows = (roleFilter === 'sales' || selectedEmployee?.role === 'sales') ? salesScoreRows : employeeScoreRows;
-  const dashboardRoleData = useMemo(() => roleOptions.filter(r => r.id !== 'all' && r.id !== 'other').map(r => ({
-    role: r.label,
-    count: employeeList.filter(e => e.role === r.id).length,
-    avgScore: Math.round((employeeScoreRows.filter(e => e.role === r.id).reduce((sum, e) => sum + e.score, 0) / Math.max(1, employeeScoreRows.filter(e => e.role === r.id).length)) || 0),
-  })).filter(r => r.count > 0), [roleOptions, employeeList, employeeScoreRows]);
-  const scoreBandData = useMemo(() => [
-    { name: 'Excellent', value: displayScoreRows.filter(r => r.score >= 90).length, color: 'var(--ims-accent-2)' },
-    { name: 'Good', value: displayScoreRows.filter(r => r.score >= 80 && r.score < 90).length, color: 'var(--ims-accent)' },
-    { name: 'Watchlist', value: displayScoreRows.filter(r => r.score < 80).length, color: '#c03030' },
-  ], [displayScoreRows]);
+  }, [selectedEmployee, filteredEmployees, data, installRecords, bastRecords, trainingRecords, bsc, lang]);
+
+  // ---- Data RadarChart 4 pilar (Individu vs Rata-rata Dept) ----
+  const radarSource = bsc.selected || bsc.deptAvg;
+  const radarData = PILLARS.map(p => ({ pillar: p.label, [indKey]: bsc.selected ? bsc.selected[p.key] : bsc.deptAvg[p.key], [deptKey]: bsc.deptAvg[p.key] }));
+  const scoreBandData = [
+    { name: lang === 'id' ? 'Sangat Baik' : 'Excellent', value: bsc.rows.filter(r => r.overall >= 90).length, color: 'var(--ims-accent-2)' },
+    { name: lang === 'id' ? 'Baik' : 'Good', value: bsc.rows.filter(r => r.overall >= 80 && r.overall < 90).length, color: 'var(--ims-accent)' },
+    { name: lang === 'id' ? 'Perlu Perhatian' : 'Watchlist', value: bsc.rows.filter(r => r.overall < 80).length, color: '#c03030' },
+  ];
+
+  // ---- Form penilaian observasional (HR/Manager) ----
+  const [form, setForm] = useState({ certification: '', attendance: '', initiative: '', note: '' });
+  useEffect(() => {
+    if (selectedEmployee) { const a = assessments[selectedEmployee.username] || {}; setForm({ certification: a.certification ?? '', attendance: a.attendance ?? '', initiative: a.initiative ?? '', note: a.note ?? '' }); }
+  }, [selectedEmployee]);
+  const [saveMsg, setSaveMsg] = useState(false);
+  const saveAssessment = () => {
+    if (!selectedEmployee) return;
+    const vals = {
+      certification: form.certification === '' ? null : clampScore(form.certification),
+      attendance: form.attendance === '' ? null : clampScore(form.attendance),
+      initiative: form.initiative === '' ? null : clampScore(form.initiative),
+      note: form.note || '',
+      updatedAt: new Date().toISOString(),
+      assessedBy: session?.name || session?.username || 'HR',
+    };
+    setAssessments(prev => {
+      const next = { ...prev, [selectedEmployee.username]: vals };
+      try { window.localStorage.setItem(BSC_ASSESS_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+    setSaveMsg(true);
+    setTimeout(() => setSaveMsg(false), 2500);
+  };
+  const scoreColor = (v) => v >= 90 ? 'var(--ims-accent-2)' : v >= 80 ? 'var(--ims-accent)' : v >= 70 ? 'var(--ims-gold)' : '#c03030';
   return (
     <div>
       <div style={{marginBottom: '22px'}}>
         <div style={{fontSize: '11px', letterSpacing: '0.3em', color: 'var(--ims-text-2)', textTransform: 'uppercase', marginBottom: '6px'}}>{t.nav_kpi_scorecard || 'KPI Scorecard'}</div>
-        <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, margin: 0}}>{lang === 'id' ? 'Project Lifecycle & KPI Scorecard' : 'Project Lifecycle & KPI Scorecard'}</h1>
-        <div style={{fontSize: '13px', color: 'var(--ims-text-2)', marginTop: '6px'}}>{lang === 'id' ? 'Balanced scorecard lintas divisi: output, quality, timeliness, collaboration, serta bottleneck operasional.' : 'Balanced scorecard across divisions: output, quality, timeliness, collaboration, and operational bottlenecks.'}</div>
+        <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, margin: 0}}>{lang === 'id' ? 'Balanced Scorecard Karyawan' : 'Employee Balanced Scorecard'}</h1>
+        <div style={{fontSize: '13px', color: 'var(--ims-text-2)', marginTop: '6px'}}>{lang === 'id' ? 'Evaluasi karyawan 4 pilar BSC — Keuangan, Pelanggan, Proses Internal, Pembelajaran — ditarik otomatis dari modul Sales, Finance, Instalasi & Maintenance.' : 'Four-pillar BSC employee evaluation — Financial, Customer, Internal Process, Learning — auto-sourced from Sales, Finance, Installation & Maintenance modules.'}</div>
       </div>
-      <div style={{display: 'flex', gap: '2px', marginBottom: '16px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
-        {[
-          { id: 'scorecard', label: lang === 'id' ? 'Scorecard Detail' : 'Detailed Scorecard', icon: ClipboardList },
-          { id: 'dashboard', label: lang === 'id' ? 'Dashboard KPI Semua Karyawan' : 'All Employee KPI Dashboard', icon: FileBarChart },
-        ].map(tb => {
-          const Icon = tb.icon; const active = kpiTab === tb.id;
-          return <button key={tb.id} onClick={() => setKpiTab(tb.id)} style={{background: 'transparent', border: 'none', padding: '10px 16px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 600, color: active ? 'var(--ims-accent)' : 'var(--ims-text-2)', borderBottom: active ? '2px solid var(--ims-accent)' : '2px solid transparent', marginBottom: '-1px', display: 'flex', alignItems: 'center', gap: '7px'}}><Icon size={14} />{tb.label}</button>;
-        })}
-      </div>
-      {kpiTab === 'dashboard' && (
-        <div style={{display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '18px', marginBottom: '22px'}}>
-          <div style={{padding: '16px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', minHeight: '330px'}}>
-            <div className="card-title">{lang === 'id' ? 'Rata-rata Score per Divisi' : 'Average Score by Division'}</div>
-            <ResponsiveContainer width="100%" height={270}>
-              <BarChart data={dashboardRoleData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(120,150,190,0.22)" />
-                <XAxis dataKey="role" tick={{fontSize: 10, fill: 'var(--ims-text-2)'}} interval={0} angle={-20} textAnchor="end" height={72} />
-                <YAxis domain={[0, 100]} tick={{fontSize: 10, fill: 'var(--ims-text-2)'}} />
-                <Tooltip />
-                <Bar dataKey="avgScore" fill="var(--ims-accent)" radius={[3,3,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div style={{padding: '16px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', minHeight: '330px'}}>
-            <div className="card-title">{lang === 'id' ? 'Distribusi Score' : 'Score Distribution'}</div>
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie data={scoreBandData} dataKey="value" nameKey="name" outerRadius={86} label>
-                  {scoreBandData.map((d, i) => <Cell key={i} fill={d.color} />)}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-            <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--ims-border)', marginTop: '12px'}}>
-              {scoreBandData.map(d => <div key={d.name} style={{padding: '10px', background: 'var(--ims-bg-card-2)'}}><div className="lbl-tag">{d.name}</div><div className="serif" style={{fontSize: '22px', color: d.color}}>{d.value}</div></div>)}
-            </div>
-          </div>
-        </div>
-      )}
+
+      {/* Filter divisi + karyawan */}
       <div style={{display: 'grid', gridTemplateColumns: '220px 1fr', gap: '10px', marginBottom: '16px', padding: '12px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
         <Field label={lang === 'id' ? 'Filter Divisi' : 'Division Filter'}>
           <select value={roleFilter} onChange={e => { setRoleFilter(e.target.value); setEmployeeFilter('all'); }}>
@@ -506,42 +495,177 @@ function LifecycleKpiScorecard({ data, employees, session, t, lang, fmt }) {
         </Field>
         <Field label={lang === 'id' ? 'Nama Karyawan' : 'Employee Name'}>
           <select value={employeeFilter} onChange={e => setEmployeeFilter(e.target.value)}>
-            <option value="all">{lang === 'id' ? 'Semua karyawan dalam filter' : 'All employees in filter'}</option>
+            <option value="all">{lang === 'id' ? 'Semua karyawan dalam filter (rata-rata divisi)' : 'All employees in filter (division average)'}</option>
             {filteredEmployees.map(emp => <option key={emp.username} value={emp.username}>{emp.name} · {roleOptions.find(r => r.id === emp.role)?.label || emp.role}</option>)}
           </select>
         </Field>
       </div>
-      <div style={{marginBottom: '16px', padding: '12px 14px', background: 'rgba(26,41,66,0.04)', borderLeft: '3px solid var(--ims-border)', fontSize: '12px', color: 'var(--ims-text)', lineHeight: 1.6}}>
-        <strong>{lang === 'id' ? 'Kriteria penilaian:' : 'Scoring criteria:'}</strong> {kpiCriteria}
-        <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '4px'}}>{lang === 'id' ? 'Tabel bottleneck di kanan mengikuti filter divisi/karyawan yang dipilih.' : 'The bottleneck table follows the selected division/employee filter.'}</div>
+
+      {/* Tabs */}
+      <div style={{display: 'flex', gap: '2px', marginBottom: '18px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
+        {[
+          { id: 'scorecard', label: lang === 'id' ? 'Dashboard BSC' : 'BSC Dashboard', icon: FileBarChart },
+          { id: 'penilaian', label: lang === 'id' ? 'Form Penilaian' : 'Assessment Form', icon: Edit2 },
+        ].map(tb => {
+          const Icon = tb.icon; const active = kpiTab === tb.id;
+          return <button key={tb.id} onClick={() => setKpiTab(tb.id)} style={{background: 'transparent', border: 'none', padding: '10px 16px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 600, color: active ? 'var(--ims-accent)' : 'var(--ims-text-2)', borderBottom: active ? '2px solid var(--ims-accent)' : '2px solid transparent', marginBottom: '-1px', display: 'flex', alignItems: 'center', gap: '7px'}}><Icon size={14} />{tb.label}</button>;
+        })}
       </div>
-      <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--ims-border)', marginBottom: '22px', border: '1px solid var(--ims-border)'}}>
-        {roleKpis.map(([label, value, note]) => (
-          <div key={label} style={{padding: '15px 16px', background: 'var(--ims-bg-card)'}}>
-            <div className="lbl-tag">{label}</div>
-            <div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px', color: 'var(--ims-accent)'}}>{value}</div>
-            <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '4px'}}>{note}</div>
+
+      {kpiTab === 'scorecard' && (
+      <>
+      {/* KPI strip: 4 pilar + skor BSC */}
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1px', background: 'var(--ims-border)', marginBottom: '8px', border: '1px solid var(--ims-border)'}}>
+        {PILLARS.map(p => {
+          const Icon = p.key === 'financial' ? Target : p.key === 'customer' ? Users : p.key === 'process' ? ClipboardList : Award;
+          const val = radarSource[p.key];
+          return (
+            <div key={p.key} style={{padding: '16px 18px', background: 'var(--ims-bg-card)'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '6px', color: p.color}}><Icon size={13} /><span className="lbl-tag" style={{color: 'var(--ims-text-2)'}}>{p.label}</span></div>
+              <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: scoreColor(val)}}>{val}</div>
+              <div style={{height: '4px', background: 'var(--ims-border)', marginTop: '6px'}}><div style={{height: '100%', width: `${val}%`, background: p.color}} /></div>
+            </div>
+          );
+        })}
+        <div style={{padding: '16px 18px', background: 'var(--ims-bg-alt)', color: '#fff'}}>
+          <span className="lbl-tag" style={{color: 'rgba(255,255,255,0.7)'}}>{lang === 'id' ? 'Skor BSC' : 'BSC Score'}</span>
+          <div className="serif" style={{fontSize: '30px', fontWeight: 600, marginTop: '4px'}}>{radarSource.overall}</div>
+          <div style={{fontSize: '10px', color: 'rgba(255,255,255,0.65)', marginTop: '2px'}}>{selectedEmployee ? selectedEmployee.name : (lang === 'id' ? 'Rata-rata divisi' : 'Division average')}</div>
+        </div>
+      </div>
+      <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginBottom: '18px'}}>{lang === 'id' ? 'Bobot: Keuangan 30% · Pelanggan 25% · Proses Internal 25% · Pembelajaran 20%' : 'Weights: Financial 30% · Customer 25% · Internal Process 25% · Learning 20%'}</div>
+
+      {/* Charts: Radar + ComposedChart 6 bulan */}
+      <div style={{display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '16px', marginBottom: '18px'}}>
+        <div className="card">
+          <div className="card-title">{lang === 'id' ? 'Pemetaan 4 Pilar BSC' : '4-Pillar BSC Mapping'}{selectedEmployee ? ` — ${selectedEmployee.name}` : ''}</div>
+          <ResponsiveContainer width="100%" height={300}>
+            <RadarChart data={radarData} outerRadius={110}>
+              <PolarGrid stroke="var(--ims-border)" />
+              <PolarAngleAxis dataKey="pillar" tick={{fontSize: 11, fill: 'var(--ims-text-2)'}} />
+              <PolarRadiusAxis domain={[0, 100]} angle={90} tick={{fontSize: 9, fill: 'var(--ims-text-2)'}} />
+              {bsc.selected && <Radar name={indKey} dataKey={indKey} stroke="#5b8def" fill="#5b8def" fillOpacity={0.35} />}
+              <Radar name={deptKey} dataKey={deptKey} stroke="#d4af37" fill="#d4af37" fillOpacity={bsc.selected ? 0.1 : 0.4} />
+              <Legend wrapperStyle={{fontSize: '11px'}} />
+              <Tooltip content={<ChartTooltip fmt={(v) => v} />} />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="card">
+          <div className="card-title">{lang === 'id' ? 'Performa Individu vs Rata-rata Departemen (6 Bulan)' : 'Individual vs Department Average (6 Months)'}</div>
+          <ResponsiveContainer width="100%" height={300}>
+            <ComposedChart data={monthChart} margin={{top: 8, right: 16, left: 0, bottom: 8}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--ims-border)" vertical={false} />
+              <XAxis dataKey="month" stroke="var(--ims-text-2)" style={{fontSize: 10}} />
+              <YAxis domain={[0, 100]} stroke="var(--ims-text-2)" style={{fontSize: 10}} />
+              <Tooltip content={<ChartTooltip fmt={(v) => v} />} />
+              <Legend wrapperStyle={{fontSize: '11px'}} />
+              <Bar dataKey={indKey} fill="#5b8def" radius={[3, 3, 0, 0]} barSize={28} />
+              <Line dataKey={deptKey} stroke="#d4af37" strokeWidth={2.5} dot={{r: 3}} />
+            </ComposedChart>
+          </ResponsiveContainer>
+          <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '4px'}}>{lang === 'id' ? 'Indeks aktivitas bulanan dari deals/pembayaran (Sales), instalasi/BAST (Teknisi) & training. Divisi tanpa event memakai skor standing.' : 'Monthly activity index from deals/payments (Sales), installs/BAST (Technician) & training. Divisions without events show standing score.'}</div>
+        </div>
+      </div>
+
+      {/* Distribusi band + tabel scorecard */}
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--ims-border)', marginBottom: '18px', border: '1px solid var(--ims-border)'}}>
+        {scoreBandData.map(d => (
+          <div key={d.name} style={{padding: '12px 16px', background: 'var(--ims-bg-card)'}}>
+            <div className="lbl-tag">{d.name}</div>
+            <div className="serif" style={{fontSize: '24px', fontWeight: 500, marginTop: '2px', color: d.color}}>{d.value}</div>
           </div>
         ))}
       </div>
-      <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: 'var(--ims-border)', marginBottom: '22px', border: '1px solid var(--ims-border)'}}>
-        <KPICard label="Total Proyek" value={scoped.length} sublabel="SPH lifecycle" />
-        <KPICard label="Rata-rata Durasi" value={`${avgDays} hari`} sublabel="request ke status terakhir" />
-        <KPICard label="PO Terbit" value={scoped.filter(s => s.poStatus === 'issued').length} sublabel={fmt(scoped.filter(s => s.poStatus === 'issued').reduce((sum, s) => sum + (Number(s.totalValue) || 0), 0))} />
-        <KPICard label="Perlu Follow-up" value={scoped.filter(s => ['requested', 'dp_claimed_paid'].includes(s.sphWorkflowStatus) || s.customsStatus === 'hold').length} sublabel="bottleneck aktif" />
+      <div style={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', overflowX: 'auto'}}>
+        <div className="card-title" style={{padding: '14px 16px', margin: 0}}>{lang === 'id' ? 'Scorecard Karyawan (4 Pilar BSC)' : 'Employee Scorecard (4 BSC Pillars)'}</div>
+        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px', minWidth: '720px'}}>
+          <thead><tr style={{background: 'var(--ims-bg-card-2)'}}>
+            <Th>{lang === 'id' ? 'Karyawan' : 'Employee'}</Th><Th>{lang === 'id' ? 'Divisi' : 'Division'}</Th>
+            <Th align="right">{lang === 'id' ? 'Keuangan' : 'Financial'}</Th>
+            <Th align="right">{lang === 'id' ? 'Pelanggan' : 'Customer'}</Th>
+            <Th align="right">{lang === 'id' ? 'Proses' : 'Process'}</Th>
+            <Th align="right">{lang === 'id' ? 'Pembelajaran' : 'Learning'}</Th>
+            <Th align="right">{lang === 'id' ? 'Skor BSC' : 'BSC Score'}</Th>
+          </tr></thead>
+          <tbody>
+            {bsc.rows.map(r => (
+              <tr key={r.username} className="hover-row" style={{borderTop: '1px solid var(--ims-border)', cursor: 'pointer'}} onClick={() => setEmployeeFilter(r.username)}>
+                <Td><strong>{r.name}</strong></Td><Td>{r.roleLabel}</Td>
+                <Td align="right"><span className="mono" style={{color: scoreColor(r.financial)}}>{r.financial}</span></Td>
+                <Td align="right"><span className="mono" style={{color: scoreColor(r.customer)}}>{r.customer}</span></Td>
+                <Td align="right"><span className="mono" style={{color: scoreColor(r.process)}}>{r.process}</span></Td>
+                <Td align="right"><span className="mono" style={{color: scoreColor(r.learning)}}>{r.learning}{r.meta.learningManual ? '' : '*'}</span></Td>
+                <Td align="right"><strong style={{color: scoreColor(r.overall)}}>{r.overall}</strong></Td>
+              </tr>
+            ))}
+            {bsc.rows.length === 0 && <tr><td colSpan={7} className="empty-state">{t.no_data}</td></tr>}
+          </tbody>
+        </table>
+        <div style={{padding: '8px 16px', fontSize: '10px', color: 'var(--ims-text-2)'}}>{lang === 'id' ? '* Pilar Pembelajaran masih baseline otomatis — isi via Form Penilaian agar mencerminkan sertifikasi/kehadiran/inisiatif. Klik baris untuk lihat radar individu.' : '* Learning pillar uses auto baseline — fill via Assessment Form to reflect certification/attendance/initiative. Click a row to view individual radar.'}</div>
       </div>
-      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px'}}>
-        <div style={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', overflowX: 'auto'}}>
-          <div className="card-title" style={{padding: '14px 16px', margin: 0}}>{roleFilter === 'sales' || selectedEmployee?.role === 'sales' ? (lang === 'id' ? 'Scorecard PIC Sales' : 'Sales PIC Scorecard') : (lang === 'id' ? 'Scorecard Karyawan / Divisi' : 'Employee / Division Scorecard')}</div>
-          <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px', minWidth: '760px'}}><thead><tr style={{background: 'var(--ims-bg-card-2)'}}><Th>Karyawan</Th><Th>Divisi</Th><Th>Parameter MNC</Th><Th align="right">Output</Th><Th align="right">Quality</Th><Th align="right">Timeliness</Th><Th align="right">Score</Th></tr></thead>
-            <tbody>{displayScoreRows.map(r => <tr key={r.username} style={{borderTop: '1px solid var(--ims-border)'}}><Td>{r.name}</Td><Td>{r.roleLabel}</Td><Td>{r.primary}</Td><Td align="right">{r.output}</Td><Td align="right">{r.quality}</Td><Td align="right">{r.timeliness}</Td><Td align="right"><strong style={{color: r.score >= 90 ? 'var(--ims-accent-2)' : r.score >= 80 ? 'var(--ims-accent)' : '#c03030'}}>{r.score}</strong></Td></tr>)}</tbody></table>
+      </>
+      )}
+
+      {kpiTab === 'penilaian' && (
+      <>
+      {!selectedEmployee ? (
+        <div style={{padding: '40px', textAlign: 'center', color: 'var(--ims-text-2)', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
+          {lang === 'id' ? 'Pilih satu karyawan di filter "Nama Karyawan" di atas untuk menampilkan form penilaian.' : 'Select an employee in the "Employee Name" filter above to open the assessment form.'}
         </div>
-        <div style={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', overflowX: 'auto'}}>
-          <div className="card-title" style={{padding: '14px 16px', margin: 0}}>{lang === 'id' ? 'Bottleneck Terpanjang' : 'Longest Bottlenecks'}</div>
-          <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}><thead><tr style={{background: 'var(--ims-bg-card-2)'}}><Th>Modul</Th><Th>Parameter</Th><Th align="right">Hari</Th><Th>PIC</Th></tr></thead>
-            <tbody>{divisionBottleneckRows.map(r => <tr key={r.id} style={{borderTop: '1px solid var(--ims-border)'}}><Td><div>{r.module}</div><div style={{fontSize: '10px', color: 'var(--ims-text-2)'}}>{r.note}</div></Td><Td>{r.parameter}</Td><Td align="right">{r.days}</Td><Td>{r.pic}</Td></tr>)}</tbody></table>
+      ) : (
+        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px'}}>
+          {/* Metrik otomatis dari sistem (read-only) */}
+          <div className="card">
+            <div className="card-title">{lang === 'id' ? 'Metrik Otomatis dari Sistem' : 'System-Sourced Metrics'} — {selectedEmployee.name}</div>
+            <div style={{display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px'}}>
+              <div style={{padding: '12px', border: '1px solid var(--ims-border)', borderLeft: '3px solid #d4af37'}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}><strong style={{fontSize: '12px'}}>{lang === 'id' ? 'Keuangan' : 'Financial'}</strong><span className="serif" style={{fontSize: '20px', color: scoreColor(bsc.selected.financial)}}>{bsc.selected.financial}</span></div>
+                <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '4px'}}>
+                  {selectedEmployee.role === 'sales' ? `${lang === 'id' ? 'Rasio konversi' : 'Conversion'} ${bsc.selected.meta.conversion}% (${bsc.selected.meta.won} ${lang === 'id' ? 'menang' : 'won'}/${bsc.selected.meta.lost} ${lang === 'id' ? 'kalah' : 'lost'}) · ${lang === 'id' ? 'Invoice terbayar' : 'Paid invoices'} ${fmt(bsc.selected.meta.paid || 0)}`
+                    : selectedEmployee.role === 'technician' ? `${bsc.selected.meta.deliveredUnits} ${lang === 'id' ? 'unit ditangani' : 'units handled'} · ${lang === 'id' ? 'nilai' : 'value'} ${fmt(bsc.selected.meta.deliveredValue || 0)}`
+                    : (lang === 'id' ? 'Kontribusi tidak langsung (diturunkan dari throughput proses).' : 'Indirect contribution (derived from process throughput).')}
+                </div>
+              </div>
+              <div style={{padding: '12px', border: '1px solid var(--ims-border)', borderLeft: '3px solid #5b8def'}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}><strong style={{fontSize: '12px'}}>{lang === 'id' ? 'Pelanggan' : 'Customer'}</strong><span className="serif" style={{fontSize: '20px', color: scoreColor(bsc.selected.customer)}}>{bsc.selected.customer}</span></div>
+                <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '4px'}}>{lang === 'id' ? 'Komplain' : 'Complaints'}: {bsc.selected.meta.complaints} ({bsc.selected.meta.openComplaints} {lang === 'id' ? 'terbuka' : 'open'}) · {lang === 'id' ? 'Resolusi' : 'Resolution'} {bsc.selected.meta.resolutionRate}%</div>
+              </div>
+              <div style={{padding: '12px', border: '1px solid var(--ims-border)', borderLeft: '3px solid #2f8f6f'}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}><strong style={{fontSize: '12px'}}>{lang === 'id' ? 'Proses Internal' : 'Internal Process'}</strong><span className="serif" style={{fontSize: '20px', color: scoreColor(bsc.selected.process)}}>{bsc.selected.process}</span></div>
+                <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '4px'}}>
+                  {selectedEmployee.role === 'technician' ? `${lang === 'id' ? 'Rata-rata waktu instalasi' : 'Avg install time'} ${bsc.selected.meta.avgInstallDays ?? '—'} ${lang === 'id' ? 'hari' : 'days'} · ${bsc.selected.meta.completedInstalls}/${bsc.selected.meta.assignedInstalls} ${lang === 'id' ? 'selesai' : 'completed'}`
+                    : selectedEmployee.role === 'sales' ? `${lang === 'id' ? 'Rata-rata cycle SPH→closing' : 'Avg SPH→close cycle'} ${bsc.selected.meta.avgCycleDays ?? '—'} ${lang === 'id' ? 'hari' : 'days'}`
+                    : (bsc.selected.meta.processNote || '')}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Form observasional (HR/Manager) */}
+          <div className="card">
+            <div className="card-title">{lang === 'id' ? 'Penilaian Observasional — Pembelajaran & Pertumbuhan' : 'Observational Assessment — Learning & Growth'}</div>
+            {!canEdit && <ReadOnlyBanner t={t} />}
+            <div style={{fontSize: '11px', color: 'var(--ims-text-2)', margin: '4px 0 12px'}}>{lang === 'id' ? 'Diisi HR/Manager (0–100). Nilai rata-rata mengisi pilar Pembelajaran pada Balanced Scorecard.' : 'Filled by HR/Manager (0–100). The average fills the Learning pillar of the Balanced Scorecard.'}</div>
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px'}}>
+              <Field label={lang === 'id' ? 'Sertifikasi' : 'Certification'}><input type="number" min="0" max="100" disabled={!canEdit} value={form.certification} onChange={e => setForm(f => ({ ...f, certification: e.target.value }))} placeholder="0-100" /></Field>
+              <Field label={lang === 'id' ? 'Kehadiran' : 'Attendance'}><input type="number" min="0" max="100" disabled={!canEdit} value={form.attendance} onChange={e => setForm(f => ({ ...f, attendance: e.target.value }))} placeholder="0-100" /></Field>
+              <Field label={lang === 'id' ? 'Inisiatif' : 'Initiative'}><input type="number" min="0" max="100" disabled={!canEdit} value={form.initiative} onChange={e => setForm(f => ({ ...f, initiative: e.target.value }))} placeholder="0-100" /></Field>
+            </div>
+            <Field label={lang === 'id' ? 'Catatan / Sikap (observasional)' : 'Notes / Attitude (observational)'} full><textarea rows={3} disabled={!canEdit} value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder={lang === 'id' ? 'Contoh: aktif mengikuti pelatihan internal, proaktif membantu tim...' : 'E.g.: actively joins internal training, proactively helps the team...'} /></Field>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', gap: '10px', flexWrap: 'wrap'}}>
+              <div style={{fontSize: '12px', color: 'var(--ims-text-2)'}}>
+                {lang === 'id' ? 'Pratinjau Pilar Pembelajaran' : 'Learning pillar preview'}: <strong className="serif" style={{fontSize: '18px', color: scoreColor(bsc.selected.learning)}}>{bsc.selected.learning}</strong>
+                {bsc.selected.meta.learningManual ? '' : <span style={{fontSize: '10px'}}> {lang === 'id' ? '(baseline otomatis)' : '(auto baseline)'}</span>}
+              </div>
+              {canEdit && <button className="btn-primary" onClick={saveAssessment} style={{fontSize: '12px', padding: '8px 18px'}}><Award size={13} />{lang === 'id' ? 'Simpan Penilaian' : 'Save Assessment'}</button>}
+            </div>
+            {saveMsg && <div style={{marginTop: '10px', padding: '8px 12px', background: 'rgba(58,107,58,0.1)', border: '1px solid var(--ims-accent-2)', color: '#2c5530', fontSize: '12px'}}>✓ {lang === 'id' ? 'Penilaian tersimpan. Skor BSC diperbarui.' : 'Assessment saved. BSC score updated.'}</div>}
+          </div>
         </div>
-      </div>
+      )}
+      </>
+      )}
     </div>
   );
 }

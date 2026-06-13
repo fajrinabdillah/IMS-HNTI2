@@ -16600,7 +16600,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
         </div>
       )}
 
-      {tab === 'records' && <InstallRecordsList records={installRecordsFiltered} setRecords={setInstallRecords} t={t} lang={lang} canEdit={canEdit} employees={employees} units={deliveredUnits} products={products} />}
+      {tab === 'records' && <InstallRecordsList records={installRecordsFiltered} setRecords={setInstallRecords} t={t} lang={lang} canEdit={canEdit} employees={employees} units={deliveredUnits} products={products} fmt={fmt} documentTemplates={documentTemplates} onOpenEditor={openInstallEditor} />}
       {tab === 'bast' && <BASTList products={products} records={bastRecordsForView} setRecords={setBastRecords} t={t} lang={lang} canEdit={canEdit} units={installRecordUnits} installRecords={installRecords} employees={employees} documentTemplates={documentTemplates} fmt={fmt} onOpenEditor={openInstallEditor} />}
       {tab === 'training' && <TrainingCertList records={trainingRecordsForView} setRecords={setTrainingRecords} t={t} lang={lang} canEdit={canEdit} employees={employees} units={installRecordUnits} installRecords={installRecords} products={products} documentTemplates={documentTemplates} fmt={fmt} onOpenEditor={openInstallEditor} />}
 
@@ -16625,7 +16625,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
 }
 
 // ============== Install Records List ==============
-function InstallRecordsList({ records, setRecords, t, lang, canEdit, employees = {}, units = [], products = [] }) {
+function InstallRecordsList({ records, setRecords, t, lang, canEdit, employees = {}, units = [], products = [], fmt = (n) => n, documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, onOpenEditor }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc');

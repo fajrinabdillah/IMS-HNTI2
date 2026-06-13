@@ -6,6 +6,7 @@ import { ChartTooltip, ConfirmDialog, Field, LinkAttachment, ReadOnlyBanner, Sor
 import { CHART_COLORS } from '../constants/theme.js';
 import { IMPORT_PIPELINE_STEPS } from '../constants/regulatory.js';
 import { addDateOnlyDays, dateOnlyFromValue, formatDateTime, currentYear } from '../utils/format.js';
+import { DASHBOARD_GLASS, DashboardHero, GlassPanel } from '../components/FuturisticDashboardShell.jsx';
 import { addDaysIso, getFactoryProductionDays, getFactoryProductionInfo, importPipelineLabel, manifestMatchesProject, normalizeImportPipelineStatus, normalizeProductLookupText, projectHasDpReceived } from '../utils/domain.js';
 import { flushPersist } from '../utils/storage.js';
 import { notify } from '../utils/notifications.js';
@@ -85,10 +86,18 @@ function OperationsDashboardCharts({ poProjects, visibleManifests, visibleCustom
       SPPB: visibleCustomsDocs.filter(x => x.status === 'sppb' && String(x.statusUpdatedAt || x.docDate || '').startsWith(key)).length,
     };
   });
+  const glass = DASHBOARD_GLASS.operations;
   return (
-    <div style={{display: 'grid', gap: '16px'}}>
+    <div style={{display: 'grid', gap: '18px'}}>
+      <DashboardHero
+        glass={glass}
+        badge={lang === 'id' ? 'Operations Command Center' : 'Operations Command Center'}
+        title={lang === 'id' ? 'Dashboard Operasional & Logistik' : 'Operations & Logistics Dashboard'}
+        subtitle={lang === 'id' ? 'Manifest, produksi pabrik, Bea Cukai, pengiriman lokal & status barang — sinkron PO dari SPH.' : 'Manifest, factory production, customs, local delivery & shipment — synced from SPH PO.'}
+        lang={lang}
+      />
       <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px'}}>
-        <div className="card">
+        <GlassPanel glass={glass}>
           <div className="card-title">{lang === 'id' ? 'Grafik Pipeline Impor' : 'Import Pipeline Chart'}</div>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={pipelineData} margin={{top: 8, right: 16, left: 0, bottom: 70}}>
@@ -101,8 +110,8 @@ function OperationsDashboardCharts({ poProjects, visibleManifests, visibleCustom
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-        </div>
-        <div className="card">
+        </GlassPanel>
+        <GlassPanel glass={glass}>
           <div className="card-title">{lang === 'id' ? 'Status Pengiriman Lokal' : 'Local Delivery Status'}</div>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
@@ -113,10 +122,10 @@ function OperationsDashboardCharts({ poProjects, visibleManifests, visibleCustom
               <Legend wrapperStyle={{fontSize: '11px'}} />
             </PieChart>
           </ResponsiveContainer>
-        </div>
+        </GlassPanel>
       </div>
       <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
-        <div className="card">
+        <GlassPanel glass={glass}>
           <div className="card-title">{lang === 'id' ? 'Manifest & SPPB Bulanan' : 'Monthly Manifest & SPPB'}</div>
           <ResponsiveContainer width="100%" height={250}>
             <ComposedChart data={monthlyManifest} margin={{top: 8, right: 16, left: 0, bottom: 8}}>
@@ -129,8 +138,8 @@ function OperationsDashboardCharts({ poProjects, visibleManifests, visibleCustom
               <Area dataKey="SPPB" fill="#2f8f6f33" stroke="#2f8f6f" />
             </ComposedChart>
           </ResponsiveContainer>
-        </div>
-        <div className="card">
+        </GlassPanel>
+        <GlassPanel glass={glass}>
           <div className="card-title">{lang === 'id' ? 'Customs Clearance' : 'Customs Clearance'}</div>
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
@@ -142,13 +151,13 @@ function OperationsDashboardCharts({ poProjects, visibleManifests, visibleCustom
             </PieChart>
           </ResponsiveContainer>
           <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '4px'}}>{lang === 'id' ? 'Rata-rata produksi' : 'Average production'}: <span className="mono" style={{fontWeight: 800}}>{avgProductionDays}</span> {lang === 'id' ? 'hari' : 'days'} · {fmt ? fmt(poProjects.reduce((sum, p) => sum + (Number(p.totalValue) || 0), 0)) : ''}</div>
-        </div>
+        </GlassPanel>
       </div>
     </div>
   );
 }
 function OperationsModule({ data, setData, manifests, setManifests, customsDocs, setCustomsDocs, t, lang, canEdit, fmt, session }) {
-  const [tab, setTab] = useState('manifest');
+  const [tab, setTab] = useState('dashboard');
   const [productionConfirmId, setProductionConfirmId] = useState(null);
   const [editingProductionId, setEditingProductionId] = useState(null);
   const [productionEditDraft, setProductionEditDraft] = useState({ startAt: '', days: 30 });

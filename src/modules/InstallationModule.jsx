@@ -10,6 +10,7 @@ import { MODALITY_COLORS } from '../constants/sales.js';
 import { buildEditorTemplate, downloadBASTBarangDoc, downloadBATrainingDoc, printBAIPdf, printBASTBarangPdf, printBATrainingPdf, printBAUjiFungsiPdf } from '../utils/documents.js';
 import { notify } from '../utils/notifications.js';
 import { resolveEmpName, resolveNamesInText } from '../utils/domain.js';
+import { DASHBOARD_GLASS, DashboardHero, GlassPanel } from '../components/FuturisticDashboardShell.jsx';
 function InstallationModule({ data, setData, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, t, lang, canEdit, fmt, employees = {}, liveTechnicians = [], regRecords = [], products = [], documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, onSaveDocument, session = {} }) {
   const [installEditor, setInstallEditor] = useState(null); // { record, docType, html, title }
   const openInstallEditor = (docType, record, label) => {
@@ -525,7 +526,14 @@ function InstallationDashboard({ installRecords = [], bastRecords = [], training
   );
 
   return (
-    <div style={{display: 'grid', gap: '16px'}}>
+    <div style={{display: 'grid', gap: '18px'}}>
+      <DashboardHero
+        glass={DASHBOARD_GLASS.installation}
+        badge={lang === 'id' ? 'Installation Command Center' : 'Installation Command Center'}
+        title={lang === 'id' ? 'Dashboard Instalasi & Serah Terima' : 'Installation & Handover Dashboard'}
+        subtitle={lang === 'id' ? 'Data instalasi, BAST, training & tahapan uji — sinkron PO SPH & Regulatory.' : 'Install records, BAST, training & test stages — synced with SPH PO & Regulatory.'}
+        lang={lang}
+      />
       {/* Ringkasan angka */}
       <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1px', background: 'var(--ims-border)', border: '1px solid var(--ims-border)'}}>
         {[

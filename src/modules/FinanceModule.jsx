@@ -10,6 +10,7 @@ import { MODALITY_COLORS } from '../constants/sales.js';
 import { CHART_COLORS } from '../constants/theme.js';
 import { effectiveScheme, getPaymentSummary, calcNetProfit, generatePaymentSchedule } from '../utils/domain.js';
 import { formatDuration, currentYear } from '../utils/format.js';
+import { DASHBOARD_GLASS, DashboardHero, GlassPanel } from '../components/FuturisticDashboardShell.jsx';
 import { buildEditorTemplate, downloadCSV } from '../utils/documents.js';
 import { parsePaymentImport } from '../utils/csvImport.js';
 import { notify } from '../utils/notifications.js';
@@ -61,8 +62,16 @@ function FinanceDashboardCharts({ filteredPoProjects, poProjects, financePerform
     return acc;
   }, {});
   const paymentPie = Object.entries(paymentTypeData).map(([name, value]) => ({ name, value }));
+  const glass = DASHBOARD_GLASS.finance;
   return (
-    <div style={{display: 'grid', gap: '16px'}}>
+    <div style={{display: 'grid', gap: '18px'}}>
+      <DashboardHero
+        glass={glass}
+        badge={lang === 'id' ? 'Finance Command Center' : 'Finance Command Center'}
+        title={lang === 'id' ? 'Dashboard Keuangan' : 'Finance Dashboard'}
+        subtitle={lang === 'id' ? 'Pembayaran, outstanding, skema cicilan & biaya ops — sinkron data PO dari Manajemen SPH.' : 'Payments, outstanding, installment schemes & ops cost — synced from SPH PO data.'}
+        lang={lang}
+      />
       <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--ims-border)', border: '1px solid var(--ims-border)'}}>
         <div style={{padding: '16px 20px', background: 'var(--ims-bg-card)'}}>
           <div className="lbl-tag">{lang === 'id' ? 'Total Diterima' : 'Total Received'}</div>
@@ -78,7 +87,7 @@ function FinanceDashboardCharts({ filteredPoProjects, poProjects, financePerform
         </div>
       </div>
       <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px'}}>
-        <div className="card">
+        <GlassPanel glass={glass}>
           <div className="card-title">{lang === 'id' ? 'Grafik Pembayaran Bulanan' : 'Monthly Payment Chart'}</div>
           <ResponsiveContainer width="100%" height={280}>
             <ComposedChart data={monthlyData} margin={{top: 8, right: 16, left: 0, bottom: 8}}>
@@ -92,8 +101,8 @@ function FinanceDashboardCharts({ filteredPoProjects, poProjects, financePerform
               <Area yAxisId="right" dataKey={lang === 'id' ? 'Transaksi' : 'Transactions'} fill="#2f8f6f33" stroke="#2f8f6f" />
             </ComposedChart>
           </ResponsiveContainer>
-        </div>
-        <div className="card">
+        </GlassPanel>
+        <GlassPanel glass={glass}>
           <div className="card-title">{lang === 'id' ? 'Komposisi Skema' : 'Scheme Mix'}</div>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
@@ -104,10 +113,10 @@ function FinanceDashboardCharts({ filteredPoProjects, poProjects, financePerform
               <Legend wrapperStyle={{fontSize: '11px'}} />
             </PieChart>
           </ResponsiveContainer>
-        </div>
+        </GlassPanel>
       </div>
       <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px'}}>
-        <div className="card">
+        <GlassPanel glass={glass}>
           <div className="card-title">{lang === 'id' ? 'Diterima vs Outstanding per Proyek' : 'Received vs Outstanding by Project'}</div>
           <ResponsiveContainer width="100%" height={Math.max(260, collectionData.length * 34)}>
             <BarChart data={collectionData} layout="vertical" margin={{top: 8, right: 18, left: 90, bottom: 8}}>
@@ -120,8 +129,8 @@ function FinanceDashboardCharts({ filteredPoProjects, poProjects, financePerform
               <Bar dataKey={lang === 'id' ? 'Outstanding' : 'Outstanding'} stackId="a" fill="#c03030" />
             </BarChart>
           </ResponsiveContainer>
-        </div>
-        <div className="card">
+        </GlassPanel>
+        <GlassPanel glass={glass}>
           <div className="card-title">{lang === 'id' ? 'Jenis Pembayaran' : 'Payment Types'}</div>
           <ResponsiveContainer width="100%" height={260}>
             <PieChart>
@@ -133,10 +142,10 @@ function FinanceDashboardCharts({ filteredPoProjects, poProjects, financePerform
             </PieChart>
           </ResponsiveContainer>
           <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '6px'}}>{lang === 'id' ? 'Rata-rata PO ke DP' : 'Average PO to DP'}: <span className="mono" style={{fontWeight: 800}}>{formatDuration(financePerformance.avgDpMs, lang)}</span></div>
-        </div>
+        </GlassPanel>
       </div>
       <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px'}}>
-        <div className="card">
+        <GlassPanel glass={glass}>
           <div className="card-title">{lang === 'id' ? 'Biaya Operasional Proyek — Top 10' : 'Project Operational Cost — Top 10'}</div>
           <ResponsiveContainer width="100%" height={Math.max(280, opsByProject.length * 38)}>
             <BarChart data={opsByProject} layout="vertical" margin={{top: 8, right: 18, left: 90, bottom: 8}}>
@@ -150,8 +159,8 @@ function FinanceDashboardCharts({ filteredPoProjects, poProjects, financePerform
             </BarChart>
           </ResponsiveContainer>
           <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '6px'}}>{lang === 'id' ? 'Total biaya operasional' : 'Total operational cost'}: <span className="mono" style={{fontWeight: 800, color: 'var(--ims-gold)'}}>{fmt(totalOpsCost)}</span></div>
-        </div>
-        <div className="card">
+        </GlassPanel>
+        <GlassPanel glass={glass}>
           <div className="card-title">{lang === 'id' ? 'Biaya Ops per Modalitas' : 'Ops Cost by Modality'}</div>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
@@ -162,14 +171,14 @@ function FinanceDashboardCharts({ filteredPoProjects, poProjects, financePerform
               <Legend wrapperStyle={{fontSize: '11px'}} />
             </PieChart>
           </ResponsiveContainer>
-        </div>
+        </GlassPanel>
       </div>
     </div>
   );
 }
 function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate, session = {}, documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, employees = {}, onSaveDocument }) {
   const [financeEditor, setFinanceEditor] = useState(null); // { record, docType, html, title }
-  const [tab, setTab] = useState('finance');
+  const [tab, setTab] = useState('dashboard');
   const [expandedPo, setExpandedPo] = useState(null);
   const [paymentForm, setPaymentForm] = useState({ open: false, sphId: null, amount: '', type: 'installment', date: '', note: '' });
   const [confirmDeletePayment, setConfirmDeletePayment] = useState(null);

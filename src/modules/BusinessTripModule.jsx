@@ -6,6 +6,8 @@ import { ConfirmDialog, Field, LinkAttachment, Td, Th } from '../components/ui.j
 import { POSITION_ALLOWANCE } from '../constants/org.js';
 import { downloadCSV } from '../utils/documents.js';
 import { resolveEmpName } from '../utils/domain.js';
+import { currentYear } from '../utils/format.js';
+import { DASHBOARD_GLASS, DashboardHero } from '../components/FuturisticDashboardShell.jsx';
 import { showToast } from '../utils/toast.js';
 
 function tripCanDelete(trip, session) {
@@ -1565,7 +1567,7 @@ function BusinessTripRealizationDetail({ realization, businessTrip, session, t, 
   );
 }
 function BusinessTripDashboard({ businessTrips, realizations, employees, t, lang, session, canManageAll, fmt }) {
-  const [yearFilter, setYearFilter] = useState('2026');
+  const [yearFilter, setYearFilter] = useState(String(currentYear()));
   const [travelerFilter, setTravelerFilter] = useState('all');
 
   // Filter trips by user permission
@@ -1637,11 +1639,13 @@ function BusinessTripDashboard({ businessTrips, realizations, employees, t, lang
       if (!yearMap[y]) yearMap[y] = Array(12).fill(0);
       yearMap[y][m - 1] += (t.totalAdvance || 0) + (t.officeBooked?.ticketPP || 0) + (t.officeBooked?.hotelTotal || 0);
     });
+    const cy = String(currentYear());
+    const py = String(currentYear() - 1);
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return months.map((m, i) => ({
       month: m,
-      '2025': yearMap['2025']?.[i] || 0,
-      '2026': yearMap['2026']?.[i] || 0,
+      [py]: yearMap[py]?.[i] || 0,
+      [cy]: yearMap[cy]?.[i] || 0,
     }));
   }, [filtered, yearFilter]);
 
@@ -1724,7 +1728,15 @@ function BusinessTripDashboard({ businessTrips, realizations, employees, t, lang
   const fmtRpShort = fmt;
 
   return (
-    <div>
+    <div style={{display: 'grid', gap: '18px'}}>
+      <DashboardHero
+        glass={DASHBOARD_GLASS.businessTrip}
+        badge={lang === 'id' ? 'Business Trip Command Center' : 'Business Trip Command Center'}
+        title={lang === 'id' ? 'Dashboard Perjalanan Dinas' : 'Business Trip Dashboard'}
+        subtitle={lang === 'id' ? 'Cash advance, realisasi, komponen biaya & settlement — terintegrasi subtab perjalanan.' : 'Cash advance, realization, cost breakdown & settlement — integrated across trip subtabs.'}
+        lang={lang}
+        showSync={false}
+      />
       {/* Filters */}
       <div style={{display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '20px', padding: '14px 16px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
         <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>

@@ -1,13 +1,15 @@
 // Extracted from App.jsx during modular refactor.
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Activity, AlertTriangle, ArrowUpRight, Bell, Check, CheckCircle2, ChevronDown, ClipboardList, Clock, Download, Edit2, FileCheck, FileText, History, Plus, RefreshCw, Search, Star, Trash2, Upload, X } from 'lucide-react';
-import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Activity, AlertTriangle, ArrowUpRight, Bell, Check, CheckCircle2, ChevronDown, ClipboardList, Clock, Download, Edit2, FileCheck, FileText, History, LayoutDashboard, Plus, RefreshCw, Search, Sparkles, Star, Trash2, Upload, X, Zap } from 'lucide-react';
+import { Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, PieChart, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartTooltip, ConfirmDialog, Field, KPICard, ReadOnlyBanner, SortToggle, Td, Th } from '../components/ui.jsx';
+import { DASHBOARD_GLASS, DashboardHero, DashboardKpiGrid, GlassPanel, QuickNavGrid } from '../components/FuturisticDashboardShell.jsx';
 import { DocumentEditorModal } from '../components/DocumentEditorModal.jsx';
 import { DEFAULT_DOCUMENT_TEMPLATES } from '../constants/docs.js';
 import { CICILAN_DP_OPTIONS, CICILAN_TERM_OPTIONS, KSO_INVESTOR_PCT_OPTIONS, KSO_YEAR_OPTIONS, MODALITY_COLORS, PROJECT_TYPES, STAGES, TENDER_SUBSTAGES } from '../constants/sales.js';
 import { addDaysIso, computeInvoiceSchedule, detectSalesOwnerFromCustomer, getActiveSalesTeam, getFactoryProductionDays, resolveCustomerSector, resolveDealModel, resolveEmpName, resolveProductRecord } from '../utils/domain.js';
-import { formatDateTime, formatDuration, normalizeExternalUrl, todayStart } from '../utils/format.js';
+import { formatDateTime, formatDuration, normalizeExternalUrl, todayStart, currentYear } from '../utils/format.js';
+import { CHART_COLORS } from '../constants/theme.js';
 import { getProjectStageRows, SPH_WORKFLOW_LABELS } from '../utils/sphStage.js';
 import { buildEditorTemplate, downloadCSV, downloadSPHWord, downloadSPPWord, printHtmlStringAsPdf, printSPHPdf, printSPPPdf } from '../utils/documents.js';
 import { parseSPHImport } from '../utils/csvImport.js';
@@ -437,9 +439,10 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
   const [search, setSearch] = useState('');
   const [filterPType, setFilterPType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [filterYear, setFilterYear] = useState('2026');
+  const [filterYear, setFilterYear] = useState(String(currentYear()));
   const [filterProduct, setFilterProduct] = useState('all');
   const [sortSPH, setSortSPH] = useState('date_desc');
+  const [sphTab, setSphTab] = useState('dashboard');
   const [pageSize, setPageSize] = useState(50);  // Pagination: 50 rows initial, "Load more" button
   const [visibleCount, setVisibleCount] = useState(50);
   const [detailSph, setDetailSph] = useState(null);
@@ -574,6 +577,27 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
 
       {!canEdit && <ReadOnlyBanner t={t} />}
 
+      <div style={{display: 'flex', gap: '2px', marginBottom: '22px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
+        {[
+          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: LayoutDashboard },
+          { id: 'list', label: lang === 'id' ? 'Daftar SPH' : 'SPH List', icon: FileText },
+        ].map(tb => {
+          const Icon = tb.icon;
+          const active = sphTab === tb.id;
+          return (
+            <button key={tb.id} onClick={() => setSphTab(tb.id)} style={{background: 'transparent', border: 'none', padding: '10px 18px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 500, color: active ? 'var(--ims-accent)' : 'var(--ims-text-2)', borderBottom: active ? '2px solid var(--ims-border)' : '2px solid transparent', marginBottom: '-1px', display: 'flex', alignItems: 'center', gap: '7px', letterSpacing: '0.03em'}}>
+              <Icon size={14} strokeWidth={1.5} />{tb.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {sphTab === 'dashboard' && (
+        <SPHDashboard data={data} generatedDocs={generatedDocs} fmt={fmt} lang={lang} t={t} salesTeam={salesTeam} onNavigateTab={(id) => setSphTab(id === 'list' || id === 'queue' || id === 'po' ? 'list' : 'dashboard')} />
+      )}
+
+      {sphTab === 'list' && (
+      <>
       {onRequestSPH && onWorkflowUpdate && (
         <SPHWorkflowConsole
           data={data}
@@ -727,19 +751,289 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
         lang={lang}
       />
       <SPHDetailModal sph={detailSph} employees={employees} lang={lang} fmt={fmt} session={session} documentTemplates={documentTemplates} onClose={() => setDetailSph(null)} onWorkflowUpdate={(id, patch, options) => { onWorkflowUpdate && onWorkflowUpdate(id, patch, options); setDetailSph(prev => prev && prev.id === id ? { ...prev, ...patch } : prev); }} />
+      </>
+      )}
     </div>
   );
 }
-function PipelineBoard({ data, allData, setData, employees = {}, session, logAction, t, lang, canEdit, fmt, onEdit }) {
+
+function PipelineDashboard({ data, allData, reports = [], pipelineStats, stageGroups, stages, salesTeam, t, lang, fmt, filterYear, probFilter, onNavigateTab }) {
+  const glass = DASHBOARD_GLASS.pipeline;
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const { pipelineData, totalDeals, totalValue, wonCount, lostCount, activeCount, winRate, winRateNum, winRateDen } = pipelineStats;
+
+  const dash = useMemo(() => {
+    const yr = filterYear === 'all' ? String(currentYear()) : filterYear;
+    const hot = pipelineData.filter(p => (Number(p.probability) || 0) >= 70).length;
+    const warm = pipelineData.filter(p => { const v = Number(p.probability) || 0; return v >= 40 && v < 70; }).length;
+    const cold = pipelineData.filter(p => (Number(p.probability) || 0) < 40).length;
+    const weighted = pipelineData.filter(p => p.status === 'active').reduce((s, p) => s + (Number(p.totalValue) || 0) * (Number(p.probability) || 0) / 100, 0);
+    const poIssued = allData.filter(s => s.poStatus === 'issued' && (filterYear === 'all' || s.issuedDate?.startsWith(filterYear))).length;
+    const funnelData = stages.map(st => ({
+      name: (t[`stage_${st.id}`] || st.id).slice(0, 14),
+      value: (stageGroups.get(st.id)?.projects || []).length,
+      fill: st.color,
+    }));
+    const modalityMap = pipelineData.reduce((acc, p) => { const k = p.modality || 'Other'; acc[k] = (acc[k] || 0) + (Number(p.totalValue) || 0); return acc; }, {});
+    const modalityData = Object.entries(modalityMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8);
+    const monthlyDeals = MONTHS.map((m, idx) => {
+      const mm = String(idx + 1).padStart(2, '0');
+      const monthRows = pipelineData.filter(p => filterYear === 'all'
+        ? (p.issuedDate || '').substring(5, 7) === mm
+        : (p.issuedDate || '').startsWith(`${filterYear}-${mm}`));
+      return {
+        month: m,
+        [lang === 'id' ? 'Deal' : 'Deals']: monthRows.length,
+        [lang === 'id' ? 'Nilai' : 'Value']: monthRows.reduce((s, p) => s + (Number(p.totalValue) || 0), 0),
+      };
+    });
+    const statusPie = [
+      { name: t.status_active, value: activeCount, color: '#5b87b8' },
+      { name: t.status_won, value: wonCount, color: 'var(--ims-accent-2)' },
+      { name: t.status_lost, value: lostCount, color: '#8b3a3a' },
+    ].filter(x => x.value > 0);
+    const topSales = salesTeam.map(s => {
+      const sd = pipelineData.filter(p => p.salesOwner === s.id);
+      return { name: s.name.split(' ')[0], value: sd.reduce((sum, p) => sum + (Number(p.totalValue) || 0), 0), deals: sd.length };
+    }).filter(x => x.deals > 0).sort((a, b) => b.value - a.value).slice(0, 8);
+    const visitReports = (reports || []).filter(r => filterYear === 'all' || (r.date || '').startsWith(filterYear)).length;
+    const radarData = [
+      { pillar: lang === 'id' ? 'Aktif' : 'Active', score: Math.min(100, activeCount * 8), full: 100 },
+      { pillar: lang === 'id' ? 'Menang' : 'Won', score: Math.min(100, wonCount * 10), full: 100 },
+      { pillar: 'Hot', score: Math.min(100, hot * 15), full: 100 },
+      { pillar: lang === 'id' ? 'Win Rate' : 'Win Rate', score: Math.min(100, winRate), full: 100 },
+      { pillar: lang === 'id' ? 'Kunjungan' : 'Visits', score: Math.min(100, visitReports * 5), full: 100 },
+    ];
+    return { hot, warm, cold, weighted, poIssued, funnelData, modalityData, monthlyDeals, statusPie, topSales, visitReports, radarData };
+  }, [pipelineData, allData, reports, stages, stageGroups, salesTeam, filterYear, activeCount, wonCount, lostCount, winRate, t, lang]);
+
+  const quickLinks = [
+    { id: 'kanban', label: lang === 'id' ? 'Board Pipeline' : 'Pipeline Board', count: totalDeals, icon: LayoutDashboard, color: glass.accent },
+    { id: 'hot', label: '🔥 Hot Deals', count: dash.hot, icon: Zap, color: '#c03030' },
+    { id: 'won', label: lang === 'id' ? 'Menang / PO' : 'Won / PO', count: wonCount, icon: CheckCircle2, color: 'var(--ims-accent-2)' },
+  ];
+
+  return (
+    <div style={{display: 'grid', gap: '18px', marginBottom: '22px'}}>
+      <DashboardHero
+        glass={glass}
+        badge={lang === 'id' ? 'Pipeline Command Center' : 'Pipeline Command Center'}
+        title={lang === 'id' ? 'Dashboard Pipeline Penjualan' : 'Sales Pipeline Dashboard'}
+        subtitle={lang === 'id' ? 'Data sinkron realtime dari Manajemen SPH — stage, probabilitas, win rate, dan performa sales.' : 'Realtime sync from SPH Management — stages, probability, win rate, and sales performance.'}
+        lang={lang}
+      />
+      <DashboardKpiGrid items={[
+        { label: lang === 'id' ? 'Total Deal' : 'Total Deals', value: totalDeals, sub: fmt(totalValue), color: glass.accent },
+        { label: lang === 'id' ? 'Pipeline Aktif' : 'Active Pipeline', value: activeCount, sub: fmt(dash.weighted) + (lang === 'id' ? ' weighted' : ' weighted'), color: '#5b87b8' },
+        { label: t.win_rate, value: winRateDen > 0 ? `${winRate.toFixed(1)}%` : '—', sub: `${winRateNum}/${winRateDen} closed`, color: 'var(--ims-accent-2)' },
+        { label: lang === 'id' ? 'PO Terbit' : 'PO Issued', value: dash.poIssued, sub: `${dash.hot} hot · ${dash.warm} warm · ${dash.cold} cold`, color: 'var(--ims-gold)' },
+        { label: lang === 'id' ? 'Laporan Kunjungan' : 'Field Reports', value: dash.visitReports, sub: lang === 'id' ? 'sinkron modul Sales Report' : 'synced with Sales Report', color: '#7b3fb5' },
+      ]} />
+      <QuickNavGrid glass={glass} links={quickLinks} onNavigate={onNavigateTab} />
+      <div style={{display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '16px'}}>
+        <GlassPanel glass={glass}>
+          <div className="card-title">{lang === 'id' ? 'Funnel Stage (deal per kolom)' : 'Stage Funnel (deals per column)'}</div>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={dash.funnelData} margin={{top: 8, right: 16, left: 0, bottom: 60}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(26,77,138,0.1)" vertical={false} />
+              <XAxis dataKey="name" tick={{fontSize: 9, fill: 'var(--ims-text-2)'}} interval={0} angle={-28} textAnchor="end" height={58} />
+              <YAxis allowDecimals={false} tick={{fontSize: 10}} />
+              <Tooltip content={<ChartTooltip fmt={v => v} />} />
+              <Bar dataKey="value" radius={[4, 4, 0, 0]}>{dash.funnelData.map((e, i) => <Cell key={e.name} fill={e.fill || CHART_COLORS[i % CHART_COLORS.length]} />)}</Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </GlassPanel>
+        <GlassPanel glass={glass}>
+          <div className="card-title">{lang === 'id' ? 'Radar Pipeline' : 'Pipeline Radar'}</div>
+          <ResponsiveContainer width="100%" height={280}>
+            <RadarChart data={dash.radarData} outerRadius="72%">
+              <PolarGrid stroke="rgba(26,77,138,0.15)" />
+              <PolarAngleAxis dataKey="pillar" tick={{fill: 'var(--ims-text-2)', fontSize: 10}} />
+              <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
+              <Radar dataKey="score" stroke={glass.accent} fill={glass.accent} fillOpacity={0.3} />
+            </RadarChart>
+          </ResponsiveContainer>
+        </GlassPanel>
+      </div>
+      <div style={{display: 'grid', gridTemplateColumns: '1.3fr 1fr 1fr', gap: '16px'}}>
+        <GlassPanel glass={glass}>
+          <div className="card-title">{lang === 'id' ? 'Tren Deal Bulanan' : 'Monthly Deal Trend'}</div>
+          <ResponsiveContainer width="100%" height={240}>
+            <ComposedChart data={dash.monthlyDeals}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(26,77,138,0.1)" vertical={false} />
+              <XAxis dataKey="month" tick={{fontSize: 10}} />
+              <YAxis yAxisId="left" allowDecimals={false} tick={{fontSize: 10}} />
+              <YAxis yAxisId="right" orientation="right" tick={{fontSize: 9}} tickFormatter={v => v >= 1e9 ? `${(v/1e9).toFixed(0)}M` : v >= 1e6 ? `${(v/1e6).toFixed(0)}Jt` : v} />
+              <Tooltip content={<ChartTooltip fmt={fmt} />} />
+              <Legend wrapperStyle={{fontSize: 10}} />
+              <Bar yAxisId="left" dataKey={lang === 'id' ? 'Deal' : 'Deals'} fill={glass.accent} radius={[3, 3, 0, 0]} />
+              <Line yAxisId="right" type="monotone" dataKey={lang === 'id' ? 'Nilai' : 'Value'} stroke="var(--ims-gold)" strokeWidth={2} dot={{r: 3}} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </GlassPanel>
+        <GlassPanel glass={glass}>
+          <div className="card-title">{lang === 'id' ? 'Status Deal' : 'Deal Status'}</div>
+          <ResponsiveContainer width="100%" height={240}>
+            <PieChart>
+              <Pie data={dash.statusPie.length ? dash.statusPie : [{name: '-', value: 1, color: 'var(--ims-border)'}]} dataKey="value" nameKey="name" innerRadius={48} outerRadius={78}>
+                {(dash.statusPie.length ? dash.statusPie : [{name: '-', value: 1, color: 'var(--ims-border)'}]).map(e => <Cell key={e.name} fill={e.color} />)}
+              </Pie>
+              <Tooltip content={<ChartTooltip fmt={v => v} />} />
+              <Legend wrapperStyle={{fontSize: 10}} />
+            </PieChart>
+          </ResponsiveContainer>
+        </GlassPanel>
+        <GlassPanel glass={glass}>
+          <div className="card-title">{lang === 'id' ? 'Nilai per Modalitas' : 'Value by Modality'}</div>
+          <ResponsiveContainer width="100%" height={240}>
+            <PieChart>
+              <Pie data={dash.modalityData.length ? dash.modalityData : [{name: '-', value: 1}]} dataKey="value" nameKey="name" innerRadius={40} outerRadius={72}>
+                {(dash.modalityData.length ? dash.modalityData : [{name: '-', value: 1}]).map((e, i) => <Cell key={e.name} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+              </Pie>
+              <Tooltip content={<ChartTooltip fmt={fmt} />} />
+            </PieChart>
+          </ResponsiveContainer>
+        </GlassPanel>
+      </div>
+      <GlassPanel glass={glass}>
+        <div className="card-title">{lang === 'id' ? 'Top Sales — Nilai Pipeline (filter aktif)' : 'Top Sales — Pipeline Value (active filters)'}</div>
+        <ResponsiveContainer width="100%" height={Math.max(200, dash.topSales.length * 36)}>
+          <BarChart data={dash.topSales.length ? dash.topSales : [{name: '-', value: 0, deals: 0}]} layout="vertical" margin={{left: 4, right: 12}}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(26,77,138,0.1)" horizontal={false} />
+            <XAxis type="number" tick={{fontSize: 9}} tickFormatter={v => v >= 1e9 ? `${(v/1e9).toFixed(1)}M` : v >= 1e6 ? `${(v/1e6).toFixed(0)}Jt` : v} />
+            <YAxis type="category" dataKey="name" width={72} tick={{fontSize: 10}} />
+            <Tooltip content={<ChartTooltip fmt={fmt} />} />
+            <Bar dataKey="value" fill={glass.accent} radius={[0, 4, 4, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </GlassPanel>
+    </div>
+  );
+}
+
+function SPHDashboard({ data, generatedDocs = [], fmt, lang, t, salesTeam, onNavigateTab }) {
+  const glass = DASHBOARD_GLASS.sph;
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const dash = useMemo(() => {
+    const active = data.filter(s => s.status === 'active');
+    const won = data.filter(s => s.status === 'won');
+    const lost = data.filter(s => s.status === 'lost');
+    const poIssued = data.filter(s => s.poStatus === 'issued');
+    const queue = data.filter(s => ['requested', 'admin_drafting', 'ready_for_sales'].includes(s.sphWorkflowStatus) || (!s.salesDownloadedAt && s.status !== 'cancelled'));
+    const stageMap = STAGES.reduce((acc, st) => { acc[st.id] = data.filter(s => s.stage === st.id).length; return acc; }, {});
+    const stageData = STAGES.map(st => ({ name: (t[`stage_${st.id}`] || st.id).slice(0, 12), value: stageMap[st.id] || 0, fill: st.color }));
+    const modalityData = Object.entries(data.reduce((acc, s) => { const k = s.modality || '?'; acc[k] = (acc[k] || 0) + 1; return acc; }, {})).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8);
+    const monthly = MONTHS.map((m, idx) => {
+      const mm = String(idx + 1).padStart(2, '0');
+      return { month: m, [lang === 'id' ? 'SPH Baru' : 'New SPH']: data.filter(s => (s.issuedDate || '').substring(5, 7) === mm).length };
+    });
+    const topCustomers = Object.entries(data.reduce((acc, s) => { acc[s.customer] = (acc[s.customer] || 0) + (Number(s.totalValue) || 0); return acc; }, {})).map(([name, value]) => ({ name: String(name).slice(0, 22), value })).sort((a, b) => b.value - a.value).slice(0, 10);
+    const workflowBreakdown = [
+      { name: lang === 'id' ? 'Request' : 'Request', value: data.filter(s => s.sphWorkflowStatus === 'requested').length, color: '#5b87b8' },
+      { name: lang === 'id' ? 'Draft Admin' : 'Admin Draft', value: data.filter(s => s.sphWorkflowStatus === 'admin_drafting').length, color: 'var(--ims-gold)' },
+      { name: lang === 'id' ? 'Siap Sales' : 'Ready Sales', value: data.filter(s => s.sphWorkflowStatus === 'ready_for_sales').length, color: 'var(--ims-accent-2)' },
+    ].filter(x => x.value > 0);
+    return { active, won, lost, poIssued, queue, stageData, modalityData, monthly, topCustomers, workflowBreakdown, totalValue: data.reduce((s, p) => s + (Number(p.totalValue) || 0), 0), docsCount: (generatedDocs || []).length };
+  }, [data, generatedDocs, t, lang]);
+
+  const quickLinks = [
+    { id: 'list', label: lang === 'id' ? 'Daftar SPH' : 'SPH List', count: data.length, icon: FileText, color: glass.accent },
+    { id: 'queue', label: lang === 'id' ? 'Antrian Workflow' : 'Workflow Queue', count: dash.queue.length, icon: Bell, color: '#c03030' },
+    { id: 'po', label: 'PO Issued', count: dash.poIssued.length, icon: CheckCircle2, color: 'var(--ims-accent-2)' },
+  ];
+
+  return (
+    <div style={{display: 'grid', gap: '18px', marginBottom: '22px'}}>
+      <DashboardHero
+        glass={glass}
+        badge={lang === 'id' ? 'SPH Command Center' : 'SPH Command Center'}
+        title={lang === 'id' ? 'Dashboard Manajemen SPH' : 'SPH Management Dashboard'}
+        subtitle={lang === 'id' ? 'Ringkasan seluruh SPH/SPP — stage, workflow, PO, modalitas. Satu sumber data dengan Pipeline & Finance.' : 'Overview of all SPH/SPP — stage, workflow, PO, modality. Single source with Pipeline & Finance.'}
+        lang={lang}
+      />
+      <DashboardKpiGrid items={[
+        { label: lang === 'id' ? 'Total SPH' : 'Total SPH', value: data.length, sub: fmt(dash.totalValue), color: glass.accent },
+        { label: t.status_active, value: dash.active.length, sub: lang === 'id' ? 'sedang dikejar' : 'in pursuit', color: '#5b87b8' },
+        { label: t.status_won, value: dash.won.length, sub: `${dash.poIssued.length} PO`, color: 'var(--ims-accent-2)' },
+        { label: lang === 'id' ? 'Antrian Admin' : 'Admin Queue', value: dash.queue.length, sub: `${dash.docsCount} ${lang === 'id' ? 'dokumen' : 'documents'}`, color: '#c03030' },
+        { label: t.status_lost, value: dash.lost.length, sub: lang === 'id' ? 'pembelajaran' : 'learnings', color: '#8b3a3a' },
+      ]} />
+      <QuickNavGrid glass={glass} links={quickLinks} onNavigate={onNavigateTab} />
+      <div style={{display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '16px'}}>
+        <GlassPanel glass={glass}>
+          <div className="card-title">{lang === 'id' ? 'Distribusi Stage SPH' : 'SPH Stage Distribution'}</div>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={dash.stageData} margin={{bottom: 60}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(200,169,106,0.12)" vertical={false} />
+              <XAxis dataKey="name" tick={{fontSize: 9}} interval={0} angle={-28} textAnchor="end" height={58} />
+              <YAxis allowDecimals={false} tick={{fontSize: 10}} />
+              <Tooltip content={<ChartTooltip fmt={v => v} />} />
+              <Bar dataKey="value" radius={[4, 4, 0, 0]}>{dash.stageData.map((e, i) => <Cell key={e.name} fill={e.fill || CHART_COLORS[i % CHART_COLORS.length]} />)}</Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </GlassPanel>
+        <GlassPanel glass={glass}>
+          <div className="card-title">{lang === 'id' ? 'Workflow SPH/SPP' : 'SPH/SPP Workflow'}</div>
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart>
+              <Pie data={dash.workflowBreakdown.length ? dash.workflowBreakdown : [{name: '-', value: 1, color: 'var(--ims-border)'}]} dataKey="value" nameKey="name" innerRadius={52} outerRadius={88}>
+                {(dash.workflowBreakdown.length ? dash.workflowBreakdown : [{name: '-', value: 1, color: 'var(--ims-border)'}]).map(e => <Cell key={e.name} fill={e.color} />)}
+              </Pie>
+              <Tooltip content={<ChartTooltip fmt={v => v} />} />
+              <Legend wrapperStyle={{fontSize: 10}} />
+            </PieChart>
+          </ResponsiveContainer>
+        </GlassPanel>
+      </div>
+      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+        <GlassPanel glass={glass}>
+          <div className="card-title">{lang === 'id' ? 'SPH Baru per Bulan' : 'New SPH per Month'}</div>
+          <ResponsiveContainer width="100%" height={220}>
+            <ComposedChart data={dash.monthly}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="month" tick={{fontSize: 10}} />
+              <YAxis allowDecimals={false} tick={{fontSize: 10}} />
+              <Tooltip content={<ChartTooltip fmt={v => v} />} />
+              <Bar dataKey={lang === 'id' ? 'SPH Baru' : 'New SPH'} fill="var(--ims-gold)" radius={[3, 3, 0, 0]} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </GlassPanel>
+        <GlassPanel glass={glass}>
+          <div className="card-title">{lang === 'id' ? 'Modalitas' : 'Modality Mix'}</div>
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart>
+              <Pie data={dash.modalityData.length ? dash.modalityData : [{name: '-', value: 1}]} dataKey="value" nameKey="name" outerRadius={72}>
+                {dash.modalityData.map((e, i) => <Cell key={e.name} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+              </Pie>
+              <Tooltip content={<ChartTooltip fmt={v => v} />} />
+            </PieChart>
+          </ResponsiveContainer>
+        </GlassPanel>
+      </div>
+      <GlassPanel glass={glass}>
+        <div className="card-title">{lang === 'id' ? 'Top Pelanggan (Nilai SPH)' : 'Top Customers (SPH Value)'}</div>
+        <ResponsiveContainer width="100%" height={Math.max(200, dash.topCustomers.length * 32)}>
+          <BarChart data={dash.topCustomers.length ? dash.topCustomers : [{name: '-', value: 0}]} layout="vertical" margin={{left: 4}}>
+            <XAxis type="number" tick={{fontSize: 9}} tickFormatter={v => v >= 1e9 ? `${(v/1e9).toFixed(1)}M` : v >= 1e6 ? `${(v/1e6).toFixed(0)}Jt` : v} />
+            <YAxis type="category" dataKey="name" width={100} tick={{fontSize: 9}} />
+            <Tooltip content={<ChartTooltip fmt={fmt} />} />
+            <Bar dataKey="value" fill={glass.accent} radius={[0, 4, 4, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </GlassPanel>
+    </div>
+  );
+}
+
+function PipelineBoard({ data, allData, setData, employees = {}, session, logAction, t, lang, canEdit, fmt, onEdit, reports = [] }) {
   const salesTeam = useMemo(() => getActiveSalesTeam(employees), [employees]);
   // For privileged roles, allow filtering by sales owner; sales role uses its own data
   const isPrivilegedRole = session && (session.role === 'super_admin' || session.role === 'gm' || session.role === 'manager_ops' || session.role === 'admin');
   // Sales owner filter — 'all' or specific sales id
   const [filterSales, setFilterSales] = useState('all');
-  // Deal reassignment modal state
-  const [reassignDeal, setReassignDeal] = useState(null); // null | { deal, newOwner }
-  // Default to current year (2026) so pipeline shows current-year deals
-  const [filterYear, setFilterYear] = useState('2026');
+  const [reassignDeal, setReassignDeal] = useState(null);
+  const [boardTab, setBoardTab] = useState('dashboard');
+  const [filterYear, setFilterYear] = useState(String(currentYear()));
   // Win rate calculation mode: 'current' (filtered year only) | 'ttm' (trailing 12 months) | 'all' (cumulative)
   const [winRateMode, setWinRateMode] = useState('ttm');
   // Probability filter: 'all' | 'hot' (>=70%) | 'warm' (40-69%) | 'cold' (<40%)
@@ -830,6 +1124,12 @@ function PipelineBoard({ data, allData, setData, employees = {}, session, logAct
     return groups;
   }, [pipelineData, sortBy]);
 
+  const handleDashNav = (id) => {
+    if (id === 'hot') { setProbFilter('hot'); setBoardTab('kanban'); return; }
+    if (id === 'won') { setProbFilter('all'); setBoardTab('kanban'); return; }
+    setBoardTab(id === 'kanban' ? 'kanban' : 'dashboard');
+  };
+
   return (
     <div>
       <div style={{marginBottom: '22px'}}>
@@ -839,6 +1139,41 @@ function PipelineBoard({ data, allData, setData, employees = {}, session, logAct
       </div>
       {!canEdit && <ReadOnlyBanner t={t} />}
 
+      <div style={{display: 'flex', gap: '2px', marginBottom: '22px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
+        {[
+          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: LayoutDashboard },
+          { id: 'kanban', label: lang === 'id' ? 'Board Pipeline' : 'Pipeline Board', icon: Activity },
+        ].map(tb => {
+          const Icon = tb.icon;
+          const active = boardTab === tb.id;
+          return (
+            <button key={tb.id} onClick={() => setBoardTab(tb.id)} style={{background: 'transparent', border: 'none', padding: '10px 18px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 500, color: active ? 'var(--ims-accent)' : 'var(--ims-text-2)', borderBottom: active ? '2px solid var(--ims-border)' : '2px solid transparent', marginBottom: '-1px', display: 'flex', alignItems: 'center', gap: '7px', letterSpacing: '0.03em'}}>
+              <Icon size={14} strokeWidth={1.5} />{tb.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {boardTab === 'dashboard' && (
+        <PipelineDashboard
+          data={data}
+          allData={allData}
+          reports={reports}
+          pipelineStats={pipelineStats}
+          stageGroups={stageGroups}
+          stages={ALL_STAGES_WITH_LOST}
+          salesTeam={salesTeam}
+          t={t}
+          lang={lang}
+          fmt={fmt}
+          filterYear={filterYear}
+          probFilter={probFilter}
+          onNavigateTab={handleDashNav}
+        />
+      )}
+
+      {boardTab === 'kanban' && (
+      <>
       {/* Year filter + Sales filter */}
       <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', flexWrap: 'wrap'}}>
         <span style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600}}>{lang === 'id' ? 'Tahun' : 'Year'}:</span>
@@ -997,6 +1332,8 @@ function PipelineBoard({ data, allData, setData, employees = {}, session, logAct
           );
         })}
       </div>
+      </>
+      )}
 
       {/* Sales Reassignment Modal — only privileged roles */}
       {reassignDeal && (
@@ -2148,4 +2485,4 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
   );
 }
 
-export { SPHWorkflowConsole, SPHDetailModal, SPHManagement, PipelineBoard, SalesModule, SalesReport, SRDashboard, SRForm, SRHistory, SPHModal };
+export { SPHWorkflowConsole, SPHDetailModal, SPHManagement, PipelineBoard, PipelineDashboard, SPHDashboard, SalesModule, SalesReport, SRDashboard, SRForm, SRHistory, SPHModal };

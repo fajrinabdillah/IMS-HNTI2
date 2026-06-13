@@ -8,7 +8,8 @@ import { MODALITY_COLORS } from '../constants/sales.js';
 import { REG_AUTHORITY, REG_PERMIT_PREFIX, REG_PNBP_DEFAULT, REG_STAGES_DEFAULT, REG_STAGE_COLORS, REG_STAGE_DATE_FIELD, REG_TYPE_LABELS } from '../constants/regulatory.js';
 import { UnitPickerField } from './InstallationModule.jsx';
 import { appendStageHistoryEntry, getRegStages, getStageMetrics, migrateRegRecord } from '../utils/domain.js';
-import { formatDuration, parseSafeDateMs, todayStart } from '../utils/format.js';
+import { formatDuration, parseSafeDateMs, todayStart, currentYear } from '../utils/format.js';
+import { DASHBOARD_GLASS, DashboardHero, GlassPanel } from '../components/FuturisticDashboardShell.jsx';
 import { notify } from '../utils/notifications.js';
 function RegulatoryDashboardCharts({ recordGroups, filterSearch = '', filterYear = 'all', t, lang }) {
   const rows = Object.entries(recordGroups || {}).flatMap(([type, list]) => (Array.isArray(list) ? list : []).map(r => ({ ...migrateRegRecord(r, type), recordType: type }))).filter(Boolean);
@@ -29,7 +30,7 @@ function RegulatoryDashboardCharts({ recordGroups, filterSearch = '', filterYear
     fill: REG_STAGE_COLORS[stage],
   }));
   const issuedByMonth = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'].map((m, idx) => {
-    const year = filterYear === 'all' ? '2026' : filterYear;
+    const year = filterYear === 'all' ? String(currentYear()) : filterYear;
     const key = `${year}-${String(idx + 1).padStart(2, '0')}`;
     return {
       month: m,
@@ -42,10 +43,18 @@ function RegulatoryDashboardCharts({ recordGroups, filterSearch = '', filterYear
     const avg = done.length ? Math.round(done.reduce((sum, r) => sum + ((getStageMetrics(r).totalMs || 0) / 86400000), 0) / done.length) : 0;
     return { name: REG_TYPE_LABELS[type]?.[lang === 'en' ? 'en' : 'id'] || type, [lang === 'id' ? 'Rata-rata Hari' : 'Avg Days']: avg };
   }).filter(x => x[lang === 'id' ? 'Rata-rata Hari' : 'Avg Days'] > 0);
+  const glass = DASHBOARD_GLASS.regulatory;
   return (
-    <div style={{display: 'grid', gap: '16px'}}>
+    <div style={{display: 'grid', gap: '18px'}}>
+      <DashboardHero
+        glass={glass}
+        badge={lang === 'id' ? 'Regulatory Command Center' : 'Regulatory Command Center'}
+        title={lang === 'id' ? 'Dashboard Regulatory & Perizinan' : 'Regulatory & Permits Dashboard'}
+        subtitle={lang === 'id' ? 'AKL, Import, Pengalihan, PI, BAPETEN — terintegrasi dengan Instalasi & SPH PO.' : 'AKL, Import, Transfer, PI, BAPETEN — integrated with Installation & SPH PO.'}
+        lang={lang}
+      />
       <div style={{display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px'}}>
-        <div className="card">
+        <GlassPanel glass={glass}>
           <div className="card-title">{lang === 'id' ? 'Komposisi Jenis Izin' : 'Permit Type Mix'}</div>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
@@ -56,8 +65,8 @@ function RegulatoryDashboardCharts({ recordGroups, filterSearch = '', filterYear
               <Legend wrapperStyle={{fontSize: '11px'}} />
             </PieChart>
           </ResponsiveContainer>
-        </div>
-        <div className="card">
+        </GlassPanel>
+        <GlassPanel glass={glass}>
           <div className="card-title">{lang === 'id' ? 'Status Pipeline Regulatory' : 'Regulatory Pipeline Status'}</div>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={stageData} margin={{top: 8, right: 16, left: 0, bottom: 62}}>
@@ -70,10 +79,10 @@ function RegulatoryDashboardCharts({ recordGroups, filterSearch = '', filterYear
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </GlassPanel>
       </div>
       <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px'}}>
-        <div className="card">
+        <GlassPanel glass={glass}>
           <div className="card-title">{lang === 'id' ? 'Izin Terbit Bulanan' : 'Monthly Issued Permits'}</div>
           <ResponsiveContainer width="100%" height={250}>
             <ComposedChart data={issuedByMonth} margin={{top: 8, right: 16, left: 0, bottom: 8}}>
@@ -86,8 +95,8 @@ function RegulatoryDashboardCharts({ recordGroups, filterSearch = '', filterYear
               <Area dataKey="PNBP" fill="#d4af3733" stroke="#d4af37" />
             </ComposedChart>
           </ResponsiveContainer>
-        </div>
-        <div className="card">
+        </GlassPanel>
+        <GlassPanel glass={glass}>
           <div className="card-title">{lang === 'id' ? 'Rata-rata Selesai per Izin' : 'Average Completion by Permit'}</div>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={avgByType} layout="vertical" margin={{top: 8, right: 16, left: 88, bottom: 8}}>
@@ -98,7 +107,7 @@ function RegulatoryDashboardCharts({ recordGroups, filterSearch = '', filterYear
               <Bar dataKey={lang === 'id' ? 'Rata-rata Hari' : 'Avg Days'} fill="#5b8def" radius={[0, 3, 3, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </GlassPanel>
       </div>
     </div>
   );

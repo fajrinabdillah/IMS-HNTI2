@@ -4,7 +4,6 @@ import { Check, Edit2, Eye, Plus, Trash2, Upload } from 'lucide-react';
 import { DocumentEditorModal } from '../components/DocumentEditorModal.jsx';
 import { Field, ReadOnlyBanner } from '../components/ui.jsx';
 import { OFFICIAL_DOC_TEMPLATE_TYPES } from '../constants/docs.js';
-import { getPlaceholdersForDocType, getSampleRecordForDocType } from '../constants/docPlaceholders.js';
 import { buildEditorBody, buildBAUjiPaparanDocumentHtml, buildInvoiceKwitansiHtml, buildPrincipalPoHtml, buildSPHDocumentHtml, buildSPPDocumentHtml, mergeDocumentTemplates, openDocumentTemplateOrHtml, previewUploadedTemplate } from '../utils/documents.js';
 import { formatDateTime, formatFileSize, inferMimeFromName } from '../utils/format.js';
 import { showToast } from '../utils/toast.js';
@@ -27,7 +26,6 @@ function DocumentTemplateModule({ templates, setTemplates, data = [], employees 
     issuedDate: new Date().toISOString().split('T')[0],
     salesOwner: 'office',
   };
-  const sampleRecordFor = (type) => getSampleRecordForDocType(type, sampleSph);
   const updateRoot = (key, value) => {
     // For image fields (letterheadImage, logoImage, stampImage), write directly to parent state
     // This ensures immediate visibility + auto-save to Supabase
@@ -175,8 +173,7 @@ function DocumentTemplateModule({ templates, setTemplates, data = [], employees 
     if (type === 'invoice') return openDocumentTemplateOrHtml('invoice', tpl, 'Preview Invoice HNTI', buildInvoiceKwitansiHtml(sampleSph, fmt, tpl));
     if (type === 'po') return openDocumentTemplateOrHtml('po_principal', tpl, 'Preview PO Principal HNTI', buildPrincipalPoHtml(sampleSph, fmt, tpl));
     if (type === 'bauji_paparan') {
-      const sample = sampleRecordFor('bauji_paparan');
-      return openDocumentTemplateOrHtml('bauji_paparan', tpl, 'Preview BA Uji Paparan HNTI', buildBAUjiPaparanDocumentHtml(sample, fmt, tpl, employees));
+      return openDocumentTemplateOrHtml('bauji_paparan', tpl, 'Preview BA Uji Paparan HNTI', buildBAUjiPaparanDocumentHtml(sampleSph, fmt, tpl, employees));
     }
     // Template yang sudah diupload: preview file asli; fallback ke SPH jika belum ada file
     const uploadedRow = (tpl.documentFiles || []).find(f => f.type === type && f.dataUrl);
@@ -221,26 +218,6 @@ function DocumentTemplateModule({ templates, setTemplates, data = [], employees 
     ['operations', lang === 'id' ? 'Tanda Tangan Operasional' : 'Operations Signature'],
     ['director', lang === 'id' ? 'Tanda Tangan Direktur' : 'Director Signature'],
   ];
-  const renderPlaceholderPanel = (docType) => {
-    const items = getPlaceholdersForDocType(docType);
-    if (!items.length) return null;
-    return (
-      <div style={{gridColumn: '1 / -1', marginTop: '4px', padding: '12px 14px', background: 'rgba(91,141,239,0.08)', border: '1px solid rgba(91,141,239,0.22)', borderRadius: '4px'}}>
-        <div style={{fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8fb8ff', fontWeight: 700, marginBottom: '8px'}}>
-          {lang === 'id' ? 'Placeholder format HTML (salin ke template Word/HTML)' : 'HTML placeholders (copy into Word/HTML template)'}
-        </div>
-        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '8px'}}>
-          {items.map(item => (
-            <div key={item.key} style={{padding: '8px 10px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', fontSize: '10px'}}>
-              <code style={{display: 'block', fontSize: '11px', color: 'var(--ims-accent)', marginBottom: '4px', fontWeight: 700}}>{`{{${item.key}}}`}</code>
-              <div style={{color: 'var(--ims-text)', fontWeight: 600, marginBottom: '2px'}}>{lang === 'id' ? item.labelId : item.labelEn}</div>
-              <div style={{color: 'var(--ims-text-2)', fontStyle: 'italic'}}>{lang === 'id' ? 'Contoh' : 'Example'}: {item.example}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
   return (
     <div>
       <div style={{marginBottom: '22px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '14px'}}>
@@ -312,11 +289,10 @@ function DocumentTemplateModule({ templates, setTemplates, data = [], employees 
                   <div style={{border: '1px dashed var(--ims-border)', padding: '14px', textAlign: 'center', color: 'var(--ims-text-2)', fontSize: '11px', marginBottom: '8px', fontStyle: 'italic', background: 'var(--ims-bg-card-2)'}}>{lang === 'id' ? 'Belum ada file — unggah .docx/.xlsx, isinya otomatis jadi format editor' : 'No file — upload .docx/.xlsx, content becomes editor format'}</div>
                 )}
                 <div style={{display: 'flex', gap: '6px', flexWrap: 'wrap'}}>
-                  {canEdit && <button type="button" onClick={() => { const live = mergeDocumentTemplates(templates); const r = (live.documentFiles || []).find(f => f.id === row.id || f.type === row.type) || row; const sample = sampleRecordFor(row.type); setHtmlEditor({ rowId: row.id, type: row.type, label: row.label, html: r.htmlBody != null && String(r.htmlBody).trim() ? r.htmlBody : buildEditorBody(row.type, sample, employees, fmt, templates, null) }); }} className="btn-primary" style={{fontSize: '11px', padding: '8px 14px'}} title={lang === 'id' ? 'Edit format HTML template ini (dipakai saat Buat Dokumen)' : 'Edit HTML body of this template'}><Edit2 size={13} />{lang === 'id' ? 'Edit Format' : 'Edit Format'}</button>}
+                  {canEdit && <button type="button" onClick={() => { const live = mergeDocumentTemplates(templates); const r = (live.documentFiles || []).find(f => f.id === row.id || f.type === row.type) || row; setHtmlEditor({ rowId: row.id, type: row.type, label: row.label, html: r.htmlBody != null && String(r.htmlBody).trim() ? r.htmlBody : buildEditorBody(row.type, sampleSph, employees, fmt, templates, null) }); }} className="btn-primary" style={{fontSize: '11px', padding: '8px 14px'}} title={lang === 'id' ? 'Edit format HTML template ini (dipakai saat Buat Dokumen)' : 'Edit HTML body of this template'}><Edit2 size={13} />{lang === 'id' ? 'Edit Format' : 'Edit Format'}</button>}
                   <button type="button" onClick={() => row.dataUrl ? previewUploadedTemplate(row, row.label || row.fileName || 'Template') : preview(row.type)} className="btn-ghost" style={{fontSize: '11px', padding: '8px 14px'}}><Eye size={13} />Preview</button>
                 </div>
               </div>
-              {row.type === 'bauji_paparan' && renderPlaceholderPanel('bauji_paparan')}
             </div>
           ))}
           {documentFiles.length === 0 && <div className="empty-state" style={{padding: '32px'}}>{lang === 'id' ? 'Belum ada template. Klik Tambah Template.' : 'No templates. Click Add Template.'}</div>}

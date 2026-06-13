@@ -1,16 +1,232 @@
 // Extracted from App.jsx during modular refactor.
 import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, Award, CalendarDays, ClipboardList, Download, Edit2, FileBarChart, FileText, FolderOpen, Target, Trash2, Users } from 'lucide-react';
+import { AlertCircle, Award, CalendarDays, ClipboardList, Download, Edit2, FileBarChart, FileText, FolderOpen, LayoutDashboard, Sparkles, Target, Trash2, Users, Zap } from 'lucide-react';
 import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, PieChart, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartTooltip, ConfirmDialog, Field, KPICard, LinkAttachment, ReadOnlyBanner, Td, Th } from '../components/ui.jsx';
+import { CHART_COLORS } from '../constants/theme.js';
 import { MODALITY_COLORS } from '../constants/sales.js';
 import { PRODUCT_FILE_TYPES } from './ProductMasterModule.jsx';
 import { downloadCSV, openPrintableHtml } from '../utils/documents.js';
 import { getActiveSalesTeam, getPaymentSummary, getProductFileUrl, resolveEmpName, resolveNamesInText, resolveProductRecord } from '../utils/domain.js';
 import { normalizeExternalUrl } from '../utils/format.js';
 import { notify } from '../utils/notifications.js';
+
+const PS_GLASS = {
+  background: 'linear-gradient(145deg, rgba(91,141,239,0.10) 0%, rgba(47,143,111,0.06) 45%, rgba(123,63,181,0.05) 100%)',
+  border: '1px solid rgba(91,141,239,0.22)',
+  boxShadow: '0 0 28px rgba(91,141,239,0.07), inset 0 1px 0 rgba(255,255,255,0.05)',
+};
+
+function ProductSupportDashboard({ presentationProjects, activities, productFileRows, upcomingTraining, activityTypeLabels, employees, fmt, lang, onNavigateTab }) {
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const dash = useMemo(() => {
+    const presentationValue = presentationProjects.reduce((s, p) => s + (Number(p.totalValue) || 0), 0);
+    const fileCount = productFileRows.reduce((s, p) => s + p.fileEntries.filter(f => f.url).length, 0);
+    const productsWithFiles = productFileRows.filter(p => p.fileEntries.some(f => f.url)).length;
+    const monthKey = new Date().toISOString().slice(0, 7);
+    const activitiesThisMonth = activities.filter(a => String(a.date || '').startsWith(monthKey)).length;
+    const customers = new Set(activities.map(a => a.hospital).filter(Boolean)).size;
+    const modalityMap = presentationProjects.reduce((acc, p) => { const k = p.modality || 'Other'; acc[k] = (acc[k] || 0) + 1; return acc; }, {});
+    const modalityData = Object.entries(modalityMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+    const activityByType = Object.entries(activityTypeLabels).map(([key, label]) => ({
+      name: label,
+      value: activities.filter(a => (a.activityType || 'lainnya') === key).length,
+    })).filter(x => x.value > 0);
+    const monthlyActivity = MONTHS.map((m, idx) => {
+      const mm = String(idx + 1).padStart(2, '0');
+      return { month: m, [lang === 'id' ? 'Aktivitas' : 'Activities']: activities.filter(a => (a.date || '').substring(5, 7) === mm).length };
+    });
+    const hospitalMap = activities.reduce((acc, a) => { const k = a.hospital || '-'; acc[k] = (acc[k] || 0) + 1; return acc; }, {});
+    const topHospitals = Object.entries(hospitalMap).map(([name, value]) => ({ name: String(name).slice(0, 24), value })).sort((a, b) => b.value - a.value).slice(0, 8);
+    const specialistMap = activities.reduce((acc, a) => { const k = a.byName || a.by || 'Unknown'; acc[k] = (acc[k] || 0) + 1; return acc; }, {});
+    const topSpecialists = Object.entries(specialistMap).map(([name, value]) => ({ name: String(name).slice(0, 18), value })).sort((a, b) => b.value - a.value).slice(0, 6);
+    const radarData = [
+      { pillar: lang === 'id' ? 'Presentasi' : 'Presentations', score: Math.min(100, presentationProjects.length * 12), full: 100 },
+      { pillar: lang === 'id' ? 'Aktivitas' : 'Activities', score: Math.min(100, activities.length * 4), full: 100 },
+      { pillar: lang === 'id' ? 'File Produk' : 'Product Files', score: Math.min(100, fileCount * 3), full: 100 },
+      { pillar: lang === 'id' ? 'Training' : 'Training', score: Math.min(100, upcomingTraining.length * 15), full: 100 },
+      { pillar: lang === 'id' ? 'RS Aktif' : 'Active RS', score: Math.min(100, customers * 8), full: 100 },
+    ];
+    const trainingByModality = upcomingTraining.reduce((acc, r) => { const k = r.modality || 'Other'; acc[k] = (acc[k] || 0) + 1; return acc; }, {});
+    const trainingModData = Object.entries(trainingByModality).map(([name, value]) => ({ name, value }));
+    return {
+      presentationValue, fileCount, productsWithFiles, activitiesThisMonth, customers,
+      modalityData, activityByType, monthlyActivity, topHospitals, topSpecialists, radarData, trainingModData,
+    };
+  }, [presentationProjects, activities, productFileRows, upcomingTraining, activityTypeLabels, lang]);
+
+  const quickLinks = [
+    { id: 'presentations', label: lang === 'id' ? 'Jadwal Presentasi' : 'Presentations', count: presentationProjects.length, icon: CalendarDays, color: '#5b8def' },
+    { id: 'activities', label: lang === 'id' ? 'Activity Report' : 'Activities', count: activities.length, icon: ClipboardList, color: '#2f8f6f' },
+    { id: 'files', label: lang === 'id' ? 'File Produk' : 'Product Files', count: dash.fileCount, icon: FolderOpen, color: '#7b3fb5' },
+    { id: 'training', label: lang === 'id' ? 'Training' : 'Training', count: upcomingTraining.length, icon: Users, color: '#d4af37' },
+  ];
+
+  return (
+    <div style={{display: 'grid', gap: '18px'}}>
+      {/* Hero header */}
+      <div style={{...PS_GLASS, padding: '22px 24px', position: 'relative', overflow: 'hidden'}}>
+        <div style={{position: 'absolute', top: '-40px', right: '-20px', width: '180px', height: '180px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(91,141,239,0.18) 0%, transparent 70%)', pointerEvents: 'none'}} />
+        <div style={{position: 'absolute', bottom: '-30px', left: '40%', width: '120px', height: '120px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(47,143,111,0.12) 0%, transparent 70%)', pointerEvents: 'none'}} />
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap', position: 'relative'}}>
+          <div>
+            <div style={{display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', letterSpacing: '0.25em', textTransform: 'uppercase', color: 'var(--ims-accent)', marginBottom: '8px'}}>
+              <Sparkles size={13} /> {lang === 'id' ? 'Command Center' : 'Command Center'}
+            </div>
+            <h2 className="serif" style={{fontSize: '28px', fontWeight: 500, margin: 0, lineHeight: 1.15}}>
+              {lang === 'id' ? 'Dashboard Product Support' : 'Product Support Dashboard'}
+            </h2>
+            <p style={{fontSize: '12px', color: 'var(--ims-text-2)', margin: '8px 0 0', maxWidth: '520px'}}>
+              {lang === 'id' ? 'Integrasi real-time dari presentasi, aktivitas specialist, file produk, dan jadwal training.' : 'Real-time integration from presentations, specialist activities, product files, and training schedules.'}
+            </p>
+          </div>
+          <div style={{display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', border: '1px solid rgba(47,143,111,0.35)', background: 'rgba(47,143,111,0.08)', fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ims-accent-2)'}}>
+            <Zap size={12} /> LIVE SYNC
+          </div>
+        </div>
+      </div>
+
+      {/* KPI tiles */}
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(155px, 1fr))', gap: '1px', background: 'var(--ims-border)', border: '1px solid var(--ims-border)'}}>
+        {[
+          { label: lang === 'id' ? 'Presentasi Aktif' : 'Active Presentations', value: presentationProjects.length, sub: fmt(dash.presentationValue), color: '#5b8def' },
+          { label: lang === 'id' ? 'Total Aktivitas' : 'Total Activities', value: activities.length, sub: `${dash.activitiesThisMonth} ${lang === 'id' ? 'bulan ini' : 'this month'}`, color: '#2f8f6f' },
+          { label: lang === 'id' ? 'File Produk' : 'Product Files', value: dash.fileCount, sub: `${dash.productsWithFiles} ${lang === 'id' ? 'produk' : 'products'}`, color: '#7b3fb5' },
+          { label: lang === 'id' ? 'Training Mendatang' : 'Upcoming Training', value: upcomingTraining.length, sub: `${dash.trainingModData.length} ${lang === 'id' ? 'modalitas' : 'modalities'}`, color: '#d4af37' },
+          { label: lang === 'id' ? 'RS / Partner' : 'Hospitals', value: dash.customers, sub: lang === 'id' ? 'dikunjungi' : 'visited', color: 'var(--ims-text)' },
+        ].map(k => (
+          <div key={k.label} style={{padding: '16px 18px', background: 'var(--ims-bg-card)'}}>
+            <div className="lbl-tag">{k.label}</div>
+            <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px', color: k.color}}>{k.value}</div>
+            <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '4px'}}>{k.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Quick nav pills */}
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px'}}>
+        {quickLinks.map(link => {
+          const Icon = link.icon;
+          return (
+            <button key={link.id} onClick={() => onNavigateTab(link.id)} style={{...PS_GLASS, padding: '14px 16px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '12px', transition: 'transform 0.15s ease'}} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }} onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}>
+              <div style={{width: '36px', height: '36px', borderRadius: '8px', background: link.color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', color: link.color}}><Icon size={18} /></div>
+              <div>
+                <div style={{fontSize: '12px', fontWeight: 600, color: 'var(--ims-text)'}}>{link.label}</div>
+                <div style={{fontSize: '20px', fontWeight: 700, color: link.color, marginTop: '2px'}}>{link.count}</div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Charts row 1 */}
+      <div style={{display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '16px'}}>
+        <div style={{...PS_GLASS, padding: '18px 20px'}}>
+          <div className="card-title">{lang === 'id' ? 'Tren Aktivitas Bulanan' : 'Monthly Activity Trend'}</div>
+          <ResponsiveContainer width="100%" height={260}>
+            <ComposedChart data={dash.monthlyActivity} margin={{top: 8, right: 12, left: 0, bottom: 0}}>
+              <defs>
+                <linearGradient id="psActGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#5b8def" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="#5b8def" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(91,141,239,0.12)" vertical={false} />
+              <XAxis dataKey="month" stroke="var(--ims-text-2)" style={{fontSize: 10}} />
+              <YAxis allowDecimals={false} stroke="var(--ims-text-2)" style={{fontSize: 10}} />
+              <Tooltip content={<ChartTooltip fmt={v => v} />} />
+              <Area type="monotone" dataKey={lang === 'id' ? 'Aktivitas' : 'Activities'} fill="url(#psActGrad)" stroke="#5b8def" strokeWidth={2} />
+              <Line type="monotone" dataKey={lang === 'id' ? 'Aktivitas' : 'Activities'} stroke="#2f8f6f" strokeWidth={2} dot={{ r: 3 }} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+        <div style={{...PS_GLASS, padding: '18px 20px'}}>
+          <div className="card-title">{lang === 'id' ? 'Radar Integrasi Modul' : 'Module Integration Radar'}</div>
+          <ResponsiveContainer width="100%" height={260}>
+            <RadarChart data={dash.radarData} outerRadius="72%">
+              <PolarGrid stroke="rgba(91,141,239,0.2)" />
+              <PolarAngleAxis dataKey="pillar" tick={{ fill: 'var(--ims-text-2)', fontSize: 10 }} />
+              <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
+              <Radar name="Score" dataKey="score" stroke="#5b8def" fill="#5b8def" fillOpacity={0.35} />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Charts row 2 */}
+      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px'}}>
+        <div style={{...PS_GLASS, padding: '18px 20px'}}>
+          <div className="card-title">{lang === 'id' ? 'Presentasi per Modalitas' : 'Presentations by Modality'}</div>
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart>
+              <Pie data={dash.modalityData.length ? dash.modalityData : [{ name: '-', value: 1 }]} dataKey="value" nameKey="name" innerRadius={42} outerRadius={78} paddingAngle={2}>
+                {(dash.modalityData.length ? dash.modalityData : [{ name: '-', value: 1 }]).map((e, i) => <Cell key={e.name} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+              </Pie>
+              <Tooltip content={<ChartTooltip fmt={v => v} />} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div style={{...PS_GLASS, padding: '18px 20px'}}>
+          <div className="card-title">{lang === 'id' ? 'Jenis Aktivitas' : 'Activity Types'}</div>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={dash.activityByType.length ? dash.activityByType : [{ name: '-', value: 0 }]} layout="vertical" margin={{left: 8, right: 8}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(91,141,239,0.1)" horizontal={false} />
+              <XAxis type="number" allowDecimals={false} hide />
+              <YAxis type="category" dataKey="name" width={72} tick={{ fontSize: 9, fill: 'var(--ims-text-2)' }} />
+              <Tooltip content={<ChartTooltip fmt={v => v} />} />
+              <Bar dataKey="value" fill="#2f8f6f" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div style={{...PS_GLASS, padding: '18px 20px'}}>
+          <div className="card-title">{lang === 'id' ? 'Training per Modalitas' : 'Training by Modality'}</div>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={dash.trainingModData.length ? dash.trainingModData : [{ name: '-', value: 0 }]}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(91,141,239,0.1)" vertical={false} />
+              <XAxis dataKey="name" tick={{ fontSize: 9, fill: 'var(--ims-text-2)' }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 9, fill: 'var(--ims-text-2)' }} />
+              <Tooltip content={<ChartTooltip fmt={v => v} />} />
+              <Bar dataKey="value" fill="#7b3fb5" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Row 3: Top lists */}
+      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+        <div style={{...PS_GLASS, padding: '18px 20px'}}>
+          <div className="card-title">{lang === 'id' ? 'Top RS / Partner (Aktivitas)' : 'Top Hospitals (Activities)'}</div>
+          <ResponsiveContainer width="100%" height={Math.max(200, dash.topHospitals.length * 32)}>
+            <BarChart data={dash.topHospitals} layout="vertical" margin={{left: 4, right: 12}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(91,141,239,0.1)" horizontal={false} />
+              <XAxis type="number" allowDecimals={false} tick={{ fontSize: 9 }} />
+              <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 9, fill: 'var(--ims-text-2)' }} />
+              <Tooltip content={<ChartTooltip fmt={v => v} />} />
+              <Bar dataKey="value" fill="#1a4d8a" radius={[0, 4, 4, 0]}>
+                {dash.topHospitals.map((e, i) => <Cell key={e.name} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div style={{...PS_GLASS, padding: '18px 20px'}}>
+          <div className="card-title">{lang === 'id' ? 'Top Product Specialist' : 'Top Product Specialists'}</div>
+          <ResponsiveContainer width="100%" height={Math.max(200, dash.topSpecialists.length * 36)}>
+            <BarChart data={dash.topSpecialists} layout="vertical" margin={{left: 4, right: 12}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(91,141,239,0.1)" horizontal={false} />
+              <XAxis type="number" allowDecimals={false} tick={{ fontSize: 9 }} />
+              <YAxis type="category" dataKey="name" width={88} tick={{ fontSize: 9, fill: 'var(--ims-text-2)' }} />
+              <Tooltip content={<ChartTooltip fmt={v => v} />} />
+              <Bar dataKey="value" name={lang === 'id' ? 'Laporan' : 'Reports'} fill="#d4af37" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ProductSupportModule({ data, trainingRecords, products, employees, session, t, lang, canEdit, fmt, activities = [], setActivities = () => {}, files = [], setFiles = () => {} }) {
-  const [tab, setTab] = useState('presentations');
+  const [tab, setTab] = useState('dashboard');
   const [presentationFilter, setPresentationFilter] = useState({ modality: 'all', type: 'all' });
   const [form, setForm] = useState({ hospital: '', sphId: '', productId: '', modality: '', brand: '', type: '', date: new Date().toISOString().split('T')[0], activityType: 'presentasi', note: '', competitor: '', attachmentUrl: '' });
   const [activityFilter, setActivityFilter] = useState({ specialist: 'all', activityType: 'all', search: '' });
@@ -130,6 +346,7 @@ function ProductSupportModule({ data, trainingRecords, products, employees, sess
       {!canEdit && <ReadOnlyBanner t={t} />}
       <div style={{display: 'flex', gap: '2px', marginBottom: '20px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
         {[
+          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: LayoutDashboard, count: presentationProjects.length + activities.length + upcomingTraining.length },
           { id: 'presentations', label: lang === 'id' ? 'Jadwal Presentasi' : 'Presentations', icon: CalendarDays, count: presentationProjects.length },
           { id: 'activities', label: lang === 'id' ? 'Activity Report' : 'Activity Report', icon: ClipboardList, count: activities.length },
           { id: 'files', label: lang === 'id' ? 'File Produk' : 'Product Files', icon: FolderOpen, count: productFileRows.reduce((sum, p) => sum + p.fileEntries.filter(f => f.url).length, 0) },
@@ -139,6 +356,19 @@ function ProductSupportModule({ data, trainingRecords, products, employees, sess
           return <button key={tb.id} onClick={() => setTab(tb.id)} style={{background: 'transparent', border: 'none', padding: '10px 16px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 500, color: active ? 'var(--ims-accent)' : 'var(--ims-text-2)', borderBottom: active ? '2px solid var(--ims-border)' : '2px solid transparent', marginBottom: '-1px', display: 'flex', alignItems: 'center', gap: '7px'}}><Icon size={14} />{tb.label}<span style={{padding: '2px 7px', background: active ? 'var(--ims-accent)' : 'var(--ims-border)', color: active ? '#fff' : 'var(--ims-text-2)', fontSize: '10px', borderRadius: '10px'}}>{tb.count}</span></button>;
         })}
       </div>
+      {tab === 'dashboard' && (
+        <ProductSupportDashboard
+          presentationProjects={presentationProjects}
+          activities={activities}
+          productFileRows={productFileRows}
+          upcomingTraining={upcomingTraining}
+          activityTypeLabels={activityTypeLabels}
+          employees={employees}
+          fmt={fmt}
+          lang={lang}
+          onNavigateTab={setTab}
+        />
+      )}
       {tab === 'presentations' && (
         <div>
           <div style={{display: 'flex', gap: '8px', alignItems: 'end', flexWrap: 'wrap', marginBottom: '12px', padding: '12px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>

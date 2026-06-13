@@ -1,5 +1,5 @@
 // Extracted from App.jsx during modular refactor.
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Activity, Download, Edit2, FileCheck, Plus, Receipt, Search, Trash2, Upload, X } from 'lucide-react';
 import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ConfirmDialog, Field, LinkAttachment, Td, Th } from '../components/ui.jsx';
@@ -7,6 +7,13 @@ import { POSITION_ALLOWANCE } from '../constants/org.js';
 import { downloadCSV } from '../utils/documents.js';
 import { resolveEmpName } from '../utils/domain.js';
 import { showToast } from '../utils/toast.js';
+
+function tripCanDelete(trip, session) {
+  const isOwner = trip.travelerUsername === session.username;
+  const canManageAll = ['super_admin', 'gm', 'manager_ops', 'finance'].includes(session.role);
+  return (isOwner && trip.status === 'draft') || canManageAll;
+}
+
 function BusinessTripModule({ businessTrips, setBusinessTrips, realizations, setRealizations, employees, t, lang, session, fmt }) {
   const [tab, setTab] = useState('cash_advance');
   const [modalOpen, setModalOpen] = useState(false);
@@ -14,6 +21,9 @@ function BusinessTripModule({ businessTrips, setBusinessTrips, realizations, set
   const [detailTrip, setDetailTrip] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null); // {action, trip, note}
   const [deleteTripId, setDeleteTripId] = useState(null);
+  const [selectedTripIds, setSelectedTripIds] = useState([]);
+  const [bulkDeleteTripsOpen, setBulkDeleteTripsOpen] = useState(false);
+  const selectAllTripsRef = useRef(null);
   const [filterView, setFilterView] = useState('all'); // all | my | pending
   const [btSearch, setBtSearch] = useState('');
   const [btYear, setBtYear] = useState('all');
@@ -341,6 +351,38 @@ function BusinessTripModule({ businessTrips, setBusinessTrips, realizations, set
   const handleDelete = () => {
     setBusinessTrips(prev => prev.filter(x => x.id !== deleteTripId));
     setDeleteTripId(null);
+    showToast(lang === 'id' ? 'Pengajuan dihapus' : 'Request deleted', 'success');
+  };
+
+  const deletableVisibleTrips = useMemo(() => visibleTrips.filter(trip => tripCanDelete(trip, session)), [visibleTrips, session]);
+  const deletableTripIds = useMemo(() => deletableVisibleTrips.map(t => t.id), [deletableVisibleTrips]);
+  const allDeletableSelected = deletableTripIds.length > 0 && deletableTripIds.every(id => selectedTripIds.includes(id));
+
+  useEffect(() => {
+    if (selectAllTripsRef.current) selectAllTripsRef.current.indeterminate = selectedTripIds.length > 0 && !allDeletableSelected;
+  }, [selectedTripIds.length, allDeletableSelected]);
+
+  useEffect(() => { setSelectedTripIds([]); }, [tab, filterView, btSearch, btYear]);
+
+  const toggleTripSelect = (id) => {
+    setSelectedTripIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    setDetailTrip(null);
+  };
+  const toggleSelectAllTrips = () => {
+    if (allDeletableSelected) setSelectedTripIds(prev => prev.filter(id => !deletableTripIds.includes(id)));
+    else {
+      setSelectedTripIds(prev => [...new Set([...prev, ...deletableTripIds])]);
+      setDetailTrip(null);
+    }
+  };
+  const confirmBulkDeleteTrips = () => {
+    const idSet = new Set(selectedTripIds);
+    const removed = businessTrips.filter(t => idSet.has(t.id));
+    setBusinessTrips(prev => prev.filter(t => !idSet.has(t.id)));
+    setSelectedTripIds([]);
+    setBulkDeleteTripsOpen(false);
+    setDetailTrip(null);
+    showToast(lang === 'id' ? `${removed.length} pengajuan dihapus` : `${removed.length} request(s) deleted`, 'success');
   };
 
   // ============== REALIZATION HANDLERS ==============
@@ -563,9 +605,42 @@ function BusinessTripModule({ businessTrips, setBusinessTrips, realizations, set
             <button className="btn-primary" onClick={() => { setEditingTrip(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{t.bt_add_btn}</button>
           </div>
 
+          {deletableTripIds.length > 0 && (
+            <div style={{marginBottom: '12px', padding: '10px 14px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap'}}>
+              <label style={{display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 600}}>
+                <input ref={selectAllTripsRef} type="checkbox" checked={allDeletableSelected} onChange={toggleSelectAllTrips} style={{width: '14px', height: '14px', cursor: 'pointer'}} />
+                {lang === 'id' ? `Pilih semua (${deletableTripIds.length} dapat dihapus)` : `Select all (${deletableTripIds.length} deletable)`}
+              </label>
+              {selectedTripIds.length > 0 && (
+                <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+                  <span style={{fontSize: '12px', color: 'var(--ims-text-2)'}}>{selectedTripIds.length} {lang === 'id' ? 'dipilih' : 'selected'}</span>
+                  <button onClick={() => setSelectedTripIds([])} className="btn-ghost" style={{fontSize: '11px'}}>{lang === 'id' ? 'Batal' : 'Clear'}</button>
+                  <button onClick={() => setBulkDeleteTripsOpen(true)} style={{background: '#c03030', border: 'none', color: '#fff', padding: '7px 12px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px'}}>
+                    <Trash2 size={12} />{lang === 'id' ? `Hapus Terpilih (${selectedTripIds.length})` : `Delete Selected (${selectedTripIds.length})`}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Trips list */}
           <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
-            {visibleTrips.map(trip => <BusinessTripCard key={trip.id} trip={trip} t={t} lang={lang} session={session} fmt={fmt} onDetail={() => setDetailTrip(trip)} onEdit={() => { setEditingTrip(trip); setModalOpen(true); }} onDelete={() => setDeleteTripId(trip.id)} />)}
+            {visibleTrips.map(trip => (
+              <BusinessTripCard
+                key={trip.id}
+                trip={trip}
+                t={t}
+                lang={lang}
+                session={session}
+                fmt={fmt}
+                showCheckbox={deletableTripIds.length > 0 && tripCanDelete(trip, session)}
+                isSelected={selectedTripIds.includes(trip.id)}
+                onToggleSelect={() => toggleTripSelect(trip.id)}
+                onDetail={() => setDetailTrip(trip)}
+                onEdit={() => { setEditingTrip(trip); setModalOpen(true); }}
+                onDelete={() => setDeleteTripId(trip.id)}
+              />
+            ))}
             {visibleTrips.length === 0 && <div style={{padding: '40px', textAlign: 'center', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', color: 'var(--ims-text-2)'}}>{t.bt_no_data}</div>}
           </div>
         </div>
@@ -629,6 +704,17 @@ function BusinessTripModule({ businessTrips, setBusinessTrips, realizations, set
       <ConfirmDialog open={!!confirmAction && confirmAction.action === 'clarify'} title={lang === 'id' ? 'Minta Klarifikasi?' : 'Request Clarification?'} message={t.bt_confirm_clarify + (confirmAction?.note ? '\n\nCatatan: ' + confirmAction.note : '')} confirmText={t.bt_action_clarify} onConfirm={() => handleClarify(confirmAction.trip, confirmAction.note)} onCancel={() => setConfirmAction(null)} lang={lang} />
       <ConfirmDialog open={!!confirmAction && confirmAction.action === 'mark_paid'} title={lang === 'id' ? 'Konfirmasi Pencairan?' : 'Confirm Disbursement?'} message={t.bt_confirm_mark_paid} confirmText={t.bt_action_mark_paid} onConfirm={() => handleMarkPaid(confirmAction.trip, confirmAction.note)} onCancel={() => setConfirmAction(null)} lang={lang} />
       <ConfirmDialog open={!!deleteTripId} title={lang === 'id' ? 'Hapus Pengajuan?' : 'Delete Request?'} message={lang === 'id' ? 'Yakin ingin menghapus pengajuan ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this request? This action cannot be undone.'} onConfirm={handleDelete} onCancel={() => setDeleteTripId(null)} danger lang={lang} />
+      <ConfirmDialog
+        open={bulkDeleteTripsOpen}
+        title={lang === 'id' ? 'Hapus Pengajuan Terpilih?' : 'Delete Selected Requests?'}
+        message={lang === 'id'
+          ? `Apakah Anda yakin ingin menghapus ${selectedTripIds.length} pengajuan cash advance? Tindakan ini tidak dapat dibatalkan.`
+          : `Are you sure you want to delete ${selectedTripIds.length} cash advance request(s)? This cannot be undone.`}
+        onConfirm={confirmBulkDeleteTrips}
+        onCancel={() => setBulkDeleteTripsOpen(false)}
+        danger
+        lang={lang}
+      />
 
       {/* Realization Modals */}
       {realizationFormOpen && <BusinessTripRealizationForm fmt={fmt} realization={editingRealization} preSelectedTrip={selectedTripForRealization} eligibleTrips={eligibleTripsForRealization} existingRealizations={realizations} session={session} onSubmit={handleSubmitRealization} onSaveDraft={handleSaveRealizationDraft} onClose={() => { setRealizationFormOpen(false); setEditingRealization(null); setSelectedTripForRealization(null); }} t={t} lang={lang} />}
@@ -641,7 +727,7 @@ function BusinessTripModule({ businessTrips, setBusinessTrips, realizations, set
     </div>
   );
 }
-const BusinessTripCard = React.memo(function BusinessTripCard({ trip, t, lang, session, fmt, onDetail, onEdit, onDelete }) {
+const BusinessTripCard = React.memo(function BusinessTripCard({ trip, t, lang, session, fmt, showCheckbox, isSelected, onToggleSelect, onDetail, onEdit, onDelete }) {
   const statusColors = {
     draft: '#94a3b8', pending_finance: 'var(--ims-gold)', pending_mops: 'var(--ims-gold)', pending_gm: 'var(--ims-gold)',
     approved: '#5b87b8', paid: 'var(--ims-accent-2)', in_progress: '#5b87b8', completed: 'var(--ims-accent-2)',
@@ -651,10 +737,16 @@ const BusinessTripCard = React.memo(function BusinessTripCard({ trip, t, lang, s
   const isOwner = trip.travelerUsername === session.username;
   const canManageAll = ['super_admin', 'gm', 'manager_ops', 'finance'].includes(session.role);
   const canEdit = (isOwner && ['draft', 'clarification', 'rejected'].includes(trip.status)) || canManageAll;
-  const canDelete = (isOwner && trip.status === 'draft') || canManageAll;  // Force-delete untuk admin
+  const canDelete = tripCanDelete(trip, session);
 
   return (
-    <div style={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', borderLeft: `3px solid ${statusColor}`, padding: '14px 18px', cursor: 'pointer'}} onClick={onDetail}>
+    <div style={{display: 'flex', gap: '10px', alignItems: 'stretch', background: isSelected ? 'rgba(192,48,48,0.04)' : 'transparent'}}>
+      {showCheckbox && (
+        <div style={{display: 'flex', alignItems: 'center', padding: '0 4px 0 8px'}} onClick={e => e.stopPropagation()}>
+          <input type="checkbox" checked={!!isSelected} onChange={onToggleSelect} onClick={e => e.stopPropagation()} style={{width: '15px', height: '15px', cursor: 'pointer'}} title={lang === 'id' ? 'Pilih untuk hapus' : 'Select to delete'} />
+        </div>
+      )}
+    <div style={{flex: 1, background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', borderLeft: `3px solid ${statusColor}`, padding: '14px 18px', cursor: 'pointer'}} onClick={onDetail}>
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '10px'}}>
         <div style={{flex: '1 1 320px'}}>
           <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap'}}>
@@ -675,6 +767,7 @@ const BusinessTripCard = React.memo(function BusinessTripCard({ trip, t, lang, s
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 });

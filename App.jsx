@@ -5,58 +5,23 @@ import logoFull from './logo.png';
 import logoKecil from './logo3.png';
 import logoSidebar from './logo2.png';
 import { translations } from './src/constants/i18n.js';
-const DEFAULT_USD_IDR = 18000;
+import { DEFAULT_USD_IDR, SALES_TEAM, TERRITORY_MAP, SALES_IDS_WITH_OFFICE, POSITION_ALLOWANCE, USERS, SEED_NAME_TO_USERNAME, OFFICE_SALES_ID, PERMISSIONS, NAV_BY_ROLE } from './src/constants/org.js';
+import { KSO_INVESTOR_PCT_OPTIONS, KSO_YEAR_OPTIONS, CICILAN_DP_OPTIONS, CICILAN_TERM_OPTIONS, PRODUCT_MASTER_SEED, BUSINESS_PARTNERS, SPH_PRODUCT_NORMALIZATION, STAGES, PROJECT_TYPES, MODALITY_COLORS, TENDER_SUBSTAGES } from './src/constants/sales.js';
+import { AKL_STAGES, IMPORT_STAGES, PENGALIHAN_STAGES, REG_STAGES, REG_STAGE_COLORS, REG_STAGE_DATE_FIELD, REG_STAGES_DEFAULT, REG_STAGES_AKL, REG_AUTHORITY, REG_PNBP_DEFAULT, REG_PERMIT_PREFIX, REG_TYPE_LABELS, IMPORT_PIPELINE_STEPS, LEGACY_IMPORT_STATUS_MAP } from './src/constants/regulatory.js';
+import { PPN_RATE, PPH23_RATE, OPS_COST_DEFAULT, INCENTIVE_RATE, NET_MARGIN_BY_MODALITY, NET_MARGIN_DEFAULT, PAYMENT_TERMS } from './src/constants/finance.js';
+import { STORAGE_KEY, REPORTS_KEY, PRODUCT_KEY, PRODUCT_SUPPORT_ACTIVITIES_KEY, PRODUCT_SUPPORT_FILES_KEY, DOCUMENT_TEMPLATE_KEY, GENERATED_DOCS_KEY, LANG_KEY, SESSION_KEY, RATE_KEY, _THEME_KEY, ANNOTATIONS_KEY, MAX_AUDIT_ENTRIES, AUDIT_LOG_KEY, NOTIF_KEY, MAX_NOTIFICATIONS, NOTIFICATION_TTL_MS, NOTIFICATION_DEDUPE_MS } from './src/constants/storageKeys.js';
+import { DOC_TYPE_LABELS, OFFICIAL_DOC_TEMPLATE_TYPES, DEFAULT_DOCUMENT_TEMPLATES } from './src/constants/docs.js';
+import { IMS_THEMES, CHART_COLORS } from './src/constants/theme.js';
+import { SEED_FIELD_REPORTS, SEED_ISSUES, SEED_AKL_RECORDS, SEED_IMPORT_RECORDS, SEED_PENGALIHAN_RECORDS, SEED_PI_RECORDS, SEED_INSTALL_RECORDS, SEED_BAST_RECORDS, SEED_TRAINING_RECORDS, SEED_BUSINESS_TRIPS, SEED_BT_REALIZATIONS } from './src/constants/seedData.js';
 
 // ============== i18n ==============
 
 // ============== 5 Sales Team — synced with user spec ==============
-const SALES_TEAM = [
-  { id: 'lukman', name: 'Lukman Effendi', initial: 'LE', territory: 'Jateng + DIY B', territoryEn: 'Central Java + DIY B', accent: '#1a6bb0' },
-  { id: 'hatim', name: 'Ahmad Hatim Ashshidiq', initial: 'HT', territory: 'Jateng A', territoryEn: 'Central Java A', accent: '#d4780a' },
-  { id: 'dwi', name: 'Dwi Wahyudianto', initial: 'DW', territory: 'Jabodetabek + Jabar', territoryEn: 'Jabodetabek + West Java', accent: '#c03030' },
-  { id: 'tri', name: 'Tri Sutjahjono', initial: 'TS', territory: 'Jatim 1', territoryEn: 'East Java 1', accent: '#12855a' },
-  { id: 'bagus', name: 'Bagus Iswahyudi', initial: 'BI', territory: 'Jatim 2', territoryEn: 'East Java 2', accent: '#7b3fb5' },
-  { id: 'icha', name: 'Ika Apriani', initial: 'IA', territory: 'Jabodetabek + Jabar (bawah Dwi)', territoryEn: 'Jabodetabek + West Java (under Dwi)', accent: '#d4a8c8', supervisedBy: 'dwi' },
-  { id: 'office', name: 'HNT Indonesia (Office)', initial: 'HO', territory: 'Nasional', territoryEn: 'Nationwide', accent: 'var(--ims-accent)', isOffice: true },
-];
 
 // ============== Territory-Based Sales Owner Mapping ==============
 // Mapping kota → sales owner berdasarkan area yang Bapak Fajrin tetapkan
 // Catatan: Faskes Group (Hermina pusat, Pramita pusat, dll) di-handle dari kantor pusat
 // → SPH masuk ke sales yang area-nya = kantor pusat group tersebut
-const TERRITORY_MAP = {
-  // === Hatim — Jateng A (Semarang, sekitar, Pati, Tegal, Brebes, Cirebon coastal) ===
-  'semarang': 'hatim', 'kendal': 'hatim', 'demak': 'hatim', 'jepara': 'hatim', 'kudus': 'hatim',
-  'pati': 'hatim', 'rembang': 'hatim', 'blora': 'hatim', 'grobogan': 'hatim', 'bojonegoro': 'hatim',
-  'tegal': 'hatim', 'brebes': 'hatim', 'pemalang': 'hatim', 'pekalongan': 'hatim',
-  'tuban': 'hatim',
-  // === Lukman — Jateng selatan + DIY B ===
-  'solo': 'lukman', 'surakarta': 'lukman', 'sukoharjo': 'lukman', 'karanganyar': 'lukman',
-  'sragen': 'lukman', 'wonogiri': 'lukman', 'klaten': 'lukman', 'boyolali': 'lukman',
-  'magelang': 'lukman', 'salatiga': 'lukman', 'temanggung': 'lukman', 'wonosobo': 'lukman',
-  'banjarnegara': 'lukman', 'purbalingga': 'lukman', 'banyumas': 'lukman', 'purwokerto': 'lukman',
-  'cilacap': 'lukman', 'kebumen': 'lukman', 'purworejo': 'lukman',
-  'yogyakarta': 'lukman', 'sleman': 'lukman', 'bantul': 'lukman', 'kulon progo': 'lukman', 'gunung kidul': 'lukman',
-  // === Dwi — Jabodetabek + Jabar (mayoritas), Icha membantu di bawahnya ===
-  'jakarta': 'dwi', 'bekasi': 'dwi', 'tangerang': 'dwi', 'depok': 'dwi', 'bogor': 'dwi',
-  'bandung': 'dwi', 'cimahi': 'dwi', 'sumedang': 'dwi', 'karawang': 'dwi', 'purwakarta': 'dwi',
-  'subang': 'dwi', 'majalengka': 'dwi', 'cirebon': 'dwi', 'kuningan': 'dwi',
-  'indramayu': 'dwi', 'sukabumi': 'dwi', 'cianjur': 'dwi', 'garut': 'dwi', 'tasikmalaya': 'dwi',
-  'ciamis': 'dwi', 'banjar': 'dwi',
-  // === Tri — Jatim 1 (Sisi barat/selatan Jatim termasuk Malang, Kediri, dll) ===
-  'malang': 'tri', 'batu': 'tri', 'kediri': 'tri', 'tulungagung': 'tri', 'trenggalek': 'tri',
-  'blitar': 'tri', 'jombang': 'tri', 'nganjuk': 'tri', 'madiun': 'tri', 'magetan': 'tri',
-  'ngawi': 'tri', 'ponorogo': 'tri', 'pacitan': 'tri', 'mojokerto': 'tri',
-  // === Bagus — Jatim 2 (Surabaya & sekitar termasuk Madura, Banyuwangi, Pasuruan) ===
-  'surabaya': 'bagus', 'gresik': 'bagus', 'lamongan': 'bagus', 'sidoarjo': 'bagus',
-  'pasuruan': 'bagus', 'probolinggo': 'bagus', 'lumajang': 'bagus', 'jember': 'bagus',
-  'bondowoso': 'bagus', 'situbondo': 'bagus', 'banyuwangi': 'bagus',
-  'bangkalan': 'bagus', 'sampang': 'bagus', 'pamekasan': 'bagus', 'sumenep': 'bagus',
-  // === Bali → Office (luar 5 area, di-handle kantor pusat) ===
-  'bali': 'office', 'denpasar': 'office', 'badung': 'office',
-  // === Luar Jawa → Office sementara ===
-  'medan': 'office', 'palembang': 'office', 'makassar': 'office', 'manado': 'office', 'pontianak': 'office',
-};
 
 // Helper: tebak sales owner dari nama customer
 // Aturan: extract kota dari nama RS → cek di TERRITORY_MAP
@@ -91,53 +56,15 @@ const detectSalesOwnerFromCustomer = (customerName) => {
 
 
 // Sales IDs to include in bulk generator (include office and icha)
-const SALES_IDS_WITH_OFFICE = ['lukman', 'hatim', 'dwi', 'tri', 'bagus', 'office'];
 
 // ============== Allowance per Position (Business Trip) ==============
-const POSITION_ALLOWANCE = {
-  'Staff': 130000,
-  'Product Specialist': 150000,
-  'Supervisor': 150000,
-  'Manager': 175000,
-  'Manager Operasional': 175000,
-  'General Manager': 175000,
-  'Direksi': 500000,
-  'Security': 100000,
-  'Office Boy/Girl': 100000,
-};
 
-const USERS = {
-  'ceo': { password: 'hnti2026', role: 'super_admin', name: 'Fajrin Abdillah', initial: 'FA', position: 'Direksi', allowancePerDay: 500000, active: true },
-  'gm': { password: 'hnti2026', role: 'gm', name: 'Endah Purwitasari', initial: 'EP', position: 'General Manager', allowancePerDay: 175000, active: true },
-  'manager_ops': { password: 'hnti2026', role: 'manager_ops', name: 'Novan Restu Aryanto', initial: 'NR', position: 'Manager Operasional', allowancePerDay: 175000, active: true },
-  'admin': { password: 'hnti2026', role: 'admin', name: 'Fahmi Alifudin', initial: 'FA', position: 'Staff', allowancePerDay: 130000, active: true },
-  'admin2': { password: 'hnti2026', role: 'admin', name: 'Tria Mailawati', initial: 'TM', position: 'Staff', allowancePerDay: 130000, active: true },
-  'teknisi': { password: 'hnti2026', role: 'technician', name: 'Robby Dwi Setiawan', initial: 'RS', position: 'Supervisor', allowancePerDay: 150000, active: true },
-  'teknisi2': { password: 'hnti2026', role: 'technician', name: 'Muhammad Yusuf', initial: 'MY', position: 'Teknisi', allowancePerDay: 130000, active: true },
-  'teknisi3': { password: 'hnti2026', role: 'technician', name: 'Muh. Nur Ichsan', initial: 'MN', position: 'Teknisi', allowancePerDay: 130000, active: true },
-  'teknisi4': { password: 'hnti2026', role: 'technician', name: 'Kim Myung Gi (Luke)', initial: 'KM', position: 'Teknisi', allowancePerDay: 130000, active: true },
-  'finance': { password: 'hnti2026', role: 'finance', name: 'Riris Elia', initial: 'RE', position: 'Supervisor', allowancePerDay: 150000, active: true },
-  'finance2': { password: 'hnti2026', role: 'finance', name: 'Fransiskus Marmora', initial: 'FM', position: 'Staff', allowancePerDay: 130000, active: true },
-  'regulatory': { password: 'hnti2026', role: 'regulatory', name: 'Ananda Rifki Bayu Saputra', initial: 'AR', position: 'Staff', allowancePerDay: 130000, active: true },
-  'product': { password: 'hnti2026', role: 'product_specialist', name: 'Rivan Riyadi', initial: 'RR', position: 'Staff', allowancePerDay: 130000, active: true },
-  'product2': { password: 'hnti2026', role: 'product_specialist', name: 'Octavianus Hernandes', initial: 'OH', position: 'Staff', allowancePerDay: 130000, active: true },
-  'lukman': { password: 'hnti2026', role: 'sales', name: 'Lukman Effendi', initial: 'LE', salesId: 'lukman', position: 'Staff', allowancePerDay: 130000, active: true },
-  'hatim': { password: 'hnti2026', role: 'sales', name: 'Ahmad Hatim Ashshidiq', initial: 'AH', salesId: 'hatim', position: 'Staff', allowancePerDay: 130000, active: true },
-  'dwi': { password: 'hnti2026', role: 'sales', name: 'Dwi Wahyudianto', initial: 'DW', salesId: 'dwi', position: 'Manager', allowancePerDay: 175000, active: true },
-  'tri': { password: 'hnti2026', role: 'sales', name: 'Tri Sutjahjono', initial: 'TS', salesId: 'tri', position: 'Manager', allowancePerDay: 175000, active: true },
-  'bagus': { password: 'hnti2026', role: 'sales', name: 'Bagus Iswahyudi', initial: 'BI', salesId: 'bagus', position: 'Manager', allowancePerDay: 175000, active: true },
-  'icha': { password: 'hnti2026', role: 'sales', name: 'Ika Apriani', initial: 'IA', salesId: 'icha', position: 'Staff', allowancePerDay: 130000, active: true },
-  'sule': { password: 'hnti2026', role: 'security', name: 'Sulaiman', initial: 'SU', position: 'Security', allowancePerDay: 100000, active: true },
-  'ami': { password: 'hnti2026', role: 'office_support', name: 'Supatmi', initial: 'SU', position: 'Office Boy/Girl', allowancePerDay: 100000, active: true },
-  'office': { password: 'hnti2026', role: 'sales', name: 'HNT Indonesia (Office)', initial: 'HO', salesId: 'office', isOffice: true, position: '-', allowancePerDay: 0, active: true },
-};
 
 // Technician roster derived from the employee DB (USERS) — keeps maintenance in sync (#5/#6)
 const TECHNICIAN_NAMES = Object.values(USERS).filter(u => u.role === 'technician' && u.active).map(u => u.name);
 
 // ===== Universal employee-name sync layer =====
 // Maps an original seed display-name → username, built from the static USERS seed.
-const SEED_NAME_TO_USERNAME = {};
 Object.entries(USERS).forEach(([un, info]) => { if (info.name) SEED_NAME_TO_USERNAME[info.name] = un; });
 // Tahap 11 Phase 1.5 fix: legacy tech names dari deploy lama yang masih persist di production data.
 // Map ke username teknisi aktif supaya resolveEmpName otomatis heal saat render.
@@ -196,7 +123,6 @@ function resolveNamesInText(employees, text) {
   return out;
 }
 
-const OFFICE_SALES_ID = 'office';
 const SALES_META_BY_ID = Object.fromEntries(SALES_TEAM.map(s => [s.id, s]));
 function employeeSalesId(username, emp = {}) {
   return emp.salesId || username;
@@ -271,38 +197,7 @@ function normalizeEmployeeOwnedRows(rows = [], employees = {}, usernameField = '
   });
 }
 
-const PERMISSIONS = {
-  super_admin:  { dashboard: 'full', sph: 'full', pipeline: 'full', sales: 'full', sales_report: 'full', finance: 'full', operations: 'full', installation: 'full', maintenance: 'full', regulatory: 'full', valuation: 'full', incentive: 'full', employees: 'full', business_trip: 'full', product_support: 'full', products: 'full', document_templates: 'full', kpi_scorecard: 'full' },
-  gm:           { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'read', sales_report: 'read', finance: 'read', operations: 'read', installation: 'read', maintenance: 'read', regulatory: 'read', valuation: 'read', incentive: 'read', employees: 'full', business_trip: 'full', product_support: 'read', products: 'read', document_templates: 'full', kpi_scorecard: 'read' },
-  manager_ops:  { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'read', sales_report: 'read', finance: 'read', operations: 'full', installation: 'read', maintenance: 'read', regulatory: 'read', valuation: 'none', incentive: 'none', employees: 'full', business_trip: 'full', product_support: 'read', products: 'read', document_templates: 'full', kpi_scorecard: 'read' },
-  admin:        { dashboard: 'read', sph: 'full', pipeline: 'write', sales: 'read', sales_report: 'read', finance: 'read', operations: 'read', installation: 'write', maintenance: 'read', regulatory: 'read', valuation: 'none', incentive: 'none', employees: 'none', business_trip: 'self', product_support: 'read', products: 'read', document_templates: 'full', kpi_scorecard: 'read' },
-  technician:   { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'none', sales_report: 'none', finance: 'none', operations: 'read', installation: 'full', maintenance: 'full', regulatory: 'read', valuation: 'none', incentive: 'none', employees: 'none', business_trip: 'self', product_support: 'read', kpi_scorecard: 'none' },
-  operations:   { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'none', sales_report: 'none', finance: 'read', operations: 'full', installation: 'read', maintenance: 'read', regulatory: 'none', valuation: 'none', incentive: 'none', employees: 'none', business_trip: 'self', product_support: 'read', kpi_scorecard: 'read' },
-  finance:      { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'read', sales_report: 'read', finance: 'full', operations: 'read', installation: 'read', maintenance: 'none', regulatory: 'none', valuation: 'none', incentive: 'full', employees: 'none', business_trip: 'full', product_support: 'read', document_templates: 'full', kpi_scorecard: 'read' },
-  regulatory:   { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'none', sales_report: 'none', finance: 'none', operations: 'read', installation: 'read', maintenance: 'read', regulatory: 'full', valuation: 'none', incentive: 'none', employees: 'none', business_trip: 'self', product_support: 'read', kpi_scorecard: 'read' },
-  sales:        { dashboard: 'read', sph: 'write', pipeline: 'write', sales: 'read', sales_report: 'full', finance: 'none', operations: 'none', installation: 'none', maintenance: 'none', regulatory: 'none', valuation: 'none', incentive: 'self', employees: 'none', business_trip: 'self', product_support: 'read', kpi_scorecard: 'self' },
-  // Product Specialist (#8): dashboard, SPH, pipeline, field report, business trip, product master
-  product_specialist: { dashboard: 'read', sph: 'read', pipeline: 'read', sales: 'none', sales_report: 'full', finance: 'none', operations: 'none', installation: 'none', maintenance: 'none', regulatory: 'none', valuation: 'none', incentive: 'none', employees: 'none', business_trip: 'self', products: 'read', product_support: 'full', kpi_scorecard: 'read' },
-  // Security (#8): only main dashboard + business trip
-  security:     { dashboard: 'read', sph: 'none', pipeline: 'none', sales: 'none', sales_report: 'none', finance: 'none', operations: 'none', installation: 'none', maintenance: 'none', regulatory: 'none', valuation: 'none', incentive: 'none', employees: 'none', business_trip: 'self' },
-  // Office Support (#8): only main dashboard + business trip
-  office_support: { dashboard: 'read', sph: 'none', pipeline: 'none', sales: 'none', sales_report: 'none', finance: 'none', operations: 'none', installation: 'none', maintenance: 'none', regulatory: 'none', valuation: 'none', incentive: 'none', employees: 'none', business_trip: 'self' },
-};
 
-const NAV_BY_ROLE = {
-  super_admin:  ['dashboard', 'sph', 'pipeline', 'product_support', 'sales', 'incentive', 'sales_report', 'business_trip', 'finance', 'operations', 'installation', 'maintenance', 'regulatory', 'products', 'document_templates', 'kpi_scorecard', 'valuation', 'cashflow', 'exec_summary', 'employees', 'audit_log'],
-  gm:           ['dashboard', 'sph', 'pipeline', 'product_support', 'sales', 'incentive', 'sales_report', 'business_trip', 'finance', 'operations', 'installation', 'maintenance', 'regulatory', 'products', 'document_templates', 'kpi_scorecard', 'valuation', 'cashflow', 'exec_summary', 'employees', 'audit_log'],
-  manager_ops:  ['dashboard', 'sph', 'pipeline', 'product_support', 'sales', 'sales_report', 'business_trip', 'finance', 'operations', 'installation', 'maintenance', 'regulatory', 'products', 'document_templates', 'kpi_scorecard', 'employees'],
-  admin:        ['dashboard', 'sph', 'pipeline', 'product_support', 'sales', 'sales_report', 'business_trip', 'installation', 'maintenance', 'regulatory', 'products', 'document_templates', 'kpi_scorecard'],
-  technician:   ['dashboard', 'pipeline', 'business_trip', 'installation', 'maintenance', 'products'],
-  operations:   ['dashboard', 'pipeline', 'business_trip', 'operations', 'maintenance', 'products'],
-  finance:      ['dashboard', 'pipeline', 'sales_report', 'business_trip', 'incentive', 'finance', 'document_templates', 'product_support', 'cashflow', 'kpi_scorecard'],
-  regulatory:   ['dashboard', 'pipeline', 'business_trip', 'installation', 'regulatory', 'products'],
-  sales:        ['sales_report', 'sph', 'pipeline', 'product_support', 'business_trip', 'incentive', 'dashboard', 'products', 'kpi_scorecard'],
-  product_specialist: ['dashboard', 'product_support', 'pipeline', 'sales_report', 'business_trip', 'products', 'kpi_scorecard'],
-  security:     ['dashboard', 'business_trip'],
-  office_support: ['dashboard', 'business_trip'],
-};
 
 // ============== Seed Data Reset — 60 SPH tahun 2026 dari SPH sebagai sumber utama ==============
 // Dataset aktif aplikasi dibangun oleh generateHntiSph2026Seed() dan diturunkan ke modul
@@ -350,17 +245,7 @@ const resolveDealModel = (sph) => {
   return 'cicilan'; // default RS Swasta
 };
 // Daftar opsi KSO investor% — 60.0, 60.5, …, 80.0 (41 opsi)
-const KSO_INVESTOR_PCT_OPTIONS = (() => {
-  const arr = []; for (let p = 60.0; p <= 80.0 + 1e-9; p += 0.5) arr.push(Math.round(p * 10) / 10); return arr;
-})();
-const KSO_YEAR_OPTIONS = [5, 6, 7, 8, 9, 10];
 // Opsi DP cicilan — 10, 15, 20, …, 100 (step 5%)
-const CICILAN_DP_OPTIONS = (() => {
-  const arr = []; for (let p = 10; p <= 100; p += 5) arr.push(p); return arr;
-})();
-const CICILAN_TERM_OPTIONS = (() => {
-  const arr = []; for (let m = 1; m <= 36; m++) arr.push(m); return arr;
-})();
 
 // Tambah N bulan ke string tanggal 'YYYY-MM-DD'. Pakai UTC ops agar konsisten.
 const _addMonthsISO = (dateStr, addMonths) => {
@@ -442,39 +327,6 @@ const computeInvoiceSchedule = (sph, baseDateOverride) => {
 // Single source of truth untuk semua produk yang dijual HNTI
 // Field: id, name (display), modality (kategori), brand, type (model), origin, principal (manufacturer), tkdn, akl, active, notes
 // Storage: ims_hnti:prod_v22 — editable via Master Produk module
-const PRODUCT_MASTER_SEED = [
-  // === MRI (ANKE / Shenzhen Anke High-Tech, China) ===
-  { id: 'prod_mri_15t_hfm', name: 'MRI 1.5 Tesla', modality: 'MRI', brand: 'ANKE', type: 'Supermark 1.5T HFM', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Non-Helium 1.5Tesla MRI System' },
-  { id: 'prod_mri_15t_art', name: 'MRI 1.5 Tesla', modality: 'MRI', brand: 'ANKE', type: 'Supermark 1.5T ART', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Less-Helium 1.5Tesla MRI System (700 Liter)' },
-  { id: 'prod_mri_30t', name: 'MRI 3.0T Supermark', modality: 'MRI', brand: 'ANKE', type: 'Supermark S900', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303320XXX', active: true, notes: 'Premium 3.0T research-grade' },
-  // === CT Scan (ANKE, China) ===
-  { id: 'prod_ct64_cardiac', name: 'CT 64 Slice Cardiac', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom Clarity', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'CT 64-slice cardiac' },
-  { id: 'prod_ct128_premium', name: 'CT 128 Slice Premium', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom Precision', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'High-end diagnostic CT' },
-  { id: 'prod_ct32', name: 'CT 32 Slice', modality: 'CT Scan', brand: 'Supermark', type: 'Anatom C201', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303220XXX', active: true, notes: 'Budget-friendly entry CT' },
-  { id: 'prod_ct64_noncardiac', name: 'CT 64 Slice Non-Cardiac', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom C206', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'CT 64-slice non-cardiac' },
-  { id: 'prod_ct128_basic', name: 'CT 128 Slice Basic', modality: 'CT Scan', brand: 'ANKE', type: 'Anatom C409', origin: 'China', principal: 'Shenzhen Anke High-Tech', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'CT 128-slice budget-friendly' },
-  // === C-Arm (SG Healthcare, Korea) ===
-  { id: 'prod_carm_5kw', name: 'Mobile C-Arm', modality: 'C-Arm', brand: 'SG Healthcare', type: 'Garion 5kW', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Standard surgical C-Arm' },
-  { id: 'prod_carm_15kw', name: 'Mobile C-Arm', modality: 'C-Arm', brand: 'SG Healthcare', type: 'Garion 15kW', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303440XXX', active: true, notes: 'Advance surgical C-Arm' },
-  // === X-Ray (SG Healthcare Korea + Precision China) ===
-  { id: 'prod_xray_stat500', name: 'X-Ray Stationary 500mA', modality: 'X-Ray Stationer', brand: 'SG Healthcare', type: 'Jumong General', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'General X-Ray floor mounted 500mA' },
-  { id: 'prod_xray_ceiling500', name: 'X-Ray Ceiling 500mA', modality: 'X-Ray Ceiling', brand: 'SG Healthcare', type: 'Jumong General', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'General X-Ray ceiling mounted 500mA' },
-  { id: 'prod_xray_mobile100', name: 'X-ray Mobile 100mA', modality: 'X-Ray Mobile', brand: 'SG Healthcare', type: 'Jumong Mobile 5kW', origin: 'Korea', principal: 'SG Healthcare', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Entry Level X-Ray machine' },
-  { id: 'prod_xray_portable', name: 'X-Ray Portable', modality: 'X-Ray Portable', brand: 'Precision', type: 'DJP05DR', origin: 'China', principal: 'Daoji Medical Equipment', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Portable X-Ray for ICU/ER/TB screening use' },
-  // === Mammography (SINO MDT, China) ===
-  { id: 'prod_mammo_3d', name: 'Mammography 3D Tomosynthesis', modality: 'Mammography', brand: 'SINO MDT', type: 'Navigator 1000A', origin: 'China', principal: 'SINO MDT', tkdn: 0, akl: 'KEMENKES RI AKL 10303550XXX', active: true, notes: '3D digital mammography with tomosynthesis' },
-  { id: 'prod_mammo_2d', name: 'Mammography 2D Digital', modality: 'Mammography', brand: 'SINO MDT', type: 'Navigator DRCare', origin: 'China', principal: 'SINO MDT', tkdn: 0, akl: 'KEMENKES RI AKL 10303550XXX', active: true, notes: '2D digital mammography' },
-  // === Flat Panel Detector (Innocare HAMSKI XR, Taiwan) ===
-  { id: 'prod_fpd_17', name: 'Flat Panel Detector 17x17 inch', modality: 'Flat Panel Detector', brand: 'Innocare (HAMSKI XR)', type: 'V17C', origin: 'Taiwan', principal: 'Innocare Optoelectronics', tkdn: 0, akl: 'KEMENKES RI AKL 10303660XXX', active: true, notes: 'Wireless flat panel detector 17 inch' },
-  { id: 'prod_fpd_14', name: 'Flat Panel Detector 14x17 inch', modality: 'Flat Panel Detector', brand: 'Innocare (HAMSKI XR)', type: 'V14C', origin: 'Taiwan', principal: 'Innocare Optoelectronics', tkdn: 0, akl: 'KEMENKES RI AKL 10303660XXX', active: true, notes: 'Wireless flat panel detector 14 inch' },
-  // === ESWL (Hyde Medical HAMSKI XR, China) ===
-  { id: 'prod_eswl_advance', name: 'ESWL', modality: 'ESWL', brand: 'Hyde Medical (HAMSKI XR)', type: '168A', origin: 'China', principal: 'Shenzhen Hyde Medical', tkdn: 0, akl: 'KEMENKES RI AKL 10303770XXX', active: true, notes: 'Extracorporeal Shock Wave Lithotripter Advance model' },
-  { id: 'prod_eswl_basic', name: 'ESWL', modality: 'ESWL', brand: 'Hyde Medical (HAMSKI XR)', type: '168B', origin: 'China', principal: 'Shenzhen Hyde Medical', tkdn: 0, akl: 'KEMENKES RI AKL 10303770XXX', active: true, notes: 'Extracorporeal Shock Wave Lithotripter Basic model' },
-  // === Angell (China) — premium digital X-Ray, principal baru (onboarding) ===
-  { id: 'prod_angell_ceiling', name: 'X-Ray Ceiling Digital Premium', modality: 'X-Ray Ceiling', brand: 'Angell', type: 'Ceiling Digital Premium', origin: 'China', principal: 'Angell Medical', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Premium ceiling-mounted digital X-Ray' },
-  { id: 'prod_angell_mobile', name: 'X-Ray Mobile Digital Premium', modality: 'X-Ray Mobile', brand: 'Angell', type: 'Mobile Digital Premium', origin: 'China', principal: 'Angell Medical', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Premium mobile digital X-Ray' },
-  { id: 'prod_angell_fluoro', name: 'Digital Fluoroscopy Premium', modality: 'Fluoroscopy', brand: 'Angell', type: 'Digital Fluoroscopy Premium', origin: 'China', principal: 'Angell Medical', tkdn: 0, akl: 'KEMENKES RI AKL 10303110XXX', active: true, notes: 'Premium digital fluoroscopy system' },
-];
 
 // ============== Stable Product Linkage (Catatan #2) ==============
 // SPH dihubungkan ke master produk via productId yang STABIL.
@@ -491,15 +343,6 @@ const resolveProductId = (sph, productList) => {
 // ============== Business Partners ==============
 // Catatan #4: product chips are DERIVED from the Product Master (by brand match) so they always
 // stay in sync. Each partner lists the master brand(s) it represents; products auto-populate.
-const BUSINESS_PARTNERS = [
-  { id: 'sg', name: 'SG Healthcare', country: 'Korea', flag: '🇰🇷', color: '#1a4d8a', status: 'active', brands: ['SG Healthcare'] },
-  { id: 'anke', name: 'ANKE', country: 'China', flag: '🇨🇳', color: '#c03030', status: 'active', brands: ['ANKE', 'Supermark'] },
-  { id: 'sino', name: 'SINO MDT', country: 'China', flag: '🇨🇳', color: '#d4780a', status: 'active', brands: ['SINO MDT'] },
-  { id: 'hyde', name: 'Hyde Medical', country: 'China', flag: '🇨🇳', color: '#7b3fb5', status: 'active', brands: ['Hyde Medical (HAMSKI XR)'] },
-  { id: 'precision', name: 'Precision', country: 'China', flag: '🇨🇳', color: '#0f7a5a', status: 'active', brands: ['Precision'] },
-  { id: 'angell', name: 'Angell', country: 'China', flag: '🇨🇳', color: '#0f7a5a', status: 'onboarding', brands: ['Angell'] },
-  { id: 'innocare', name: 'Innocare', country: 'Taiwan', flag: '🇹🇼', color: '#b8860b', status: 'onboarding', brands: ['Innocare (HAMSKI XR)'] },
-];
 
 function generateHntiSph2026Seed() {
   const productPrice = {
@@ -714,40 +557,6 @@ const _RAW_ALL_SPH = generateHntiSph2026Seed();
 // Selaraskan modality/subModality SPH lama → Master Produk 2026-05-30 (dari spreadsheet Fajrin)
 // Supaya badge "dipakai di X SPH" di Master Produk akurat + dashboard modality chart sinkron
 // key: "oldModality::oldSubModality" → { modality, subModality } sesuai master
-const SPH_PRODUCT_NORMALIZATION = {
-  'MRI::MRI 1.5T Supermark': { modality: 'MRI', subModality: 'Supermark 1.5T HFM' },
-  'MRI::MRI 1.5T': { modality: 'MRI', subModality: 'Supermark 1.5T HFM' },
-  'MRI::MRI 0.5T Opemark 5000': { modality: 'MRI', subModality: 'Supermark 1.5T ART' },
-  'MRI::MRI 3.0T': { modality: 'MRI', subModality: 'Supermark S900' },
-  'CT Scan::CT 64 Slice Anatom Clarity': { modality: 'CT Scan', subModality: 'Anatom Clarity' },
-  'CT Scan::CT 128 Slice Anatom Precision': { modality: 'CT Scan', subModality: 'Anatom Precision' },
-  'CT Scan::CT 32 Slice C201': { modality: 'CT Scan', subModality: 'Anatom C201' },
-  'CT Scan::CT 32 Slice': { modality: 'CT Scan', subModality: 'Anatom C201' },
-  'CT Scan::CT 128 Slice': { modality: 'CT Scan', subModality: 'Anatom C409' },
-  'CT Scan::CT 64 Slice': { modality: 'CT Scan', subModality: 'Anatom C206' },
-  'C-Arm::C-Arm Garion': { modality: 'C-Arm', subModality: 'Garion 5kW' },
-  'C-Arm::C-Arm Surgical': { modality: 'C-Arm', subModality: 'Garion 5kW' },
-  'C-Arm::C-Arm Garion 15kW': { modality: 'C-Arm', subModality: 'Garion 15kW' },
-  'X-Ray::X-Ray Mobile 100mA': { modality: 'X-Ray Mobile', subModality: 'Jumong Mobile 5kW' },
-  'X-Ray::X-Ray Mobile': { modality: 'X-Ray Mobile', subModality: 'Jumong Mobile 5kW' },
-  'X-Ray::X-Ray Stationary 500mA': { modality: 'X-Ray Stationer', subModality: 'Jumong General' },
-  'X-Ray::X-Ray Stationary Jumong General': { modality: 'X-Ray Stationer', subModality: 'Jumong General' },
-  'X-Ray::X-Ray Digital DR': { modality: 'X-Ray Stationer', subModality: 'Jumong General' },
-  'X-Ray::X-Ray Ceiling 500mA': { modality: 'X-Ray Ceiling', subModality: 'Jumong General' },
-  'X-Ray::Flat Panel Detector': { modality: 'Flat Panel Detector', subModality: 'V17C' },
-  'X-Ray::X-Ray Portable': { modality: 'X-Ray Portable', subModality: 'DJP05DR' },
-  'Mammography::Mammo 3D': { modality: 'Mammography', subModality: 'Navigator 1000A' },
-  'Mammography::Mammo Tomosynthesis': { modality: 'Mammography', subModality: 'Navigator 1000A' },
-  'Mammography::Mammo 2D Navigator': { modality: 'Mammography', subModality: 'Navigator DRCare' },
-  'Mammography::Mammo Digital': { modality: 'Mammography', subModality: 'Navigator DRCare' },
-  'ESWL::ESWL Hyde Medical Tipe 109X': { modality: 'ESWL', subModality: '168A' },
-  'ESWL::ESWL Hyde Medical Tipe 109': { modality: 'ESWL', subModality: '168B' },
-  'ESWL::ESWL Compact': { modality: 'ESWL', subModality: '168B' },
-  'ESWL::ESWL Tipe 109X': { modality: 'ESWL', subModality: '168A' },
-  'CT Scan::CT 16 Slice': { modality: 'CT Scan', subModality: 'Anatom C201' },
-  'Mammography::Mammography Navigator DRCare': { modality: 'Mammography', subModality: 'Navigator DRCare' },
-  'X-Ray::X-Ray Konvensional': { modality: 'X-Ray Stationer', subModality: 'Jumong General' },
-};
 const normalizeProduct = (s) => {
   const key = `${s.modality}::${s.subModality}`;
   const norm = SPH_PRODUCT_NORMALIZATION[key];
@@ -803,647 +612,6 @@ function buildSeedNotificationsFromSph(projects = ALL_SPH) {
 
 // ============== Seed Field Reports (Laporan Lapangan untuk semua Sales) ==============
 // Detail naratif yang realistis untuk demo go-live, periode Jan-Mei 2026 (~20 minggu)
-const SEED_FIELD_REPORTS = [
-  // ============= LUKMAN (Jateng + DIY B) ==============
-  { id: 'rpt_lk_w1', salesId: 'lukman', date: '2026-01-10', week: 'Minggu 2',
-    days: 5, nights: 4, area: 'Solo Kota + Sukoharjo + Karanganyar',
-    visits: [
-      { name: 'RS PKU Muhammadiyah Solo', city: 'Solo', visit: 'first', product: 'CT Scan', pipeline: 'warm', contact: 'dr. Hendra, Sp.Rad', note: 'Tertarik upgrade CT 64 ke CT 128' },
-      { name: 'RS Kasih Ibu Solo', city: 'Solo', visit: 'followup', product: 'X-Ray', pipeline: 'warm', contact: 'Bu Anita (Logistik)', note: 'Minta presentasi detail spek Jumong' },
-      { name: 'RSUD Karanganyar', city: 'Karanganyar', visit: 'first', product: 'C-Arm', pipeline: 'cold', contact: 'Bpk. Yusuf', note: 'Survey kebutuhan OK Center' },
-      { name: 'RS Indriati Solo Baru', city: 'Sukoharjo', visit: 'followup', product: 'Mammography', pipeline: 'hot', contact: 'dr. Wulandari, Sp.Rad(K)', note: 'Sudah present, masuk anggaran 2026' },
-    ],
-    pipeN: 3, pipeVal: 18500000000, closest: 'RS Indriati Solo Baru',
-    totalCost: 2350000, block: 'Snowing di Tawangmangu, kunjungan RSUD Karanganyar mundur 1 hari',
-    win: 'RS Indriati Solo Baru sudah masuk anggaran 2026 untuk Mammography, target closing Q1',
-    next: 'Follow up RS PKU Muhammadiyah Solo, kirim proposal CT 128 detail spek',
-    fatigue: 2, createdAt: '2026-01-11T08:30:00.000Z' },
-
-  { id: 'rpt_lk_w2', salesId: 'lukman', date: '2026-01-17', week: 'Minggu 3',
-    days: 4, nights: 3, area: 'Yogyakarta Selatan + Bantul',
-    visits: [
-      { name: 'RS Bethesda Yogyakarta', city: 'Yogyakarta', visit: 'followup', product: 'MRI', pipeline: 'hot', contact: 'dr. Sigit, Sp.Rad', note: 'Diskusi spek MRI 1.5T vs 3T' },
-      { name: 'RS Panti Rapih', city: 'Yogyakarta', visit: 'first', product: 'CT Scan', pipeline: 'warm', contact: 'Bu Ratna (Direksi)', note: 'Pertemuan awal, akan ada follow-up dengan tim radiologi' },
-      { name: 'RSUD Wonosari', city: 'Gunungkidul', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Bpk. Sutarto', note: 'RSUD baru, sedang setup ruang radiologi' },
-    ],
-    pipeN: 2, pipeVal: 25000000000, closest: 'RS Bethesda Yogyakarta',
-    totalCost: 1980000, block: 'Hujan deras di Bantul, akses jalan licin',
-    win: 'RS Bethesda confirm interest MRI 1.5T, scheduling demo Februari',
-    next: 'Coordinate demo MRI dengan tim ANKE, prepare loan calculator',
-    fatigue: 3, createdAt: '2026-01-18T19:00:00.000Z' },
-
-  { id: 'rpt_lk_w3', salesId: 'lukman', date: '2026-01-24', week: 'Minggu 4',
-    days: 5, nights: 4, area: 'Klaten + Boyolali + Salatiga',
-    visits: [
-      { name: 'RS Cakra Husada Klaten', city: 'Klaten', visit: 'first', product: 'C-Arm', pipeline: 'warm', contact: 'dr. Imam, Sp.B', note: 'Tertarik C-Arm Garion untuk OK ortho' },
-      { name: 'RSUD Boyolali', city: 'Boyolali', visit: 'followup', product: 'X-Ray', pipeline: 'warm', contact: 'Pak Hardi', note: 'Sudah masuk RKA-D 2026, target tender Q2' },
-      { name: 'RSUD Salatiga', city: 'Salatiga', visit: 'closed', product: 'X-Ray', pipeline: 'hot', contact: 'dr. Endang', note: 'PO RKAS sudah terbit untuk 2 unit X-Ray DR' },
-      { name: 'RS Permata Boyolali', city: 'Boyolali', visit: 'first', product: 'Mammography', pipeline: 'cold', contact: 'Bu Siska', note: 'Diskusi awal kebutuhan women health' },
-    ],
-    pipeN: 3, pipeVal: 8500000000, closest: 'RSUD Salatiga',
-    totalCost: 2150000, block: '-',
-    win: 'PO RSUD Salatiga sudah terbit untuk 2 unit X-Ray Jumong (closing 8.5M)',
-    next: 'Process PO RSUD Salatiga ke admin, koordinasi delivery dengan ops',
-    fatigue: 1, createdAt: '2026-01-25T20:00:00.000Z' },
-
-  { id: 'rpt_lk_w4', salesId: 'lukman', date: '2026-02-07', week: 'Minggu 1',
-    days: 4, nights: 3, area: 'Magelang + Temanggung',
-    visits: [
-      { name: 'RSUD Tidar Magelang', city: 'Magelang', visit: 'followup', product: 'CT Scan', pipeline: 'hot', contact: 'dr. Bagas, Sp.Rad', note: 'Sudah keluar HPS untuk CT 64, follow tender' },
-      { name: 'RS Aisyiyah Muntilan', city: 'Magelang', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Pak Ridwan', note: 'Pertemuan awal direktur' },
-      { name: 'RSUD Temanggung', city: 'Temanggung', visit: 'followup', product: 'C-Arm', pipeline: 'warm', contact: 'Bu Naning', note: 'Menunggu approval Pemkab' },
-    ],
-    pipeN: 2, pipeVal: 14000000000, closest: 'RSUD Tidar Magelang',
-    totalCost: 1850000, block: 'Tender RSUD Tidar mundur 2 minggu karena revisi DPA',
-    win: 'RSUD Tidar sudah keluar HPS Rp 9.2M untuk CT 64',
-    next: 'Pasang strategi tender RSUD Tidar, koordinasi dengan partner ANKE',
-    fatigue: 2, createdAt: '2026-02-08T18:30:00.000Z' },
-
-  { id: 'rpt_lk_w5', salesId: 'lukman', date: '2026-02-21', week: 'Minggu 3',
-    days: 5, nights: 4, area: 'Cilacap + Banyumas + Purbalingga',
-    visits: [
-      { name: 'RSUD Cilacap', city: 'Cilacap', visit: 'followup', product: 'MRI', pipeline: 'warm', contact: 'dr. Wirawan, Sp.Rad', note: 'Direksi confirm 2026 anggaran MRI' },
-      { name: 'RSUD Banyumas', city: 'Banyumas', visit: 'closed', product: 'X-Ray', pipeline: 'hot', contact: 'Bu Endang (Logistik)', note: 'PO X-Ray sudah terbit, koordinasi instalasi' },
-      { name: 'RS Hermina Purwokerto', city: 'Banyumas', visit: 'first', product: 'CT Scan', pipeline: 'cold', contact: 'dr. Yoga', note: 'Hermina Group, perlu approval pusat' },
-      { name: 'RSUD Purbalingga', city: 'Purbalingga', visit: 'followup', product: 'C-Arm', pipeline: 'warm', contact: 'Pak Hardiyanto', note: 'Tender Maret 2026' },
-    ],
-    pipeN: 3, pipeVal: 21500000000, closest: 'RSUD Banyumas',
-    totalCost: 2480000, block: 'Akses jalan Wangon-Cilacap macet karena perbaikan',
-    win: 'PO RSUD Banyumas X-Ray Stationary terbit',
-    next: 'Koordinasi instalasi RSUD Banyumas dengan tim teknisi',
-    fatigue: 3, createdAt: '2026-02-22T19:00:00.000Z' },
-
-  { id: 'rpt_lk_w6', salesId: 'lukman', date: '2026-03-07', week: 'Minggu 1',
-    days: 5, nights: 4, area: 'Pekalongan + Tegal + Brebes',
-    visits: [
-      { name: 'RS Hermina Pekalongan', city: 'Pekalongan', visit: 'followup', product: 'MRI', pipeline: 'hot', contact: 'dr. Ratih, Sp.Rad', note: 'Presentation full team, demo MRI 1.5T' },
-      { name: 'RSUD Bendan Pekalongan', city: 'Pekalongan', visit: 'first', product: 'CT Scan', pipeline: 'cold', contact: 'Pak Joko', note: 'RSUD baru renovasi, kebutuhan CT belum diputuskan' },
-      { name: 'RS Mitra Keluarga Tegal', city: 'Tegal', visit: 'followup', product: 'C-Arm', pipeline: 'warm', contact: 'Bu Sri', note: 'Menunggu approval Mitra Group Pusat' },
-      { name: 'RSUD Brebes', city: 'Brebes', visit: 'followup', product: 'X-Ray', pipeline: 'hot', contact: 'dr. Ahmad', note: 'Tender April 2026' },
-    ],
-    pipeN: 4, pipeVal: 32500000000, closest: 'RS Hermina Pekalongan',
-    totalCost: 2680000, block: '-',
-    win: 'RS Hermina Pekalongan request lock-in price untuk MRI 1.5T, target PO Maret',
-    next: 'Prepare lock-in price proposal RS Hermina Pekalongan',
-    fatigue: 2, createdAt: '2026-03-08T20:30:00.000Z' },
-
-  { id: 'rpt_lk_w7', salesId: 'lukman', date: '2026-04-04', week: 'Minggu 1',
-    days: 4, nights: 3, area: 'Yogyakarta Tengah + Sleman',
-    visits: [
-      { name: 'RS Bethesda Yogyakarta', city: 'Yogyakarta', visit: 'closed', product: 'MRI', pipeline: 'hot', contact: 'dr. Sigit, Sp.Rad', note: 'PO MRI 1.5T terbit, Rp 23M' },
-      { name: 'RS PKU Muhammadiyah Bantul', city: 'Bantul', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Bu Lestari', note: 'Survey kebutuhan radiologi' },
-      { name: 'RS Sardjito (RSUP)', city: 'Sleman', visit: 'followup', product: 'CT Scan', pipeline: 'warm', contact: 'Prof. Bambang', note: 'High-end CT 256 slice, butuh approval Direktur Utama' },
-    ],
-    pipeN: 2, pipeVal: 38000000000, closest: 'RS Bethesda Yogyakarta',
-    totalCost: 2100000, block: '-',
-    win: '🎉 BIG WIN: PO MRI 1.5T RS Bethesda Yogyakarta terbit Rp 23M',
-    next: 'Coordinate shipping & instalasi MRI Bethesda dengan tim ops',
-    fatigue: 1, createdAt: '2026-04-05T21:00:00.000Z' },
-
-  { id: 'rpt_lk_w8', salesId: 'lukman', date: '2026-04-18', week: 'Minggu 3',
-    days: 5, nights: 4, area: 'Wonosobo + Banjarnegara + Kebumen',
-    visits: [
-      { name: 'RSUD Wonosobo', city: 'Wonosobo', visit: 'followup', product: 'CT Scan', pipeline: 'warm', contact: 'dr. Setiawan', note: 'Tender Mei 2026, masuk anggaran APBD' },
-      { name: 'RSUD Banjarnegara', city: 'Banjarnegara', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Pak Tri', note: 'Survey awal radiologi RSUD' },
-      { name: 'RS PKU Muhammadiyah Gombong', city: 'Kebumen', visit: 'followup', product: 'C-Arm', pipeline: 'warm', contact: 'dr. Hasan', note: 'Tertarik C-Arm Garion 2.4kW' },
-    ],
-    pipeN: 3, pipeVal: 16500000000, closest: 'RSUD Wonosobo',
-    totalCost: 2380000, block: 'Akses ke Wonosobo terhambat longsor di Dieng',
-    win: 'RSUD Wonosobo confirm tender CT 64, schedule pengumuman Mei 2026',
-    next: 'Koordinasi tender RSUD Wonosobo, prepare HPS strategy',
-    fatigue: 3, createdAt: '2026-04-19T20:00:00.000Z' },
-
-  { id: 'rpt_lk_w9', salesId: 'lukman', date: '2026-05-02', week: 'Minggu 1',
-    days: 4, nights: 3, area: 'Klaten + Sragen',
-    visits: [
-      { name: 'RSUD Bagas Waras Klaten', city: 'Klaten', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Pak Heri', note: 'RSUD baru, butuh full equipment radiologi' },
-      { name: 'RSUD Sragen', city: 'Sragen', visit: 'followup', product: 'CT Scan', pipeline: 'warm', contact: 'Bu Tina', note: 'Anggaran 2026 sudah ACC, tender Juni' },
-      { name: 'RS Cakra Husada Klaten', city: 'Klaten', visit: 'closed', product: 'C-Arm', pipeline: 'hot', contact: 'dr. Imam, Sp.B', note: 'PO C-Arm Garion terbit Rp 4.5M' },
-    ],
-    pipeN: 2, pipeVal: 12500000000, closest: 'RS Cakra Husada Klaten',
-    totalCost: 1750000, block: '-',
-    win: 'PO C-Arm Garion RS Cakra Husada Klaten terbit',
-    next: 'Process PO Cakra Husada ke admin, target shipping Mei',
-    fatigue: 1, createdAt: '2026-05-03T19:00:00.000Z' },
-
-  { id: 'rpt_lk_w10', salesId: 'lukman', date: '2026-05-09', week: 'Minggu 2',
-    days: 3, nights: 2, area: 'Solo + Karanganyar (revisit)',
-    visits: [
-      { name: 'RS PKU Muhammadiyah Solo', city: 'Solo', visit: 'followup', product: 'CT Scan', pipeline: 'hot', contact: 'dr. Hendra, Sp.Rad', note: 'Final negotiation CT 128, target PO Juni' },
-      { name: 'RS Indriati Solo Baru', city: 'Sukoharjo', visit: 'closed', product: 'Mammography', pipeline: 'hot', contact: 'dr. Wulandari, Sp.Rad(K)', note: 'PO Mammography Navigator DRCare terbit Rp 6.2M' },
-    ],
-    pipeN: 1, pipeVal: 14500000000, closest: 'RS Indriati Solo Baru',
-    totalCost: 1450000, block: '-',
-    win: 'PO RS Indriati Solo Baru Mammography terbit + closing CT 128 PKU Muh Solo dekat',
-    next: 'Final push RS PKU Muh Solo untuk CT 128, target PO sebelum 25 Mei',
-    fatigue: 1, createdAt: '2026-05-10T18:30:00.000Z' },
-
-  // ============= HATIM (Jateng A) ==============
-  { id: 'rpt_ht_w1', salesId: 'hatim', date: '2026-01-13', week: 'Minggu 2',
-    days: 4, nights: 3, area: 'Semarang Kota + Demak',
-    visits: [
-      { name: 'RSUD Tugurejo Semarang', city: 'Semarang', visit: 'followup', product: 'CT Scan', pipeline: 'hot', contact: 'dr. Bayu, Sp.Rad', note: 'Anggaran ACC, tender Februari' },
-      { name: 'RS Roemani Semarang', city: 'Semarang', visit: 'first', product: 'X-Ray', pipeline: 'warm', contact: 'Bu Mardiyah', note: 'Diskusi spek X-Ray Digital' },
-      { name: 'RSUD Sunan Kalijaga Demak', city: 'Demak', visit: 'followup', product: 'C-Arm', pipeline: 'warm', contact: 'Pak Eko', note: 'Anggaran 2026 untuk OK' },
-      { name: 'RS Telogorejo Semarang', city: 'Semarang', visit: 'first', product: 'MRI', pipeline: 'cold', contact: 'dr. Andi, Sp.Rad', note: 'Survey awal untuk MRI baru' },
-    ],
-    pipeN: 3, pipeVal: 28500000000, closest: 'RSUD Tugurejo Semarang',
-    totalCost: 1850000, block: 'Banjir rob di Semarang Utara, akses RS terhambat',
-    win: 'RSUD Tugurejo confirm tender CT 128 di Februari 2026',
-    next: 'Prepare tender strategy RSUD Tugurejo, lock-in spec dengan ANKE',
-    fatigue: 2, createdAt: '2026-01-14T19:30:00.000Z' },
-
-  { id: 'rpt_ht_w2', salesId: 'hatim', date: '2026-01-27', week: 'Minggu 4',
-    days: 5, nights: 4, area: 'Kudus + Pati + Rembang',
-    visits: [
-      { name: 'RSUD Kudus', city: 'Kudus', visit: 'first', product: 'CT Scan', pipeline: 'cold', contact: 'Pak Wahyu', note: 'Survey awal, RSUD baru renovasi' },
-      { name: 'RS Mardi Rahayu Kudus', city: 'Kudus', visit: 'followup', product: 'X-Ray', pipeline: 'warm', contact: 'Bu Linda', note: 'Tertarik upgrade X-Ray ke DR' },
-      { name: 'RSUD Pati', city: 'Pati', visit: 'followup', product: 'C-Arm', pipeline: 'hot', contact: 'dr. Susilo', note: 'Tender Februari sudah disiapkan' },
-      { name: 'RSUD Rembang', city: 'Rembang', visit: 'first', product: 'Mammography', pipeline: 'cold', contact: 'Bu Astuti', note: 'Diskusi awal women health' },
-    ],
-    pipeN: 3, pipeVal: 11500000000, closest: 'RSUD Pati',
-    totalCost: 2280000, block: '-',
-    win: 'RSUD Pati siap tender C-Arm Garion Februari, HPS sudah keluar',
-    next: 'Prepare bidding document RSUD Pati, koordinasi tim Tender',
-    fatigue: 2, createdAt: '2026-01-28T19:00:00.000Z' },
-
-  { id: 'rpt_ht_w3', salesId: 'hatim', date: '2026-02-14', week: 'Minggu 2',
-    days: 4, nights: 3, area: 'Semarang Selatan + Ungaran',
-    visits: [
-      { name: 'RSUD Tugurejo Semarang', city: 'Semarang', visit: 'closed', product: 'CT Scan', pipeline: 'hot', contact: 'dr. Bayu, Sp.Rad', note: 'Menang tender CT 128! PO Rp 14.5M' },
-      { name: 'RS Hermina Pandanaran', city: 'Semarang', visit: 'first', product: 'MRI', pipeline: 'cold', contact: 'dr. Yanto', note: 'Hermina Group, perlu approval pusat' },
-      { name: 'RSUD Ungaran', city: 'Semarang', visit: 'followup', product: 'X-Ray', pipeline: 'warm', contact: 'Pak Joko', note: 'Anggaran 2026, target Q2' },
-    ],
-    pipeN: 2, pipeVal: 19500000000, closest: 'RSUD Tugurejo Semarang',
-    totalCost: 1680000, block: '-',
-    win: '🎉 MENANG TENDER CT 128 RSUD Tugurejo Semarang Rp 14.5M',
-    next: 'Process kontrak RSUD Tugurejo, koordinasi LOI dengan admin',
-    fatigue: 1, createdAt: '2026-02-15T20:00:00.000Z' },
-
-  { id: 'rpt_ht_w4', salesId: 'hatim', date: '2026-02-28', week: 'Minggu 4',
-    days: 5, nights: 4, area: 'Kendal + Batang + Pekalongan (overlap)',
-    visits: [
-      { name: 'RSUD Kendal', city: 'Kendal', visit: 'first', product: 'CT Scan', pipeline: 'cold', contact: 'dr. Riyanto', note: 'Survey awal kebutuhan CT' },
-      { name: 'RSUD Batang', city: 'Batang', visit: 'followup', product: 'X-Ray', pipeline: 'warm', contact: 'Bu Sumarni', note: 'Tender Maret 2026' },
-      { name: 'RS Bhayangkara Semarang', city: 'Semarang', visit: 'first', product: 'C-Arm', pipeline: 'cold', contact: 'AKBP dr. Hendra', note: 'Pertemuan awal' },
-    ],
-    pipeN: 2, pipeVal: 10500000000, closest: 'RSUD Batang',
-    totalCost: 2150000, block: 'Mobil mogok di Kendal-Batang, lost 4 jam',
-    win: '-', next: 'Follow up RSUD Batang minggu depan, prepare tender doc',
-    fatigue: 3, createdAt: '2026-03-01T19:00:00.000Z' },
-
-  { id: 'rpt_ht_w5', salesId: 'hatim', date: '2026-03-21', week: 'Minggu 3',
-    days: 4, nights: 3, area: 'Semarang Pusat (revisit) + Salatiga',
-    visits: [
-      { name: 'RS Telogorejo Semarang', city: 'Semarang', visit: 'followup', product: 'MRI', pipeline: 'hot', contact: 'dr. Andi, Sp.Rad', note: 'Final negotiation MRI 1.5T' },
-      { name: 'RS Banyumanik Semarang', city: 'Semarang', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Bu Risma', note: 'Pertemuan awal Direktur' },
-      { name: 'RS Pantiwilasa Dr. Cipto', city: 'Semarang', visit: 'followup', product: 'CT Scan', pipeline: 'warm', contact: 'dr. Wibisono', note: 'Tertarik CT 64 Slice' },
-    ],
-    pipeN: 2, pipeVal: 24500000000, closest: 'RS Telogorejo Semarang',
-    totalCost: 1620000, block: '-',
-    win: 'RS Telogorejo final negotiation MRI, expected PO April',
-    next: 'Close deal MRI Telogorejo, prepare BAST schedule',
-    fatigue: 2, createdAt: '2026-03-22T18:00:00.000Z' },
-
-  { id: 'rpt_ht_w6', salesId: 'hatim', date: '2026-04-11', week: 'Minggu 2',
-    days: 5, nights: 4, area: 'Jepara + Kudus (revisit)',
-    visits: [
-      { name: 'RSUD Kelet Jepara', city: 'Jepara', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Pak Yudi', note: 'Survey kebutuhan radiologi' },
-      { name: 'RS Mardi Rahayu Kudus', city: 'Kudus', visit: 'closed', product: 'X-Ray', pipeline: 'hot', contact: 'Bu Linda', note: 'PO X-Ray DR terbit Rp 2.8M' },
-      { name: 'RSUD RA Kartini Jepara', city: 'Jepara', visit: 'followup', product: 'C-Arm', pipeline: 'warm', contact: 'dr. Suparno', note: 'Tender Mei 2026' },
-    ],
-    pipeN: 2, pipeVal: 8500000000, closest: 'RS Mardi Rahayu Kudus',
-    totalCost: 2380000, block: '-',
-    win: 'PO X-Ray RS Mardi Rahayu Kudus terbit',
-    next: 'Process kontrak Mardi Rahayu, follow up RSUD Jepara',
-    fatigue: 2, createdAt: '2026-04-12T19:30:00.000Z' },
-
-  { id: 'rpt_ht_w7', salesId: 'hatim', date: '2026-05-09', week: 'Minggu 2',
-    days: 4, nights: 3, area: 'Semarang Utara + Tegal',
-    visits: [
-      { name: 'RS Bhakti Wira Tamtama', city: 'Semarang', visit: 'followup', product: 'CT Scan', pipeline: 'hot', contact: 'Letkol dr. Yusuf', note: 'BAST CT 128 sudah selesai bulan lalu' },
-      { name: 'RS St. Elizabeth Semarang', city: 'Semarang', visit: 'first', product: 'MRI', pipeline: 'cold', contact: 'dr. Catarina', note: 'Pertemuan awal kebutuhan' },
-      { name: 'RS Mitra Keluarga Tegal', city: 'Tegal', visit: 'closed', product: 'C-Arm', pipeline: 'hot', contact: 'Bu Sri', note: 'PO C-Arm Garion terbit Rp 4.2M' },
-    ],
-    pipeN: 1, pipeVal: 22000000000, closest: 'RS Mitra Keluarga Tegal',
-    totalCost: 1880000, block: '-',
-    win: 'PO C-Arm RS Mitra Keluarga Tegal terbit + RS Bhakti Wira Tamtama BAST OK',
-    next: 'Follow up RS St. Elizabeth Semarang untuk MRI proposal',
-    fatigue: 1, createdAt: '2026-05-10T20:00:00.000Z' },
-
-  // ============= DWI (Jabodetabek + Jabar) ==============
-  { id: 'rpt_dw_w1', salesId: 'dwi', date: '2026-01-15', week: 'Minggu 3',
-    days: 5, nights: 0, area: 'Jakarta Selatan + Tangerang',
-    visits: [
-      { name: 'RS Pondok Indah Jakarta', city: 'Jakarta Selatan', visit: 'followup', product: 'MRI', pipeline: 'hot', contact: 'dr. Reza, Sp.Rad', note: 'Final negotiation MRI 1.5T' },
-      { name: 'RS Awal Bros Tangerang', city: 'Tangerang', visit: 'followup', product: 'CT Scan', pipeline: 'warm', contact: 'Bu Andini', note: 'Tertarik CT 128 baru' },
-      { name: 'RS Brawijaya Saharjo', city: 'Jakarta Selatan', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Pak Burhan', note: 'Pertemuan awal' },
-      { name: 'RS Premier Jatinegara', city: 'Jakarta Timur', visit: 'followup', product: 'CT Scan', pipeline: 'hot', contact: 'dr. Mariana', note: 'Bidding tender private' },
-    ],
-    pipeN: 3, pipeVal: 42500000000, closest: 'RS Pondok Indah Jakarta',
-    totalCost: 1250000, block: 'Macet parah Jakarta-Tangerang, kunjungan mundur 1.5 jam',
-    win: 'RS Pondok Indah Jakarta confirm budget MRI 2026',
-    next: 'Final closing RS Pondok Indah MRI 1.5T, prepare contract draft',
-    fatigue: 2, createdAt: '2026-01-16T20:00:00.000Z' },
-
-  { id: 'rpt_dw_w2', salesId: 'dwi', date: '2026-01-30', week: 'Minggu 4',
-    days: 5, nights: 0, area: 'Bekasi + Karawang',
-    visits: [
-      { name: 'RS Hermina Galaxy Bekasi', city: 'Bekasi', visit: 'closed', product: 'CT Scan', pipeline: 'hot', contact: 'dr. Fitri, Sp.Rad', note: 'PO CT 64 Slice Anatom Clarity terbit Rp 9.8M' },
-      { name: 'RSUD Karawang', city: 'Karawang', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Pak Surya', note: 'Survey awal kebutuhan radiologi' },
-      { name: 'RS Mitra Keluarga Bekasi', city: 'Bekasi', visit: 'followup', product: 'C-Arm', pipeline: 'warm', contact: 'Bu Maya', note: 'Tertarik C-Arm Garion' },
-      { name: 'RSUD Cikampek', city: 'Karawang', visit: 'first', product: 'Mammography', pipeline: 'cold', contact: 'dr. Helmi', note: 'Diskusi women health center' },
-    ],
-    pipeN: 3, pipeVal: 12500000000, closest: 'RS Hermina Galaxy Bekasi',
-    totalCost: 1380000, block: '-',
-    win: 'PO CT 64 RS Hermina Galaxy Bekasi terbit Rp 9.8M',
-    next: 'Process kontrak Hermina Galaxy, koordinasi instalasi',
-    fatigue: 2, createdAt: '2026-01-31T19:00:00.000Z' },
-
-  { id: 'rpt_dw_w3', salesId: 'dwi', date: '2026-02-13', week: 'Minggu 2',
-    days: 5, nights: 0, area: 'Jakarta Pusat + Jakarta Utara',
-    visits: [
-      { name: 'RSCM (Cipto Mangunkusumo)', city: 'Jakarta Pusat', visit: 'first', product: 'CT Scan', pipeline: 'cold', contact: 'Prof. dr. Anggraini', note: 'Pertemuan awal, RSCM butuh CT 256 high-end' },
-      { name: 'RS Pelni', city: 'Jakarta Barat', visit: 'followup', product: 'MRI', pipeline: 'warm', contact: 'dr. Susanto', note: 'Tertarik MRI 1.5T' },
-      { name: 'RS Atma Jaya Jakarta', city: 'Jakarta Utara', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Bu Rina', note: 'Survey kebutuhan' },
-      { name: 'RSUD Tarakan Jakarta', city: 'Jakarta Pusat', visit: 'followup', product: 'C-Arm', pipeline: 'hot', contact: 'dr. Wibowo', note: 'Tender Maret 2026, anggaran ACC' },
-    ],
-    pipeN: 3, pipeVal: 38500000000, closest: 'RSUD Tarakan Jakarta',
-    totalCost: 1180000, block: 'Demo MRI di RS Pelni delay karena dokter Sp.Rad meeting RUPS',
-    win: 'RSUD Tarakan confirm tender C-Arm Maret 2026',
-    next: 'Prepare bidding doc RSUD Tarakan Jakarta',
-    fatigue: 1, createdAt: '2026-02-14T19:30:00.000Z' },
-
-  { id: 'rpt_dw_w4', salesId: 'dwi', date: '2026-03-06', week: 'Minggu 1',
-    days: 5, nights: 1, area: 'Bandung + Cimahi',
-    visits: [
-      { name: 'RS Borromeus Bandung', city: 'Bandung', visit: 'followup', product: 'MRI', pipeline: 'hot', contact: 'dr. Susanto, Sp.Rad', note: 'Final demo MRI Mei' },
-      { name: 'RS Hasan Sadikin (RSHS)', city: 'Bandung', visit: 'first', product: 'CT Scan', pipeline: 'cold', contact: 'Prof. dr. Hendra', note: 'RSHS high-end, butuh CT 256' },
-      { name: 'RSUD Cibabat Cimahi', city: 'Cimahi', visit: 'followup', product: 'X-Ray', pipeline: 'warm', contact: 'Pak Yusup', note: 'Anggaran 2026, target tender Q2' },
-      { name: 'RS Santo Yusup Bandung', city: 'Bandung', visit: 'first', product: 'C-Arm', pipeline: 'cold', contact: 'Bu Theresia', note: 'Pertemuan awal' },
-    ],
-    pipeN: 3, pipeVal: 32500000000, closest: 'RS Borromeus Bandung',
-    totalCost: 2350000, block: 'Akses tol Cipularang macet, akses Bandung 4 jam',
-    win: 'RS Borromeus confirm demo MRI Mei + RSHS interest CT 256',
-    next: 'Schedule demo MRI RS Borromeus, prepare proposal CT 256 RSHS',
-    fatigue: 2, createdAt: '2026-03-07T20:30:00.000Z' },
-
-  { id: 'rpt_dw_w5', salesId: 'dwi', date: '2026-03-27', week: 'Minggu 4',
-    days: 4, nights: 0, area: 'Depok + Bogor',
-    visits: [
-      { name: 'RSUD Cibinong', city: 'Bogor', visit: 'closed', product: 'CT Scan', pipeline: 'hot', contact: 'Bu Endah (Logistik)', note: 'BAST CT 32 sudah, payment SPM diterima' },
-      { name: 'RS Hermina Depok', city: 'Depok', visit: 'followup', product: 'MRI', pipeline: 'warm', contact: 'dr. Wulan', note: 'Tertarik MRI 1.5T' },
-      { name: 'RSUD Kota Bogor', city: 'Bogor', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Pak Hendra', note: 'Survey awal' },
-    ],
-    pipeN: 2, pipeVal: 25500000000, closest: 'RSUD Cibinong',
-    totalCost: 1450000, block: '-',
-    win: 'Payment SPM RSUD Cibinong CT 32 sudah diterima',
-    next: 'Follow up RS Hermina Depok untuk demo MRI',
-    fatigue: 1, createdAt: '2026-03-28T19:00:00.000Z' },
-
-  { id: 'rpt_dw_w6', salesId: 'dwi', date: '2026-04-17', week: 'Minggu 3',
-    days: 5, nights: 0, area: 'Tangerang Selatan + Serang',
-    visits: [
-      { name: 'RS Premier Bintaro', city: 'Tangerang Selatan', visit: 'followup', product: 'MRI', pipeline: 'hot', contact: 'dr. Ratna, Sp.Rad', note: 'BAST MRI sudah, payment lancar' },
-      { name: 'RSUD Tangerang Selatan', city: 'Tangerang Selatan', visit: 'first', product: 'CT Scan', pipeline: 'cold', contact: 'Pak Wahyu', note: 'Pertemuan awal' },
-      { name: 'RSUD Serang', city: 'Serang', visit: 'followup', product: 'C-Arm', pipeline: 'warm', contact: 'dr. Iwan', note: 'Tender Mei 2026' },
-      { name: 'RS Eka Hospital BSD', city: 'Tangerang Selatan', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Bu Damayanti', note: 'Eka Hospital expansion plan' },
-    ],
-    pipeN: 3, pipeVal: 18500000000, closest: 'RS Premier Bintaro',
-    totalCost: 1850000, block: '-',
-    win: 'RS Premier Bintaro MRI BAST OK, payment received Rp 22M',
-    next: 'Follow up RSUD Serang tender C-Arm, prepare bidding doc',
-    fatigue: 1, createdAt: '2026-04-18T19:30:00.000Z' },
-
-  { id: 'rpt_dw_w7', salesId: 'dwi', date: '2026-05-08', week: 'Minggu 2',
-    days: 5, nights: 1, area: 'Sukabumi + Cianjur + Garut',
-    visits: [
-      { name: 'RSUD Sukabumi', city: 'Sukabumi', visit: 'first', product: 'CT Scan', pipeline: 'cold', contact: 'Pak Asep', note: 'Survey awal' },
-      { name: 'RSUD Cianjur', city: 'Cianjur', visit: 'followup', product: 'X-Ray', pipeline: 'warm', contact: 'Bu Yati', note: 'Anggaran 2026 ACC' },
-      { name: 'RS Hermina Sukabumi', city: 'Sukabumi', visit: 'first', product: 'C-Arm', pipeline: 'cold', contact: 'dr. Endang', note: 'Hermina Group, perlu approval' },
-      { name: 'RSUD Slamet Garut', city: 'Garut', visit: 'first', product: 'Mammography', pipeline: 'cold', contact: 'dr. Hadi', note: 'Diskusi women health' },
-    ],
-    pipeN: 2, pipeVal: 14500000000, closest: 'RSUD Cianjur',
-    totalCost: 2680000, block: 'Akses Cianjur-Garut macet karena perbaikan jalan',
-    win: '-', next: 'Follow up RSUD Cianjur X-Ray tender',
-    fatigue: 3, createdAt: '2026-05-09T20:00:00.000Z' },
-
-  // ============= TRI (Jatim 1) ==============
-  { id: 'rpt_ts_w1', salesId: 'tri', date: '2026-01-09', week: 'Minggu 2',
-    days: 5, nights: 4, area: 'Surabaya + Sidoarjo',
-    visits: [
-      { name: 'RS Husada Utama Surabaya', city: 'Surabaya', visit: 'followup', product: 'C-Arm', pipeline: 'hot', contact: 'dr. Anton, Sp.B', note: 'Tertarik C-Arm Garion 2.4kW' },
-      { name: 'RSUD Soewandhie Surabaya', city: 'Surabaya', visit: 'followup', product: 'CT Scan', pipeline: 'warm', contact: 'Bu Tina', note: 'Tender Februari 2026' },
-      { name: 'RS Premier Surabaya', city: 'Surabaya', visit: 'first', product: 'MRI', pipeline: 'cold', contact: 'dr. Lestari', note: 'Pertemuan awal Direktur' },
-      { name: 'RSUD Sidoarjo', city: 'Sidoarjo', visit: 'followup', product: 'X-Ray', pipeline: 'warm', contact: 'Pak Heru', note: 'Anggaran 2026 ACC' },
-    ],
-    pipeN: 3, pipeVal: 22500000000, closest: 'RS Husada Utama Surabaya',
-    totalCost: 1950000, block: 'Hujan deras Surabaya, akses Sidoarjo banjir',
-    win: 'RS Husada Utama Surabaya confirm budget C-Arm 2026',
-    next: 'Close deal C-Arm RS Husada Utama, prepare contract',
-    fatigue: 2, createdAt: '2026-01-10T19:00:00.000Z' },
-
-  { id: 'rpt_ts_w2', salesId: 'tri', date: '2026-01-23', week: 'Minggu 4',
-    days: 5, nights: 4, area: 'Malang + Pasuruan',
-    visits: [
-      { name: 'RSUD Saiful Anwar Malang', city: 'Malang', visit: 'first', product: 'MRI', pipeline: 'cold', contact: 'Prof. dr. Budi', note: 'RSUD provinsi, butuh MRI high-end' },
-      { name: 'RS Lavalette Malang', city: 'Malang', visit: 'followup', product: 'CT Scan', pipeline: 'hot', contact: 'dr. Yanti, Sp.Rad', note: 'Final negotiation CT 64' },
-      { name: 'RSUD Bangil Pasuruan', city: 'Pasuruan', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Pak Suparno', note: 'Survey awal' },
-      { name: 'RS Aisyiyah Malang', city: 'Malang', visit: 'first', product: 'C-Arm', pipeline: 'cold', contact: 'Bu Wahyuni', note: 'Pertemuan awal' },
-    ],
-    pipeN: 3, pipeVal: 32500000000, closest: 'RS Lavalette Malang',
-    totalCost: 2350000, block: '-',
-    win: 'RS Lavalette Malang final neg CT 64, PO target Februari',
-    next: 'Close RS Lavalette CT 64, follow up RSUD Saiful Anwar',
-    fatigue: 2, createdAt: '2026-01-24T20:00:00.000Z' },
-
-  { id: 'rpt_ts_w3', salesId: 'tri', date: '2026-02-13', week: 'Minggu 2',
-    days: 5, nights: 4, area: 'Surabaya Selatan + Gresik',
-    visits: [
-      { name: 'RS Husada Utama Surabaya', city: 'Surabaya', visit: 'closed', product: 'C-Arm', pipeline: 'hot', contact: 'dr. Anton, Sp.B', note: 'PO C-Arm Garion 2.4kW terbit Rp 4.5M' },
-      { name: 'RSUD Ibnu Sina Gresik', city: 'Gresik', visit: 'first', product: 'CT Scan', pipeline: 'cold', contact: 'dr. Hasanah', note: 'KSO opportunity, butuh detailed proposal' },
-      { name: 'RS Petrokimia Gresik', city: 'Gresik', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Pak Joko', note: 'RS BUMN, butuh proses tender' },
-      { name: 'RS Lavalette Malang', city: 'Malang', visit: 'closed', product: 'CT Scan', pipeline: 'hot', contact: 'dr. Yanti, Sp.Rad', note: 'PO CT 64 terbit Rp 9.8M' },
-    ],
-    pipeN: 2, pipeVal: 35000000000, closest: 'RS Husada Utama Surabaya',
-    totalCost: 2280000, block: '-',
-    win: '🎉 DOUBLE WIN: PO RS Husada Utama (C-Arm) + RS Lavalette Malang (CT 64) = Rp 14.3M',
-    next: 'Process 2 PO + prepare proposal KSO RSUD Ibnu Sina Gresik',
-    fatigue: 1, createdAt: '2026-02-14T20:30:00.000Z' },
-
-  { id: 'rpt_ts_w4', salesId: 'tri', date: '2026-03-04', week: 'Minggu 1',
-    days: 4, nights: 3, area: 'Mojokerto + Jombang',
-    visits: [
-      { name: 'RSUD Mojokerto', city: 'Mojokerto', visit: 'followup', product: 'CT Scan', pipeline: 'warm', contact: 'dr. Sugiyanto', note: 'Anggaran 2026 ACC, target tender April' },
-      { name: 'RS Hermina Mojokerto', city: 'Mojokerto', visit: 'first', product: 'MRI', pipeline: 'cold', contact: 'dr. Lina', note: 'Hermina Group expansion' },
-      { name: 'RSUD Jombang', city: 'Jombang', visit: 'followup', product: 'C-Arm', pipeline: 'warm', contact: 'Pak Hendra', note: 'Tender Mei 2026' },
-    ],
-    pipeN: 2, pipeVal: 19500000000, closest: 'RSUD Mojokerto',
-    totalCost: 1850000, block: '-',
-    win: 'RSUD Mojokerto confirm tender CT 64 April 2026',
-    next: 'Prepare tender RSUD Mojokerto, koordinasi spec dengan ANKE',
-    fatigue: 1, createdAt: '2026-03-05T19:00:00.000Z' },
-
-  { id: 'rpt_ts_w5', salesId: 'tri', date: '2026-03-20', week: 'Minggu 3',
-    days: 5, nights: 4, area: 'Surabaya (revisit) + Lamongan',
-    visits: [
-      { name: 'RSUD Soewandhie Surabaya', city: 'Surabaya', visit: 'closed', product: 'CT Scan', pipeline: 'hot', contact: 'Bu Tina', note: 'Menang tender! PO CT 128 Rp 14.8M' },
-      { name: 'RSUD Lamongan', city: 'Lamongan', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Pak Ridwan', note: 'Survey awal' },
-      { name: 'RS Surabaya Medical Service', city: 'Surabaya', visit: 'first', product: 'Mammography', pipeline: 'cold', contact: 'dr. Tuti', note: 'Diskusi women health center' },
-    ],
-    pipeN: 2, pipeVal: 11500000000, closest: 'RSUD Soewandhie Surabaya',
-    totalCost: 2150000, block: '-',
-    win: '🎉 MENANG TENDER CT 128 RSUD Soewandhie Surabaya Rp 14.8M',
-    next: 'Process kontrak RSUD Soewandhie, koordinasi tim implementasi',
-    fatigue: 1, createdAt: '2026-03-21T20:00:00.000Z' },
-
-  { id: 'rpt_ts_w6', salesId: 'tri', date: '2026-04-10', week: 'Minggu 2',
-    days: 5, nights: 4, area: 'Surabaya Utara + Madura',
-    visits: [
-      { name: 'RS Premier Surabaya', city: 'Surabaya', visit: 'followup', product: 'MRI', pipeline: 'hot', contact: 'dr. Lestari', note: 'Final negotiation MRI 1.5T' },
-      { name: 'RSUD Bangkalan Madura', city: 'Bangkalan', visit: 'first', product: 'CT Scan', pipeline: 'cold', contact: 'Pak Suprapto', note: 'RSUD provinsi Madura' },
-      { name: 'RSUD Sumenep', city: 'Sumenep', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'dr. Mahmud', note: 'Survey awal' },
-      { name: 'RS Mata Undaan Surabaya', city: 'Surabaya', visit: 'first', product: 'C-Arm', pipeline: 'cold', contact: 'dr. Aji', note: 'RS Mata specialist, butuh C-Arm khusus' },
-    ],
-    pipeN: 3, pipeVal: 28500000000, closest: 'RS Premier Surabaya',
-    totalCost: 2680000, block: 'Penyeberangan Jembatan Suramadu padat',
-    win: 'RS Premier Surabaya confirm MRI 1.5T close in Mei',
-    next: 'Final closing RS Premier Surabaya MRI',
-    fatigue: 2, createdAt: '2026-04-11T20:30:00.000Z' },
-
-  { id: 'rpt_ts_w7', salesId: 'tri', date: '2026-04-24', week: 'Minggu 4',
-    days: 4, nights: 3, area: 'Probolinggo + Lumajang',
-    visits: [
-      { name: 'RSUD dr. Mohamad Saleh Probolinggo', city: 'Probolinggo', visit: 'first', product: 'CT Scan', pipeline: 'cold', contact: 'Pak Bambang', note: 'Survey kebutuhan CT' },
-      { name: 'RSUD Lumajang', city: 'Lumajang', visit: 'followup', product: 'X-Ray', pipeline: 'warm', contact: 'Bu Nani', note: 'Anggaran 2026 ACC' },
-      { name: 'RS Wijaya Kusuma Lumajang', city: 'Lumajang', visit: 'first', product: 'C-Arm', pipeline: 'cold', contact: 'dr. Wahyu', note: 'Pertemuan awal' },
-    ],
-    pipeN: 2, pipeVal: 8500000000, closest: 'RSUD Lumajang',
-    totalCost: 1880000, block: '-',
-    win: 'RSUD Lumajang confirm tender X-Ray Mei 2026',
-    next: 'Prepare bidding doc RSUD Lumajang',
-    fatigue: 2, createdAt: '2026-04-25T19:00:00.000Z' },
-
-  { id: 'rpt_ts_w8', salesId: 'tri', date: '2026-05-08', week: 'Minggu 2',
-    days: 5, nights: 4, area: 'Surabaya Pusat + Gresik (revisit)',
-    visits: [
-      { name: 'RS Premier Surabaya', city: 'Surabaya', visit: 'closed', product: 'MRI', pipeline: 'hot', contact: 'dr. Lestari', note: 'PO MRI 1.5T terbit Rp 22.5M' },
-      { name: 'RSUD Ibnu Sina Gresik', city: 'Gresik', visit: 'followup', product: 'CT Scan', pipeline: 'hot', contact: 'dr. Hasanah', note: 'KSO sudah signing, schedule instalasi' },
-      { name: 'RSUD Soewandhie Surabaya', city: 'Surabaya', visit: 'followup', product: 'CT Scan', pipeline: 'hot', contact: 'Bu Tina', note: 'BAST CT 128 schedule Juni 2026' },
-    ],
-    pipeN: 1, pipeVal: 25500000000, closest: 'RS Premier Surabaya',
-    totalCost: 2280000, block: '-',
-    win: '🎉 BIG WIN: PO MRI 1.5T RS Premier Surabaya Rp 22.5M + KSO Ibnu Sina signing',
-    next: 'Process MRI Premier Surabaya, koordinasi KSO Ibnu Sina',
-    fatigue: 1, createdAt: '2026-05-09T20:00:00.000Z' },
-
-  // ============= BAGUS (Jatim 2) ==============
-  { id: 'rpt_bi_w1', salesId: 'bagus', date: '2026-01-16', week: 'Minggu 3',
-    days: 5, nights: 4, area: 'Banyuwangi + Jember',
-    visits: [
-      { name: 'RSUD Banyuwangi', city: 'Banyuwangi', visit: 'followup', product: 'CT Scan', pipeline: 'hot', contact: 'dr. Wahyu, Sp.Rad', note: 'Tender Februari 2026, HPS sudah keluar' },
-      { name: 'RSUD Soebandi Jember', city: 'Jember', visit: 'followup', product: 'MRI', pipeline: 'warm', contact: 'Prof. dr. Edi', note: 'Anggaran 2026 ACC' },
-      { name: 'RS Bina Sehat Jember', city: 'Jember', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Bu Lestari', note: 'Survey kebutuhan' },
-      { name: 'RS Al-Huda Genteng', city: 'Banyuwangi', visit: 'first', product: 'C-Arm', pipeline: 'cold', contact: 'dr. Hidayat', note: 'Pertemuan awal' },
-    ],
-    pipeN: 3, pipeVal: 32500000000, closest: 'RSUD Banyuwangi',
-    totalCost: 2480000, block: '-',
-    win: 'RSUD Banyuwangi siap tender CT 64, HPS Rp 9.5M',
-    next: 'Prepare bidding doc RSUD Banyuwangi tender Februari',
-    fatigue: 2, createdAt: '2026-01-17T19:30:00.000Z' },
-
-  { id: 'rpt_bi_w2', salesId: 'bagus', date: '2026-02-06', week: 'Minggu 1',
-    days: 5, nights: 4, area: 'Bondowoso + Situbondo',
-    visits: [
-      { name: 'RSUD Koesnadi Bondowoso', city: 'Bondowoso', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Pak Hartono', note: 'Survey awal' },
-      { name: 'RSUD Abdoer Rahem Situbondo', city: 'Situbondo', visit: 'followup', product: 'CT Scan', pipeline: 'warm', contact: 'dr. Susanto', note: 'Tender Maret 2026' },
-      { name: 'RS Mitra Sehat Bondowoso', city: 'Bondowoso', visit: 'first', product: 'C-Arm', pipeline: 'cold', contact: 'Bu Maharani', note: 'Pertemuan awal' },
-    ],
-    pipeN: 2, pipeVal: 11500000000, closest: 'RSUD Abdoer Rahem Situbondo',
-    totalCost: 2150000, block: 'Akses Bondowoso-Situbondo terhambat truk batu',
-    win: '-', next: 'Follow up tender RSUD Abdoer Rahem Situbondo',
-    fatigue: 3, createdAt: '2026-02-07T19:00:00.000Z' },
-
-  { id: 'rpt_bi_w3', salesId: 'bagus', date: '2026-02-20', week: 'Minggu 3',
-    days: 5, nights: 4, area: 'Banyuwangi (revisit) + Jember (revisit)',
-    visits: [
-      { name: 'RSUD Banyuwangi', city: 'Banyuwangi', visit: 'closed', product: 'CT Scan', pipeline: 'hot', contact: 'dr. Wahyu, Sp.Rad', note: 'MENANG TENDER! PO CT 64 Rp 9.8M' },
-      { name: 'RSUD Soebandi Jember', city: 'Jember', visit: 'followup', product: 'MRI', pipeline: 'hot', contact: 'Prof. dr. Edi', note: 'Demo MRI sukses, final negotiation' },
-      { name: 'RS Citra Husada Jember', city: 'Jember', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Pak Yudi', note: 'Pertemuan awal' },
-    ],
-    pipeN: 2, pipeVal: 28500000000, closest: 'RSUD Banyuwangi',
-    totalCost: 2280000, block: '-',
-    win: '🎉 MENANG TENDER CT 64 RSUD Banyuwangi Rp 9.8M',
-    next: 'Process kontrak RSUD Banyuwangi, close RSUD Soebandi MRI',
-    fatigue: 1, createdAt: '2026-02-21T20:00:00.000Z' },
-
-  { id: 'rpt_bi_w4', salesId: 'bagus', date: '2026-03-13', week: 'Minggu 2',
-    days: 4, nights: 3, area: 'Banyuwangi + Jember (revisit)',
-    visits: [
-      { name: 'RSUD Soebandi Jember', city: 'Jember', visit: 'closed', product: 'MRI', pipeline: 'hot', contact: 'Prof. dr. Edi', note: 'PO MRI 1.5T terbit Rp 22.5M' },
-      { name: 'RS Bhayangkara Banyuwangi', city: 'Banyuwangi', visit: 'first', product: 'C-Arm', pipeline: 'cold', contact: 'AKBP dr. Yusran', note: 'Pertemuan awal' },
-    ],
-    pipeN: 1, pipeVal: 6500000000, closest: 'RSUD Soebandi Jember',
-    totalCost: 1850000, block: '-',
-    win: '🎉 BIG WIN: PO MRI 1.5T RSUD Soebandi Jember Rp 22.5M',
-    next: 'Process kontrak RSUD Soebandi, koordinasi schedule instalasi',
-    fatigue: 1, createdAt: '2026-03-14T18:30:00.000Z' },
-
-  { id: 'rpt_bi_w5', salesId: 'bagus', date: '2026-04-03', week: 'Minggu 1',
-    days: 5, nights: 4, area: 'Bali + Lombok',
-    visits: [
-      { name: 'RSUD Klungkung Bali', city: 'Klungkung', visit: 'followup', product: 'CT Scan', pipeline: 'warm', contact: 'dr. Ngurah', note: 'Anggaran 2026 ACC' },
-      { name: 'RSUD Wangaya Denpasar', city: 'Denpasar', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Bu Made', note: 'Survey awal' },
-      { name: 'RS BaliMed Denpasar', city: 'Denpasar', visit: 'followup', product: 'C-Arm', pipeline: 'warm', contact: 'dr. Ari', note: 'Tertarik C-Arm Garion' },
-      { name: 'RSUD Mataram', city: 'Mataram', visit: 'first', product: 'MRI', pipeline: 'cold', contact: 'Pak Hidayat', note: 'RSUD Provinsi NTB' },
-    ],
-    pipeN: 3, pipeVal: 24500000000, closest: 'RSUD Klungkung Bali',
-    totalCost: 4850000, block: 'Flight cancelled Denpasar-Lombok karena cuaca',
-    win: 'RS BaliMed Denpasar request quote C-Arm Garion',
-    next: 'Prepare quote RS BaliMed, follow up tender RSUD Klungkung',
-    fatigue: 3, createdAt: '2026-04-04T20:30:00.000Z' },
-
-  { id: 'rpt_bi_w6', salesId: 'bagus', date: '2026-04-24', week: 'Minggu 4',
-    days: 4, nights: 3, area: 'Tulungagung + Trenggalek',
-    visits: [
-      { name: 'RSUD Iskak Tulungagung', city: 'Tulungagung', visit: 'followup', product: 'CT Scan', pipeline: 'hot', contact: 'dr. Bagus', note: 'Final negotiation CT 64' },
-      { name: 'RSUD Trenggalek', city: 'Trenggalek', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Pak Hartoyo', note: 'Survey awal' },
-      { name: 'RS Aminah Blitar', city: 'Blitar', visit: 'followup', product: 'C-Arm', pipeline: 'warm', contact: 'Bu Aminah', note: 'KSO opportunity, butuh proposal detail' },
-    ],
-    pipeN: 2, pipeVal: 16500000000, closest: 'RSUD Iskak Tulungagung',
-    totalCost: 1850000, block: '-',
-    win: 'RSUD Iskak final neg CT 64, target PO Mei',
-    next: 'Close RSUD Iskak + prepare proposal KSO RS Aminah',
-    fatigue: 1, createdAt: '2026-04-25T19:00:00.000Z' },
-
-  { id: 'rpt_bi_w7', salesId: 'bagus', date: '2026-05-15', week: 'Minggu 3',
-    days: 5, nights: 4, area: 'Bali (revisit) + Banyuwangi',
-    visits: [
-      { name: 'RS BaliMed Denpasar', city: 'Denpasar', visit: 'closed', product: 'C-Arm', pipeline: 'hot', contact: 'dr. Ari', note: 'PO C-Arm Garion terbit Rp 4.5M' },
-      { name: 'RSUD Klungkung Bali', city: 'Klungkung', visit: 'followup', product: 'CT Scan', pipeline: 'hot', contact: 'dr. Ngurah', note: 'Tender Mei sudah, evaluasi penawaran' },
-      { name: 'RS Puri Raharja Denpasar', city: 'Denpasar', visit: 'first', product: 'MRI', pipeline: 'cold', contact: 'dr. Putra', note: 'KSO opportunity' },
-      { name: 'RSUD Banyuwangi', city: 'Banyuwangi', visit: 'followup', product: 'CT Scan', pipeline: 'hot', contact: 'dr. Wahyu, Sp.Rad', note: 'BAST CT 64 sudah, payment SPM diproses' },
-    ],
-    pipeN: 2, pipeVal: 32500000000, closest: 'RS BaliMed Denpasar',
-    totalCost: 4250000, block: '-',
-    win: 'PO C-Arm RS BaliMed Denpasar terbit + RSUD Banyuwangi BAST OK',
-    next: 'Follow up tender RSUD Klungkung, prepare proposal KSO RS Puri Raharja',
-    fatigue: 2, createdAt: '2026-05-16T20:30:00.000Z' },
-
-  // ============= HNT INDONESIA (OFFICE - CEO Personal Closing) ==============
-  { id: 'rpt_office_w1', salesId: 'office', date: '2026-02-05', week: 'Minggu 1',
-    days: 2, nights: 0, area: 'Jakarta Selatan (Special Account)',
-    visits: [
-      { name: 'RS Pondok Indah Bintaro', city: 'Tangerang Selatan', visit: 'closed', product: 'MRI', pipeline: 'hot', contact: 'Direktur Utama RS Pondok Indah Group', note: 'Personal closing CEO untuk MRI 1.5T upgrade Pondok Indah' },
-    ],
-    pipeN: 1, pipeVal: 23500000000, closest: 'RS Pondok Indah Bintaro',
-    totalCost: 850000, block: '-',
-    win: '🎯 SPECIAL ACCOUNT: PO MRI 1.5T RS Pondok Indah Bintaro Rp 23.5M (CEO direct deal)',
-    next: 'Koordinasi delivery & instalasi RS Pondok Indah dengan tim ops',
-    fatigue: 1, createdAt: '2026-02-06T18:00:00.000Z' },
-
-  { id: 'rpt_office_w2', salesId: 'office', date: '2026-03-15', week: 'Minggu 2',
-    days: 3, nights: 0, area: 'Jakarta Timur + Tangerang (Group Hospitals)',
-    visits: [
-      { name: 'RS Premier Jatinegara', city: 'Jakarta Timur', visit: 'closed', product: 'CT Scan', pipeline: 'hot', contact: 'Direktur Pengembangan Premier Group', note: 'CEO direct deal CT 128 untuk Premier Group expansion' },
-      { name: 'RS Mayapada Kuningan', city: 'Jakarta Selatan', visit: 'first', product: 'CT Scan', pipeline: 'warm', contact: 'Direktur RS Mayapada Group', note: 'Diskusi CT 64 untuk Mayapada Kuningan' },
-    ],
-    pipeN: 1, pipeVal: 26000000000, closest: 'RS Premier Jatinegara',
-    totalCost: 1250000, block: '-',
-    win: '🎯 SPECIAL ACCOUNT: PO CT 128 RS Premier Jatinegara Rp 15.8M (CEO direct deal)',
-    next: 'Follow up RS Mayapada Kuningan untuk CT 64, target closing April',
-    fatigue: 1, createdAt: '2026-03-16T19:00:00.000Z' },
-
-  { id: 'rpt_office_w3', salesId: 'office', date: '2026-04-10', week: 'Minggu 2',
-    days: 2, nights: 0, area: 'Jakarta + Tangerang Selatan (Group Hospitals)',
-    visits: [
-      { name: 'RS Eka Hospital BSD', city: 'Tangerang Selatan', visit: 'closed', product: 'Mammography', pipeline: 'hot', contact: 'CEO Eka Hospital Group', note: 'Personal closing Mammography untuk Women Health Center Eka Hospital' },
-      { name: 'RS Mayapada Kuningan', city: 'Jakarta Selatan', visit: 'followup', product: 'CT Scan', pipeline: 'hot', contact: 'Direktur RS Mayapada Group', note: 'Lanjutan negotiation CT 64' },
-    ],
-    pipeN: 1, pipeVal: 10500000000, closest: 'RS Eka Hospital BSD',
-    totalCost: 950000, block: '-',
-    win: '🎯 SPECIAL ACCOUNT: PO Mammography RS Eka Hospital BSD Rp 6.2M (CEO direct deal)',
-    next: 'Final closing RS Mayapada Kuningan CT 64, target PO Mei',
-    fatigue: 1, createdAt: '2026-04-11T18:30:00.000Z' },
-
-  { id: 'rpt_office_w4', salesId: 'office', date: '2026-05-06', week: 'Minggu 1',
-    days: 1, nights: 0, area: 'Jakarta Selatan (Mayapada Group)',
-    visits: [
-      { name: 'RS Mayapada Kuningan', city: 'Jakarta Selatan', visit: 'followup', product: 'CT Scan', pipeline: 'hot', contact: 'Direktur RS Mayapada Group', note: 'Final negotiation CT 64, target PO sebelum Mei berakhir' },
-    ],
-    pipeN: 1, pipeVal: 10500000000, closest: 'RS Mayapada Kuningan',
-    totalCost: 450000, block: '-',
-    win: 'RS Mayapada Kuningan confirm budget, lock-in price approved',
-    next: 'Close PO RS Mayapada Kuningan CT 64 sebelum 20 Mei',
-    fatigue: 1, createdAt: '2026-05-07T17:30:00.000Z' },
-
-  // ============= ICHA (Ika Apriani) — Sales Staff baru bawah Dwi, mulai April 2026 ==============
-  { id: 'rpt_icha_w1', salesId: 'icha', date: '2026-04-04', week: 'Minggu 1',
-    days: 4, nights: 0, area: 'Jakarta Pusat + Tangerang (training & onboarding)',
-    visits: [
-      { name: 'Kantor HNTI Jakarta', city: 'Jakarta Pusat', visit: 'first', product: '-', pipeline: 'cold', contact: 'Dwi Wahyudianto (Manager)', note: 'Onboarding & product training minggu pertama, mempelajari portfolio HNTI' },
-      { name: 'RS Mitra Keluarga Kalideres', city: 'Jakarta Barat', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Bu Wati (Logistik)', note: 'Kunjungan pendamping Dwi, perkenalan awal sebagai sales baru' },
-    ],
-    pipeN: 1, pipeVal: 0, closest: '-',
-    totalCost: 580000, block: 'Masih dalam proses onboarding, belum mandiri kunjungan',
-    win: 'Berhasil dikenalkan ke 1 customer baru sebagai backup Dwi',
-    next: 'Lanjut training product CT Scan & MRI minggu depan',
-    fatigue: 1, createdAt: '2026-04-05T18:00:00.000Z' },
-
-  { id: 'rpt_icha_w2', salesId: 'icha', date: '2026-04-11', week: 'Minggu 2',
-    days: 5, nights: 0, area: 'Jakarta Timur + Bekasi (didampingi Dwi)',
-    visits: [
-      { name: 'RS Hermina Jatinegara', city: 'Jakarta Timur', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'dr. Anto, Sp.Rad', note: 'Pendampingan dengan Dwi, presentasi X-Ray DR Jumong' },
-      { name: 'RSUD Pasar Rebo', city: 'Jakarta Timur', visit: 'first', product: 'CT Scan', pipeline: 'cold', contact: 'Bu Tantri (Bagian Pengadaan)', note: 'Survey kebutuhan radiologi RSUD Pasar Rebo' },
-      { name: 'RS Mitra Keluarga Bekasi Timur', city: 'Bekasi', visit: 'first', product: 'C-Arm', pipeline: 'cold', contact: 'dr. Setiawan', note: 'Pertemuan awal, belum ada anggaran 2026' },
-    ],
-    pipeN: 2, pipeVal: 8500000000, closest: '-',
-    totalCost: 720000, block: '-',
-    win: 'Berhasil menjadwalkan 2 follow-up presentasi minggu depan',
-    next: 'Follow up RS Hermina Jatinegara & RSUD Pasar Rebo dengan proposal detail',
-    fatigue: 2, createdAt: '2026-04-12T19:00:00.000Z' },
-
-  { id: 'rpt_icha_w3', salesId: 'icha', date: '2026-04-25', week: 'Minggu 4',
-    days: 5, nights: 0, area: 'Jakarta Selatan + Depok',
-    visits: [
-      { name: 'RS Hermina Jatinegara', city: 'Jakarta Timur', visit: 'followup', product: 'X-Ray', pipeline: 'warm', contact: 'dr. Anto, Sp.Rad', note: 'Lanjutan presentasi, dokter tertarik tapi anggaran masih dievaluasi direksi' },
-      { name: 'RS Eka Hospital Cimanggis', city: 'Depok', visit: 'first', product: 'CT Scan', pipeline: 'cold', contact: 'Bu Putri', note: 'Eka Hospital ekspansi cabang, survey kebutuhan CT 64' },
-      { name: 'RSUD Pasar Minggu', city: 'Jakarta Selatan', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Pak Hendro', note: 'RSUD baru renovasi, butuh full equipment radiologi' },
-      { name: 'RS Hermina Depok', city: 'Depok', visit: 'first', product: 'Mammography', pipeline: 'cold', contact: 'dr. Wulan', note: 'Diskusi awal women health center' },
-    ],
-    pipeN: 3, pipeVal: 15500000000, closest: 'RS Hermina Jatinegara',
-    totalCost: 850000, block: '-',
-    win: 'RS Hermina Jatinegara confirm budget review, target keputusan Mei',
-    next: 'Prepare proposal X-Ray RS Hermina Jatinegara untuk presentasi ke board',
-    fatigue: 2, createdAt: '2026-04-26T19:30:00.000Z' },
-
-  { id: 'rpt_icha_w4', salesId: 'icha', date: '2026-05-08', week: 'Minggu 2',
-    days: 4, nights: 0, area: 'Tangerang + Tangerang Selatan',
-    visits: [
-      { name: 'RS Awal Bros Tangerang', city: 'Tangerang', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'Bu Maria', note: 'Pertemuan awal Direktur, RS sudah punya X-Ray lama, butuh upgrade DR' },
-      { name: 'RS Hermina Tangerang', city: 'Tangerang', visit: 'first', product: 'CT Scan', pipeline: 'cold', contact: 'dr. Reza', note: 'Hermina Group, perlu approval pusat untuk anggaran CT baru' },
-      { name: 'RSUD Tangerang Selatan', city: 'Tangerang Selatan', visit: 'first', product: 'C-Arm', pipeline: 'cold', contact: 'Pak Hendra', note: 'Survey kebutuhan OK Center, anggaran 2026 belum ACC' },
-    ],
-    pipeN: 2, pipeVal: 12000000000, closest: '-',
-    totalCost: 680000, block: 'Beberapa pertemuan tertunda karena jadwal dokter Sp.Rad penuh',
-    win: 'RS Awal Bros confirm interest upgrade X-Ray DR, schedule demo Mei',
-    next: 'Schedule demo X-Ray DR RS Awal Bros Tangerang dengan tim ANKE',
-    fatigue: 2, createdAt: '2026-05-09T18:30:00.000Z' },
-
-  { id: 'rpt_icha_w5', salesId: 'icha', date: '2026-05-15', week: 'Minggu 3',
-    days: 5, nights: 0, area: 'Jakarta Selatan + Bogor',
-    visits: [
-      { name: 'RS Hermina Jatinegara', city: 'Jakarta Timur', visit: 'followup', product: 'X-Ray', pipeline: 'hot', contact: 'dr. Anto, Sp.Rad', note: 'Direksi approve anggaran, masuk tahap negotiation final' },
-      { name: 'RS Awal Bros Tangerang', city: 'Tangerang', visit: 'followup', product: 'X-Ray', pipeline: 'warm', contact: 'Bu Maria', note: 'Demo X-Ray DR sukses, tinggal finalisasi harga' },
-      { name: 'RS Hermina Bogor', city: 'Bogor', visit: 'first', product: 'X-Ray', pipeline: 'cold', contact: 'dr. Yanti', note: 'Survey awal, Hermina Group ekspansi Bogor' },
-      { name: 'RSUD Bogor', city: 'Bogor', visit: 'first', product: 'CT Scan', pipeline: 'cold', contact: 'Pak Tri (Pengadaan)', note: 'Anggaran APBD 2026 sedang direvisi, perlu wait & see' },
-    ],
-    pipeN: 3, pipeVal: 18000000000, closest: 'RS Hermina Jatinegara',
-    totalCost: 920000, block: '-',
-    win: 'RS Hermina Jatinegara masuk fase negotiation final, target PO Juni 2026',
-    next: 'Close RS Hermina Jatinegara, follow up demo RS Awal Bros',
-    fatigue: 1, createdAt: '2026-05-16T19:00:00.000Z' },
-];
 
 // ============== Installed Units 2025 (for Maintenance & Regulatory) ==============
 // 58 units installed in 2025 from won SPHs + new installations from 2026
@@ -1487,210 +655,21 @@ function generateInstalledUnits() {
 }
 
 // ============== Maintenance Issues (Repairs & Complaints) ==============
-const SEED_ISSUES = [];
 
 // ============== AKL Kemenkes Records (Distribution License) ==============
 // 7-stage pipeline: pra-registrasi → pengumpulan dokumen → submit Regalkes → PNBP → evaluasi tim penilai → perbaikan → AKL terbit
 // Max duration: 30 working days
-const AKL_STAGES = ['preregist', 'docs', 'submit', 'pnbp', 'eval', 'fix', 'issued'];
 
-const SEED_AKL_RECORDS = [
-  // Angell - China (premium X-Ray) - principal baru, sedang onboarding
-  {
-    id: 'akl_001', principal: 'Angell', principalCountry: 'China',
-    product: 'X-Ray Ceiling Digital Premium', productClass: 'C',
-    stage: 'eval', stageIdx: 4,
-    registerDate: '2026-04-18', targetDate: '2026-05-30',
-    daysElapsed: 21, workingDaysRemaining: 9,
-    preregistDate: '2026-04-18', docsDate: '2026-04-25', submitDate: '2026-04-30',
-    pnbpDate: '2026-05-05', pnbpAmount: 5000000, evalDate: '2026-05-08',
-    fixDate: null, issuedDate: null, aklNo: null,
-    pic: 'Ananda Rifki Bayu Saputra',
-    note: 'Tim penilai meminta klarifikasi spesifikasi tabung X-Ray',
-  },
-  {
-    id: 'akl_002', principal: 'Angell', principalCountry: 'China',
-    product: 'X-Ray Mobile Digital Premium', productClass: 'C',
-    stage: 'submit', stageIdx: 2,
-    registerDate: '2026-04-25', targetDate: '2026-06-06',
-    daysElapsed: 14, workingDaysRemaining: 16,
-    preregistDate: '2026-04-25', docsDate: '2026-05-02', submitDate: '2026-05-09',
-    pnbpDate: null, pnbpAmount: null, evalDate: null,
-    fixDate: null, issuedDate: null, aklNo: null,
-    pic: 'Ananda Rifki Bayu Saputra',
-    note: 'Menunggu penerbitan PNBP dari Regalkes',
-  },
-  {
-    id: 'akl_003', principal: 'Angell', principalCountry: 'China',
-    product: 'Digital Fluoroscopy Premium', productClass: 'D',
-    stage: 'docs', stageIdx: 1,
-    registerDate: '2026-05-02', targetDate: '2026-06-13',
-    daysElapsed: 7, workingDaysRemaining: 23,
-    preregistDate: '2026-05-02', docsDate: null, submitDate: null,
-    pnbpDate: null, pnbpAmount: null, evalDate: null,
-    fixDate: null, issuedDate: null, aklNo: null,
-    pic: 'Ananda Rifki Bayu Saputra',
-    note: 'Sedang melengkapi dokumen teknis & uji klinis dari Angell',
-  },
-  // Innocare - Taiwan (OEM HAMSKI XR untuk merek HNTI sendiri)
-  {
-    id: 'akl_004', principal: 'Innocare', principalCountry: 'Taiwan',
-    product: 'Flat Panel Detector HAMSKI XR (Merek HNTI)', productClass: 'B',
-    stage: 'fix', stageIdx: 5,
-    registerDate: '2026-04-08', targetDate: '2026-05-20',
-    daysElapsed: 39, workingDaysRemaining: 0,
-    preregistDate: '2026-04-08', docsDate: '2026-04-15', submitDate: '2026-04-20',
-    pnbpDate: '2026-04-24', pnbpAmount: 3500000, evalDate: '2026-04-28',
-    fixDate: '2026-05-08', issuedDate: null, aklNo: null,
-    pic: 'Ananda Rifki Bayu Saputra',
-    note: 'Perbaikan label OEM (merek HNTI) sedang difinalisasi. ETA selesai 18 Mei.',
-  },
-  // ANKE - existing partner, AKL untuk produk baru
-  {
-    id: 'akl_005', principal: 'ANKE', principalCountry: 'China',
-    product: 'CT 32 Slice C201 (Refresh Tipe)', productClass: 'C',
-    stage: 'issued', stageIdx: 6,
-    registerDate: '2026-03-10', targetDate: '2026-04-21',
-    daysElapsed: 32, workingDaysRemaining: 0,
-    preregistDate: '2026-03-10', docsDate: '2026-03-17', submitDate: '2026-03-22',
-    pnbpDate: '2026-03-26', pnbpAmount: 5000000, evalDate: '2026-04-02',
-    fixDate: null, issuedDate: '2026-04-18', aklNo: 'AKL 20603022826',
-    pic: 'Ananda Rifki Bayu Saputra',
-    note: 'AKL terbit tepat waktu (28 hari kerja). Berlaku hingga April 2031.',
-  },
-  // SG Healthcare - existing partner, AKL update
-  {
-    id: 'akl_006', principal: 'SG Healthcare', principalCountry: 'Korea',
-    product: 'X-Ray Ceiling Jumong M (Update Sertifikat)', productClass: 'C',
-    stage: 'preregist', stageIdx: 0,
-    registerDate: '2026-05-12', targetDate: '2026-06-23',
-    daysElapsed: 4, workingDaysRemaining: 26,
-    preregistDate: '2026-05-12', docsDate: null, submitDate: null,
-    pnbpDate: null, pnbpAmount: null, evalDate: null,
-    fixDate: null, issuedDate: null, aklNo: null,
-    pic: 'Ananda Rifki Bayu Saputra',
-    note: 'Persiapan pra-registrasi untuk perpanjangan masa berlaku',
-  },
-];
 
 // ============== Izin Import BAPETEN (prerequisite untuk AKL) ==============
-const IMPORT_STAGES = ['preregist', 'docs', 'submit', 'eval', 'issued'];
-const SEED_IMPORT_RECORDS = [
-  // Angell - 3 produk (principal baru, sedang onboarding)
-  { id: 'imp_001', principal: 'Angell', principalCountry: 'China',
-    product: 'X-Ray Ceiling Digital Premium', stage: 'issued', stageIdx: 4,
-    registerDate: '2026-02-15', preregistDate: '2026-02-15', docsDate: '2026-02-22',
-    submitDate: '2026-03-01', evalDate: '2026-03-10', issuedDate: '2026-04-05',
-    importPermitNo: 'BAPETEN/IMP/2026/00451', pic: 'Ananda Rifki Bayu Saputra',
-    note: 'Izin Import terbit, lanjut pengajuan AKL Kemenkes' },
-  { id: 'imp_002', principal: 'Angell', principalCountry: 'China',
-    product: 'X-Ray Mobile Digital Premium', stage: 'issued', stageIdx: 4,
-    registerDate: '2026-02-15', preregistDate: '2026-02-15', docsDate: '2026-02-22',
-    submitDate: '2026-03-01', evalDate: '2026-03-10', issuedDate: '2026-04-12',
-    importPermitNo: 'BAPETEN/IMP/2026/00452', pic: 'Ananda Rifki Bayu Saputra',
-    note: 'Izin Import terbit, lanjut pengajuan AKL Kemenkes' },
-  { id: 'imp_003', principal: 'Angell', principalCountry: 'China',
-    product: 'Digital Fluoroscopy Premium', stage: 'eval', stageIdx: 3,
-    registerDate: '2026-02-15', preregistDate: '2026-02-15', docsDate: '2026-02-22',
-    submitDate: '2026-03-05', evalDate: '2026-03-15', issuedDate: null,
-    importPermitNo: null, pic: 'Ananda Rifki Bayu Saputra',
-    note: 'Sedang evaluasi BAPETEN - klarifikasi spesifikasi proteksi radiasi' },
-  // Innocare - 1 produk (OEM HAMSKI XR)
-  { id: 'imp_004', principal: 'Innocare', principalCountry: 'Taiwan',
-    product: 'Flat Panel Detector HAMSKI XR', stage: 'issued', stageIdx: 4,
-    registerDate: '2026-01-20', preregistDate: '2026-01-20', docsDate: '2026-01-28',
-    submitDate: '2026-02-05', evalDate: '2026-02-15', issuedDate: '2026-03-25',
-    importPermitNo: 'BAPETEN/IMP/2026/00280', pic: 'Ananda Rifki Bayu Saputra',
-    note: 'Izin Import terbit, AKL Kemenkes dalam proses fix' },
-];
 
 // ============== Izin Pengalihan BAPETEN ==============
-const PENGALIHAN_STAGES = ['submit', 'eval', 'issued'];
-const SEED_PENGALIHAN_RECORDS = [
-  { id: 'pgl_001', customer: 'RS Bhakti Wira Tamtama', modality: 'CT Scan',
-    subModality: 'CT 128 Slice Anatom Precision', destination: 'Semarang',
-    stage: 'issued', stageIdx: 2, submitDate: '2025-08-12', evalDate: '2025-08-22',
-    issuedDate: '2025-09-05', permitNo: 'BAPETEN/PGL/2025/01823',
-    pic: 'Ananda Rifki Bayu Saputra', note: 'Pengalihan ke RS Bhakti Wira Tamtama disetujui' },
-  { id: 'pgl_002', customer: 'RS Premier Bintaro', modality: 'MRI',
-    subModality: 'MRI 1.5T Supermark', destination: 'Tangerang Selatan',
-    stage: 'issued', stageIdx: 2, submitDate: '2025-09-15', evalDate: '2025-09-25',
-    issuedDate: '2025-10-10', permitNo: 'BAPETEN/PGL/2025/02145',
-    pic: 'Ananda Rifki Bayu Saputra', note: 'Pengalihan ke RS Premier Bintaro disetujui' },
-  { id: 'pgl_003', customer: 'RSUD Banyumas', modality: 'X-Ray',
-    subModality: 'X-Ray Stationary 500mA', destination: 'Banyumas, Jateng',
-    stage: 'eval', stageIdx: 1, submitDate: '2026-04-20', evalDate: '2026-05-02',
-    issuedDate: null, permitNo: null,
-    pic: 'Ananda Rifki Bayu Saputra', note: 'Sedang evaluasi - dokumen tambahan diminta' },
-  { id: 'pgl_004', customer: 'RS Hermina Galaxy', modality: 'CT Scan',
-    subModality: 'CT 128 Slice', destination: 'Bekasi',
-    stage: 'submit', stageIdx: 0, submitDate: '2026-05-08', evalDate: null,
-    issuedDate: null, permitNo: null,
-    pic: 'Ananda Rifki Bayu Saputra', note: 'Baru submit, menunggu nomor agenda' },
-  { id: 'pgl_005', customer: 'RSUD Soewandhie Surabaya', modality: 'C-Arm',
-    subModality: 'C-Arm Garion', destination: 'Surabaya',
-    stage: 'eval', stageIdx: 1, submitDate: '2026-04-28', evalDate: '2026-05-10',
-    issuedDate: null, permitNo: null,
-    pic: 'Ananda Rifki Bayu Saputra', note: 'Evaluasi BAPETEN, ETA 2 minggu' },
-];
 
 // ============== Izin Persetujuan Import (PI) - berlaku 21 hari kerja ==============
-const SEED_PI_RECORDS = [
-  { id: 'pi_001', piNo: 'BAPETEN/PI/2026/00891', principal: 'SG Healthcare',
-    shipment: 'SG-SHP-2026-04-12', items: '2x X-Ray Stationary Jumong General + 1x C-Arm Garion',
-    issuedDate: '2026-05-05', expiredDate: '2026-05-26', status: 'active',
-    note: 'Aktif - shipment dalam perjalanan, ETA arrival Tg. Priok 18 Mei' },
-  { id: 'pi_002', piNo: 'BAPETEN/PI/2026/00892', principal: 'ANKE',
-    shipment: 'ANKE-SHP-2026-04-15', items: '1x CT 128 Slice Anatom Precision',
-    issuedDate: '2026-05-08', expiredDate: '2026-05-29', status: 'active',
-    note: 'Aktif - cargo arrival Tg. Priok 20 Mei, akan clearance' },
-  { id: 'pi_003', piNo: 'BAPETEN/PI/2026/00893', principal: 'Hyde Medical',
-    shipment: 'HYDE-SHP-2026-04-20', items: '1x ESWL Tipe 109X',
-    issuedDate: '2026-05-12', expiredDate: '2026-06-02', status: 'active',
-    note: 'Aktif - shipment menuju pelabuhan, ETA 25 Mei' },
-  { id: 'pi_004', piNo: 'BAPETEN/PI/2026/00845', principal: 'SINO MDT',
-    shipment: 'SINO-SHP-2026-03-22', items: '1x Mammography Navigator DRCare',
-    issuedDate: '2026-04-10', expiredDate: '2026-05-01', status: 'used',
-    note: 'Sudah digunakan - clearance Bea Cukai selesai 28 April' },
-  { id: 'pi_005', piNo: 'BAPETEN/PI/2026/00810', principal: 'ANKE',
-    shipment: 'ANKE-SHP-2026-02-15', items: '1x MRI 1.5T Supermark',
-    issuedDate: '2026-03-20', expiredDate: '2026-04-10', status: 'used',
-    note: 'Sudah digunakan - clearance selesai 8 April' },
-];
 
 
 // ============== Uniform 6-Stage Regulatory Pipeline (Phase 2a) ==============
-const REG_STAGES = ['docs', 'submit', 'eval', 'resubmit', 'pnbp', 'issued'];
-const REG_STAGE_COLORS = {
-  docs: '#94a3b8', submit: '#7d9cc5', eval: 'var(--ims-gold)',
-  resubmit: '#c97b3f', pnbp: 'var(--ims-gold-dim)', issued: 'var(--ims-accent-2)',
-};
-const REG_STAGE_DATE_FIELD = {
-  docs: 'docsDate', submit: 'submitDate', eval: 'evalDate',
-  resubmit: 'resubmitDate', pnbp: 'pnbpDate', issued: 'issuedDate',
-};
-const REG_STAGES_DEFAULT = ['docs', 'submit', 'eval', 'resubmit', 'pnbp', 'issued'];
-const REG_STAGES_AKL = ['docs', 'submit', 'pnbp', 'eval', 'resubmit', 'issued'];
 const getRegStages = (recordType) => recordType === 'akl' ? REG_STAGES_AKL : REG_STAGES_DEFAULT;
-const REG_AUTHORITY = {
-  akl: 'Kemenkes', import: 'BAPETEN', pengalihan: 'BAPETEN',
-  pi: 'BAPETEN', bapeten: 'BAPETEN',
-};
-const REG_PNBP_DEFAULT = {
-  akl: 5000000, import: 12500000, pengalihan: 12500000,
-  pi: 12500000, bapeten: 12500000,
-};
-const REG_PERMIT_PREFIX = {
-  import: 'BAPETEN/IMP', pengalihan: 'BAPETEN/PGL',
-  pi: 'BAPETEN/PI', bapeten: 'BAPETEN/PMF', akl: 'AKL',
-};
-const REG_TYPE_LABELS = {
-  akl: { id: 'AKL Kemenkes', en: 'AKL Kemenkes' },
-  import: { id: 'Izin Import', en: 'Import Permit' },
-  pengalihan: { id: 'Izin Pengalihan', en: 'Transfer Permit' },
-  pi: { id: 'Persetujuan Import (PI)', en: 'Import Approval (PI)' },
-  bapeten: { id: 'Izin Pemanfaatan', en: 'Utilization Permit' },
-};
 
 function sanitizeRegStageHistory(history, stage, stages) {
   const rows = Array.isArray(history) ? history : [];
@@ -1762,25 +741,7 @@ function migrateRegRecord(rec, type) {
   return next;
 }
 
-const IMPORT_PIPELINE_STEPS = [
-  { id: 'plan_order', labelId: 'Pesanan Dibuat', labelEn: 'Order Created', color: '#94a3b8' },
-  { id: 'factory_production', labelId: 'Barang Diproduksi/Disiapkan Pabrik', labelEn: 'Factory Production/Preparation', color: '#a026a0' },
-  { id: 'ready_to_ship', labelId: 'Siap Kirim', labelEn: 'Ready to Ship', color: '#7d9cc5' },
-  { id: 'on_shipment', labelId: 'Pengiriman', labelEn: 'Shipment', color: 'var(--ims-accent)' },
-  { id: 'arrived_clearance', labelId: 'Tiba/Clearance', labelEn: 'Arrived/Clearance', color: '#5b87b8' },
-  { id: 'sent_client', labelId: 'Dikirim ke Klien', labelEn: 'Sent to Client', color: '#2f8f6f' },
-  { id: 'client_received', labelId: 'Diterima Klien', labelEn: 'Client Received', color: 'var(--ims-accent-2)' },
-];
 
-const LEGACY_IMPORT_STATUS_MAP = {
-  planning: 'plan_order',
-  loading: 'ready_to_ship',
-  in_transit: 'on_shipment',
-  arrived: 'arrived_clearance',
-  cleared: 'arrived_clearance',
-  delivered: 'sent_client',
-  delivery_to_site: 'client_received',
-};
 
 function normalizeImportPipelineStatus(status) {
   return LEGACY_IMPORT_STATUS_MAP[status] || status || 'plan_order';
@@ -1879,86 +840,10 @@ const SEED_MANIFESTS = generateSeedManifestsFromSph();
 const SEED_CUSTOMS_DOCS = generateSeedCustomsDocsFromSph(SEED_MANIFESTS);
 
 // ============== Installation Records (CRUD) ==============
-const SEED_INSTALL_RECORDS = [
-  { id: 'inst_001', recordNo: 'BA-INST-2026-001', customer: 'RS Bhakti Wira Tamtama',
-    modality: 'CT Scan', subModality: 'CT 128 Slice Anatom Precision',
-    installStart: '2026-04-15', installEnd: '2026-04-20', duration: 5,
-    leadTechnician: 'Robby Dwi Setiawan', teamSize: 3,
-    roomReady: true, electricalReady: true, calibrationDone: true,
-    status: 'completed', notes: 'Instalasi lancar, kalibrasi sesuai spesifikasi pabrik' },
-  { id: 'inst_002', recordNo: 'BA-INST-2026-002', customer: 'RS Premier Bintaro',
-    modality: 'MRI', subModality: 'MRI 1.5T Supermark',
-    installStart: '2026-03-10', installEnd: '2026-03-25', duration: 15,
-    leadTechnician: 'Robby Dwi Setiawan', teamSize: 4,
-    roomReady: true, electricalReady: true, calibrationDone: true,
-    status: 'completed', notes: 'MRI 1.5T butuh shielding khusus, sudah handle dengan baik' },
-  { id: 'inst_003', recordNo: 'BA-INST-2026-003', customer: 'RSUD Banyumas',
-    modality: 'X-Ray', subModality: 'X-Ray Stationary Jumong General',
-    installStart: '2026-04-25', installEnd: null, duration: null,
-    leadTechnician: 'Muhammad Yusuf', teamSize: 2,
-    roomReady: true, electricalReady: true, calibrationDone: false,
-    status: 'progress', notes: 'Sedang dalam tahap testing & calibration' },
-  { id: 'inst_004', recordNo: 'BA-INST-2026-004', customer: 'RS Hermina Galaxy Bekasi',
-    modality: 'CT Scan', subModality: 'CT 64 Slice Anatom Clarity',
-    installStart: '2026-05-08', installEnd: null, duration: null,
-    leadTechnician: 'Robby Dwi Setiawan', teamSize: 3,
-    roomReady: true, electricalReady: false, calibrationDone: false,
-    status: 'delayed', notes: 'Tertunda karena instalasi panel listrik dari pihak RS belum selesai' },
-  { id: 'inst_005', recordNo: 'BA-INST-2026-005', customer: 'RS Husada Utama Surabaya',
-    modality: 'C-Arm', subModality: 'C-Arm Garion',
-    installStart: '2026-05-20', installEnd: null, duration: null,
-    leadTechnician: 'Muh. Nur Ichsan', teamSize: 2,
-    roomReady: false, electricalReady: false, calibrationDone: false,
-    status: 'planning', notes: 'Survey lokasi sudah dilakukan, menunggu RS finalisasi ruangan' },
-];
 
 // ============== BAST Records (CRUD) ==============
-const SEED_BAST_RECORDS = [
-  { id: 'bast_001', bastNo: 'BAST-HNTI-2026-001', customer: 'RS Bhakti Wira Tamtama',
-    modality: 'CT Scan', subModality: 'CT 128 Slice Anatom Precision',
-    signedDate: '2026-04-22', hntiRep: 'Fajrin (CEO HNTI)',
-    customerRep: 'dr. Setiawan, Sp.Rad (Direktur)', witness: 'Notaris H. Sutrisno, S.H.',
-    status: 'signed', docUrl: '', notes: 'BAST ditandatangani 2 hari setelah selesai instalasi & uji fungsi' },
-  { id: 'bast_002', bastNo: 'BAST-HNTI-2026-002', customer: 'RS Premier Bintaro',
-    modality: 'MRI', subModality: 'MRI 1.5T Supermark',
-    signedDate: '2026-03-28', hntiRep: 'Fajrin (CEO HNTI)',
-    customerRep: 'dr. Ratna, Sp.Rad (Kepala Instalasi Radiologi)', witness: 'Bpk. Hartono (Notaris)',
-    status: 'signed', docUrl: '', notes: 'BAST 3 hari setelah selesai instalasi + uji paparan' },
-  { id: 'bast_003', bastNo: 'BAST-HNTI-2026-003', customer: 'RSUD Banyumas',
-    modality: 'X-Ray', subModality: 'X-Ray Stationary Jumong General',
-    signedDate: '', hntiRep: 'Lukman (Sales)',
-    customerRep: 'Belum ditunjuk', witness: '',
-    status: 'pending', docUrl: '', notes: 'BAST akan dibuat setelah instalasi & uji fungsi selesai' },
-  { id: 'bast_004', bastNo: 'BAST-HNTI-2026-004', customer: 'RSUD Cibinong',
-    modality: 'CT Scan', subModality: 'CT 32 Slice C201',
-    signedDate: '2026-02-15', hntiRep: 'Fajrin (CEO HNTI)',
-    customerRep: 'dr. Ahmad, Sp.Rad', witness: 'Bpk. Sugiyono (Saksi RS)',
-    status: 'signed', docUrl: '', notes: 'BAST selesai, proses administrasi pembayaran SP2D dimulai' },
-];
 
 // ============== Training Certificate Records (CRUD) ==============
-const SEED_TRAINING_RECORDS = [
-  { id: 'train_001', certNo: 'CERT-HNTI-2026-001', customer: 'RS Bhakti Wira Tamtama',
-    modality: 'CT Scan', subModality: 'CT 128 Slice Anatom Precision',
-    sessionDate: '2026-04-21', participants: 4, instructor: 'Robby Dwi Setiawan + Engineer ANKE',
-    duration: 16, topics: 'Operasional dasar, scan protocol, dose management, troubleshooting basic',
-    status: 'completed', certUrl: '', notes: 'Training 2 hari, 4 radiografer + 1 dokter spesialis' },
-  { id: 'train_002', certNo: 'CERT-HNTI-2026-002', customer: 'RS Premier Bintaro',
-    modality: 'MRI', subModality: 'MRI 1.5T Supermark',
-    sessionDate: '2026-03-26', participants: 6, instructor: 'Engineer ANKE + Aplikator Specialist',
-    duration: 24, topics: 'MRI safety, sequence protocols, image quality, patient positioning, emergency procedure',
-    status: 'completed', certUrl: '', notes: 'Training intensif 3 hari, sertifikat dari ANKE Headquarters' },
-  { id: 'train_003', certNo: 'CERT-HNTI-2026-003', customer: 'RSUD Cibinong',
-    modality: 'CT Scan', subModality: 'CT 32 Slice C201',
-    sessionDate: '2026-02-12', participants: 3, instructor: 'Robby Dwi Setiawan',
-    duration: 12, topics: 'Operasional, scan protocol dasar, perawatan harian',
-    status: 'completed', certUrl: '', notes: 'Training 1.5 hari' },
-  { id: 'train_004', certNo: '', customer: 'RSUD Banyumas',
-    modality: 'X-Ray', subModality: 'X-Ray Stationary Jumong General',
-    sessionDate: '', participants: 0, instructor: '',
-    duration: 0, topics: '',
-    status: 'pending', certUrl: '', notes: 'Training akan dijadwalkan setelah instalasi selesai' },
-];
 
 // ============== Auto-generate complete installation documentation for ALL installed units ==============
 // Setiap unit TERPASANG (installationStatus='installed') mendapat BA-INST, BAST, dan Sertifikat Training
@@ -2004,260 +889,11 @@ const INSTALL_DOCS = generateInstallDocs();
 // Status workflow: draft → pending_finance → pending_mops → pending_gm → approved → paid → in_progress → completed
 // Reject di level mana saja: status = 'rejected'
 // Klarifikasi: status = 'clarification' (kembali ke employee untuk revise)
-const SEED_BUSINESS_TRIPS = [
-  // 1. Tri (Manager Sales Jatim) — APPROVED & PAID, sedang berlangsung
-  { id: 'bt_2026_001', requestNo: 'BT-2026-001',
-    travelerUsername: 'tri', travelerName: 'Tri Sutjahjono', position: 'Manager', allowancePerDay: 175000,
-    destination: 'Surabaya + Gresik', destinationCity: 'Surabaya',
-    purpose: 'Closing PO RS Premier Surabaya & koordinasi KSO RSUD Ibnu Sina Gresik',
-    dateStart: '2026-05-08', dateEnd: '2026-05-12', duration: 5,
-    costs: {
-      taxiHome: 150000, taxiArrival: 120000, taxiRs: 250000,
-      localTransport: 400000, meals: 800000, other: 0, otherNotes: '',
-      allowanceTotal: 5 * 175000, // 875000
-    },
-    officeBooked: { ticketPP: 2400000, hotelTotal: 2800000, ticketNote: 'Tiket Garuda PNR ABC123', hotelNote: 'Hotel Sheraton Surabaya 4 malam' },
-    totalAdvance: 150000 + 120000 + 250000 + 400000 + 800000 + 875000, // 2595000
-    bankAccount: { bankName: 'BCA', accountNo: '5210345678', holderName: 'Tri Sutjahjono' },
-    status: 'in_progress', tripStatus: 'ongoing', paymentStatus: 'paid',
-    paidDate: '2026-05-06', paidAmount: 2595000, paidProof: 'https://drive.google.com/file/d/example001',
-    approvalHistory: [
-      { level: 'submit', by: 'tri', byName: 'Tri Sutjahjono', date: '2026-05-02', action: 'submitted', note: '' },
-      { level: 'finance', by: 'finance', byName: 'Riris Elia', date: '2026-05-03', action: 'approved', note: 'Estimasi biaya wajar untuk Surabaya 5 hari' },
-      { level: 'manager_ops', by: 'manager_ops', byName: 'Novan Restu', date: '2026-05-04', action: 'approved', note: 'Closing PO Premier Surabaya prioritas tinggi' },
-      { level: 'gm', by: 'gm', byName: 'Endah Purwitasari', date: '2026-05-05', action: 'approved', note: 'Disetujui, proses transfer' },
-      { level: 'finance', by: 'finance', byName: 'Riris Elia', date: '2026-05-06', action: 'paid', note: 'Transfer BCA Rp 2.595.000' },
-    ],
-    submittedAt: '2026-05-02', updatedAt: '2026-05-06',
-    realizationId: 'btr_2026_002',
-  },
-
-  // 2. Lukman (Staff Sales Jateng) — PENDING REVIEW MANAGER OPS
-  { id: 'bt_2026_002', requestNo: 'BT-2026-002',
-    travelerUsername: 'lukman', travelerName: 'Lukman', position: 'Staff', allowancePerDay: 130000,
-    destination: 'Solo + Karanganyar + Klaten', destinationCity: 'Solo',
-    purpose: 'Follow up RS PKU Muhammadiyah Solo (CT 128) & visit baru RSUD Karanganyar',
-    dateStart: '2026-05-20', dateEnd: '2026-05-24', duration: 5,
-    costs: {
-      taxiHome: 100000, taxiArrival: 0, taxiRs: 200000,
-      localTransport: 600000, meals: 500000, other: 150000, otherNotes: 'Parkir, retribusi RS',
-      allowanceTotal: 5 * 130000, // 650000
-    },
-    officeBooked: { ticketPP: 0, hotelTotal: 1800000, ticketNote: '-', hotelNote: 'Hotel Lokananta Solo 4 malam (kantor pesan)' },
-    totalAdvance: 100000 + 0 + 200000 + 600000 + 500000 + 150000 + 650000, // 2200000
-    bankAccount: { bankName: 'Mandiri', accountNo: '1370098765432', holderName: 'Lukman' },
-    status: 'pending_mops', tripStatus: 'planned', paymentStatus: 'pending',
-    paidDate: null, paidAmount: 0, paidProof: '',
-    approvalHistory: [
-      { level: 'submit', by: 'lukman', byName: 'Lukman', date: '2026-05-15', action: 'submitted', note: '' },
-      { level: 'finance', by: 'finance', byName: 'Riris Elia', date: '2026-05-16', action: 'approved', note: 'Allowance & estimasi taxi sesuai standar Solo' },
-    ],
-    submittedAt: '2026-05-15', updatedAt: '2026-05-16',
-    realizationId: null,
-  },
-
-  // 3. Bagus (Manager Sales Jatim 2) — PENDING REVIEW FINANCE (newest)
-  { id: 'bt_2026_003', requestNo: 'BT-2026-003',
-    travelerUsername: 'bagus', travelerName: 'Bagus Iswahyudi', position: 'Manager', allowancePerDay: 175000,
-    destination: 'Bali + Lombok', destinationCity: 'Denpasar',
-    purpose: 'Follow up RS BaliMed Denpasar (instalasi C-Arm) & visit baru RSUD Mataram',
-    dateStart: '2026-05-22', dateEnd: '2026-05-27', duration: 6,
-    costs: {
-      taxiHome: 150000, taxiArrival: 200000, taxiRs: 350000,
-      localTransport: 900000, meals: 1200000, other: 250000, otherNotes: 'Ferry Bali-Lombok PP, parkir',
-      allowanceTotal: 6 * 175000, // 1050000
-    },
-    officeBooked: { ticketPP: 4500000, hotelTotal: 3600000, ticketNote: 'Tiket Garuda CGK-DPS PP + Wings DPS-LOP', hotelNote: 'Hotel Maya Sanur 5 malam' },
-    totalAdvance: 150000 + 200000 + 350000 + 900000 + 1200000 + 250000 + 1050000, // 4100000
-    bankAccount: { bankName: 'BNI', accountNo: '0123456789', holderName: 'Bagus Iswahyudi' },
-    status: 'pending_finance', tripStatus: 'planned', paymentStatus: 'pending',
-    paidDate: null, paidAmount: 0, paidProof: '',
-    approvalHistory: [
-      { level: 'submit', by: 'bagus', byName: 'Bagus Iswahyudi', date: '2026-05-17', action: 'submitted', note: '' },
-    ],
-    submittedAt: '2026-05-17', updatedAt: '2026-05-17',
-    realizationId: null,
-  },
-
-  // 4. Budi (Teknisi) — PENDING REVIEW GM (sudah approve finance & manager_ops)
-  { id: 'bt_2026_004', requestNo: 'BT-2026-004',
-    travelerUsername: 'teknisi', travelerName: 'Robby Dwi Setiawan', position: 'Supervisor', allowancePerDay: 150000,
-    destination: 'Banyumas + Cilacap', destinationCity: 'Purwokerto',
-    purpose: 'Instalasi X-Ray RSUD Banyumas (lanjutan) + PM CT Scan RSUD Cilacap',
-    dateStart: '2026-05-26', dateEnd: '2026-05-30', duration: 5,
-    costs: {
-      taxiHome: 100000, taxiArrival: 0, taxiRs: 300000,
-      localTransport: 700000, meals: 600000, other: 200000, otherNotes: 'Pembelian alat tambahan instalasi',
-      allowanceTotal: 5 * 150000, // 750000
-    },
-    officeBooked: { ticketPP: 0, hotelTotal: 1600000, ticketNote: '-', hotelNote: 'Hotel Java Heritage Purwokerto 4 malam' },
-    totalAdvance: 100000 + 0 + 300000 + 700000 + 600000 + 200000 + 750000, // 2650000
-    bankAccount: { bankName: 'BRI', accountNo: '003901123456', holderName: 'Robby Dwi Setiawan' },
-    status: 'pending_gm', tripStatus: 'planned', paymentStatus: 'pending',
-    paidDate: null, paidAmount: 0, paidProof: '',
-    approvalHistory: [
-      { level: 'submit', by: 'teknisi', byName: 'Robby Dwi Setiawan', date: '2026-05-15', action: 'submitted', note: '' },
-      { level: 'finance', by: 'finance', byName: 'Riris Elia', date: '2026-05-16', action: 'approved', note: 'Estimasi biaya wajar untuk teknisi field 5 hari' },
-      { level: 'manager_ops', by: 'manager_ops', byName: 'Novan Restu', date: '2026-05-17', action: 'approved', note: 'Instalasi RSUD Banyumas urgent harus selesai' },
-    ],
-    submittedAt: '2026-05-15', updatedAt: '2026-05-17',
-    realizationId: null,
-  },
-
-  // 5. Dwi (Manager Sales Jabodetabek) — APPROVED & PAID, completed (siap untuk realisasi)
-  { id: 'bt_2026_005', requestNo: 'BT-2026-005',
-    travelerUsername: 'dwi', travelerName: 'Dwi Wahyudianto', position: 'Manager', allowancePerDay: 175000,
-    destination: 'Bandung + Cimahi', destinationCity: 'Bandung',
-    purpose: 'Closing RS Borromeus Bandung (MRI) & follow up RS Hasan Sadikin',
-    dateStart: '2026-05-05', dateEnd: '2026-05-08', duration: 4,
-    costs: {
-      taxiHome: 150000, taxiArrival: 0, taxiRs: 200000,
-      localTransport: 500000, meals: 700000, other: 100000, otherNotes: 'Tol & parkir',
-      allowanceTotal: 4 * 175000, // 700000
-    },
-    officeBooked: { ticketPP: 0, hotelTotal: 2200000, ticketNote: '-', hotelNote: 'Hotel Aston Bandung 3 malam' },
-    totalAdvance: 150000 + 0 + 200000 + 500000 + 700000 + 100000 + 700000, // 2350000
-    bankAccount: { bankName: 'BCA', accountNo: '5210456789', holderName: 'Dwi Wahyudianto' },
-    status: 'completed', tripStatus: 'completed', paymentStatus: 'paid',
-    paidDate: '2026-05-04', paidAmount: 2350000, paidProof: 'https://drive.google.com/file/d/example005',
-    approvalHistory: [
-      { level: 'submit', by: 'dwi', byName: 'Dwi Wahyudianto', date: '2026-04-28', action: 'submitted', note: '' },
-      { level: 'finance', by: 'finance', byName: 'Riris Elia', date: '2026-04-29', action: 'approved', note: 'OK' },
-      { level: 'manager_ops', by: 'manager_ops', byName: 'Novan Restu', date: '2026-04-30', action: 'approved', note: 'Closing Borromeus prioritas' },
-      { level: 'gm', by: 'gm', byName: 'Endah Purwitasari', date: '2026-05-02', action: 'approved', note: 'Approved' },
-      { level: 'finance', by: 'finance', byName: 'Riris Elia', date: '2026-05-04', action: 'paid', note: 'Transfer BCA' },
-    ],
-    submittedAt: '2026-04-28', updatedAt: '2026-05-08',
-    realizationId: 'btr_2026_001',
-  },
-
-  // 6. Hatim — REJECTED by Finance (alasan dummy: budget belum tersedia)
-  { id: 'bt_2026_006', requestNo: 'BT-2026-006',
-    travelerUsername: 'hatim', travelerName: 'Hatim', position: 'Staff', allowancePerDay: 130000,
-    destination: 'Kudus + Pati + Jepara', destinationCity: 'Kudus',
-    purpose: 'Visit baru RSUD Jepara + follow up RS Mardi Rahayu Kudus',
-    dateStart: '2026-05-22', dateEnd: '2026-05-27', duration: 6,
-    costs: {
-      taxiHome: 100000, taxiArrival: 0, taxiRs: 250000,
-      localTransport: 750000, meals: 500000, other: 0, otherNotes: '',
-      allowanceTotal: 6 * 130000, // 780000
-    },
-    officeBooked: { ticketPP: 0, hotelTotal: 1500000, ticketNote: '-', hotelNote: 'Hotel @HOM Kudus 5 malam' },
-    totalAdvance: 100000 + 0 + 250000 + 750000 + 500000 + 0 + 780000, // 2380000
-    bankAccount: { bankName: 'Mandiri', accountNo: '1370012345678', holderName: 'Hatim' },
-    status: 'rejected', tripStatus: 'cancelled', paymentStatus: 'pending',
-    paidDate: null, paidAmount: 0, paidProof: '',
-    approvalHistory: [
-      { level: 'submit', by: 'hatim', byName: 'Hatim', date: '2026-05-14', action: 'submitted', note: '' },
-      { level: 'finance', by: 'finance', byName: 'Riris Elia', date: '2026-05-15', action: 'rejected', note: 'Durasi terlalu panjang untuk territory Jateng A. Mohon dipersingkat menjadi maks 4 hari dan submit ulang.' },
-    ],
-    submittedAt: '2026-05-14', updatedAt: '2026-05-15',
-    realizationId: null,
-  },
-
-  // 7. Icha (Sales baru) — NEEDS CLARIFICATION dari Manager Ops
-  { id: 'bt_2026_007', requestNo: 'BT-2026-007',
-    travelerUsername: 'icha', travelerName: 'Ika Apriani (Icha)', position: 'Staff', allowancePerDay: 130000,
-    destination: 'Tangerang + Bekasi', destinationCity: 'Tangerang',
-    purpose: 'Demo X-Ray DR ke RS Awal Bros Tangerang & follow up RS Hermina Bekasi',
-    dateStart: '2026-05-25', dateEnd: '2026-05-27', duration: 3,
-    costs: {
-      taxiHome: 100000, taxiArrival: 0, taxiRs: 200000,
-      localTransport: 400000, meals: 250000, other: 0, otherNotes: '',
-      allowanceTotal: 3 * 130000, // 390000
-    },
-    officeBooked: { ticketPP: 0, hotelTotal: 0, ticketNote: '-', hotelNote: 'PP harian, tidak menginap' },
-    totalAdvance: 100000 + 0 + 200000 + 400000 + 250000 + 0 + 390000, // 1340000
-    bankAccount: { bankName: 'BCA', accountNo: '5210999888', holderName: 'Ika Apriani' },
-    status: 'clarification', tripStatus: 'planned', paymentStatus: 'pending',
-    paidDate: null, paidAmount: 0, paidProof: '',
-    approvalHistory: [
-      { level: 'submit', by: 'icha', byName: 'Ika Apriani (Icha)', date: '2026-05-15', action: 'submitted', note: '' },
-      { level: 'finance', by: 'finance', byName: 'Riris Elia', date: '2026-05-16', action: 'approved', note: 'OK' },
-      { level: 'manager_ops', by: 'manager_ops', byName: 'Novan Restu', date: '2026-05-17', action: 'clarification', note: 'Mohon konfirmasi: apakah perlu didampingi Dwi (Manager) untuk demo X-Ray? Jika ya, ajukan terpisah. Jika tidak, please update purpose dan submit ulang.' },
-    ],
-    submittedAt: '2026-05-15', updatedAt: '2026-05-17',
-    realizationId: null,
-  },
-];
 
 // ============== Business Trip Realizations Seed ==============
 // Hanya trip dengan status in_progress / completed yang sudah paid yang dapat dilaporkan realisasinya
 // Workflow: draft → pending_finance → pending_mops → pending_gm → approved
 // Hanya tombol Setujui + Klarifikasi (TIDAK ada Tolak, sesuai instruksi Bapak Fajrin)
-const SEED_BT_REALIZATIONS = [
-  // 1. Dwi (BT-2026-005) - Completed trip, realisasi sudah APPROVED, ada SELISIH LEBIH (kantor reimburse)
-  // Cash Advance Rp 2.350.000, actual Rp 2.530.000 → kantor ganti Rp 180.000
-  { id: 'btr_2026_001', realizationNo: 'BTR-2026-001',
-    businessTripId: 'bt_2026_005', businessTripNo: 'BT-2026-005',
-    travelerUsername: 'dwi', travelerName: 'Dwi Wahyudianto', position: 'Manager', allowancePerDay: 175000,
-    destination: 'Bandung + Cimahi', destinationCity: 'Bandung',
-    dateStart: '2026-05-05', dateEnd: '2026-05-08',
-    plannedDays: 4, actualDays: 4,
-    totalAdvanceReceived: 2350000,
-    actualCosts: {
-      taxiHome: 180000, taxiArrival: 0, taxiRs: 220000,
-      localTransport: 550000, meals: 780000, other: 100000, otherNotes: 'Tol & parkir',
-    },
-    actualAllowance: 4 * 175000, // 700000
-    totalActual: 180000 + 0 + 220000 + 550000 + 780000 + 100000 + 700000, // 2530000
-    difference: 2350000 - (180000 + 0 + 220000 + 550000 + 780000 + 100000 + 700000), // -180000 (kantor ganti)
-    proofs: {
-      taxiHome: 'https://drive.google.com/file/d/example_taxi_home_dwi',
-      taxiRs: 'https://drive.google.com/file/d/example_taxi_rs_dwi',
-      localTransport: 'https://drive.google.com/file/d/example_local_transport_dwi',
-      meals: 'https://drive.google.com/file/d/example_meals_dwi',
-      other: 'https://drive.google.com/file/d/example_other_dwi',
-    },
-    notes: 'Trip closing RS Borromeus berhasil. Meal cost lebih tinggi karena dinner client. Tol & parkir lebih besar dari estimasi karena macet Jakarta-Bandung.',
-    status: 'approved',
-    approvalHistory: [
-      { level: 'submit', by: 'dwi', byName: 'Dwi Wahyudianto', date: '2026-05-09', action: 'submitted', note: '' },
-      { level: 'finance', by: 'finance', byName: 'Riris Elia', date: '2026-05-10', action: 'approved', note: 'Semua bukti verified. Selisih kekurangan Rp 180.000 akan ditransfer.' },
-      { level: 'manager_ops', by: 'manager_ops', byName: 'Novan Restu', date: '2026-05-11', action: 'approved', note: 'OK, biaya wajar untuk closing Borromeus' },
-      { level: 'gm', by: 'gm', byName: 'Endah Purwitasari', date: '2026-05-12', action: 'approved', note: 'Approved, proses settlement' },
-    ],
-    submittedAt: '2026-05-09', updatedAt: '2026-05-12',
-    settlementStatus: 'settled',
-    settlementDate: '2026-05-13',
-    settlementAmount: 180000,
-    settlementNote: 'Transfer reimburse selisih Rp 180.000 ke rekening Dwi (BCA 5210456789)',
-  },
-
-  // 2. Tri (BT-2026-001) - In progress, draft realisasi (belum disubmit)
-  // Hari aktual 5 hari, biaya lebih hemat dari rencana
-  { id: 'btr_2026_002', realizationNo: 'BTR-2026-002',
-    businessTripId: 'bt_2026_001', businessTripNo: 'BT-2026-001',
-    travelerUsername: 'tri', travelerName: 'Tri Sutjahjono', position: 'Manager', allowancePerDay: 175000,
-    destination: 'Surabaya + Gresik', destinationCity: 'Surabaya',
-    dateStart: '2026-05-08', dateEnd: '2026-05-12',
-    plannedDays: 5, actualDays: 5,
-    totalAdvanceReceived: 2595000,
-    actualCosts: {
-      taxiHome: 140000, taxiArrival: 110000, taxiRs: 230000,
-      localTransport: 350000, meals: 700000, other: 0, otherNotes: '',
-    },
-    actualAllowance: 5 * 175000, // 875000
-    totalActual: 140000 + 110000 + 230000 + 350000 + 700000 + 0 + 875000, // 2405000
-    difference: 2595000 - (140000 + 110000 + 230000 + 350000 + 700000 + 0 + 875000), // 190000 (lebih, karyawan kembalikan)
-    proofs: {
-      taxiHome: 'https://drive.google.com/file/d/example_taxi_home_tri',
-      taxiArrival: 'https://drive.google.com/file/d/example_taxi_arrival_tri',
-      taxiRs: 'https://drive.google.com/file/d/example_taxi_rs_tri',
-      localTransport: '',
-      meals: 'https://drive.google.com/file/d/example_meals_tri',
-      other: '',
-    },
-    notes: 'Draft realisasi. Closing PO Premier Surabaya sukses, masih input belum lengkap upload bukti.',
-    status: 'draft',
-    approvalHistory: [],
-    submittedAt: '', updatedAt: '2026-05-13',
-    settlementStatus: 'pending',
-    settlementDate: null,
-    settlementAmount: 0,
-    settlementNote: '',
-  },
-];
 
 // ============== Historical Business Trip Seed Generator ==============
 // Generates realistic 2025 (12 months) + 2026 (Jan-May) trips for all employees
@@ -2523,33 +1159,9 @@ function generateRegulatoryRecords(units) {
   });
 }
 
-const STAGES = [
-  { id: 'sph_sent', baseProbability: 20, color: '#94a3b8' },
-  { id: 'presentation_scheduled', baseProbability: 35, color: '#7d9cc5' },
-  { id: 'presentation_done', baseProbability: 50, color: '#5b87b8' },
-  { id: 'ecatalog', baseProbability: 40, color: '#a37fc0' },
-  { id: 'negotiation', baseProbability: 70, color: 'var(--ims-accent)' },
-  { id: 'tender', baseProbability: 55, color: 'var(--ims-gold-dim)' },
-  { id: 'po_issued', baseProbability: 100, color: 'var(--ims-accent-2)' },
-  { id: 'lost', baseProbability: 0, color: '#8b3a3a' },
-];
 
-const PROJECT_TYPES = [
-  { id: 'private', color: '#3a5a8a' },
-  { id: 'government', color: '#8a5a3a' },
-  { id: 'tender', color: '#5a3a8a' },
-  { id: 'kso', color: 'var(--ims-accent)' },
-];
 
-const MODALITY_COLORS = {
-  'CT Scan': '#1a4d8a', 'MRI': 'var(--ims-gold)', 'C-Arm': '#8a5a3a',
-  'X-Ray': '#5a8a5a', 'Mammography': '#8a3a5a', 'ESWL': '#3a8a8a',
-  'Flat Panel Detector': '#6a5acd',
-  'X-Ray Stationer': '#5a8a5a', 'X-Ray Ceiling': '#4a7a4a',
-  'X-Ray Mobile': '#6a9a6a', 'X-Ray Portable': '#3a6a3a',
-};
 
-const TENDER_SUBSTAGES = ['aanwijzing', 'presentation', 'bid_opening', 'announcement', 'objection', 'award'];
 
 // Helpers
 const formatCurrency = (n, lang, rate) => {
@@ -2608,76 +1220,13 @@ const normalizeExternalUrl = (url) => {
 };
 
 // Storage
-const STORAGE_KEY = 'ims_hnti:data_v30';
-const REPORTS_KEY = 'ims_hnti:reports_v22';
-const PRODUCT_KEY = 'ims_hnti:prod_v24';
-const PRODUCT_SUPPORT_ACTIVITIES_KEY = 'ims_hnti:product_support_activities_v1';
-const PRODUCT_SUPPORT_FILES_KEY = 'ims_hnti:product_support_files_v1';
-const DOCUMENT_TEMPLATE_KEY = 'ims_hnti:document_templates_v1';
-const GENERATED_DOCS_KEY = 'ims_hnti:generated_docs_v1'; // riwayat dokumen hasil editor (SPH/SPP/Invoice/Kwitansi/BA)
-const LANG_KEY = 'ims_hnti:lang_v22';
-const SESSION_KEY = 'ims_hnti:session_v22';
-const RATE_KEY = 'ims_hnti:rate_v23';
 // ── Logo assets (pastikan kedua file ada di folder /public/ di repo GitHub) ──────────────
 // logo.png  → berlatar putih, untuk halaman login
 // logo3.png → berlatar gelap, untuk header & sidebar
 const LOGO_MAIN_SRC = logoFull;
 const LOGO_ICON_SRC = logoKecil;
 
-const DOC_TYPE_LABELS = {
-  sph: 'Surat Penawaran Harga (SPH)',
-  spp: 'Surat Permohonan Presentasi (SPP)',
-  invoice: 'Invoice',
-  kwitansi: 'Kwitansi',
-  bai: 'Berita Acara Instalasi',
-  bauji_fungsi: 'Berita Acara Uji Fungsi',
-  batraining: 'Berita Acara Training',
-  bast_barang: 'Berita Acara Serah Terima Barang',
-  po_principal: 'PO Principal',
-};
-const OFFICIAL_DOC_TEMPLATE_TYPES = [
-  { key: 'invoice', label: 'Invoice' },
-  { key: 'kwitansi', label: 'Kwitansi' },
-  { key: 'spp', label: 'Surat Permohonan Presentasi' },
-  { key: 'bai', label: 'Berita Acara Instalasi' },
-  { key: 'bauji_fungsi', label: 'Berita Acara Uji Fungsi' },
-  { key: 'batraining', label: 'Berita Acara Training' },
-  { key: 'bast_barang', label: 'Berita Acara Serah Terima Barang' },
-  { key: 'sph', label: 'Surat Penawaran Harga' },
-  { key: 'po_principal', label: 'PO Principal' },
-];
 
-const DEFAULT_DOCUMENT_TEMPLATES = {
-  companyName: 'PT Harmoni Nasional Teknologi Indonesia',
-  companyAddress: 'Ruko Rich Palace Blok D5 No.36-40, Jakarta Barat',
-  companyPhone: '(021) 2256 3477',
-  companyEmail: '',
-  companyWebsite: 'hnti.co.id',
-  bankName: '',
-  bankAccountNo: '',
-  bankAccountName: 'PT Harmoni Nasional Teknologi Indonesia',
-  letterheadImage: '',
-  letterheadMarginTop: 25,    // mm — area kosong atas utk header gambar kop
-  letterheadMarginBottom: 35, // mm — area kosong bawah utk footer gambar kop
-  logoImage: '',
-  stampImage: '',
-  documentFiles: OFFICIAL_DOC_TEMPLATE_TYPES.map((type) => ({ id: type.key, type: type.key, label: type.label, fileName: '', mimeType: '', dataUrl: '', uploadedAt: '' })),
-  signatures: {
-    sales: { name: '', title: 'Account Executive', image: '' },
-    finance: { name: 'Finance HNTI', title: 'Finance', image: '' },
-    operations: { name: 'Novan Restu Aryanto', title: 'Operational Manager', image: '' },
-    director: { name: 'Fajrin Abdillah', title: 'Direktur', image: '' },
-  },
-  extraSignatures: [],
-  terms: {
-    sph: 'Harga sudah termasuk PPN.\nHarga franco lokasi pelanggan.\nHarga sudah termasuk instalasi, training, uji fungsi, uji kesesuaian, dan uji paparan sesuai kebutuhan produk.\nSurat penawaran berlaku 30 hari sejak tanggal diterbitkan.',
-    spp: 'Surat ini digunakan untuk permohonan jadwal presentasi produk kepada calon klien.\nAgenda presentasi, peserta, dan materi mengikuti kebutuhan klien.\nPerubahan jadwal wajib dikonfirmasi tertulis oleh pihak terkait.',
-    invoice: 'Pembayaran dianggap sah setelah dana efektif diterima di rekening perusahaan.\nInvoice dan kwitansi ini satu kesatuan dokumen penagihan.',
-    po: 'Payment terms mengikuti kesepakatan principal dan dokumen SPH/PO.\nPacking menggunakan Standard Export Packing.\nWarranty mengikuti dokumen penawaran principal.',
-  },
-  footerNote: 'Dokumen ini dibuat melalui IMS HNTI.',
-  updatedAt: '',
-};
 
 function mergeDocumentTemplates(stored = {}) {
   const src = stored && typeof stored === 'object' ? stored : {};
@@ -3216,10 +1765,6 @@ function normalizePoWon(arr) {
 }
 
 // ============== Incentive Configuration ==============
-const PPN_RATE = 0.11;        // PPN 11%
-const PPH23_RATE = 0.025;     // PPh 23 2.5%
-const OPS_COST_DEFAULT = 0.05; // Default operasional proyek 5%
-const INCENTIVE_RATE = 0.015;  // 1.5% dari Net Sales
 
 // Calculate incentive breakdown for a given SPH/PO
 function calcIncentive(sph) {
@@ -3265,17 +1810,6 @@ function getIncentiveStatus(sph) {
 }
 
 // ============== Net Profit Configuration ==============
-const NET_MARGIN_BY_MODALITY = {
-  'MRI': 0.12,
-  'CT Scan': 0.14,
-  'C-Arm': 0.16,
-  'Mammography': 0.15,
-  'ESWL': 0.14,
-  'X-Ray': 0.18,
-  'Flat Panel Detector': 0.19,
-  'Digital Fluoroscopy': 0.13,
-};
-const NET_MARGIN_DEFAULT = 0.15;
 
 function getNetMargin(sph) {
   if (sph.netMarginOverride !== undefined && sph.netMarginOverride !== null) return sph.netMarginOverride;
@@ -3291,18 +1825,6 @@ function calcNetProfit(sph) {
 }
 
 // Payment term mapping
-const PAYMENT_TERMS = {
-  'cash': { label: 'pt_cash', installments: 0, dpRequired: false },
-  'dp_1': { label: 'pt_dp_1', installments: 1, dpRequired: true },
-  'dp_3': { label: 'pt_dp_3', installments: 3, dpRequired: true },
-  'dp_6': { label: 'pt_dp_6', installments: 6, dpRequired: true },
-  'dp_12': { label: 'pt_dp_12', installments: 12, dpRequired: true },
-  'dp_18': { label: 'pt_dp_18', installments: 18, dpRequired: true },
-  'dp_24': { label: 'pt_dp_24', installments: 24, dpRequired: true },
-  'dp_36': { label: 'pt_dp_36', installments: 36, dpRequired: true },
-  'post_bast': { label: 'pt_post_bast', installments: 0, dpRequired: false },
-  'kso_monthly': { label: 'pt_kso_monthly', installments: 60, dpRequired: false },
-};
 
 // ============== Refined Logo (3-layer diamond) ==============
 // React.memo wrapped - logo is pure presentational, no state, no parent re-render needed
@@ -3327,44 +1849,6 @@ const IMSLogo = React.memo(function IMSLogo({ size = 'md' }) {
 // Dua tema: Venta Emerald (default, brightened) + Sapphire Noir (investor-pitch).
 // Preferensi disimpan per-device di localStorage, JANGAN di-sync Realtime
 // (Pak Fajrin bisa pakai laptop pitch di Sapphire, workstation harian di Emerald).
-const IMS_THEMES = {
-  ve: {
-    name: 'Venta Emerald',
-    // Surfaces
-    bg: '#05130c', bgCard: '#082015', bgCard2: '#0c2820', bgAlt: '#0a2418',
-    border: '#235a45', borderSoft: '#1a3a2c',
-    // Text
-    text: '#f0fbf3', text2: '#a8d2bd', text3: '#6e9b82',
-    // Accents (primary brand color)
-    accent: '#4ef0a8', accent2: '#3eb88a', accentInk: '#04130b',
-    accentGlow: 'rgba(78,240,168,0.55)',
-    accentBg: 'rgba(78,240,168,0.08)', accentBgStrong: 'rgba(78,240,168,0.16)',
-    // Gold
-    gold: '#fcd116', goldBright: '#ffec47', goldDim: '#b8935a',
-    goldBg: '#241f0c', goldGlow: 'rgba(255,236,71,0.7)',
-    // Logo gradient stops
-    logo1: '#ffec47', logo2: '#fcd116', logo3: '#4ef0a8',
-    // Scrollbar
-    sbTrack: '#0a1a13', sbThumb: '#235a45',
-    // Page ambient
-    ambient: 'radial-gradient(60% 50% at 18% 0%, rgba(16,185,129,0.10) 0%, transparent 55%), radial-gradient(50% 45% at 90% 8%, rgba(45,212,191,0.07) 0%, transparent 55%)',
-  },
-  sn: {
-    name: 'Sapphire Noir',
-    bg: '#02050f', bgCard: '#08102a', bgCard2: '#0e1838', bgAlt: '#0d1a3a',
-    border: '#1f3868', borderSoft: '#15264a',
-    text: '#ecf2ff', text2: '#9badd0', text3: '#5e7099',
-    accent: '#5e9bff', accent2: '#4280e0', accentInk: '#061226',
-    accentGlow: 'rgba(94,155,255,0.6)',
-    accentBg: 'rgba(94,155,255,0.08)', accentBgStrong: 'rgba(94,155,255,0.16)',
-    gold: '#ffd54a', goldBright: '#ffe07a', goldDim: '#a88a40',
-    goldBg: '#1a1408', goldGlow: 'rgba(255,213,74,0.65)',
-    logo1: '#7aaeff', logo2: '#5e9bff', logo3: '#ffd54a',
-    sbTrack: '#070d1c', sbThumb: '#1f3868',
-    ambient: 'radial-gradient(60% 50% at 18% 0%, rgba(94,155,255,0.10) 0%, transparent 55%), radial-gradient(50% 45% at 90% 8%, rgba(122,174,255,0.06) 0%, transparent 55%)',
-  },
-};
-const _THEME_KEY = 'ims_hnti:theme_v1';
 const getStoredTheme = () => {
   try {
     if (typeof window === 'undefined') return 've';
@@ -8430,7 +6914,6 @@ function CashFlowProjection({ data, t, lang, fmt }) {
 
 
 // CEO annotations — dipakai Executive Summary (baca dari storage)
-const ANNOTATIONS_KEY = 'ims_hnti:annotations_v1';
 function ProductMasterModule({ products, setProducts, t, lang, canEdit, logAction, data }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -13598,7 +12081,6 @@ function EditableLocalDeliveryField({ label, value, onSave, canEdit, placeholder
   );
 }
 
-const CHART_COLORS = ['#5b8def', '#a026a0', '#2f8f6f', '#d4af37', '#5b87b8', '#c03030', '#7b3fb5', '#94a3b8'];
 
 function OperationsDashboardCharts({ poProjects, visibleManifests, visibleCustomsDocs, localProjects, getEffectiveShipping, avgProductionDays, lang, fmt }) {
   const pipelineData = IMPORT_PIPELINE_STEPS.map(step => ({
@@ -16458,8 +14940,6 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
 // ============== Audit Trail Infrastructure ==============
 // Lightweight in-memory audit log (last 500 entries) — captures who/what/when for data mutations
 // In production this would write to a backend audit database, but for IMS this gives SOX-compliance demo
-const MAX_AUDIT_ENTRIES = 500;
-const AUDIT_LOG_KEY = 'ims_hnti:audit_v1';
 function appendAuditLog(setAuditLog, entry) {
   setAuditLog(prev => {
     const next = [{ ...entry, id: 'audit_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), timestamp: new Date().toISOString() }, ...prev];
@@ -16489,10 +14969,6 @@ function appendAuditLog(setAuditLog, entry) {
 //       fromUser: { username, role } | null
 //     }
 //   }}));
-const NOTIF_KEY = 'ims_hnti:notif_v1';
-const MAX_NOTIFICATIONS = 300;
-const NOTIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
-const NOTIFICATION_DEDUPE_MS = 10 * 60 * 1000;
 const pushDedupeMemory = new Map();
 function notificationDedupeKey(target, payload) {
   const link = payload?.link ? `${payload.link.view || ''}:${payload.link.id || ''}` : '';

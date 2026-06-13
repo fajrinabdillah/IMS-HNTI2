@@ -66,7 +66,7 @@ for (let i = spans.length - 1; i >= 0; i--) {
 
 let rel = './' + target.replace(/\\/g, '/');
 let lastImport = -1;
-for (let i = 0; i < Math.min(newLines.length, 60); i++) {
+for (let i = 0; i < Math.min(newLines.length, 400); i++) {
   if (/^import\s.+from\s+['"].+['"];?\s*$/.test(newLines[i]) || /^import\s+['"].+['"];?\s*$/.test(newLines[i])) lastImport = i;
 }
 const importLine = uniqNames.length ? `import { ${uniqNames.join(', ')} } from '${rel}';` : `import '${rel}';`;

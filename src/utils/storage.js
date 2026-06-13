@@ -127,11 +127,13 @@ const savePushSubscription = async (subscription, session) => {
       active: true,
       updated_at: new Date().toISOString(),
     };
-    const res = await _supaReq('push_subscriptions?on_conflict=endpoint', {
+    // Pakai anon key (bukan JWT user) — RLS insert/update sudah diizinkan via GRANT.
+    // Menghindari save_failed saat JWT user expired/error (Realtime OFFLINE).
+    const res = await _supaFetch('push_subscriptions?on_conflict=endpoint', {
       method: 'POST',
       headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
       body: JSON.stringify(payload),
-    });
+    }, null);
     if (!res.ok) {
       try { console.warn('[IMS] push subscription save failed:', res.status, await res.text()); } catch {}
     }

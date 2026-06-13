@@ -12,7 +12,7 @@ import { getProjectStageRows, SPH_WORKFLOW_LABELS } from '../utils/sphStage.js';
 import { buildEditorTemplate, downloadCSV, downloadSPHWord, downloadSPPWord, printHtmlStringAsPdf, printSPHPdf, printSPPPdf } from '../utils/documents.js';
 import { parseSPHImport } from '../utils/csvImport.js';
 import { showToast } from '../utils/toast.js';
-function SPHWorkflowConsole({ data, employees, setEmployees, session, lang, fmt, onRequestSPH, onRequestSPP, onWorkflowUpdate, onSaveDocument, generatedDocs = [], products = [], documentTemplates = DEFAULT_DOCUMENT_TEMPLATES }) {
+const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employees, setEmployees, session, lang, fmt, onRequestSPH, onRequestSPP, onWorkflowUpdate, onSaveDocument, generatedDocs = [], products = [], documentTemplates = DEFAULT_DOCUMENT_TEMPLATES }) {
   const [open, setOpen] = useState('request');
   const [editingRequestId, setEditingRequestId] = useState(null);
   const [deleteQueueId, setDeleteQueueId] = useState(null);
@@ -281,7 +281,7 @@ function SPHWorkflowConsole({ data, employees, setEmployees, session, lang, fmt,
       )}
     </div>
   );
-}
+});
 function SPHDetailModal({ sph, employees, lang, fmt, onClose, onWorkflowUpdate, session, documentTemplates = DEFAULT_DOCUMENT_TEMPLATES }) {
   if (!sph) return null;
   const actionNow = () => new Date().toISOString();
@@ -509,14 +509,22 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
   useEffect(() => { setVisibleCount(pageSize); }, [search, filterPType, filterStatus, filterYear, filterProduct, sortSPH, pageSize]);
 
   const visibleRows = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
-  const visibleIds = useMemo(() => visibleRows.map(s => s.id), [visibleRows]);
-  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => selectedSphIds.includes(id));
+  const filteredIds = useMemo(() => filtered.map(s => s.id), [filtered]);
+  const allFilteredSelected = filteredIds.length > 0 && filteredIds.every(id => selectedSphIds.includes(id));
+  const selectAllRef = useRef(null);
+  useEffect(() => {
+    if (selectAllRef.current) selectAllRef.current.indeterminate = selectedSphIds.length > 0 && !allFilteredSelected;
+  }, [selectedSphIds.length, allFilteredSelected]);
   const toggleSelectAll = () => {
-    if (allVisibleSelected) setSelectedSphIds(prev => prev.filter(id => !visibleIds.includes(id)));
-    else setSelectedSphIds(prev => [...new Set([...prev, ...visibleIds])]);
+    if (allFilteredSelected) setSelectedSphIds(prev => prev.filter(id => !filteredIds.includes(id)));
+    else {
+      setSelectedSphIds(prev => [...new Set([...prev, ...filteredIds])]);
+      setDetailSph(null);
+    }
   };
   const toggleRowSelect = (id) => {
     setSelectedSphIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    setDetailSph(null);
   };
   const handleBulkDelete = () => {
     if (!selectedSphIds.length) return;
@@ -526,6 +534,7 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
     if (onBulkDelete && selectedSphIds.length) onBulkDelete(selectedSphIds);
     setSelectedSphIds([]);
     setBulkDeleteOpen(false);
+    setDetailSph(null);
   };
 
   return (
@@ -536,15 +545,31 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
           <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{t.sph_title}</h1>
           <div style={{fontSize: '13px', color: 'var(--ims-text-2)', marginTop: '6px'}}>{t.sph_subtitle}</div>
         </div>
-        {canEdit && <>
+        {canEdit && (
           <button className="btn-primary" onClick={onAdd}><Plus size={14} strokeWidth={2} />{t.new_sph}</button>
-          {selectedSphIds.length > 0 && (
+        )}
+      </div>
+
+      {canEdit && selectedSphIds.length > 0 && (
+        <div style={{marginBottom: '14px', padding: '10px 14px', background: 'rgba(192,48,48,0.06)', border: '1px solid rgba(192,48,48,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap'}}>
+          <span style={{fontSize: '12px', fontWeight: 600, color: 'var(--ims-text)'}}>
+            {lang === 'id' ? `${selectedSphIds.length} SPH dipilih` : `${selectedSphIds.length} SPH selected`}
+            {filtered.length > visibleCount && allFilteredSelected && (
+              <span style={{fontWeight: 400, color: 'var(--ims-text-2)', marginLeft: '6px'}}>
+                ({lang === 'id' ? `semua ${filtered.length} hasil filter` : `all ${filtered.length} filtered`})
+              </span>
+            )}
+          </span>
+          <div style={{display: 'flex', gap: '8px'}}>
+            <button onClick={() => setSelectedSphIds([])} className="btn-ghost" style={{fontSize: '11px'}}>
+              {lang === 'id' ? 'Batal Pilihan' : 'Clear Selection'}
+            </button>
             <button onClick={handleBulkDelete} style={{background: '#c03030', border: 'none', color: '#fff', padding: '8px 14px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px'}}>
               <Trash2 size={13} />{lang === 'id' ? `Hapus Data Terpilih (${selectedSphIds.length})` : `Delete Selected (${selectedSphIds.length})`}
             </button>
-          )}
-        </>}
-      </div>
+          </div>
+        </div>
+      )}
 
       {!canEdit && <ReadOnlyBanner t={t} />}
 
@@ -627,8 +652,8 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
           <thead>
             <tr style={{background: 'var(--ims-bg-card-2)'}}>
               {canEdit && (
-                <th style={{width: '36px', padding: '8px 10px', textAlign: 'center', borderBottom: '1px solid var(--ims-border)'}}>
-                  <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAll} onClick={e => e.stopPropagation()} title={lang === 'id' ? 'Pilih semua yang tampil' : 'Select all visible'} style={{cursor: 'pointer', width: '14px', height: '14px'}} />
+                <th style={{width: '36px', padding: '8px 10px', textAlign: 'center', borderBottom: '1px solid var(--ims-border)'}} onClick={e => e.stopPropagation()}>
+                  <input ref={selectAllRef} type="checkbox" checked={allFilteredSelected} onChange={toggleSelectAll} onClick={e => e.stopPropagation()} title={lang === 'id' ? `Pilih semua ${filtered.length} SPH (hasil filter)` : `Select all ${filtered.length} SPH (filtered)`} style={{cursor: 'pointer', width: '14px', height: '14px'}} />
                 </th>
               )}
               <Th>{t.sph_number}</Th><Th>{t.customer}</Th><Th>{t.project_type}</Th>
@@ -644,10 +669,10 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
               const sales = salesMap.get(s.salesOwner);
               const isSelected = selectedSphIds.includes(s.id);
               return (
-                <tr key={s.id} className="hover-row" onClick={() => setDetailSph(s)} style={{borderTop: '1px solid var(--ims-border)', cursor: 'pointer', background: isSelected ? 'rgba(192,48,48,0.04)' : undefined}}>
+                <tr key={s.id} className="hover-row" onClick={(e) => { if (e.target.closest('input[type="checkbox"]') || e.target.closest('button')) return; setDetailSph(s); }} style={{borderTop: '1px solid var(--ims-border)', cursor: 'pointer', background: isSelected ? 'rgba(192,48,48,0.04)' : undefined}}>
                   {canEdit && (
                     <Td onClick={e => e.stopPropagation()} style={{width: '36px', padding: '8px 10px'}}>
-                      <input type="checkbox" checked={isSelected} onChange={() => toggleRowSelect(s.id)} style={{cursor: 'pointer', width: '14px', height: '14px'}} />
+                      <input type="checkbox" checked={isSelected} onChange={() => toggleRowSelect(s.id)} onClick={e => e.stopPropagation()} style={{cursor: 'pointer', width: '14px', height: '14px'}} />
                     </Td>
                   )}
                   <Td><span className="mono" style={{fontSize: '11px'}}>{s.sphNo}</span></Td>

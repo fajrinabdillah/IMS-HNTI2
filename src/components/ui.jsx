@@ -345,8 +345,12 @@ const SortToggle = React.memo(function SortToggle({ value, onChange, options, la
     </div>
   );
 });
-const Th = React.memo(function Th({ children, align = 'left' }) { return <th style={{padding: '12px 14px', textAlign: align, fontSize: '9px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600, borderBottom: '1px solid var(--ims-border)', whiteSpace: 'nowrap'}}>{children}</th>; });
-const Td = React.memo(function Td({ children, align = 'left' }) { return <td style={{padding: '12px 14px', textAlign: align, verticalAlign: 'middle'}}>{children}</td>; });
+const Th = React.memo(function Th({ children, align = 'left', style, ...rest }) {
+  return <th {...rest} style={{padding: '12px 14px', textAlign: align, fontSize: '9px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600, borderBottom: '1px solid var(--ims-border)', whiteSpace: 'nowrap', ...style}}>{children}</th>;
+});
+const Td = React.memo(function Td({ children, align = 'left', style, ...rest }) {
+  return <td {...rest} style={{padding: '12px 14px', textAlign: align, verticalAlign: 'middle', ...style}}>{children}</td>;
+});
 const SyncIndicator = React.memo(function SyncIndicator({ lastSync, onRefresh, t, lang }) {
   const [tick, setTick] = useState(0);
   // Re-render every 30s to update relative time

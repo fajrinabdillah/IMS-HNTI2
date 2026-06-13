@@ -1293,6 +1293,8 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
         module: 'sph', action: 'delete', entityLabel: lang === 'id' ? `Hapus massal ${removed.length} SPH` : `Bulk delete ${removed.length} SPH`,
         note: removed.map(s => s.sphNo).slice(0, 8).join(', ') + (removed.length > 8 ? '…' : ''),
       });
+      flushPersist();
+      showToast(lang === 'id' ? `${removed.length} SPH berhasil dihapus` : `${removed.length} SPH deleted`, 'success');
     }
   };
 

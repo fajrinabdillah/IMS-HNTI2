@@ -432,7 +432,7 @@ function SPHDetailModal({ sph, employees, lang, fmt, onClose, onWorkflowUpdate, 
     </div>
   );
 }
-function SPHManagement({ data, employees = {}, setEmployees, products = [], documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, session = {}, t, lang, canEdit, fmt, onAdd, onEdit, onDelete, onImport, onRequestSPH, onRequestSPP, onWorkflowUpdate, onSaveDocument, generatedDocs = [], setGeneratedDocs }) {
+function SPHManagement({ data, employees = {}, setEmployees, products = [], documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, session = {}, t, lang, canEdit, fmt, onAdd, onEdit, onDelete, onBulkDelete, onImport, onRequestSPH, onRequestSPP, onWorkflowUpdate, onSaveDocument, generatedDocs = [], setGeneratedDocs }) {
   const salesTeam = useMemo(() => getActiveSalesTeam(employees), [employees]);
   const [search, setSearch] = useState('');
   const [filterPType, setFilterPType] = useState('all');
@@ -443,6 +443,8 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
   const [pageSize, setPageSize] = useState(50);  // Pagination: 50 rows initial, "Load more" button
   const [visibleCount, setVisibleCount] = useState(50);
   const [detailSph, setDetailSph] = useState(null);
+  const [selectedSphIds, setSelectedSphIds] = useState([]);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const importRef = useRef(null);
   const [importMsg, setImportMsg] = useState(null);
 
@@ -507,6 +509,24 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
   useEffect(() => { setVisibleCount(pageSize); }, [search, filterPType, filterStatus, filterYear, filterProduct, sortSPH, pageSize]);
 
   const visibleRows = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
+  const visibleIds = useMemo(() => visibleRows.map(s => s.id), [visibleRows]);
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => selectedSphIds.includes(id));
+  const toggleSelectAll = () => {
+    if (allVisibleSelected) setSelectedSphIds(prev => prev.filter(id => !visibleIds.includes(id)));
+    else setSelectedSphIds(prev => [...new Set([...prev, ...visibleIds])]);
+  };
+  const toggleRowSelect = (id) => {
+    setSelectedSphIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+  const handleBulkDelete = () => {
+    if (!selectedSphIds.length) return;
+    setBulkDeleteOpen(true);
+  };
+  const confirmBulkDelete = () => {
+    if (onBulkDelete && selectedSphIds.length) onBulkDelete(selectedSphIds);
+    setSelectedSphIds([]);
+    setBulkDeleteOpen(false);
+  };
 
   return (
     <div>
@@ -516,7 +536,14 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
           <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>{t.sph_title}</h1>
           <div style={{fontSize: '13px', color: 'var(--ims-text-2)', marginTop: '6px'}}>{t.sph_subtitle}</div>
         </div>
-        {canEdit && <button className="btn-primary" onClick={onAdd}><Plus size={14} strokeWidth={2} />{t.new_sph}</button>}
+        {canEdit && <>
+          <button className="btn-primary" onClick={onAdd}><Plus size={14} strokeWidth={2} />{t.new_sph}</button>
+          {selectedSphIds.length > 0 && (
+            <button onClick={handleBulkDelete} style={{background: '#c03030', border: 'none', color: '#fff', padding: '8px 14px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px'}}>
+              <Trash2 size={13} />{lang === 'id' ? `Hapus Data Terpilih (${selectedSphIds.length})` : `Delete Selected (${selectedSphIds.length})`}
+            </button>
+          )}
+        </>}
       </div>
 
       {!canEdit && <ReadOnlyBanner t={t} />}
@@ -599,6 +626,11 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
         <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px', minWidth: '1100px'}}>
           <thead>
             <tr style={{background: 'var(--ims-bg-card-2)'}}>
+              {canEdit && (
+                <th style={{width: '36px', padding: '8px 10px', textAlign: 'center', borderBottom: '1px solid var(--ims-border)'}}>
+                  <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAll} onClick={e => e.stopPropagation()} title={lang === 'id' ? 'Pilih semua yang tampil' : 'Select all visible'} style={{cursor: 'pointer', width: '14px', height: '14px'}} />
+                </th>
+              )}
               <Th>{t.sph_number}</Th><Th>{t.customer}</Th><Th>{t.project_type}</Th>
               <Th>{t.modality}</Th><Th align="right">{t.quantity}</Th><Th align="right">{t.value}</Th>
               <Th>{t.status}</Th><Th>{t.sales_owner}</Th>
@@ -610,8 +642,14 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
               const stage = stageMap.get(s.stage);
               const pt = projectTypeMap.get(s.projectType);
               const sales = salesMap.get(s.salesOwner);
+              const isSelected = selectedSphIds.includes(s.id);
               return (
-                <tr key={s.id} className="hover-row" onClick={() => setDetailSph(s)} style={{borderTop: '1px solid var(--ims-border)', cursor: 'pointer'}}>
+                <tr key={s.id} className="hover-row" onClick={() => setDetailSph(s)} style={{borderTop: '1px solid var(--ims-border)', cursor: 'pointer', background: isSelected ? 'rgba(192,48,48,0.04)' : undefined}}>
+                  {canEdit && (
+                    <Td onClick={e => e.stopPropagation()} style={{width: '36px', padding: '8px 10px'}}>
+                      <input type="checkbox" checked={isSelected} onChange={() => toggleRowSelect(s.id)} style={{cursor: 'pointer', width: '14px', height: '14px'}} />
+                    </Td>
+                  )}
                   <Td><span className="mono" style={{fontSize: '11px'}}>{s.sphNo}</span></Td>
                   <Td>
                     <div style={{fontWeight: 500}}>{s.customer}</div>
@@ -624,13 +662,9 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
                   <Td>{stage && <span style={{display: 'inline-block', padding: '3px 7px', fontSize: '10px', background: stage.color + '25', color: stage.color, fontWeight: 600}}>{t[`stage_${s.stage}`]}</span>}</Td>
                   <Td>{sales ? sales.name : s.salesOwner}</Td>
                   <Td align="right">
-                    <button onClick={(e) => { e.stopPropagation(); printSPHPdf(s, employees, fmt, documentTemplates); }} title="PDF SPH" style={{background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px', color: 'var(--ims-text-2)'}}><FileText size={13} /></button>
-                    <button onClick={(e) => { e.stopPropagation(); downloadSPHWord(s, employees, fmt, documentTemplates); }} title="Word SPH" style={{background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px', color: 'var(--ims-text-2)'}}><Download size={13} /></button>
-                    <button onClick={(e) => { e.stopPropagation(); printSPPPdf(s, employees, fmt, documentTemplates); }} title="PDF SPP" style={{background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px', color: 'var(--ims-text-2)'}}><FileCheck size={13} /></button>
-                    <button onClick={(e) => { e.stopPropagation(); downloadSPPWord(s, employees, fmt, documentTemplates); }} title="Word SPP" style={{background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px', color: 'var(--ims-text-2)'}}><Download size={13} /></button>
                     {canEdit && <>
-                      <button onClick={(e) => { e.stopPropagation(); onEdit(s); }} style={{background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px', color: 'var(--ims-text-2)'}}><Edit2 size={13} /></button>
-                      <button onClick={(e) => { e.stopPropagation(); onDelete(s.id); }} style={{background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px', color: 'var(--ims-text-2)'}}><Trash2 size={13} /></button>
+                      <button onClick={(e) => { e.stopPropagation(); onEdit(s); }} style={{background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px', color: 'var(--ims-text-2)'}} title={lang === 'id' ? 'Edit' : 'Edit'}><Edit2 size={13} /></button>
+                      <button onClick={(e) => { e.stopPropagation(); onDelete(s.id); }} style={{background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px', color: '#c03030'}} title={lang === 'id' ? 'Hapus' : 'Delete'}><Trash2 size={13} /></button>
                     </>}
                   </Td>
                 </tr>
@@ -655,6 +689,17 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
           </div>
         )}
       </div>
+      <ConfirmDialog
+        open={bulkDeleteOpen}
+        title={lang === 'id' ? 'Hapus SPH Terpilih?' : 'Delete Selected SPH?'}
+        message={lang === 'id'
+          ? `Apakah Anda yakin ingin menghapus ${selectedSphIds.length} SPH yang dipilih? Tindakan ini tidak dapat dibatalkan.`
+          : `Are you sure you want to delete ${selectedSphIds.length} selected SPH record(s)? This action cannot be undone.`}
+        onConfirm={confirmBulkDelete}
+        onCancel={() => setBulkDeleteOpen(false)}
+        danger
+        lang={lang}
+      />
       <SPHDetailModal sph={detailSph} employees={employees} lang={lang} fmt={fmt} session={session} documentTemplates={documentTemplates} onClose={() => setDetailSph(null)} onWorkflowUpdate={(id, patch, options) => { onWorkflowUpdate && onWorkflowUpdate(id, patch, options); setDetailSph(prev => prev && prev.id === id ? { ...prev, ...patch } : prev); }} />
     </div>
   );

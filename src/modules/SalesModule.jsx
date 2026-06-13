@@ -1742,7 +1742,7 @@ function reportMatchesSearch(report, term, salesTeam = []) {
   return parts.some(p => String(p || '').toLowerCase().includes(q));
 }
 
-function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {}, reportsSeen = {}, setReportsSeen, issues = [], installRecords = [] }) {
+function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {}, reportsSeen = {}, setReportsSeen, issues = [], installRecords = [], canEdit = false }) {
   const salesTeam = useMemo(() => getActiveSalesTeam(employees), [employees]);
   const markReportsRead = () => {
     if (!setReportsSeen || !reports.length) return;
@@ -1848,7 +1848,7 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
 
       {tab === 'dashboard' && <SRDashboard reports={filteredReports} t={t} lang={lang} employees={employees} session={session} onMarkRead={markReportsRead} reportsSeen={reportsSeen} issues={issues} installRecords={installRecords} fmt={fmt} searchTerm={searchTerm} totalReports={visibleReports.length} />}
       {tab === 'new' && session.role === 'sales' && <SRForm reports={reports} setReports={setReports} t={t} lang={lang} session={session} editingReport={editingReport} onSaved={handleSaved} onCancel={() => { setEditingReport(null); setTab('history'); }} employees={employees} />}
-      {tab === 'history' && <SRHistory reports={filteredReports} t={t} lang={lang} fmt={fmt} canEdit={session.role === 'sales'} onEdit={handleEdit} onDelete={handleDelete} onBulkDelete={(ids) => setBulkDeleteReportIds(ids)} session={session} employees={employees} searchTerm={searchTerm} totalBeforeSearch={visibleReports.length} />}
+      {tab === 'history' && <SRHistory reports={filteredReports} t={t} lang={lang} fmt={fmt} canDelete={canEdit} session={session} onEdit={handleEdit} onDelete={handleDelete} onBulkDelete={(ids) => setBulkDeleteReportIds(ids)} employees={employees} searchTerm={searchTerm} totalBeforeSearch={visibleReports.length} />}
       <ConfirmDialog open={!!deleteReportId} title={lang === 'id' ? 'Hapus Laporan?' : 'Delete Report?'} message={t.sr_confirm_delete || (lang === 'id' ? 'Yakin ingin menghapus laporan ini?' : 'Are you sure you want to delete this report?')} onConfirm={confirmDeleteReport} onCancel={() => setDeleteReportId(null)} danger lang={lang} />
       <ConfirmDialog open={!!bulkDeleteReportIds?.length} title={lang === 'id' ? 'Hapus Laporan Terpilih?' : 'Delete Selected Reports?'} message={lang === 'id' ? `Yakin ingin menghapus ${bulkDeleteReportIds?.length || 0} laporan terpilih secara permanen?` : `Permanently delete ${bulkDeleteReportIds?.length || 0} selected report(s)?`} onConfirm={confirmBulkDeleteReports} onCancel={() => setBulkDeleteReportIds(null)} danger lang={lang} />
     </div>
@@ -2181,11 +2181,17 @@ function SRForm({ reports, setReports, t, lang, session, editingReport, onSaved,
     </div>
   );
 }
-function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, onBulkDelete, session, fmt, employees = {}, searchTerm = '', totalBeforeSearch = 0 }) {
+function SRHistory({ reports, t, lang, canDelete = false, onEdit, onDelete, onBulkDelete, session, fmt, employees = {}, searchTerm = '', totalBeforeSearch = 0 }) {
   const salesTeam = useMemo(() => getActiveSalesTeam(employees), [employees]);
   const [expanded, setExpanded] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc');
   const [selectedIds, setSelectedIds] = useState([]);
+
+  const canDeleteReport = (report) => {
+    if (!canDelete) return false;
+    if (session?.role === 'sales') return session.salesId === report.salesId;
+    return true;
+  };
 
   const sortedReports = useMemo(() => {
     const arr = [...reports];
@@ -2195,7 +2201,11 @@ function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, onBulkDelete, 
     return arr;
   }, [reports, sortBy]);
 
-  const deletableIds = useMemo(() => sortedReports.filter(r => canEdit && session?.salesId === r.salesId).map(r => r.id), [sortedReports, canEdit, session?.salesId]);
+  const deletableIds = useMemo(() => sortedReports.filter(r => {
+    if (!canDelete) return false;
+    if (session?.role === 'sales') return session.salesId === r.salesId;
+    return true;
+  }).map(r => r.id), [sortedReports, canDelete, session?.role, session?.salesId]);
   const allSelected = deletableIds.length > 0 && deletableIds.every(id => selectedIds.includes(id));
 
   const toggleSelect = (id) => {
@@ -2225,7 +2235,7 @@ function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, onBulkDelete, 
   return (
     <div>
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '10px'}}>
-        {canEdit && deletableIds.length > 0 && (
+        {canDelete && deletableIds.length > 0 && (
           <div style={{display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap'}}>
             <label style={{display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 600}}>
               <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} style={{width: '14px', height: '14px', cursor: 'pointer'}} />
@@ -2263,14 +2273,14 @@ function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, onBulkDelete, 
         {sortedReports.map(r => {
         const sales = salesTeam.find(s => s.id === r.salesId);
         const isOpen = expanded === r.id;
-        const isOwner = canEdit && session?.salesId === r.salesId;
+        const canManage = canDeleteReport(r);
         const isChecked = selectedIds.includes(r.id);
         const rsPreview = (r.visits || []).slice(0, 3).map(v => v.name).filter(Boolean).join(', ');
         const rsMore = (r.visits?.length || 0) > 3 ? ` +${r.visits.length - 3}` : '';
         return (
           <div key={r.id} style={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
             <div style={{padding: '12px 18px', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap'}}>
-              {isOwner && (
+              {canManage && (
                 <input type="checkbox" checked={isChecked} onChange={() => toggleSelect(r.id)} onClick={e => e.stopPropagation()} style={{width: '14px', height: '14px', cursor: 'pointer', flexShrink: 0}} />
               )}
               <div onClick={() => setExpanded(isOpen ? null : r.id)} style={{cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '14px', flex: '1 1 auto', flexWrap: 'wrap'}}>
@@ -2290,9 +2300,14 @@ function SRHistory({ reports, t, lang, canEdit, onEdit, onDelete, onBulkDelete, 
                 </div>
                 <ChevronDown size={16} style={{transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', color: 'var(--ims-text-2)'}} />
               </div>
-              {isOwner && (
+              {canManage && session?.role === 'sales' && (
                 <div style={{display: 'flex', gap: '4px'}}>
                   <button onClick={(e) => { e.stopPropagation(); onEdit(r); }} style={{background: 'transparent', border: '1px solid var(--ims-border)', padding: '5px 10px', fontSize: '10px', cursor: 'pointer', color: 'var(--ims-text)', fontFamily: 'inherit'}} title={t.sr_edit_report}><Edit2 size={11} /></button>
+                  <button onClick={(e) => { e.stopPropagation(); onDelete(r.id); }} style={{background: 'transparent', border: '1px solid var(--ims-border)', padding: '5px 10px', fontSize: '10px', cursor: 'pointer', color: '#c03030', fontFamily: 'inherit'}} title={t.sr_delete_report}><Trash2 size={11} /></button>
+                </div>
+              )}
+              {canManage && session?.role !== 'sales' && (
+                <div style={{display: 'flex', gap: '4px'}}>
                   <button onClick={(e) => { e.stopPropagation(); onDelete(r.id); }} style={{background: 'transparent', border: '1px solid var(--ims-border)', padding: '5px 10px', fontSize: '10px', cursor: 'pointer', color: '#c03030', fontFamily: 'inherit'}} title={t.sr_delete_report}><Trash2 size={11} /></button>
                 </div>
               )}

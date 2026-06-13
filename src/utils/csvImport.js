@@ -1,0 +1,113 @@
+// Extracted from App.jsx during modular refactor.
+import { _normHdr, _num, _normDate } from './format.js';
+function parseCSV(text) {
+  const rows = []; let row = []; let field = ''; let inQuotes = false;
+  text = String(text || '').replace(/^\ufeff/, '');
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else { inQuotes = false; } }
+      else { field += c; }
+    } else {
+      if (c === '"') { inQuotes = true; }
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else if (c === '\r') { /* skip */ }
+      else { field += c; }
+    }
+  }
+  if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
+  // Drop fully-empty rows
+  return rows.filter(r => r.some(c => String(c).trim() !== ''));
+}
+function buildColMap(headerRow, aliasDict) {
+  const map = {};
+  headerRow.forEach((cell, idx) => {
+    const n = _normHdr(cell);
+    for (const [field, aliases] of Object.entries(aliasDict)) {
+      if (aliases.some(a => _normHdr(a) === n)) { if (map[field] === undefined) map[field] = idx; }
+    }
+  });
+  return map;
+}
+const SPH_IMPORT_ALIASES = {
+  sphNo: ['SPH No', 'No SPH', 'SPH', 'Nomor SPH', 'No Quotation', 'Quotation No'],
+  customer: ['Customer', 'Pelanggan', 'Nama Pelanggan', 'Klien', 'Client'],
+  customerType: ['Type', 'Tipe', 'Tipe Pelanggan', 'Customer Type', 'Jenis Pelanggan'],
+  projectType: ['Project Type', 'Jenis Proyek', 'Tipe Proyek'],
+  modality: ['Modality', 'Modalitas', 'Alat', 'Produk'],
+  subModality: ['Sub-Modality', 'Sub Modality', 'SubModality', 'Sub Modalitas', 'Tipe Alat'],
+  qty: ['Qty', 'Quantity', 'Jumlah', 'Unit'],
+  unitPrice: ['Unit Price', 'Harga Satuan', 'Harga'],
+  totalValue: ['Total Value', 'Total Nilai', 'Nilai Total', 'Total', 'Nilai'],
+  stage: ['Stage', 'Tahap', 'Tahapan'],
+  status: ['Status'],
+  salesOwner: ['Sales', 'Sales Owner', 'Pemilik Sales', 'Penjual', 'PIC Sales'],
+  issuedDate: ['Issue Date', 'Tanggal Terbit', 'Tanggal', 'Date', 'Tgl Terbit'],
+  region: ['Region', 'Wilayah', 'Area', 'Daerah'],
+  notes: ['Notes', 'Catatan', 'Keterangan', 'Note'],
+};
+const _STATUS_ALIASES = { won: 'won', menang: 'won', lost: 'lost', kalah: 'lost', active: 'active', aktif: 'active', pending: 'active' };
+const _STAGE_VALID = ['sph_issued', 'follow_up', 'negotiation', 'tender', 'po_issued', 'lost'];
+function parseSPHImport(text) {
+  const rows = parseCSV(text);
+  if (rows.length < 2) return { records: [], errors: ['File kosong atau tidak ada baris data.'], total: 0 };
+  const cols = buildColMap(rows[0], SPH_IMPORT_ALIASES);
+  if (cols.sphNo === undefined || cols.customer === undefined)
+    return { records: [], errors: ['Kolom wajib tidak ditemukan: butuh minimal "SPH No" dan "Customer/Pelanggan".'], total: rows.length - 1 };
+  const records = []; const errors = [];
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r]; const get = (f) => cols[f] !== undefined ? String(row[cols[f]] ?? '').trim() : '';
+    const sphNo = get('sphNo'); const customer = get('customer');
+    if (!sphNo || !customer) { errors.push(`Baris ${r + 1}: dilewati (No SPH / Pelanggan kosong).`); continue; }
+    const qty = _num(get('qty')) || 1;
+    const unitPrice = _num(get('unitPrice'));
+    let totalValue = _num(get('totalValue'));
+    if (!totalValue) totalValue = qty * unitPrice;
+    const statusRaw = _normHdr(get('status'));
+    const status = _STATUS_ALIASES[statusRaw] || 'active';
+    let stage = _normHdr(get('stage')).replace(/\s+/g, '_');
+    if (!_STAGE_VALID.includes(stage)) stage = status === 'won' ? 'po_issued' : status === 'lost' ? 'lost' : 'sph_issued';
+    const rec = {
+      sphNo, customer,
+      customerType: get('customerType') || 'hospital',
+      projectType: get('projectType') || 'private',
+      modality: get('modality') || '-',
+      subModality: get('subModality') || '-',
+      qty, unitPrice, totalValue,
+      stage, status,
+      salesOwner: get('salesOwner') || '',
+      region: get('region') || '-',
+      issuedDate: _normDate(get('issuedDate')) || new Date().toISOString().split('T')[0],
+      notes: get('notes') || '',
+    };
+    records.push(rec);
+  }
+  return { records, errors, total: rows.length - 1 };
+}
+const PAY_IMPORT_ALIASES = {
+  sphNo: ['SPH No', 'No SPH', 'SPH', 'Nomor SPH'],
+  type: ['Type', 'Jenis', 'Jenis Pembayaran', 'Payment Type', 'Tipe'],
+  amount: ['Amount', 'Jumlah', 'Nominal', 'Nilai', 'Pembayaran'],
+  date: ['Date', 'Tanggal', 'Tgl', 'Tanggal Bayar'],
+  note: ['Note', 'Catatan', 'Keterangan', 'Notes'],
+};
+const _PAYTYPE_ALIASES = { dp: 'dp', deposit: 'dp', uangmuka: 'dp', installment: 'installment', cicilan: 'installment', angsuran: 'installment', final: 'final', pelunasan: 'final', lunas: 'final' };
+function parsePaymentImport(text) {
+  const rows = parseCSV(text);
+  if (rows.length < 2) return { records: [], errors: ['File kosong atau tidak ada baris data.'], total: 0 };
+  const cols = buildColMap(rows[0], PAY_IMPORT_ALIASES);
+  if (cols.sphNo === undefined || cols.amount === undefined)
+    return { records: [], errors: ['Kolom wajib tidak ditemukan: butuh minimal "SPH No" dan "Amount/Jumlah".'], total: rows.length - 1 };
+  const records = []; const errors = [];
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r]; const get = (f) => cols[f] !== undefined ? String(row[cols[f]] ?? '').trim() : '';
+    const sphNo = get('sphNo'); const amount = _num(get('amount'));
+    if (!sphNo || !amount) { errors.push(`Baris ${r + 1}: dilewati (No SPH / Jumlah kosong).`); continue; }
+    const typeRaw = _normHdr(get('type'));
+    records.push({ sphNo, type: _PAYTYPE_ALIASES[typeRaw] || 'installment', amount, date: _normDate(get('date')) || new Date().toISOString().split('T')[0], note: get('note') || '' });
+  }
+  return { records, errors, total: rows.length - 1 };
+}
+
+export { parseCSV, buildColMap, SPH_IMPORT_ALIASES, _STATUS_ALIASES, _STAGE_VALID, parseSPHImport, PAY_IMPORT_ALIASES, _PAYTYPE_ALIASES, parsePaymentImport };

@@ -17,6 +17,7 @@ import { initialOf, formatCurrency, formatCurrencyFull, formatDateTime, parseSaf
 import { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, STATIC_TECH_ORDER, resolveEmpName, resolveNamesInText, SALES_META_BY_ID, employeeSalesId, getActiveSalesTeam, activeSalesIdSet, normalizeSalesOwnedRows, isLiveEmployeeUsername, normalizeEmployeeOwnedRows, detectPaymentScheme, resolveCustomerSector, resolveDealModel, _addMonthsISO, computeInvoiceSchedule, resolveProductId, normalizeProduct, getRegStages, sanitizeRegStageHistory, migrateRegRecord, normalizeImportPipelineStatus, importPipelineLabel, projectHasDpReceived, manifestMatchesProject, appendStageHistoryEntry, getStageMetrics, normalizePoWon, calcIncentive, getIncentiveStatus, getNetMargin, calcNetProfit, getProductFileUrl, normalizeProductLookupText, getFactoryProductionDays, addDaysIso, getFactoryProductionInfo, resolveProductRecord, effectiveScheme, generatePaymentSchedule, getPaymentSummary } from './src/utils/domain.js';
 import { _memStore, _hasArtifactStorage, _hasLocalStorage, _SUPA_URL, _SUPA_KEY, _supaEnabled, _supaFetch, _supaSession, _SUPA_SESS_LS, _authFetch, _supaSignIn, _refreshInFlight, _supaRefreshTok, _supaSignOut, _restoreSupaSession, _getSupaTok, _supaReq, _pushVapidPublicKey, _urlBase64ToUint8Array, pushSupported, registerServiceWorker, savePushSubscription, enablePushNotifications, getPushPermissionStatus, sendServerPushNotification, _rtSocket, _rtHeartbeat, _rtRetryCount, _rtRetryTimer, _rtStatus, _setRtStatus, _hashStr, _recentWrites, _markRecentWrite, _isRecentSelfEcho, blockCloudApply, isCloudApplyBlocked, _rtJoinRef, _RT_TOPIC, _startRealtime, _scheduleRtRetry, _stopRealtime, _tokRefreshTimer, _startProactiveRefresh, _stopProactiveRefresh, storeGet, storeSet, storeDel, _persistPending, _persistTimer, debouncedStoreSet, flushPersist } from './src/utils/storage.js';
 import { mergeSphImportRecords } from './src/utils/sphImport.js';
+import { normalizeSphProjects } from './src/utils/sphProject.js';
 import { generateHntiSph2026Seed, _RAW_ALL_SPH, ALL_SPH, buildSeedNotificationsFromSph, generateInstalledUnits, generateSeedManifestsFromSph, generateSeedCustomsDocsFromSph, SEED_MANIFESTS, SEED_CUSTOMS_DOCS, generateInstallDocs, INSTALL_DOCS, generateHistoricalBusinessTrips, _historical, HISTORICAL_BT, HISTORICAL_BTR, ALL_BUSINESS_TRIPS, ALL_BT_REALIZATIONS, generateRegulatoryRecords } from './src/data/seed.js';
 import { TOAST_EVENT, showToast } from './src/utils/toast.js';
 import { mergeDocumentTemplates, downloadDataUrl, downloadUploadedTemplate, previewUploadedTemplate, getUploadedDocumentTemplate, openDocumentTemplateOrHtml, downloadDocumentTemplateOrDoc, downloadCSV, downloadHtmlDoc, openPrintableHtml, getUserSignature, getUserDisplayName, findUserByRole, printHtmlStringAsPdf, renderDocLines, renderDocFooter, renderSignatureBlock, wrapDocumentInLetterhead, buildTextLetterheadHtml, buildHntiLetterheadHtml, renderDualSignatureHtml, buildEditorTemplate, getTemplateHtmlBody, fillTemplatePlaceholders, buildEditorBody, buildSPHDocumentHtml, downloadSPHWord, printSPHPdf, buildSPPDocumentHtml, downloadSPPWord, printSPPPdf, buildInvoiceKwitansiHtml, buildPrincipalPoHtml, buildBAIDocumentHtml, printBAIPdf, buildBAUjiFungsiDocumentHtml, printBAUjiFungsiPdf, buildBATrainingDocumentHtml, downloadBATrainingDoc, printBATrainingPdf, buildBASTBarangDocumentHtml, downloadBASTBarangDoc, printBASTBarangPdf, buildKwitansiHtml } from './src/utils/documents.js';
@@ -594,7 +595,7 @@ export default function App() {
         storeGet('ims_hnti:emp_v22'),
         storeGet('ims_hnti:bt_v22')
       ]);
-      if (d && !isCloudApplyBlocked(STORAGE_KEY)) try { setData(normalizePoWon(JSON.parse(d))); } catch {}
+      if (d && !isCloudApplyBlocked(STORAGE_KEY)) try { setData(normalizeSphProjects(normalizePoWon(JSON.parse(d)))); } catch {}
       if (l) setLang(l);
       if (s) try { setSession(JSON.parse(s)); } catch {}
       if (r) setExchangeRate(parseFloat(r) || DEFAULT_USD_IDR);
@@ -685,7 +686,7 @@ export default function App() {
         storeGet(NOTIF_KEY), storeGet(PRODUCT_SUPPORT_ACTIVITIES_KEY), storeGet(PRODUCT_SUPPORT_FILES_KEY), storeGet(DOCUMENT_TEMPLATE_KEY), storeGet(GENERATED_DOCS_KEY)
       ]);
       const safe = (v, setter) => { if (v) try { setter(JSON.parse(v)); } catch {} };
-      if (d && !isCloudApplyBlocked(STORAGE_KEY)) try { setData(normalizePoWon(JSON.parse(d))); } catch {}
+      if (d && !isCloudApplyBlocked(STORAGE_KEY)) try { setData(normalizeSphProjects(normalizePoWon(JSON.parse(d)))); } catch {}
       safe(rep, setReports); safe(iss, setIssues); safe(reg, setRegRecords);
       safe(akl, setAklRecords); safe(imp, setImportRecords); safe(pgl, setPengalihanRecords);
       safe(pi, setPiRecords); safe(pm, setPmSchedule); safe(mfst, setManifests);
@@ -1304,7 +1305,7 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
     setData(prev => {
       const merged = mergeSphImportRecords(prev, records);
       result = { added: merged.added, updated: merged.updated, total: merged.total };
-      return normalizePoWon(merged.data);
+      return normalizeSphProjects(normalizePoWon(merged.data));
     });
     flushPersist();
     blockCloudApply(STORAGE_KEY, 15000);

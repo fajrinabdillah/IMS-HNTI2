@@ -1,0 +1,203 @@
+// Proyek SPH — satu nomor surat / pelanggan / tanggal = satu proyek lintas modul.
+// Pengiriman & instalasi per alat; finance & PO level proyek.
+
+import { applyPackagePricing, sphPackageGroupKey, sphBillableValue, isBillableSphRow } from './sphPackage.js';
+import { projectHasDpReceived } from './domain.js';
+
+export function sphProjectKey(rec) {
+  return sphPackageGroupKey(rec);
+}
+
+export function pickProjectPrimary(lines) {
+  if (!lines?.length) return null;
+  const list = [...lines];
+  return list.find(m => m.pricingMode === 'package_primary')
+    || list.find(m => m.id === m.projectPrimaryId)
+    || list.find(m => m.poStatus === 'issued' && sphBillableValue(m) > 0)
+    || list.find(m => sphBillableValue(m) > 0)
+    || list.reduce((best, m) => (sphBillableValue(m) > sphBillableValue(best) ? m : best), list[0]);
+}
+
+function modalityKey(rec) {
+  return [rec?.modality, rec?.subModality].map(s => String(s || '').trim().toLowerCase()).join('|');
+}
+
+/** Nilai kontrak proyek — satu akun finance, tanpa double-count paket / duplikat modalitas. */
+export function getProjectFinanceTotal(lines) {
+  const primary = pickProjectPrimary(lines);
+  if (primary?.pricingMode === 'package_primary') {
+    return sphBillableValue(primary);
+  }
+  const billable = (lines || []).filter(isBillableSphRow);
+  const byMod = new Map();
+  billable.forEach(l => {
+    const k = modalityKey(l);
+    const v = sphBillableValue(l);
+    const prev = byMod.get(k);
+    if (prev === undefined || v > prev) byMod.set(k, v);
+  });
+  return [...byMod.values()].reduce((s, v) => s + v, 0);
+}
+
+const PROJECT_SYNC_FIELDS = [
+  'poStatus', 'stage', 'status', 'probability', 'sphWorkflowStatus',
+  'poIssuedAt', 'poIssuedDate', 'poDate', 'poYear',
+  'dpPaid', 'finalPaid', 'dpConfirmedAt', 'dpDecisionAt', 'dpFollowupAt',
+  'financePoNotifiedAt', 'financeDocsStatus', 'manufacturePoCreatedAt',
+  'factoryPoSentAt', 'factoryDpPaidAt', 'supplierDpPaidAt',
+  'paymentScheme', 'dpPercent', 'installmentMonths', 'opsPercent',
+];
+
+/**
+ * Normalisasi data SPH:
+ * - deteksi paket harga (Opsi B)
+ * - kunci proyek lintas modul
+ * - sinkron field PO/DP/finance ke semua baris anggota proyek
+ * - shippingStatus / installationStatus tetap per alat (tidak disinkron)
+ */
+export function normalizeSphProjects(data) {
+  let list = applyPackagePricing(Array.isArray(data) ? [...data] : []);
+  list = list.map(r => ({ ...r, sphProjectKey: sphProjectKey(r) }));
+
+  const groups = new Map();
+  list.forEach((r, i) => {
+    const k = r.sphProjectKey;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(i);
+  });
+
+  groups.forEach((indices) => {
+    const members = indices.map(i => list[i]);
+    const primary = pickProjectPrimary(members);
+    const poSource = members.find(m => m.poStatus === 'issued')
+      || members.find(m => projectHasDpReceived(m))
+      || primary;
+    const paymentSource = members.find(m => (m.paymentHistory || []).length)
+      || members.find(m => projectHasDpReceived(m))
+      || poSource;
+
+    indices.forEach(i => {
+      const isPrimary = list[i].id === primary.id;
+      list[i].projectPrimaryId = primary.id;
+      list[i].financeAccountId = primary.id;
+
+      if (!isPrimary) {
+        PROJECT_SYNC_FIELDS.forEach(f => {
+          const val = poSource[f] ?? paymentSource[f] ?? primary[f];
+          if (val !== undefined && val !== null && val !== '') {
+            list[i][f] = val;
+          }
+        });
+        if (projectHasDpReceived(paymentSource)) {
+          list[i].dpPaid = paymentSource.dpPaid;
+          list[i].dpConfirmedAt = paymentSource.dpConfirmedAt;
+          list[i].dpDecisionAt = paymentSource.dpDecisionAt;
+        }
+      }
+    });
+
+    // Konsolidasi riwayat pembayaran ke akun primary
+    const mergedHistory = members.flatMap(m => (Array.isArray(m.paymentHistory) ? m.paymentHistory : []));
+    if (mergedHistory.length) {
+      const primaryIdx = indices.find(i => list[i].id === primary.id);
+      if (primaryIdx !== undefined) {
+        const seen = new Set();
+        const deduped = mergedHistory.filter(h => {
+          const k = h.id || `${h.date}|${h.amount}|${h.type}`;
+          if (seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        });
+        list[primaryIdx] = {
+          ...list[primaryIdx],
+          paymentHistory: deduped,
+        };
+        indices.filter(i => i !== primaryIdx).forEach(i => {
+          list[i] = { ...list[i], paymentHistory: [] };
+        });
+      }
+    }
+  });
+
+  return list;
+}
+
+export function groupSphProjects(lines, { poIssuedOnly = false } = {}) {
+  let rows = lines || [];
+  if (poIssuedOnly) rows = rows.filter(s => s.poStatus === 'issued');
+
+  const groups = new Map();
+  rows.forEach(line => {
+    const key = line.sphProjectKey || sphProjectKey(line);
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        sphNo: line.sphNo,
+        customer: line.customer,
+        issuedDate: line.issuedDate,
+        lines: [],
+      });
+    }
+    groups.get(key).lines.push(line);
+  });
+
+  return [...groups.values()].map(g => {
+    const primary = pickProjectPrimary(g.lines);
+    return {
+      ...g,
+      primary,
+      financeTotal: getProjectFinanceTotal(g.lines),
+      lineCount: g.lines.length,
+      isMultiItem: g.lines.length > 1,
+    };
+  }).sort((a, b) => String(b.primary?.issuedDate || '').localeCompare(String(a.primary?.issuedDate || '')));
+}
+
+/** Satu baris PO = satu akun finance (multi-alat digabung). */
+export function toFinanceAccounts(data) {
+  return groupSphProjects(data, { poIssuedOnly: true }).map(g => {
+    const p = g.primary;
+    const modalities = [...new Set(g.lines.map(l => l.subModality || l.modality).filter(Boolean))];
+    return {
+      ...p,
+      id: p.financeAccountId || p.id,
+      totalValue: g.financeTotal,
+      projectLines: g.lines,
+      projectLineCount: g.lineCount,
+      isMultiItemProject: g.isMultiItem,
+      projectModalityLabel: g.isMultiItem && modalities.length > 1
+        ? modalities.join(' + ')
+        : (p.subModality || p.modality || ''),
+    };
+  });
+}
+
+export function resolveFinanceAccountId(data, sphNo) {
+  const norm = String(sphNo || '').trim().toLowerCase();
+  const matches = (data || []).filter(s => String(s.sphNo || '').trim().toLowerCase() === norm);
+  if (!matches.length) return null;
+  const g = groupSphProjects(matches)[0];
+  return g?.primary?.financeAccountId || g?.primary?.id || matches[0].id;
+}
+
+export function shippingStatusLabel(status, lang = 'id') {
+  const map = {
+    pending: lang === 'id' ? 'Menunggu' : 'Pending',
+    plan_order: lang === 'id' ? 'Order Pabrik' : 'Factory order',
+    factory_production: lang === 'id' ? 'Produksi' : 'Production',
+    ready_to_ship: lang === 'id' ? 'Siap Kirim' : 'Ready',
+    on_shipment: lang === 'id' ? 'Dalam Pengiriman' : 'In transit',
+    arrived_clearance: lang === 'id' ? 'Clearance' : 'Clearance',
+    sent_client: lang === 'id' ? 'Dikirim ke RS' : 'Sent to client',
+    client_received: lang === 'id' ? 'Diterima RS' : 'Received',
+  };
+  return map[status] || status || '-';
+}
+
+export function formatProjectEquipmentSummary(lines, lang = 'id') {
+  return (lines || []).map(l => {
+    const label = [l.subModality, l.modality].filter(Boolean).join(' · ') || '-';
+    const ship = shippingStatusLabel(l.shippingStatus, lang);
+    return `${label} (${ship})`;
+  }).join(' · ');
+}

@@ -1,4 +1,5 @@
 // SPH bulk import — merge CSV rows into existing deal records (line-item aware).
+import { normalizeSphProjects } from './sphProject.js';
 
 function normPart(v) {
   return String(v ?? '').trim().toLowerCase();
@@ -60,5 +61,6 @@ export function mergeSphImportRecords(existingData, importRecords) {
   });
 
   const merged = existing.map(s => (updates.has(s.id) ? updates.get(s.id) : s));
-  return { data: [...merged, ...newOnes], added, updated, total: rows.length };
+  const data = normalizeSphProjects([...merged, ...newOnes]);
+  return { data, added, updated, total: rows.length };
 }

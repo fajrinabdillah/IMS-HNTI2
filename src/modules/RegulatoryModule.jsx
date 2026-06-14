@@ -295,8 +295,16 @@ function UniformRegPipeline({ records, setRecords, recordType, t, lang, fmt = (v
   // For bapeten: pull units from SPH PO
   const deliveredUnits = useMemo(() => recordType === 'bapeten' ? data
     .filter(s => s.poStatus === 'issued')
-    .map(s => ({ id: s.id, customer: s.customer, modality: s.modality, subModality: s.subModality || '', sphNo: s.sphNo }))
-    .sort((a, b) => a.customer.localeCompare(b.customer)) : [], [data, recordType]);
+    .map(s => ({
+      id: s.id,
+      customer: s.customer,
+      modality: s.modality,
+      subModality: s.subModality || '',
+      sphNo: s.sphNo,
+      sphProjectKey: s.sphProjectKey || null,
+      label: `${s.customer} · ${s.subModality || s.modality || '-'} · ${s.sphNo}`,
+    }))
+    .sort((a, b) => a.customer.localeCompare(b.customer) || a.label.localeCompare(b.label)) : [], [data, recordType]);
 
   // PI expiry enrichment
   const enriched = useMemo(() => {

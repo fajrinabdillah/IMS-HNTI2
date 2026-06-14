@@ -13,6 +13,7 @@ import { CHART_COLORS } from '../constants/theme.js';
 import { getProjectStageRows, SPH_WORKFLOW_LABELS } from '../utils/sphStage.js';
 import { buildEditorTemplate, downloadCSV, downloadSPHWord, downloadSPPWord, printHtmlStringAsPdf, printSPHPdf, printSPPPdf } from '../utils/documents.js';
 import { parseSPHImport } from '../utils/csvImport.js';
+import { filterBillableRows, formatPackageItemsSummary, formatPackageModalityLabel, getPackageComponents, sphBillableValue, countUniqueSphNumbers } from '../utils/sphPackage.js';
 import { showToast } from '../utils/toast.js';
 const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employees, setEmployees, session, lang, fmt, onRequestSPH, onRequestSPP, onWorkflowUpdate, onSaveDocument, generatedDocs = [], products = [], documentTemplates = DEFAULT_DOCUMENT_TEMPLATES }) {
   const [open, setOpen] = useState('request');
@@ -284,8 +285,9 @@ const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employ
     </div>
   );
 });
-function SPHDetailModal({ sph, employees, lang, fmt, onClose, onWorkflowUpdate, session, documentTemplates = DEFAULT_DOCUMENT_TEMPLATES }) {
+function SPHDetailModal({ sph, allSph = [], employees, lang, fmt, onClose, onWorkflowUpdate, session, documentTemplates = DEFAULT_DOCUMENT_TEMPLATES }) {
   if (!sph) return null;
+  const packageComponents = getPackageComponents(allSph, sph);
   const actionNow = () => new Date().toISOString();
   const actions = [
     { label: 'Admin: Mulai SPH/SPP', patch: { sphWorkflowStatus: 'admin_drafting', sphDraftStartedAt: actionNow(), workflowEvent: 'admin_drafting', nextAction: 'Admin membuat Surat SPH/SPP' }, notify: { target: { role: 'admin' }, payload: { type: 'sph_request', message: `Request SPH/SPP ${sph.customer} sedang diproses Admin.`, link: { view: 'sph', id: sph.id } } } },
@@ -342,7 +344,12 @@ function SPHDetailModal({ sph, employees, lang, fmt, onClose, onWorkflowUpdate, 
         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '14px', marginBottom: '16px'}}>
           <div>
             <h2 className="serif" style={{fontSize: '24px', margin: 0}}>{sph.customer}</h2>
-            <div style={{fontSize: '12px', color: 'var(--ims-text-2)', marginTop: '4px'}}><span className="mono">{sph.sphNo}</span> · {sph.subModality} · Sales: {resolveEmpName(employees, sph.salesOwner)}</div>
+            <div style={{fontSize: '12px', color: 'var(--ims-text-2)', marginTop: '4px'}}><span className="mono">{sph.sphNo}</span> · {formatPackageModalityLabel(sph, packageComponents, lang)} · Sales: {resolveEmpName(employees, sph.salesOwner)}</div>
+            {sph.pricingMode === 'package_primary' && packageComponents.length > 0 && (
+              <div style={{fontSize: '11px', color: 'var(--ims-accent)', marginTop: '6px', lineHeight: 1.5}}>
+                {lang === 'id' ? 'Isi paket:' : 'Package items:'} {formatPackageItemsSummary(sph, packageComponents)}
+              </div>
+            )}
           </div>
           <div style={{display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
             <button type="button" onClick={() => printSPHPdf(sph, employees, fmt, documentTemplates)} className="btn-ghost" style={{fontSize: '11px'}}><FileText size={13} />PDF SPH</button>
@@ -450,6 +457,15 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const importRef = useRef(null);
   const [importMsg, setImportMsg] = useState(null);
+  const [expandedPackages, setExpandedPackages] = useState(() => new Set());
+
+  const togglePackageExpand = (id) => {
+    setExpandedPackages(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   const handleImportCSV = (e) => {
     const file = e.target.files && e.target.files[0];
@@ -503,18 +519,20 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
       return matchSearch && matchYear && matchProduct && (filterPType === 'all' || s.projectType === filterPType) && (filterStatus === 'all' || s.status === filterStatus);
     });
     const filtered = [...matched].sort((a, b) => {
-      if (sortSPH === 'value_desc') return (Number(b.totalValue) || 0) - (Number(a.totalValue) || 0);
-      if (sortSPH === 'value_asc') return (Number(a.totalValue) || 0) - (Number(b.totalValue) || 0);
+      if (sortSPH === 'value_desc') return sphBillableValue(b) - sphBillableValue(a);
+      if (sortSPH === 'value_asc') return sphBillableValue(a) - sphBillableValue(b);
       if (sortSPH === 'product') return String(a.subModality || a.modality || '').localeCompare(String(b.subModality || b.modality || ''));
       if (sortSPH === 'date_asc') return new Date(a.issuedDate || a.lastUpdate || 0) - new Date(b.issuedDate || b.lastUpdate || 0);
       return new Date(b.issuedDate || b.lastUpdate || 0) - new Date(a.issuedDate || a.lastUpdate || 0);
     });
-    const totalValue = filtered.reduce((sum, s) => sum + s.totalValue, 0);
-    const activeCount = filtered.filter(s => s.status === 'active').length;
-    const wonCount = filtered.filter(s => s.status === 'won').length;
-    return { filtered, totalValue, activeCount, wonCount };
+    const listRows = filterBillableRows(filtered);
+    const totalValue = listRows.reduce((sum, s) => sum + sphBillableValue(s), 0);
+    const activeCount = listRows.filter(s => s.status === 'active').length;
+    const wonCount = listRows.filter(s => s.status === 'won').length;
+    const projectCount = countUniqueSphNumbers(listRows);
+    return { filtered: listRows, allFiltered: filtered, totalValue, activeCount, wonCount, projectCount };
   }, [data, search, filterPType, filterStatus, filterYear, filterProduct, sortSPH]);
-  const { filtered, totalValue, activeCount, wonCount } = filteredStats;
+  const { filtered, allFiltered, totalValue, activeCount, wonCount, projectCount } = filteredStats;
 
   // Reset pagination when filter changes
   useEffect(() => { setVisibleCount(pageSize); }, [search, filterPType, filterStatus, filterYear, filterProduct, sortSPH, pageSize]);
@@ -623,7 +641,7 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
       )}
 
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: 'var(--ims-border)', marginBottom: '18px', border: '1px solid var(--ims-border)'}}>
-        <div style={{padding: '16px 20px', background: 'var(--ims-bg-card)'}}><div className="lbl-tag">{lang === 'id' ? 'Total SPH' : 'Total Quotations'}</div><div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px'}}>{filtered.length}</div></div>
+        <div style={{padding: '16px 20px', background: 'var(--ims-bg-card)'}}><div className="lbl-tag">{lang === 'id' ? 'Total SPH' : 'Total Quotations'}</div><div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px'}}>{filtered.length}</div><div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '3px'}}>{projectCount} {lang === 'id' ? 'nomor surat unik' : 'unique ref. no.'}</div></div>
         <div style={{padding: '16px 20px', background: 'var(--ims-bg-card)'}}><div className="lbl-tag">{t.total_value}</div><div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px'}}>{fmt(totalValue)}</div></div>
         <div style={{padding: '16px 20px', background: 'var(--ims-bg-card)'}}><div className="lbl-tag">{t.status_active}</div><div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px'}}>{activeCount}</div></div>
         <div style={{padding: '16px 20px', background: 'var(--ims-bg-card)'}}><div className="lbl-tag">{t.status_won}</div><div className="serif" style={{fontSize: '22px', fontWeight: 500, marginTop: '4px'}}>{wonCount}</div></div>
@@ -659,10 +677,10 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
         </select>
         <button onClick={() => {
           const header = ['SPH No', lang === 'id' ? 'Pelanggan' : 'Customer', lang === 'id' ? 'Tipe' : 'Type', lang === 'id' ? 'Jenis Proyek' : 'Project Type', 'Modality', 'Sub-Modality', 'Qty', lang === 'id' ? 'Harga Satuan' : 'Unit Price', lang === 'id' ? 'Total Nilai' : 'Total Value', 'Stage', lang === 'id' ? 'Status' : 'Status', 'Sales', lang === 'id' ? 'Tanggal Terbit' : 'Issue Date', lang === 'id' ? 'Update Terakhir' : 'Last Update'];
-          const rows = [header, ...filtered.map(s => [s.sphNo, s.customer, s.customerType, s.projectType, s.modality, s.subModality, s.qty, s.unitPrice, s.totalValue, s.stage, s.status, s.salesOwner, s.issuedDate, s.lastUpdate])];
+          const rows = [header, ...allFiltered.map(s => [s.sphNo, s.customer, s.customerType, s.projectType, s.modality, s.subModality, s.qty, s.unitPrice, s.totalValue, s.stage, s.status, s.salesOwner, s.issuedDate, s.lastUpdate])];
           downloadCSV(`HNTI_SPH_${new Date().toISOString().split('T')[0]}.csv`, rows);
         }} style={{background: 'var(--ims-accent-2)', border: 'none', color: '#fff', padding: '6px 12px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px', marginLeft: 'auto'}} title={lang === 'id' ? 'Export SPH ke CSV' : 'Export SPH to CSV'}>
-          <FileText size={12} />CSV ({filtered.length})
+          <FileText size={12} />CSV ({allFiltered.length})
         </button>
         {canEdit && <>
           <button onClick={() => importRef.current && importRef.current.click()} style={{background: '#1a4d8a', border: 'none', color: '#fff', padding: '6px 12px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px'}} title={lang === 'id' ? 'Impor SPH dari file CSV (migrasi data massal)' : 'Import SPH from CSV file (bulk migration)'}>
@@ -700,22 +718,43 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
               const pt = projectTypeMap.get(s.projectType);
               const sales = salesMap.get(s.salesOwner);
               const isSelected = selectedSphIds.includes(s.id);
-              return (
+              const packageComponents = s.pricingMode === 'package_primary' ? getPackageComponents(data, s) : [];
+              const isPackage = s.pricingMode === 'package_primary' && packageComponents.length > 0;
+              const isExpanded = expandedPackages.has(s.id);
+              const rowNodes = [];
+              rowNodes.push(
                 <tr key={s.id} className="hover-row" onClick={(e) => { if (e.target.closest('input[type="checkbox"]') || e.target.closest('button')) return; setDetailSph(s); }} style={{borderTop: '1px solid var(--ims-border)', cursor: 'pointer', background: isSelected ? 'rgba(192,48,48,0.04)' : undefined}}>
                   {canEdit && (
                     <Td onClick={e => e.stopPropagation()} style={{width: '36px', padding: '8px 10px'}}>
                       <input type="checkbox" checked={isSelected} onChange={() => toggleRowSelect(s.id)} onClick={e => e.stopPropagation()} style={{cursor: 'pointer', width: '14px', height: '14px'}} />
                     </Td>
                   )}
-                  <Td><span className="mono" style={{fontSize: '11px'}}>{s.sphNo}</span></Td>
+                  <Td>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
+                      {isPackage && (
+                        <button type="button" onClick={(e) => { e.stopPropagation(); togglePackageExpand(s.id); }} style={{background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ims-accent)', display: 'flex'}} title={lang === 'id' ? 'Tampilkan item paket' : 'Show package items'}>
+                          <ChevronDown size={14} style={{transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s'}} />
+                        </button>
+                      )}
+                      <span className="mono" style={{fontSize: '11px'}}>{s.sphNo}</span>
+                    </div>
+                  </Td>
                   <Td>
                     <div style={{fontWeight: 500}}>{s.customer}</div>
                     <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{t[`type_${s.customerType}`]}</div>
                   </Td>
                   <Td>{pt && <span style={{display: 'inline-block', padding: '3px 7px', fontSize: '10px', background: pt.color + '25', color: pt.color, fontWeight: 600}}>{t[`ptype_${s.projectType}`]}</span>}</Td>
-                  <Td>{s.subModality}</Td>
+                  <Td>
+                    <div>{formatPackageModalityLabel(s, packageComponents, lang)}</div>
+                    {isPackage && !isExpanded && (
+                      <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '3px', lineHeight: 1.4}}>{formatPackageItemsSummary(s, packageComponents)}</div>
+                    )}
+                    {isPackage && (
+                      <span style={{display: 'inline-block', marginTop: '4px', padding: '2px 6px', fontSize: '9px', background: 'rgba(26,77,138,0.12)', color: '#1a4d8a', fontWeight: 700, letterSpacing: '0.04em'}}>PAKET</span>
+                    )}
+                  </Td>
                   <Td align="right">{s.qty}</Td>
-                  <Td align="right"><span className="mono" style={{fontWeight: 500}}>{fmt(s.totalValue)}</span></Td>
+                  <Td align="right"><span className="mono" style={{fontWeight: 500}}>{fmt(sphBillableValue(s))}</span></Td>
                   <Td>{stage && <span style={{display: 'inline-block', padding: '3px 7px', fontSize: '10px', background: stage.color + '25', color: stage.color, fontWeight: 600}}>{t[`stage_${s.stage}`]}</span>}</Td>
                   <Td>{sales ? sales.name : s.salesOwner}</Td>
                   <Td align="right">
@@ -726,7 +765,23 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
                   </Td>
                 </tr>
               );
-            })}
+              if (isPackage && isExpanded) {
+                packageComponents.forEach(comp => {
+                  rowNodes.push(
+                    <tr key={`${s.id}__${comp.id}`} style={{background: 'var(--ims-bg-card-2)', borderTop: '1px solid var(--ims-border)'}}>
+                      {canEdit && <Td />}
+                      <Td><span className="mono" style={{fontSize: '10px', color: 'var(--ims-text-2)', paddingLeft: '20px'}}>{s.sphNo}</span></Td>
+                      <Td colSpan={2} style={{fontSize: '11px', color: 'var(--ims-text-2)', fontStyle: 'italic'}}>{lang === 'id' ? '↳ Item paket' : '↳ Package item'}</Td>
+                      <Td style={{fontSize: '11px', color: 'var(--ims-text-2)'}}>{comp.subModality || comp.modality}</Td>
+                      <Td align="right" style={{fontSize: '11px', color: 'var(--ims-text-2)'}}>{comp.qty || 1}</Td>
+                      <Td align="right" style={{fontSize: '11px', color: 'var(--ims-text-2)'}}>{lang === 'id' ? 'Termasuk paket' : 'Included'}</Td>
+                      <Td colSpan={3} />
+                    </tr>
+                  );
+                });
+              }
+              return rowNodes;
+            }).flat()}
           </tbody>
         </table>
         {filtered.length === 0 && <div style={{padding: '50px', textAlign: 'center', color: 'var(--ims-text-2)'}}>{t.no_data}</div>}
@@ -757,7 +812,7 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
         danger
         lang={lang}
       />
-      <SPHDetailModal sph={detailSph} employees={employees} lang={lang} fmt={fmt} session={session} documentTemplates={documentTemplates} onClose={() => setDetailSph(null)} onWorkflowUpdate={(id, patch, options) => { onWorkflowUpdate && onWorkflowUpdate(id, patch, options); setDetailSph(prev => prev && prev.id === id ? { ...prev, ...patch } : prev); }} />
+      <SPHDetailModal sph={detailSph} allSph={data} employees={employees} lang={lang} fmt={fmt} session={session} documentTemplates={documentTemplates} onClose={() => setDetailSph(null)} onWorkflowUpdate={(id, patch, options) => { onWorkflowUpdate && onWorkflowUpdate(id, patch, options); setDetailSph(prev => prev && prev.id === id ? { ...prev, ...patch } : prev); }} />
       </>
       )}
     </div>
@@ -922,29 +977,30 @@ function SPHDashboard({ data, generatedDocs = [], fmt, lang, t, salesTeam, onNav
   const glass = DASHBOARD_GLASS.sph;
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
   const dash = useMemo(() => {
-    const active = data.filter(s => s.status === 'active');
-    const won = data.filter(s => s.status === 'won');
-    const lost = data.filter(s => s.status === 'lost');
-    const poIssued = data.filter(s => s.poStatus === 'issued');
-    const queue = data.filter(s => ['requested', 'admin_drafting', 'ready_for_sales'].includes(s.sphWorkflowStatus) || (!s.salesDownloadedAt && s.status !== 'cancelled'));
-    const stageMap = STAGES.reduce((acc, st) => { acc[st.id] = data.filter(s => s.stage === st.id).length; return acc; }, {});
+    const billable = filterBillableRows(data);
+    const active = billable.filter(s => s.status === 'active');
+    const won = billable.filter(s => s.status === 'won');
+    const lost = billable.filter(s => s.status === 'lost');
+    const poIssued = billable.filter(s => s.poStatus === 'issued');
+    const queue = billable.filter(s => ['requested', 'admin_drafting', 'ready_for_sales'].includes(s.sphWorkflowStatus) || (!s.salesDownloadedAt && s.status !== 'cancelled'));
+    const stageMap = STAGES.reduce((acc, st) => { acc[st.id] = billable.filter(s => s.stage === st.id).length; return acc; }, {});
     const stageData = STAGES.map(st => ({ name: (t[`stage_${st.id}`] || st.id).slice(0, 12), value: stageMap[st.id] || 0, fill: st.color }));
-    const modalityData = Object.entries(data.reduce((acc, s) => { const k = s.modality || '?'; acc[k] = (acc[k] || 0) + 1; return acc; }, {})).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8);
+    const modalityData = Object.entries(billable.reduce((acc, s) => { const k = s.modality || '?'; acc[k] = (acc[k] || 0) + 1; return acc; }, {})).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8);
     const monthly = MONTHS.map((m, idx) => {
       const mm = String(idx + 1).padStart(2, '0');
-      return { month: m, [lang === 'id' ? 'SPH Baru' : 'New SPH']: data.filter(s => (s.issuedDate || '').substring(5, 7) === mm).length };
+      return { month: m, [lang === 'id' ? 'SPH Baru' : 'New SPH']: billable.filter(s => (s.issuedDate || '').substring(5, 7) === mm).length };
     });
-    const topCustomers = Object.entries(data.reduce((acc, s) => { acc[s.customer] = (acc[s.customer] || 0) + (Number(s.totalValue) || 0); return acc; }, {})).map(([name, value]) => ({ name: String(name).slice(0, 22), value })).sort((a, b) => b.value - a.value).slice(0, 10);
+    const topCustomers = Object.entries(billable.reduce((acc, s) => { acc[s.customer] = (acc[s.customer] || 0) + sphBillableValue(s); return acc; }, {})).map(([name, value]) => ({ name: String(name).slice(0, 22), value })).sort((a, b) => b.value - a.value).slice(0, 10);
     const workflowBreakdown = [
-      { name: lang === 'id' ? 'Request' : 'Request', value: data.filter(s => s.sphWorkflowStatus === 'requested').length, color: '#5b87b8' },
-      { name: lang === 'id' ? 'Draft Admin' : 'Admin Draft', value: data.filter(s => s.sphWorkflowStatus === 'admin_drafting').length, color: 'var(--ims-gold)' },
-      { name: lang === 'id' ? 'Siap Sales' : 'Ready Sales', value: data.filter(s => s.sphWorkflowStatus === 'ready_for_sales').length, color: 'var(--ims-accent-2)' },
+      { name: lang === 'id' ? 'Request' : 'Request', value: billable.filter(s => s.sphWorkflowStatus === 'requested').length, color: '#5b87b8' },
+      { name: lang === 'id' ? 'Draft Admin' : 'Admin Draft', value: billable.filter(s => s.sphWorkflowStatus === 'admin_drafting').length, color: 'var(--ims-gold)' },
+      { name: lang === 'id' ? 'Siap Sales' : 'Ready Sales', value: billable.filter(s => s.sphWorkflowStatus === 'ready_for_sales').length, color: 'var(--ims-accent-2)' },
     ].filter(x => x.value > 0);
-    return { active, won, lost, poIssued, queue, stageData, modalityData, monthly, topCustomers, workflowBreakdown, totalValue: data.reduce((s, p) => s + (Number(p.totalValue) || 0), 0), docsCount: (generatedDocs || []).length };
+    return { active, won, lost, poIssued, queue, stageData, modalityData, monthly, topCustomers, workflowBreakdown, totalValue: billable.reduce((s, p) => s + sphBillableValue(p), 0), docsCount: (generatedDocs || []).length, billableCount: billable.length, projectCount: countUniqueSphNumbers(billable) };
   }, [data, generatedDocs, t, lang]);
 
   const quickLinks = [
-    { id: 'list', label: lang === 'id' ? 'Daftar SPH' : 'SPH List', count: data.length, icon: FileText, color: glass.accent },
+    { id: 'list', label: lang === 'id' ? 'Daftar SPH' : 'SPH List', count: dash.billableCount, icon: FileText, color: glass.accent },
     { id: 'queue', label: lang === 'id' ? 'Antrian Workflow' : 'Workflow Queue', count: dash.queue.length, icon: Bell, color: '#c03030' },
     { id: 'po', label: 'PO Issued', count: dash.poIssued.length, icon: CheckCircle2, color: 'var(--ims-accent-2)' },
   ];
@@ -959,7 +1015,7 @@ function SPHDashboard({ data, generatedDocs = [], fmt, lang, t, salesTeam, onNav
         lang={lang}
       />
       <DashboardKpiGrid items={[
-        { label: lang === 'id' ? 'Total SPH' : 'Total SPH', value: data.length, sub: fmt(dash.totalValue), color: glass.accent },
+        { label: lang === 'id' ? 'Total SPH' : 'Total SPH', value: dash.billableCount, sub: `${fmt(dash.totalValue)} · ${dash.projectCount} ${lang === 'id' ? 'surat' : 'refs'}`, color: glass.accent },
         { label: t.status_active, value: dash.active.length, sub: lang === 'id' ? 'sedang dikejar' : 'in pursuit', color: '#5b87b8' },
         { label: t.status_won, value: dash.won.length, sub: `${dash.poIssued.length} PO`, color: 'var(--ims-accent-2)' },
         { label: lang === 'id' ? 'Antrian Admin' : 'Admin Queue', value: dash.queue.length, sub: `${dash.docsCount} ${lang === 'id' ? 'dokumen' : 'documents'}`, color: '#c03030' },

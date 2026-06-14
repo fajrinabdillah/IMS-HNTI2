@@ -11,6 +11,7 @@ import { addDaysIso, getFactoryProductionDays, getFactoryProductionInfo, importP
 import { flushPersist } from '../utils/storage.js';
 import { notify } from '../utils/notifications.js';
 import { showToast } from '../utils/toast.js';
+import { groupSphProjects, shippingStatusLabel } from '../utils/sphProject.js';
 function CustomsNoteEditor({ value, isHold, onSave, t, lang }) {
   const [draft, setDraft] = useState(value || '');
   const [justSaved, setJustSaved] = useState(false);
@@ -64,7 +65,7 @@ function EditableLocalDeliveryField({ label, value, onSave, canEdit, placeholder
     </Field>
   );
 }
-function OperationsDashboardCharts({ poProjects, visibleManifests, visibleCustomsDocs, localProjects, getEffectiveShipping, avgProductionDays, lang, fmt }) {
+function OperationsDashboardCharts({ poProjects, poProjectValueTotal = 0, visibleManifests, visibleCustomsDocs, localProjects, getEffectiveShipping, avgProductionDays, lang, fmt }) {
   const pipelineData = IMPORT_PIPELINE_STEPS.map(step => ({
     name: lang === 'id' ? step.labelId : step.labelEn,
     value: poProjects.filter(p => getEffectiveShipping(p) === step.id).length,
@@ -150,7 +151,7 @@ function OperationsDashboardCharts({ poProjects, visibleManifests, visibleCustom
               <Legend wrapperStyle={{fontSize: '11px'}} />
             </PieChart>
           </ResponsiveContainer>
-          <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '4px'}}>{lang === 'id' ? 'Rata-rata produksi' : 'Average production'}: <span className="mono" style={{fontWeight: 800}}>{avgProductionDays}</span> {lang === 'id' ? 'hari' : 'days'} · {fmt ? fmt(poProjects.reduce((sum, p) => sum + (Number(p.totalValue) || 0), 0)) : ''}</div>
+          <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '4px'}}>{lang === 'id' ? 'Rata-rata produksi' : 'Average production'}: <span className="mono" style={{fontWeight: 800}}>{avgProductionDays}</span> {lang === 'id' ? 'hari' : 'days'} · {fmt ? fmt(poProjectValueTotal) : ''}</div>
         </GlassPanel>
       </div>
     </div>
@@ -201,13 +202,15 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
     s.poStatus === 'issued' &&
     projectHasDpReceived(s)
   ), [filteredData]);
+  const poProjectGroups = useMemo(() => groupSphProjects(poProjects), [poProjects]);
   const findManifestForProject = (project) => manifests.find(m => manifestMatchesProject(m, project));
   const localProjects = useMemo(() => filteredData.filter(s =>
     s.poStatus === 'issued' &&
     (s.customsStatus === 'released' || s.customsDocStatus === 'sppb' || s.customsSppbAt || ['sent_client', 'client_received'].includes(s.shippingStatus) || s.localDeliveryStatus ||
       customsDocs.some(d => d.status === 'sppb' && manifestMatchesProject(manifests.find(m => m.manifestNo === d.manifestRef || m.id === d.manifestRef) || { principal: d.principal, manifestNo: d.manifestRef }, s)))
   ), [filteredData, customsDocs, manifests]);
-  const totalPoIssued = useMemo(() => filteredData.filter(s => s.poStatus === 'issued').length, [filteredData]);
+  const localProjectGroups = useMemo(() => groupSphProjects(localProjects), [localProjects]);
+  const totalPoIssued = useMemo(() => groupSphProjects(filteredData.filter(s => s.poStatus === 'issued')).length, [filteredData]);
 
   // Manifest status → Shipment status mapping (cross-tab link)
   // Build manifest lookup by id for linked SPH
@@ -566,6 +569,7 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
       {tab === 'dashboard' && (
         <OperationsDashboardCharts
           poProjects={poProjects}
+          poProjectValueTotal={poProjectGroups.reduce((sum, g) => sum + (Number(g.financeTotal) || 0), 0)}
           visibleManifests={visibleManifests}
           visibleCustomsDocs={visibleCustomsDocs}
           localProjects={localProjects}
@@ -654,13 +658,45 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
 
       {tab === 'shipment' && (
         <div style={{display: 'flex', flexDirection: 'column', gap: '14px'}}>
-          {poProjects.map(p => {
+          {poProjectGroups.map(group => (
+            <div key={group.key} style={{padding: '18px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: group.isMultiItem ? '16px' : '0', flexWrap: 'wrap', gap: '10px', paddingBottom: group.isMultiItem ? '12px' : 0, borderBottom: group.isMultiItem ? '1px solid var(--ims-border)' : 'none'}}>
+                <div>
+                  <div style={{display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+                    <div style={{fontSize: '14px', fontWeight: 600}}>{group.customer}</div>
+                    {group.isMultiItem && (
+                      <span style={{padding: '2px 8px', fontSize: '9px', background: 'var(--ims-gold)25', color: 'var(--ims-gold)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', borderRadius: '3px'}}>
+                        {lang === 'id' ? `${group.lineCount} ALAT` : `${group.lineCount} UNITS`}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '2px'}}>
+                    <span className="mono">{group.sphNo}</span>
+                    {!group.isMultiItem && <> · {group.primary.subModality} · Qty {group.primary.qty || 1}</>}
+                  </div>
+                </div>
+                {group.isMultiItem && <div className="mono" style={{fontSize: '14px', fontWeight: 500}}>{fmt(group.financeTotal)}</div>}
+              </div>
+
+              {group.lines.map((p, lineIdx) => {
             const effectiveShipping = getEffectiveShipping(p);
             const linkedManifest = (p.manifestId && manifestById.get(p.manifestId)) || findManifestForProject(p);
             const isSynced = !!linkedManifest;
             const productionInfo = getFactoryProductionInfo(p);
             return (
-            <div key={p.id} style={{padding: '18px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
+            <div key={p.id} style={{padding: group.isMultiItem ? '14px 0 0' : 0, borderTop: group.isMultiItem && lineIdx > 0 ? '1px dashed var(--ims-border)' : 'none', marginTop: group.isMultiItem && lineIdx > 0 ? '14px' : 0}}>
+              {group.isMultiItem && (
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', flexWrap: 'wrap', gap: '8px'}}>
+                  <div>
+                    <div style={{fontSize: '13px', fontWeight: 600}}>{p.subModality || p.modality}</div>
+                    <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{p.productBrand || p.brand || p.principal || '-'} · Qty {p.qty || 1}</div>
+                  </div>
+                  <span style={{padding: '3px 8px', fontSize: '9px', fontWeight: 700, background: 'var(--ims-accent-2)20', color: 'var(--ims-accent-2)', letterSpacing: '0.04em', textTransform: 'uppercase'}}>
+                    {shippingStatusLabel(effectiveShipping, lang)}
+                  </span>
+                </div>
+              )}
+              {!group.isMultiItem && (
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px', flexWrap: 'wrap', gap: '10px'}}>
                 <div>
                   <div style={{fontSize: '14px', fontWeight: 600}}>{p.customer}</div>
@@ -668,6 +704,7 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
                 </div>
                 <div className="mono" style={{fontSize: '14px', fontWeight: 500}}>{fmt(p.totalValue)}</div>
               </div>
+              )}
 
               {linkedManifest && (
                 <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', flexWrap: 'wrap', fontSize: '11px', color: 'var(--ims-text-2)'}}>
@@ -692,7 +729,6 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
                   );
                 })}
               </div>
-              {/* Status Note - especially important for "hold" */}
               {(p.customsStatus === 'hold' || p.customsStatusNote) && (
                 <div style={{marginTop: '12px', padding: '10px 12px', background: p.customsStatus === 'hold' ? '#8b3a3a10' : 'var(--ims-text)', borderLeft: `3px solid ${p.customsStatus === 'hold' ? '#8b3a3a' : 'var(--ims-gold)'}`}}>
                   <div style={{fontSize: '9px', letterSpacing: '0.15em', textTransform: 'uppercase', color: p.customsStatus === 'hold' ? '#8b3a3a' : 'var(--ims-text-2)', fontWeight: 600, marginBottom: '6px'}}>
@@ -708,7 +744,9 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
             </div>
             );
           })}
-          {poProjects.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: 'var(--ims-text-2)', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>{t.no_data}</div>}
+            </div>
+          ))}
+          {poProjectGroups.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: 'var(--ims-text-2)', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>{t.no_data}</div>}
         </div>
       )}
 
@@ -716,16 +754,38 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
       {tab === 'customs' && <CustomsDocsList customsDocs={visibleCustomsDocs} setCustomsDocs={setCustomsDocs} manifests={visibleManifests} setManifests={setManifests} data={data} setData={setData} t={t} lang={lang} canEdit={canEdit} session={session} />}
       {tab === 'local' && (
         <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
-          {localProjects.map(p => {
+          {localProjectGroups.map(group => (
+            <div key={group.key} style={{padding: '16px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
+              <div style={{display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: group.isMultiItem ? '12px' : 0, paddingBottom: group.isMultiItem ? '10px' : 0, borderBottom: group.isMultiItem ? '1px solid var(--ims-border)' : 'none'}}>
+                <div>
+                  <div style={{display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+                    <div style={{fontWeight: 700, fontSize: '14px'}}>{group.customer}</div>
+                    {group.isMultiItem && (
+                      <span style={{padding: '2px 8px', fontSize: '9px', background: 'var(--ims-gold)25', color: 'var(--ims-gold)', fontWeight: 700}}>{group.lineCount} {lang === 'id' ? 'ALAT' : 'UNITS'}</span>
+                    )}
+                  </div>
+                  <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '2px'}}><span className="mono">{group.sphNo}</span></div>
+                </div>
+              </div>
+              {group.lines.map((p, lineIdx) => {
             const defaults = getLocalDeliveryDefaults(p);
             const statusLabel = localDeliveryStatusLabel(p.localDeliveryStatus || defaults.localDeliveryStatus, lang);
             const statusColor = p.localDeliveryStatus === 'storing' ? '#1a4d8a' : (p.localDeliveryStatus === 'delivered_to_rs' || p.shippingStatus === 'client_received' ? 'var(--ims-accent)' : 'var(--ims-accent-2)');
             return (
-            <div key={p.id} style={{padding: '16px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
+            <div key={p.id} style={{paddingTop: group.isMultiItem && lineIdx > 0 ? '14px' : 0, marginTop: group.isMultiItem && lineIdx > 0 ? '14px' : 0, borderTop: group.isMultiItem && lineIdx > 0 ? '1px dashed var(--ims-border)' : 'none'}}>
               <div style={{display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '12px'}}>
                 <div>
-                  <div style={{fontWeight: 700, fontSize: '14px'}}>{p.customer}</div>
-                  <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{p.subModality} · <span className="mono">{p.sphNo}</span></div>
+                  {group.isMultiItem ? (
+                    <>
+                      <div style={{fontWeight: 600, fontSize: '13px'}}>{p.subModality || p.modality}</div>
+                      <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{p.productBrand || p.brand || '-'}</div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{fontWeight: 700, fontSize: '14px'}}>{p.customer}</div>
+                      <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{p.subModality} · <span className="mono">{p.sphNo}</span></div>
+                    </>
+                  )}
                 </div>
                 <span style={{padding: '4px 10px', fontSize: '10px', background: statusColor + '25', color: statusColor, fontWeight: 700}}>
                   {statusLabel.toUpperCase()}
@@ -750,7 +810,9 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
               {p.localNotes && <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '8px'}}>{p.localNotes}</div>}
             </div>
           );})}
-          {localProjects.length === 0 && <div className="empty-state">{lang === 'id' ? 'Belum ada barang SPPB / pengiriman lokal' : 'No SPPB / local delivery items yet'}</div>}
+            </div>
+          ))}
+          {localProjectGroups.length === 0 && <div className="empty-state">{lang === 'id' ? 'Belum ada barang SPPB / pengiriman lokal' : 'No SPPB / local delivery items yet'}</div>}
         </div>
       )}
       <ConfirmDialog

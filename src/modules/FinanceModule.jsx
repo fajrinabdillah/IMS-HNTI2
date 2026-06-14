@@ -14,6 +14,7 @@ import { DASHBOARD_GLASS, DashboardHero, GlassPanel } from '../components/Futuri
 import { buildEditorTemplate, downloadCSV } from '../utils/documents.js';
 import { parsePaymentImport } from '../utils/csvImport.js';
 import { notify } from '../utils/notifications.js';
+import { toFinanceAccounts, resolveFinanceAccountId } from '../utils/sphProject.js';
 function FinanceDashboardCharts({ filteredPoProjects, poProjects, financePerformance, lang, fmt, paymentTypeLabel, totalOpsCost = 0, opsCostRows = [] }) {
   const opsKey = lang === 'id' ? 'Biaya Ops' : 'Ops Cost';
   const valueKey = lang === 'id' ? 'Nilai SPH' : 'SPH Value';
@@ -200,10 +201,9 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
         const { records, errors } = parsePaymentImport(String(ev.target.result || ''));
         if (!records.length) { setPayImportMsg({ ok: false, text: errors[0] || (lang === 'id' ? 'Tidak ada data valid.' : 'No valid data.') }); return; }
         const today = new Date().toISOString().split('T')[0];
-        const byNo = new Map(data.map(s => [String(s.sphNo).trim().toLowerCase(), s.id]));
         const addById = new Map(); let applied = 0, unmatched = 0;
         records.forEach(rec => {
-          const id = byNo.get(String(rec.sphNo).trim().toLowerCase());
+          const id = resolveFinanceAccountId(data, rec.sphNo);
           if (!id) { unmatched++; return; }
           const entry = { id: 'pay_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6), type: rec.type, amount: rec.amount, date: rec.date || today, note: rec.note || '' };
           if (!addById.has(id)) addById.set(id, []);
@@ -225,17 +225,23 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
     downloadCSV('HNTI_Template_Import_Pembayaran.csv', [header, ex1, ex2]);
   };
 
-  const poProjects = useMemo(() => data.filter(s => s.poStatus === 'issued'), [data]);
+  const poProjects = useMemo(() => toFinanceAccounts(data), [data]);
   const financeYears = useMemo(() => {
     const years = new Set(poProjects.map(p => String(p.issuedDate || p.poIssuedAt || p.lastUpdate || '').slice(0, 4)).filter(y => /^\d{4}$/.test(y)));
     return [...years].sort((a, b) => b.localeCompare(a));
   }, [poProjects]);
-  const financeProductOptions = useMemo(() => [...new Set(poProjects.flatMap(p => [p.modality, p.subModality, p.productBrand, p.brand]).filter(Boolean))].sort(), [poProjects]);
+  const financeProductOptions = useMemo(() => {
+    const items = poProjects.flatMap(p => [
+      p.projectModalityLabel, p.modality, p.subModality, p.productBrand, p.brand,
+      ...(p.projectLines || []).flatMap(l => [l.modality, l.subModality]),
+    ].filter(Boolean));
+    return [...new Set(items)].sort();
+  }, [poProjects]);
   const filteredPoProjects = useMemo(() => {
     const q = financeSearch.trim().toLowerCase();
     const rows = poProjects.filter(p => {
       const matchScheme = schemeFilter === 'all' || effectiveScheme(p) === schemeFilter;
-      const matchProduct = financeProductFilter === 'all' || [p.modality, p.subModality, p.productBrand, p.brand].filter(Boolean).includes(financeProductFilter);
+      const matchProduct = financeProductFilter === 'all' || [p.projectModalityLabel, p.modality, p.subModality, p.productBrand, p.brand, ...(p.projectLines || []).flatMap(l => [l.modality, l.subModality])].filter(Boolean).includes(financeProductFilter);
       const rowYear = String(p.issuedDate || p.poIssuedAt || p.lastUpdate || '').slice(0, 4);
       const matchYear = financeYear === 'all' || rowYear === financeYear;
       const matchSearch = !q || [p.sphNo, p.customer, p.subModality, p.modality, p.salesOwner].some(v => String(v || '').toLowerCase().includes(q));
@@ -692,7 +698,11 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
                     <Td><span className="mono" style={{fontSize: '11px'}}>{p.sphNo}</span></Td>
                     <Td>
                       <div style={{fontWeight: 500}}>{p.customer}</div>
-                      <div style={{fontSize: '10px', color: 'var(--ims-text-2)'}}>{p.subModality} · {t[`type_${p.customerType}`]}</div>
+                      <div style={{fontSize: '10px', color: 'var(--ims-text-2)'}}>
+                        {p.isMultiItemProject
+                          ? `${p.projectModalityLabel || p.subModality} · ${p.projectLineCount} ${lang === 'id' ? 'alat' : 'units'}`
+                          : `${p.subModality} · ${t[`type_${p.customerType}`]}`}
+                      </div>
                     </Td>
                     <Td><span style={{display: 'inline-block', padding: '3px 8px', fontSize: '10px', background: schemeColor(sch) + '25', color: schemeColor(sch), fontWeight: 600, borderRadius: '3px'}}>{schemeLabel(sch)}</span></Td>
                     <Td align="right"><span className="mono" style={{fontWeight: 500}}>{fmt(p.totalValue)}</span></Td>
@@ -700,7 +710,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
                     <Td align="right"><span className="mono" style={{color: sum.outstanding > 0 ? '#c03030' : 'var(--ims-text-2)', fontWeight: 500}}>{fmt(sum.outstanding)}</span></Td>
                     <Td align="right">
                       {canEdit ? (
-                        <input type="number" step="0.5" min="0" max="100" value={((p.opsPercent !== undefined ? p.opsPercent : OPS_COST_DEFAULT) * 100)} onChange={e => { const pct = (Number(e.target.value) || 0) / 100; setData(prev => prev.map(x => x.id === p.id ? { ...x, opsPercent: pct } : x)); }} style={{width: '64px', textAlign: 'right', fontSize: '11px', padding: '4px 6px'}} title={lang === 'id' ? 'Biaya operasional proyek (sinkron dengan modul Insentif)' : 'Project operational cost (synced with Incentive)'} />
+                        <input type="number" step="0.5" min="0" max="100" value={((p.opsPercent !== undefined ? p.opsPercent : OPS_COST_DEFAULT) * 100)} onChange={e => { const pct = (Number(e.target.value) || 0) / 100; const memberIds = new Set((p.projectLines || []).map(l => l.id)); setData(prev => prev.map(x => (x.id === p.id || memberIds.has(x.id)) ? { ...x, opsPercent: pct } : x)); }} style={{width: '64px', textAlign: 'right', fontSize: '11px', padding: '4px 6px'}} title={lang === 'id' ? 'Biaya operasional proyek (sinkron dengan modul Insentif)' : 'Project operational cost (synced with Incentive)'} />
                       ) : (
                         <span className="mono" style={{fontSize: '11px', color: 'var(--ims-text-2)'}}>{(((p.opsPercent !== undefined ? p.opsPercent : OPS_COST_DEFAULT) * 100)).toFixed(1)}%</span>
                       )}
@@ -731,8 +741,16 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', padding: '12px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
                           <div>
                             <div style={{fontSize: '11px', color: 'var(--ims-text-2)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase'}}>{lang === 'id' ? 'Konfirmasi DP / Deposit' : 'DP / Deposit Confirmation'}</div>
-                            <div style={{fontSize: '12px', color: 'var(--ims-text-2)', marginTop: '4px'}}>{p.customer} · {p.sphNo} · DP {p.dpPercent || 0}%</div>
+                            <div style={{fontSize: '12px', color: 'var(--ims-text-2)', marginTop: '4px'}}>{p.customer} · {p.sphNo} · DP {p.dpPercent || 0}%{p.isMultiItemProject ? ` · ${p.projectLineCount} ${lang === 'id' ? 'alat' : 'units'}` : ''}</div>
                           </div>
+                          {p.isMultiItemProject && (p.projectLines || []).length > 0 && (
+                            <div style={{width: '100%', marginTop: '10px', padding: '10px 12px', background: 'var(--ims-bg)', border: '1px solid var(--ims-border)', fontSize: '11px', color: 'var(--ims-text-2)'}}>
+                              <div style={{fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '6px', color: 'var(--ims-text)'}}>{lang === 'id' ? 'Komposisi Proyek' : 'Project Items'}</div>
+                              {(p.projectLines || []).map(line => (
+                                <div key={line.id} style={{marginTop: '4px'}}>• {[line.subModality, line.modality].filter(Boolean).join(' · ') || '-'}</div>
+                              ))}
+                            </div>
+                          )}
                           {canEdit && (
                             <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
                               <button onClick={() => confirmDpReceived(p)} style={{background: 'var(--ims-gold)', color: 'var(--ims-accent-ink)', border: 'none', padding: '8px 12px', fontSize: '11px', cursor: 'pointer', fontWeight: 800}}>{lang === 'id' ? 'Pembayaran DP telah diterima' : 'DP Payment Received'}</button>

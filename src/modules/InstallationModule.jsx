@@ -11,6 +11,7 @@ import { buildEditorTemplate, downloadBASTBarangDoc, downloadBATrainingDoc, prin
 import { notify } from '../utils/notifications.js';
 import { resolveEmpName, resolveNamesInText } from '../utils/domain.js';
 import { DASHBOARD_GLASS, DashboardHero, GlassPanel } from '../components/FuturisticDashboardShell.jsx';
+import { shippingStatusLabel } from '../utils/sphProject.js';
 
 const SKIP_RADIATION_TEST_PRODUCTS = ['Flat Panel Detector', 'MRI', 'ESWL'];
 const needsExposureTest = (record) => {
@@ -174,7 +175,8 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
 
   // Pipeline Instalasi: dari Data Instalasi + proyek SPH yang sudah terkirim ke RS.
   const installProjects = useMemo(() => {
-    const findSphForRecord = (r) => data.find(s => s.customer === r.customer && (s.subModality || '') === (r.subModality || ''))
+    const findSphForRecord = (r) => data.find(s => s.customer === r.customer && (s.subModality || '') === (r.subModality || '') && (r.sphNo ? s.sphNo === r.sphNo : true))
+      || data.find(s => s.customer === r.customer && (s.subModality || '') === (r.subModality || ''))
       || data.find(s => s.customer === r.customer && (s.modality || '') === (r.modality || ''))
       || data.find(s => s.customer === r.customer);
 
@@ -183,7 +185,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
     installRecordsFiltered.forEach(r => {
       const sph = findSphForRecord(r);
       const key = unitKey(r);
-      projectMap.set(key, {
+        projectMap.set(key, {
         ...(sph || {}),
         id: sph?.id || r.id,
         customer: r.customer,
@@ -191,6 +193,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
         subModality: r.subModality || sph?.subModality || '',
         product: sph?.product || r.subModality || r.modality || '',
         sphNo: sph?.sphNo || r.sphNo || r.recordNo,
+        sphProjectKey: sph?.sphProjectKey || null,
         issuedDate: sph?.issuedDate || r.installStart || '',
         installationStatus: r.status === 'completed' ? 'record_completed' : 'record_in_progress',
         _installRecord: r,
@@ -353,6 +356,11 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
                   <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{p.subModality} · <span className="mono">{p.sphNo}</span></div>
                 </div>
                 <div style={{display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap'}}>
+                  {p.shippingStatus && (
+                    <span style={{padding: '3px 9px', fontSize: '9px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', background: 'var(--ims-accent-2)20', color: 'var(--ims-accent-2)'}}>
+                      {lang === 'id' ? 'Logistik' : 'Logistics'}: {shippingStatusLabel(p.shippingStatus, lang)}
+                    </span>
+                  )}
                   <span style={{padding: '3px 9px', borderRadius: '10px', fontSize: '9px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', background: recCompleted ? 'var(--ims-accent-2)' : 'var(--ims-gold)', color: '#fff'}}>{recCompleted ? (lang === 'id' ? 'Instalasi Selesai' : 'Installation Done') : (lang === 'id' ? 'Sedang Proses' : 'In Progress')}</span>
                 </div>
               </div>
@@ -1089,7 +1097,7 @@ function UnitPickerField({ units = [], customer, modality, subModality, onPick, 
       }}>
         <option value="">{lang === 'id' ? '— Pilih RS / produk terkirim —' : '— Select delivered RS / product —'}</option>
         {!hasMatch && customer && <option value={curKey}>{customer}{modality ? ` — ${modality}` : ''}{subModality ? ` ${subModality}` : ''} {lang === 'id' ? '(input manual)' : '(manual entry)'}</option>}
-        {units.map(u => <option key={u.id || keyOf(u)} value={keyOf(u)}>{u.customer} — {u.modality}{u.subModality ? ` ${u.subModality}` : ''}{u.sphNo ? ` · ${u.sphNo}` : ''}</option>)}
+        {units.map(u => <option key={u.id || keyOf(u)} value={keyOf(u)}>{u.label || `${u.customer} — ${u.modality}${u.subModality ? ` ${u.subModality}` : ''}${u.sphNo ? ` · ${u.sphNo}` : ''}`}</option>)}
       </select>
     </Field>
   );

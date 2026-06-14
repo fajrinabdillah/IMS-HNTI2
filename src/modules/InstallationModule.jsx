@@ -12,6 +12,46 @@ import { notify } from '../utils/notifications.js';
 import { resolveEmpName, resolveNamesInText } from '../utils/domain.js';
 import { DASHBOARD_GLASS, DashboardHero, GlassPanel } from '../components/FuturisticDashboardShell.jsx';
 import { shippingStatusLabel } from '../utils/sphProject.js';
+import {
+  technicalUnitKey,
+  buildTechnicalUnitMap,
+  getTechnicalUnitRecord,
+  unitsMatch,
+  formatTechnicalUnitLabel,
+  findSphLineForUnit,
+  findBapetenRecordForUnit,
+  enrichDeliveredUnitFromSph,
+  groupRecordsBySphProject,
+} from '../utils/technicalSupport.js';
+
+function ProjectGroupShell({ group, lang, children, itemBorderTop }) {
+  if (!group?.isMultiItem) return children;
+  return (
+    <div style={{ padding: '16px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', marginBottom: itemBorderTop ? 0 : '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', paddingBottom: '10px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap', gap: '8px' }}>
+        <div>
+          <div style={{ fontSize: '14px', fontWeight: 700 }}>{group.customer}</div>
+          <div style={{ fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '2px' }}>
+            <span className="mono">{group.sphNo}</span> · {group.items.length} {lang === 'id' ? 'alat' : 'units'}
+          </div>
+        </div>
+        <span style={{ padding: '2px 8px', fontSize: '9px', background: 'var(--ims-gold)25', color: 'var(--ims-gold)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+          {lang === 'id' ? 'PROYEK MULTI-ALAT' : 'MULTI-UNIT PROJECT'}
+        </span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function resolveRecordProjectMeta(record, data) {
+  const sph = findSphLineForUnit(data, record);
+  return {
+    customer: record.customer,
+    sphNo: record.sphNo || sph?.sphNo || '',
+    sphProjectKey: record.sphProjectKey || sph?.sphProjectKey || null,
+  };
+}
 
 const SKIP_RADIATION_TEST_PRODUCTS = ['Flat Panel Detector', 'MRI', 'ESWL'];
 const needsExposureTest = (record) => {
@@ -57,25 +97,27 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
   const trainingRecordsFiltered = useMemo(() => trainingRecordsY.filter(r => matchesSearch(r.certNo, r.customer, r.modality, r.subModality, r.status, r.instructor, r.topics)), [trainingRecordsY, searchTerm]);
   const exposureRecordsFiltered = useMemo(() => installRecordsFiltered.filter(r => needsExposureTest(r)), [installRecordsFiltered]);
 
-  const normalizeInstallPart = (value) => String(value || '').trim().toLowerCase();
-  const unitKey = (r) => [r.customer, r.modality, r.subModality].map(normalizeInstallPart).join('|');
+  const unitKey = technicalUnitKey;
 
   const installRecordUnits = useMemo(() => installRecordsFiltered.map(r => {
-    const sph = data.find(s => s.customer === r.customer && (s.subModality || '') === (r.subModality || ''))
-      || data.find(s => s.customer === r.customer && (s.modality || '') === (r.modality || ''))
-      || data.find(s => s.customer === r.customer);
-    return { id: r.id, customer: r.customer, modality: r.modality || sph?.modality || '', subModality: r.subModality || sph?.subModality || '', sphNo: sph?.sphNo || r.recordNo };
+    const sph = findSphLineForUnit(data, r);
+    const base = { customer: r.customer, modality: r.modality || sph?.modality || '', subModality: r.subModality || sph?.subModality || '', sphNo: r.sphNo || sph?.sphNo || '' };
+    return { id: r.id, ...base, sphProjectKey: sph?.sphProjectKey || null, label: formatTechnicalUnitLabel(base) };
   }), [installRecordsFiltered, data]);
   const bastRecordsForView = useMemo(() => {
-    const existing = new Set(bastRecordsFiltered.map(unitKey));
+    const existing = new Set(bastRecordsFiltered.flatMap(r => [technicalUnitKey(r), ...(!r.sphNo ? [[r.customer, r.modality, r.subModality].map(p => String(p || '').trim().toLowerCase()).join('|')] : [])]));
     const placeholders = installRecordsFiltered
-      .filter(r => !existing.has(unitKey(r)))
-      .map(r => ({
+      .filter(r => !existing.has(technicalUnitKey(r)) && !getTechnicalUnitRecord(buildTechnicalUnitMap(bastRecordsFiltered), r))
+      .map(r => {
+        const sph = findSphLineForUnit(data, r);
+        return {
         id: `bast_pending_${r.id}`,
         bastNo: lang === 'id' ? 'BAST belum dibuat' : 'BAST not created',
         customer: r.customer,
         modality: r.modality,
         subModality: r.subModality,
+        sphNo: r.sphNo || sph?.sphNo || '',
+        sphProjectKey: sph?.sphProjectKey || null,
         signedDate: '',
         hntiRep: resolveEmpName(employees, r.leadTechnician),
         customerRep: '',
@@ -84,19 +126,23 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
         docUrl: '',
         notes: lang === 'id' ? 'Menunggu update BAST dari tim teknisi.' : 'Waiting for BAST update from technician team.',
         _placeholder: true,
-      }));
+      };
+      });
     return [...bastRecordsFiltered, ...placeholders];
-  }, [bastRecordsFiltered, installRecordsFiltered, employees, lang]);
+  }, [bastRecordsFiltered, installRecordsFiltered, employees, lang, data]);
   const trainingRecordsForView = useMemo(() => {
-    const existing = new Set(trainingRecordsFiltered.map(unitKey));
+    const bastMap = buildTechnicalUnitMap(bastRecordsFiltered);
     const placeholders = installRecordsFiltered
-      .filter(r => !existing.has(unitKey(r)))
-      .map(r => ({
+      .filter(r => !getTechnicalUnitRecord(bastMap, r) && !trainingRecordsFiltered.some(tr => unitsMatch(tr, r)))
+      .map(r => {
+        const sph = findSphLineForUnit(data, r);
+        return {
         id: `train_pending_${r.id}`,
         certNo: lang === 'id' ? 'Training belum dibuat' : 'Training not created',
         customer: r.customer,
         modality: r.modality,
         subModality: r.subModality,
+        sphNo: r.sphNo || sph?.sphNo || '',
         sessionDate: '',
         participants: 0,
         instructor: resolveEmpName(employees, r.leadTechnician),
@@ -106,9 +152,10 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
         certUrl: '',
         notes: lang === 'id' ? 'Menunggu update training produk.' : 'Waiting for product training update.',
         _placeholder: true,
-      }));
+      };
+      });
     return [...trainingRecordsFiltered, ...placeholders];
-  }, [trainingRecordsFiltered, installRecordsFiltered, employees, lang]);
+  }, [trainingRecordsFiltered, installRecordsFiltered, bastRecordsFiltered, employees, lang, data]);
 
   const toggleStep = (id, field) => {
     if (!canEdit) return;
@@ -148,21 +195,9 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
 
   // CROSS-TAB SYNC: pipeline status must match the exact installed unit,
   // not only the customer name. One RS can have multiple projects/products.
-  const recordsByUnit = useMemo(() => {
-    const map = new Map();
-    installRecords.forEach(r => map.set(unitKey(r), r));
-    return map;
-  }, [installRecords]);
-  const bastByUnit = useMemo(() => {
-    const map = new Map();
-    bastRecords.forEach(b => map.set(unitKey(b), b));
-    return map;
-  }, [bastRecords]);
-  const trainingByUnit = useMemo(() => {
-    const map = new Map();
-    trainingRecords.forEach(tr => map.set(unitKey(tr), tr));
-    return map;
-  }, [trainingRecords]);
+  const recordsByUnit = useMemo(() => buildTechnicalUnitMap(installRecords), [installRecords]);
+  const bastByUnit = useMemo(() => buildTechnicalUnitMap(bastRecords), [bastRecords]);
+  const trainingByUnit = useMemo(() => buildTechnicalUnitMap(trainingRecords), [trainingRecords]);
   const isProductDelivered = (s) => (
     s.shippingStatus === 'delivered'
     || s.shippingStatus === 'client_received'
@@ -192,7 +227,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
         modality: r.modality || sph?.modality || '',
         subModality: r.subModality || sph?.subModality || '',
         product: sph?.product || r.subModality || r.modality || '',
-        sphNo: sph?.sphNo || r.sphNo || r.recordNo,
+        sphNo: r.sphNo || sph?.sphNo || r.recordNo,
         sphProjectKey: sph?.sphProjectKey || null,
         issuedDate: sph?.issuedDate || r.installStart || '',
         installationStatus: r.status === 'completed' ? 'record_completed' : 'record_in_progress',
@@ -210,13 +245,13 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
         return matchesSearch(s.customer, s.sphNo, s.modality, s.subModality, s.product);
       })
       .forEach(s => {
-        const key = unitKey({ customer: s.customer, modality: s.modality, subModality: s.subModality });
+        const key = technicalUnitKey({ customer: s.customer, modality: s.modality, subModality: s.subModality, sphNo: s.sphNo });
         if (projectMap.has(key)) return;
         projectMap.set(key, {
           ...s,
           product: s.product || s.subModality || s.modality || '',
           installationStatus: s.installationStatus || 'pending',
-          _installRecord: recordsByUnit.get(key) || null,
+          _installRecord: getTechnicalUnitRecord(recordsByUnit, { customer: s.customer, modality: s.modality, subModality: s.subModality, sphNo: s.sphNo }) || null,
         });
       });
 
@@ -239,34 +274,22 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
   }, [installProjects]);
 
   const isBastDoneForSph = (s) => {
-    const bast = bastByUnit.get(unitKey(s));
+    const bast = getTechnicalUnitRecord(bastByUnit, s);
     return !!s.bastDone || !!s.bastDate || s.installationStatus === 'installed' || bast?.status === 'signed';
   };
 
-  // SPH untuk form Data Instalasi: hanya produk yang sudah terkirim ke RS, lalu hilang setelah BAST selesai.
   const deliveredUnits = useMemo(() => data
     .filter(s => s.poStatus === 'issued' && isProductDelivered(s) && !isBastDoneForSph(s))
-    .map(s => ({ id: s.id, customer: s.customer, modality: s.modality, subModality: s.subModality || '', sphNo: s.sphNo }))
-    .sort((a, b) => a.customer.localeCompare(b.customer)), [data, bastByUnit]);
+    .map(s => enrichDeliveredUnitFromSph(s))
+    .filter(Boolean)
+    .sort((a, b) => a.customer.localeCompare(b.customer) || a.label.localeCompare(b.label)), [data, bastByUnit]);
 
-  // BAPETEN Utilization Permit linkage (review #3): a unit's "Izin BAPETEN" step turns green
-  // automatically once the matching Izin Pemanfaatan BAPETEN record (regulatory) reaches "issued".
-  const bapetenIssuedByCustomer = useMemo(() => {
-    const map = new Map();
-    (regRecords || []).forEach(r => {
-      const issued = r.stage === 'issued' || !!r.issuedDate;
-      if (issued && r.customer) map.set(r.customer, r);
-    });
-    return map;
-  }, [regRecords]);
-
-  // Derive effective step status for a PO project (auto-synced from other tabs)
+  // Izin BAPETEN per unit (customer + modality + subModality), bukan per RS saja.
   const getStepStatus = (p) => {
-    const rec = p._installRecord || recordsByUnit.get(unitKey(p));
-    const exactKey = unitKey(rec || p);
-    const bast = bastByUnit.get(exactKey);
-    const training = trainingByUnit.get(exactKey);
-    const bapetenRec = bapetenIssuedByCustomer.get(p.customer);
+    const rec = p._installRecord || getTechnicalUnitRecord(recordsByUnit, p);
+    const bast = getTechnicalUnitRecord(bastByUnit, rec || p);
+    const training = getTechnicalUnitRecord(trainingByUnit, rec || p);
+    const bapetenRec = findBapetenRecordForUnit(regRecords, p);
     const installationComplete = !!(rec && rec.status === 'completed');
     const functionComplete = installationComplete || !!(rec && rec.calibrationDone);
     return {
@@ -344,6 +367,8 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
           bastRecords={bastRecordsFiltered}
           trainingRecords={trainingRecordsFiltered}
           installProjects={installProjects}
+          installProjectGroups={installProjectGroups}
+          getStepStatus={getStepStatus}
           kpis={kpis}
           t={t} lang={lang} fmt={fmt} employees={employees}
         />
@@ -474,10 +499,10 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
         </div>
       )}
 
-      {activeTab === 'records' && <InstallRecordsList records={installRecordsFiltered} setRecords={setInstallRecords} t={t} lang={lang} canEdit={canEdit} employees={employees} units={deliveredUnits} products={products} fmt={fmt} documentTemplates={documentTemplates} onOpenEditor={openInstallEditor} />}
-      {activeTab === 'bast' && <BASTList products={products} records={bastRecordsForView} setRecords={setBastRecords} t={t} lang={lang} canEdit={canEdit} units={installRecordUnits} installRecords={installRecords} employees={employees} documentTemplates={documentTemplates} fmt={fmt} onOpenEditor={openInstallEditor} />}
-      {activeTab === 'training' && <TrainingCertList records={trainingRecordsForView} setRecords={setTrainingRecords} t={t} lang={lang} canEdit={canEdit} employees={employees} units={installRecordUnits} installRecords={installRecords} products={products} documentTemplates={documentTemplates} fmt={fmt} onOpenEditor={openInstallEditor} />}
-      {activeTab === 'exposure' && <ExposureTestList records={exposureRecordsFiltered} setRecords={setInstallRecords} t={t} lang={lang} canEdit={canEdit} employees={employees} units={deliveredUnits} products={products} fmt={fmt} documentTemplates={documentTemplates} onOpenEditor={openInstallEditor} />}
+      {activeTab === 'records' && <InstallRecordsList records={installRecordsFiltered} setRecords={setInstallRecords} data={data} t={t} lang={lang} canEdit={canEdit} employees={employees} units={deliveredUnits} products={products} fmt={fmt} documentTemplates={documentTemplates} onOpenEditor={openInstallEditor} />}
+      {activeTab === 'bast' && <BASTList products={products} records={bastRecordsForView} setRecords={setBastRecords} data={data} t={t} lang={lang} canEdit={canEdit} units={installRecordUnits} installRecords={installRecords} employees={employees} documentTemplates={documentTemplates} fmt={fmt} onOpenEditor={openInstallEditor} />}
+      {activeTab === 'training' && <TrainingCertList records={trainingRecordsForView} setRecords={setTrainingRecords} data={data} t={t} lang={lang} canEdit={canEdit} employees={employees} units={installRecordUnits} installRecords={installRecords} products={products} documentTemplates={documentTemplates} fmt={fmt} onOpenEditor={openInstallEditor} />}
+      {activeTab === 'exposure' && <ExposureTestList records={exposureRecordsFiltered} setRecords={setInstallRecords} data={data} t={t} lang={lang} canEdit={canEdit} employees={employees} units={deliveredUnits} products={products} fmt={fmt} documentTemplates={documentTemplates} onOpenEditor={openInstallEditor} />}
 
       {installEditor && (
         <DocumentEditorModal
@@ -574,7 +599,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
   );
 }
 
-function InstallationDashboard({ installRecords = [], bastRecords = [], trainingRecords = [], installProjects = [], kpis = {}, t, lang, fmt = (n) => n, employees = {} }) {
+function InstallationDashboard({ installRecords = [], bastRecords = [], trainingRecords = [], installProjects = [], installProjectGroups = [], getStepStatus, kpis = {}, t, lang, fmt = (n) => n, employees = {} }) {
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
   const dash = useMemo(() => {
     const total = installRecords.length;
@@ -666,6 +691,40 @@ function InstallationDashboard({ installRecords = [], bastRecords = [], training
         ))}
       </div>
 
+      {installProjectGroups.filter(g => g.isMultiItem).length > 0 && (
+        <div className="card">
+          <div className="card-title">{lang === 'id' ? 'Proyek Multi-Alat (Progress per Unit)' : 'Multi-Unit Projects (Progress per Unit)'}</div>
+          <div style={{ display: 'grid', gap: '14px' }}>
+            {installProjectGroups.filter(g => g.isMultiItem).map(group => (
+              <div key={group.key} style={{ padding: '14px', background: 'var(--ims-bg-card-2)', border: '1px solid var(--ims-border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 700 }}>{group.customer}</div>
+                    <div style={{ fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '2px' }}><span className="mono">{group.sphNo}</span> · {group.projects.length} {lang === 'id' ? 'alat' : 'units'}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gap: '8px' }}>
+                  {group.projects.map(p => {
+                    const ss = getStepStatus ? getStepStatus(p) : {};
+                    const steps = ['installation_done', 'functionTest', 'exposureTest', 'complianceTest', 'trainingCert', 'bast'];
+                    const done = steps.filter(id => ss[id]).length;
+                    const modLabel = [p.subModality, p.modality].filter(Boolean).join(' · ') || '-';
+                    return (
+                      <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '8px 10px', background: 'var(--ims-bg-card)', fontSize: '11px', flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 600 }}>{modLabel}</span>
+                        <span style={{ color: 'var(--ims-text-2)' }}>{shippingStatusLabel(p.shippingStatus, lang)}</span>
+                        <span style={{ fontWeight: 600, color: done >= steps.length ? 'var(--ims-accent-2)' : 'var(--ims-gold)' }}>{done}/{steps.length} {lang === 'id' ? 'tahap' : 'steps'}</span>
+                        {ss.bast && <span style={{ fontSize: '9px', padding: '2px 6px', background: 'var(--ims-accent-2)25', color: 'var(--ims-accent-2)', fontWeight: 700 }}>BAST ✓</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Row 1: Tren bulanan + Status instalasi */}
       <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px'}}>
         <div className="card">
@@ -753,7 +812,7 @@ function InstallationDashboard({ installRecords = [], bastRecords = [], training
     </div>
   );
 }
-function InstallRecordsList({ records, setRecords, t, lang, canEdit, employees = {}, units = [], products = [], fmt = (n) => n, documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, onOpenEditor }) {
+function InstallRecordsList({ records, setRecords, data = [], t, lang, canEdit, employees = {}, units = [], products = [], fmt = (n) => n, documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, onOpenEditor }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc');
@@ -762,15 +821,6 @@ function InstallRecordsList({ records, setRecords, t, lang, canEdit, employees =
   const handleSave = (rec) => {
     setRecords(prev => {
       const exists = prev.find(r => r.id === rec.id);
-      if (rec.status === 'signed' && rec.signedDate && (!exists || exists.signedDate !== rec.signedDate || exists.status !== 'signed')) {
-        const due = new Date(rec.signedDate);
-        due.setDate(due.getDate() + 30);
-        notify({ role: 'finance' }, {
-          type: 'billing_due',
-          message: `BAST ${rec.customer} sudah signed. Reminder penagihan pertama jatuh tempo ${due.toISOString().split('T')[0]} dan H-7 perlu follow-up.`,
-          link: { view: 'finance' },
-        });
-      }
       return exists ? prev.map(r => r.id === rec.id ? rec : r) : [...prev, rec];
     });
     setModalOpen(false); setEditingRecord(null);
@@ -794,6 +844,48 @@ function InstallRecordsList({ records, setRecords, t, lang, canEdit, employees =
     return arr;
   }, [records, sortBy]);
 
+  const recordGroups = useMemo(() => groupRecordsBySphProject(sortedRecords, r => resolveRecordProjectMeta(r, data)), [sortedRecords, data]);
+
+  const renderRecordRow = (r) => {
+    const statusColor = statusColors[r.status];
+    return (
+      <div key={r.id} style={{padding: '16px 18px', borderTop: '1px solid var(--ims-border)'}}>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '10px'}}>
+          <div style={{flex: '1 1 320px'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap'}}>
+              <span className="mono" style={{fontSize: '12px', fontWeight: 700, color: 'var(--ims-text)'}}>{r.recordNo}</span>
+              <span style={{fontSize: '11px', color: 'var(--ims-text-2)'}}>· {r.customer}</span>
+              {r.sphNo && <span style={{fontSize: '10px', color: 'var(--ims-text-2)'}}>· <span className="mono">{r.sphNo}</span></span>}
+            </div>
+            <div style={{fontSize: '12px', fontWeight: 500, marginTop: '4px'}}>{r.modality} · {r.subModality}</div>
+            <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '4px'}}>👷 {resolveEmpName(employees, r.leadTechnician)} (Team: {r.teamSize})</div>
+          </div>
+          <div style={{textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px'}}>
+            <span style={{padding: '4px 10px', fontSize: '10px', background: statusColor + '25', color: statusColor, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{t[`inst_status_${r.status}`]}</span>
+            <div style={{display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
+              {canEdit && onOpenEditor && <button onClick={() => onOpenEditor('bauji_fungsi', r, lang === 'id' ? 'BA Instalasi & Uji Fungsi' : 'Installation & Function Test BA')} className="btn-primary" style={{fontSize: '10px', padding: '4px 8px'}} title={lang === 'id' ? 'Buat BA Instalasi & uji fungsi di editor' : 'Create installation & function test BA in editor'}><Edit2 size={11} />{lang === 'id' ? 'Buat BA Instalasi & uji fungsi' : 'Create Install & Function BA'}</button>}
+              <button onClick={() => printBAUjiFungsiPdf(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="PDF BA Instalasi & Uji Fungsi"><FileText size={11} />PDF</button>
+              <button onClick={() => printBAIPdf(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="PDF BA Instalasi"><FileCheck size={11} />BAI</button>
+              {canEdit && <button onClick={() => { setEditingRecord(r); setModalOpen(true); }} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}}><Edit2 size={11} />Edit</button>}
+              {canEdit && <button onClick={() => handleDelete(r.id)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px', color: '#c03030'}}><Trash2 size={11} /></button>}
+            </div>
+          </div>
+        </div>
+        <div style={{display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '10px', color: 'var(--ims-text-2)', marginBottom: '8px'}}>
+          <span><strong>Mulai:</strong> <span className="mono">{r.installStart || '—'}</span></span>
+          <span><strong>Selesai:</strong> <span className="mono">{r.installEnd || '—'}</span></span>
+          {r.duration && <span><strong>Durasi:</strong> {r.duration} hari</span>}
+        </div>
+        <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap', fontSize: '10px', marginBottom: '8px'}}>
+          <span style={{padding: '2px 7px', background: r.roomReady ? 'var(--ims-accent-2)25' : '#c0303025', color: r.roomReady ? 'var(--ims-accent-2)' : '#c03030', fontWeight: 600}}>{r.roomReady ? '✓' : '✗'} Ruangan</span>
+          <span style={{padding: '2px 7px', background: r.electricalReady ? 'var(--ims-accent-2)25' : '#c0303025', color: r.electricalReady ? 'var(--ims-accent-2)' : '#c03030', fontWeight: 600}}>{r.electricalReady ? '✓' : '✗'} Listrik</span>
+          <span style={{padding: '2px 7px', background: r.calibrationDone ? 'var(--ims-accent-2)25' : '#c0303025', color: r.calibrationDone ? 'var(--ims-accent-2)' : '#c03030', fontWeight: 600}}>{r.calibrationDone ? '✓' : '✗'} Kalibrasi</span>
+        </div>
+        {r.notes && <div style={{padding: '8px 10px', background: 'var(--ims-bg-card-2)', fontSize: '11px', fontStyle: 'italic', color: 'var(--ims-text)'}}>📝 {r.notes}</div>}
+      </div>
+    );
+  };
+
   return (
     <div style={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
       <div style={{padding: '14px 18px', borderBottom: '1px solid var(--ims-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px'}}>
@@ -803,51 +895,18 @@ function InstallRecordsList({ records, setRecords, t, lang, canEdit, employees =
           {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{lang === 'id' ? 'Tambah Data Instalasi' : 'Add Installation'}</button>}
         </div>
       </div>
-      {sortedRecords.map(r => {
-        const statusColor = statusColors[r.status];
-        return (
-          <div key={r.id} style={{padding: '16px 18px', borderTop: '1px solid var(--ims-border)'}}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '10px'}}>
-              <div style={{flex: '1 1 320px'}}>
-                <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap'}}>
-                  <span className="mono" style={{fontSize: '12px', fontWeight: 700, color: 'var(--ims-text)'}}>{r.recordNo}</span>
-                  <span style={{fontSize: '11px', color: 'var(--ims-text-2)'}}>· {r.customer}</span>
-                </div>
-                <div style={{fontSize: '12px', fontWeight: 500, marginTop: '4px'}}>{r.modality} · {r.subModality}</div>
-                <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '4px'}}>👷 {resolveEmpName(employees, r.leadTechnician)} (Team: {r.teamSize})</div>
-              </div>
-              <div style={{textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px'}}>
-                <span style={{padding: '4px 10px', fontSize: '10px', background: statusColor + '25', color: statusColor, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{t[`inst_status_${r.status}`]}</span>
-                <div style={{display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
-                  {canEdit && onOpenEditor && <button onClick={() => onOpenEditor('bauji_fungsi', r, lang === 'id' ? 'BA Instalasi & Uji Fungsi' : 'Installation & Function Test BA')} className="btn-primary" style={{fontSize: '10px', padding: '4px 8px'}} title={lang === 'id' ? 'Buat BA Instalasi & uji fungsi di editor' : 'Create installation & function test BA in editor'}><Edit2 size={11} />{lang === 'id' ? 'Buat BA Instalasi & uji fungsi' : 'Create Install & Function BA'}</button>}
-                  <button onClick={() => printBAUjiFungsiPdf(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="PDF BA Instalasi & Uji Fungsi"><FileText size={11} />PDF</button>
-                  <button onClick={() => printBAIPdf(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="PDF BA Instalasi"><FileCheck size={11} />BAI</button>
-                  {canEdit && <button onClick={() => { setEditingRecord(r); setModalOpen(true); }} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}}><Edit2 size={11} />Edit</button>}
-                  {canEdit && <button onClick={() => handleDelete(r.id)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px', color: '#c03030'}}><Trash2 size={11} /></button>}
-                </div>
-              </div>
-            </div>
-            <div style={{display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '10px', color: 'var(--ims-text-2)', marginBottom: '8px'}}>
-              <span><strong>Mulai:</strong> <span className="mono">{r.installStart || '—'}</span></span>
-              <span><strong>Selesai:</strong> <span className="mono">{r.installEnd || '—'}</span></span>
-              {r.duration && <span><strong>Durasi:</strong> {r.duration} hari</span>}
-            </div>
-            <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap', fontSize: '10px', marginBottom: '8px'}}>
-              <span style={{padding: '2px 7px', background: r.roomReady ? 'var(--ims-accent-2)25' : '#c0303025', color: r.roomReady ? 'var(--ims-accent-2)' : '#c03030', fontWeight: 600}}>{r.roomReady ? '✓' : '✗'} Ruangan</span>
-              <span style={{padding: '2px 7px', background: r.electricalReady ? 'var(--ims-accent-2)25' : '#c0303025', color: r.electricalReady ? 'var(--ims-accent-2)' : '#c03030', fontWeight: 600}}>{r.electricalReady ? '✓' : '✗'} Listrik</span>
-              <span style={{padding: '2px 7px', background: r.calibrationDone ? 'var(--ims-accent-2)25' : '#c0303025', color: r.calibrationDone ? 'var(--ims-accent-2)' : '#c03030', fontWeight: 600}}>{r.calibrationDone ? '✓' : '✗'} Kalibrasi</span>
-            </div>
-            {r.notes && <div style={{padding: '8px 10px', background: 'var(--ims-bg-card-2)', fontSize: '11px', fontStyle: 'italic', color: 'var(--ims-text)'}}>📝 {r.notes}</div>}
-          </div>
-        );
-      })}
+      {recordGroups.map(group => (
+        <ProjectGroupShell key={group.key} group={group} lang={lang}>
+          {group.items.map(renderRecordRow)}
+        </ProjectGroupShell>
+      ))}
       {records.length === 0 && <div className="empty-state">{t.no_data}</div>}
       {modalOpen && <InstallRecordModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} employees={employees} units={units} products={products} />}
       <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Riwayat Instalasi?' : 'Delete Installation Record?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
   );
 }
-function BASTList({ records, products = [], setRecords, t, lang, canEdit, units = [], installRecords = [], employees = {}, documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, fmt = (n) => n, onOpenEditor }) {
+function BASTList({ records, products = [], setRecords, data = [], t, lang, canEdit, units = [], installRecords = [], employees = {}, documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, fmt = (n) => n, onOpenEditor }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc');
@@ -864,6 +923,18 @@ function BASTList({ records, products = [], setRecords, t, lang, canEdit, units 
     delete cleanRec._placeholder;
     setRecords(prev => {
       const exists = prev.find(r => r.id === cleanRec.id);
+      const wasSigned = exists?.status === 'signed' && exists?.signedDate;
+      const nowSigned = cleanRec.status === 'signed' && cleanRec.signedDate;
+      if (nowSigned && (!exists || !wasSigned || exists.signedDate !== cleanRec.signedDate || exists.status !== 'signed')) {
+        const due = new Date(cleanRec.signedDate);
+        due.setDate(due.getDate() + 30);
+        const unitLabel = [cleanRec.subModality, cleanRec.modality].filter(Boolean).join(' · ');
+        notify({ role: 'finance' }, {
+          type: 'billing_due',
+          message: `BAST ${cleanRec.customer}${unitLabel ? ` (${unitLabel})` : ''} sudah signed${cleanRec.sphNo ? ` · ${cleanRec.sphNo}` : ''}. Reminder penagihan pertama jatuh tempo ${due.toISOString().split('T')[0]} dan H-7 perlu follow-up.`,
+          link: { view: 'finance' },
+        });
+      }
       return exists ? prev.map(r => r.id === cleanRec.id ? cleanRec : r) : [...prev, cleanRec];
     });
     setModalOpen(false); setEditingRecord(null);
@@ -887,6 +958,47 @@ function BASTList({ records, products = [], setRecords, t, lang, canEdit, units 
     return arr;
   }, [records, sortBy]);
 
+  const recordGroups = useMemo(() => groupRecordsBySphProject(sortedRecords, r => resolveRecordProjectMeta(r, data)), [sortedRecords, data]);
+
+  const renderBastRow = (r) => {
+    const statusColor = statusColors[r.status];
+    const syncedTech = installLeadTechnicianName(installRecords, employees, r.customer, r.modality, r.subModality, r.sphNo);
+    const technicianNames = activeEmployeeNamesByRole(employees, 'technician');
+    const displayHntiRep = (r.hntiRep && technicianNames.includes(r.hntiRep) ? r.hntiRep : '') || syncedTech || '—';
+    return (
+      <div key={r.id} style={{padding: '16px 18px', borderTop: '1px solid var(--ims-border)'}}>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '10px'}}>
+          <div style={{flex: '1 1 320px'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap'}}>
+              <span className="mono" style={{fontSize: '12px', fontWeight: 700, color: 'var(--ims-text)'}}>{r.bastNo}</span>
+              {r.sphNo && <span style={{fontSize: '10px', color: 'var(--ims-text-2)'}}>· <span className="mono">{r.sphNo}</span></span>}
+            </div>
+            <div style={{fontSize: '12px', fontWeight: 600, marginTop: '4px'}}>{r.customer}</div>
+            <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{r.modality} · {r.subModality}</div>
+            {r.signedDate && <div style={{fontSize: '10px', color: 'var(--ims-accent-2)', marginTop: '4px', fontWeight: 600}} className="mono">✓ Tertanda: {r.signedDate}</div>}
+          </div>
+          <div style={{textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px'}}>
+            <span style={{padding: '4px 10px', fontSize: '10px', background: statusColor + '25', color: statusColor, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{t[`bast_status_${r.status}`]}</span>
+            {r.docUrl && <LinkAttachment url={r.docUrl} lang={lang} />}
+            <div style={{display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
+              {canEdit && onOpenEditor && <button onClick={() => onOpenEditor('bast_barang', r, 'BAST Barang')} className="btn-primary" style={{fontSize: '10px', padding: '4px 8px'}} title={lang === 'id' ? 'Buat BAST di editor (bisa diedit & disimpan)' : 'Create BAST in editor (editable & saveable)'}><Edit2 size={11} />{lang === 'id' ? 'Buat BAST' : 'Create BAST'}</button>}
+              <button onClick={() => printBASTBarangPdf(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="PDF BAST Barang"><FileText size={11} />PDF</button>
+              <button onClick={() => downloadBASTBarangDoc(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="Word BAST Barang"><Download size={11} />Word</button>
+              {canEdit && <button onClick={() => { setEditingRecord(r); setModalOpen(true); }} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}}><Edit2 size={11} />Edit</button>}
+              {canEdit && !r._placeholder && <button onClick={() => handleDelete(r.id)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px', color: '#c03030'}}><Trash2 size={11} /></button>}
+            </div>
+          </div>
+        </div>
+        <div style={{display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '10px', color: 'var(--ims-text-2)', marginBottom: '8px'}}>
+          <span><strong>HNTI:</strong> {displayHntiRep || '—'}</span>
+          <span><strong>Customer:</strong> {r.customerRep || '—'}</span>
+          {r.witness && <span><strong>Saksi:</strong> {r.witness}</span>}
+        </div>
+        {r.notes && <div style={{padding: '8px 10px', background: 'var(--ims-bg-card-2)', fontSize: '11px', fontStyle: 'italic', color: 'var(--ims-text)'}}>📝 {r.notes}</div>}
+      </div>
+    );
+  };
+
   return (
     <div style={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
       <div style={{padding: '14px 18px', borderBottom: '1px solid var(--ims-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px'}}>
@@ -896,50 +1008,18 @@ function BASTList({ records, products = [], setRecords, t, lang, canEdit, units 
           {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{lang === 'id' ? 'Buat BAST' : 'Create BAST'}</button>}
         </div>
       </div>
-      {sortedRecords.map(r => {
-        const statusColor = statusColors[r.status];
-        const syncedTech = installLeadTechnicianName(installRecords, employees, r.customer, r.modality, r.subModality);
-        const technicianNames = activeEmployeeNamesByRole(employees, 'technician');
-        const displayHntiRep = (r.hntiRep && technicianNames.includes(r.hntiRep) ? r.hntiRep : '') || syncedTech || '—';
-        return (
-          <div key={r.id} style={{padding: '16px 18px', borderTop: '1px solid var(--ims-border)'}}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '10px'}}>
-              <div style={{flex: '1 1 320px'}}>
-                <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap'}}>
-                  <span className="mono" style={{fontSize: '12px', fontWeight: 700, color: 'var(--ims-text)'}}>{r.bastNo}</span>
-                </div>
-                <div style={{fontSize: '12px', fontWeight: 600, marginTop: '4px'}}>{r.customer}</div>
-                <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{r.modality} · {r.subModality}</div>
-                {r.signedDate && <div style={{fontSize: '10px', color: 'var(--ims-accent-2)', marginTop: '4px', fontWeight: 600}} className="mono">✓ Tertanda: {r.signedDate}</div>}
-              </div>
-              <div style={{textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px'}}>
-                <span style={{padding: '4px 10px', fontSize: '10px', background: statusColor + '25', color: statusColor, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{t[`bast_status_${r.status}`]}</span>
-                {r.docUrl && <LinkAttachment url={r.docUrl} lang={lang} />}
-                <div style={{display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
-                  {canEdit && onOpenEditor && <button onClick={() => onOpenEditor('bast_barang', r, 'BAST Barang')} className="btn-primary" style={{fontSize: '10px', padding: '4px 8px'}} title={lang === 'id' ? 'Buat BAST di editor (bisa diedit & disimpan)' : 'Create BAST in editor (editable & saveable)'}><Edit2 size={11} />{lang === 'id' ? 'Buat BAST' : 'Create BAST'}</button>}
-                  <button onClick={() => printBASTBarangPdf(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="PDF BAST Barang"><FileText size={11} />PDF</button>
-                  <button onClick={() => downloadBASTBarangDoc(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="Word BAST Barang"><Download size={11} />Word</button>
-                  {canEdit && <button onClick={() => { setEditingRecord(r); setModalOpen(true); }} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}}><Edit2 size={11} />Edit</button>}
-                  {canEdit && !r._placeholder && <button onClick={() => handleDelete(r.id)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px', color: '#c03030'}}><Trash2 size={11} /></button>}
-                </div>
-              </div>
-            </div>
-            <div style={{display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '10px', color: 'var(--ims-text-2)', marginBottom: '8px'}}>
-              <span><strong>HNTI:</strong> {displayHntiRep || '—'}</span>
-              <span><strong>Customer:</strong> {r.customerRep || '—'}</span>
-              {r.witness && <span><strong>Saksi:</strong> {r.witness}</span>}
-            </div>
-            {r.notes && <div style={{padding: '8px 10px', background: 'var(--ims-bg-card-2)', fontSize: '11px', fontStyle: 'italic', color: 'var(--ims-text)'}}>📝 {r.notes}</div>}
-          </div>
-        );
-      })}
+      {recordGroups.map(group => (
+        <ProjectGroupShell key={group.key} group={group} lang={lang}>
+          {group.items.map(renderBastRow)}
+        </ProjectGroupShell>
+      ))}
       {records.length === 0 && <div className="empty-state">{t.no_data}</div>}
       {modalOpen && <BASTModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} units={units} installRecords={installRecords} employees={employees} products={products} />}
       <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus BAST?' : 'Delete BAST?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
   );
 }
-function TrainingCertList({ records, setRecords, t, lang, canEdit, employees = {}, units = [], installRecords = [], products = [], documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, fmt = (n) => n, onOpenEditor }) {
+function TrainingCertList({ records, setRecords, data = [], t, lang, canEdit, employees = {}, units = [], installRecords = [], products = [], documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, fmt = (n) => n, onOpenEditor }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc');
@@ -992,6 +1072,48 @@ function TrainingCertList({ records, setRecords, t, lang, canEdit, employees = {
     return arr;
   }, [records, sortBy]);
 
+  const recordGroups = useMemo(() => groupRecordsBySphProject(sortedRecords, r => resolveRecordProjectMeta(r, data)), [sortedRecords, data]);
+
+  const renderTrainingRow = (r) => {
+    const statusColor = statusColors[r.status];
+    const syncedTech = installLeadTechnicianName(installRecords, employees, r.customer, r.modality, r.subModality, r.sphNo);
+    const technicianNames = activeEmployeeNamesByRole(employees, 'technician');
+    const rawInstructorParts = String(r.instructor || '').split(',').map(x => x.trim()).filter(Boolean);
+    const displayInstructor = syncedTech && !rawInstructorParts.includes(syncedTech)
+      ? [syncedTech, ...rawInstructorParts.filter(name => !technicianNames.includes(name))].join(', ')
+      : (r.instructor || syncedTech || '');
+    return (
+      <div key={r.id} style={{padding: '16px 18px', borderTop: '1px solid var(--ims-border)'}}>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '10px'}}>
+          <div style={{flex: '1 1 320px'}}>
+            {r.certNo && <div className="mono" style={{fontSize: '12px', fontWeight: 700, color: 'var(--ims-text)', marginBottom: '4px'}}>{r.certNo}</div>}
+            <div style={{fontSize: '12px', fontWeight: 600}}>{r.customer}</div>
+            <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{r.modality} · {r.subModality}{r.sphNo ? ` · ${r.sphNo}` : ''}</div>
+            {displayInstructor && <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '4px'}}>🎓 {resolveNamesInText(employees, displayInstructor)}</div>}
+          </div>
+          <div style={{textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px'}}>
+            <span style={{padding: '4px 10px', fontSize: '10px', background: statusColor + '25', color: statusColor, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{r.status === 'completed' ? t.train_completed : t.train_pending}</span>
+            {r.certUrl && <LinkAttachment url={r.certUrl} lang={lang} />}
+            <div style={{display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
+              {canEdit && onOpenEditor && <button onClick={() => onOpenEditor('batraining', r, lang === 'id' ? 'BA Pelatihan' : 'Training BA')} className="btn-primary" style={{fontSize: '10px', padding: '4px 8px'}} title={lang === 'id' ? 'Buat BA pelatihan di editor' : 'Create training BA in editor'}><Edit2 size={11} />{lang === 'id' ? 'Buat BA pelatihan' : 'Create Training BA'}</button>}
+              <button onClick={() => printBATrainingPdf(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="PDF BA Pelatihan"><FileText size={11} />PDF</button>
+              <button onClick={() => downloadBATrainingDoc(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="Word BA Pelatihan"><Download size={11} />Word</button>
+              {canEdit && <button onClick={() => { setEditingRecord(r); setModalOpen(true); }} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}}><Edit2 size={11} />Edit</button>}
+              {canEdit && !r._placeholder && <button onClick={() => handleDelete(r.id)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px', color: '#c03030'}}><Trash2 size={11} /></button>}
+            </div>
+          </div>
+        </div>
+        <div style={{display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '10px', color: 'var(--ims-text-2)', marginBottom: '8px'}}>
+          {r.sessionDate && <span><strong>Tgl:</strong> <span className="mono">{r.sessionDate}</span></span>}
+          {r.participants > 0 && <span><strong>Peserta:</strong> {r.participants}</span>}
+          {r.duration > 0 && <span><strong>Durasi:</strong> {r.duration} jam</span>}
+        </div>
+        {r.topics && <div style={{padding: '8px 10px', background: 'var(--ims-bg-card-2)', fontSize: '11px', color: 'var(--ims-text)', marginBottom: '8px'}}><strong>Topik:</strong> {r.topics}</div>}
+        {r.notes && <div style={{padding: '8px 10px', background: 'var(--ims-bg-card-2)', fontSize: '11px', fontStyle: 'italic', color: 'var(--ims-text)'}}>📝 {r.notes}</div>}
+      </div>
+    );
+  };
+
   return (
     <div style={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
       <div style={{padding: '14px 18px', borderBottom: '1px solid var(--ims-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px'}}>
@@ -1001,52 +1123,18 @@ function TrainingCertList({ records, setRecords, t, lang, canEdit, employees = {
           {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{lang === 'id' ? 'Tambah Pelatihan' : 'Add Training'}</button>}
         </div>
       </div>
-      {sortedRecords.map(r => {
-        const statusColor = statusColors[r.status];
-        const syncedTech = installLeadTechnicianName(installRecords, employees, r.customer, r.modality, r.subModality);
-        const technicianNames = activeEmployeeNamesByRole(employees, 'technician');
-        const rawInstructorParts = String(r.instructor || '').split(',').map(x => x.trim()).filter(Boolean);
-        const displayInstructor = syncedTech && !rawInstructorParts.includes(syncedTech)
-          ? [syncedTech, ...rawInstructorParts.filter(name => !technicianNames.includes(name))].join(', ')
-          : (r.instructor || syncedTech || '');
-        return (
-          <div key={r.id} style={{padding: '16px 18px', borderTop: '1px solid var(--ims-border)'}}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '10px'}}>
-              <div style={{flex: '1 1 320px'}}>
-                {r.certNo && <div className="mono" style={{fontSize: '12px', fontWeight: 700, color: 'var(--ims-text)', marginBottom: '4px'}}>{r.certNo}</div>}
-                <div style={{fontSize: '12px', fontWeight: 600}}>{r.customer}</div>
-                <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{r.modality} · {r.subModality}</div>
-                {displayInstructor && <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '4px'}}>🎓 {resolveNamesInText(employees, displayInstructor)}</div>}
-              </div>
-              <div style={{textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px'}}>
-                <span style={{padding: '4px 10px', fontSize: '10px', background: statusColor + '25', color: statusColor, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{r.status === 'completed' ? t.train_completed : t.train_pending}</span>
-                {r.certUrl && <LinkAttachment url={r.certUrl} lang={lang} />}
-                <div style={{display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
-                  {canEdit && onOpenEditor && <button onClick={() => onOpenEditor('batraining', r, lang === 'id' ? 'BA Pelatihan' : 'Training BA')} className="btn-primary" style={{fontSize: '10px', padding: '4px 8px'}} title={lang === 'id' ? 'Buat BA pelatihan di editor' : 'Create training BA in editor'}><Edit2 size={11} />{lang === 'id' ? 'Buat BA pelatihan' : 'Create Training BA'}</button>}
-                  <button onClick={() => printBATrainingPdf(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="PDF BA Pelatihan"><FileText size={11} />PDF</button>
-                  <button onClick={() => downloadBATrainingDoc(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="Word BA Pelatihan"><Download size={11} />Word</button>
-                  {canEdit && <button onClick={() => { setEditingRecord(r); setModalOpen(true); }} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}}><Edit2 size={11} />Edit</button>}
-                  {canEdit && !r._placeholder && <button onClick={() => handleDelete(r.id)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px', color: '#c03030'}}><Trash2 size={11} /></button>}
-                </div>
-              </div>
-            </div>
-            <div style={{display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '10px', color: 'var(--ims-text-2)', marginBottom: '8px'}}>
-              {r.sessionDate && <span><strong>Tgl:</strong> <span className="mono">{r.sessionDate}</span></span>}
-              {r.participants > 0 && <span><strong>Peserta:</strong> {r.participants}</span>}
-              {r.duration > 0 && <span><strong>Durasi:</strong> {r.duration} jam</span>}
-            </div>
-            {r.topics && <div style={{padding: '8px 10px', background: 'var(--ims-bg-card-2)', fontSize: '11px', color: 'var(--ims-text)', marginBottom: '8px'}}><strong>Topik:</strong> {r.topics}</div>}
-            {r.notes && <div style={{padding: '8px 10px', background: 'var(--ims-bg-card-2)', fontSize: '11px', fontStyle: 'italic', color: 'var(--ims-text)'}}>📝 {r.notes}</div>}
-          </div>
-        );
-      })}
+      {recordGroups.map(group => (
+        <ProjectGroupShell key={group.key} group={group} lang={lang}>
+          {group.items.map(renderTrainingRow)}
+        </ProjectGroupShell>
+      ))}
       {records.length === 0 && <div className="empty-state">{t.no_data}</div>}
       {modalOpen && <TrainingCertModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} units={units} installRecords={installRecords} employees={employees} products={products} />}
       <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Sertifikat?' : 'Delete Certificate?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
   );
 }
-function ExposureTestList({ records, setRecords, t, lang, canEdit, employees = {}, units = [], products = [], fmt = (n) => n, documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, onOpenEditor }) {
+function ExposureTestList({ records, setRecords, data = [], t, lang, canEdit, employees = {}, units = [], products = [], fmt = (n) => n, documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, onOpenEditor }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc');
@@ -1076,6 +1164,42 @@ function ExposureTestList({ records, setRecords, t, lang, canEdit, employees = {
     return arr;
   }, [records, sortBy]);
 
+  const recordGroups = useMemo(() => groupRecordsBySphProject(sortedRecords, r => resolveRecordProjectMeta(r, data)), [sortedRecords, data]);
+
+  const renderExposureRow = (r) => {
+    const done = !!r.exposureTest;
+    const statusColor = done ? 'var(--ims-accent-2)' : 'var(--ims-gold)';
+    return (
+      <div key={r.id} style={{padding: '16px 18px', borderTop: '1px solid var(--ims-border)'}}>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '10px'}}>
+          <div style={{flex: '1 1 320px'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap'}}>
+              <span className="mono" style={{fontSize: '12px', fontWeight: 700, color: 'var(--ims-text)'}}>{r.recordNo || r.exposureTestNo || '—'}</span>
+              <span style={{fontSize: '11px', color: 'var(--ims-text-2)'}}>· {r.customer}</span>
+              {r.sphNo && <span style={{fontSize: '10px', color: 'var(--ims-text-2)'}}>· <span className="mono">{r.sphNo}</span></span>}
+            </div>
+            <div style={{fontSize: '12px', fontWeight: 500, marginTop: '4px'}}>{r.modality} · {r.subModality}</div>
+            <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '4px'}}>👷 {resolveEmpName(employees, r.leadTechnician)}</div>
+          </div>
+          <div style={{textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px'}}>
+            <span style={{padding: '4px 10px', fontSize: '10px', background: statusColor + '25', color: statusColor, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{done ? (lang === 'id' ? 'Selesai' : 'Completed') : (lang === 'id' ? 'Belum' : 'Pending')}</span>
+            <div style={{display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
+              {canEdit && onOpenEditor && <button onClick={() => onOpenEditor('bauji_paparan', r, lang === 'id' ? 'Uji Paparan' : 'Exposure Test')} className="btn-primary" style={{fontSize: '10px', padding: '4px 8px'}} title={lang === 'id' ? 'Buat uji paparan di editor' : 'Create exposure test in editor'}><Edit2 size={11} />{lang === 'id' ? 'Buat uji paparan' : 'Create Exposure Test'}</button>}
+              <button onClick={() => printBAUjiPaparanPdf(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="PDF Uji Paparan"><FileText size={11} />PDF</button>
+              {canEdit && <button onClick={() => { setEditingRecord(r); setModalOpen(true); }} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}}><Edit2 size={11} />Edit</button>}
+              {canEdit && <button onClick={() => handleDelete(r.id)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px', color: '#c03030'}}><Trash2 size={11} /></button>}
+            </div>
+          </div>
+        </div>
+        <div style={{display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '10px', color: 'var(--ims-text-2)', marginBottom: '8px'}}>
+          {r.exposureTestDate && <span><strong>{lang === 'id' ? 'Tgl Uji' : 'Test Date'}:</strong> <span className="mono">{r.exposureTestDate}</span></span>}
+          {r.installStart && <span><strong>{lang === 'id' ? 'Instalasi' : 'Install'}:</strong> <span className="mono">{r.installStart}</span></span>}
+        </div>
+        {r.notes && <div style={{padding: '8px 10px', background: 'var(--ims-bg-card-2)', fontSize: '11px', fontStyle: 'italic', color: 'var(--ims-text)'}}>📝 {r.notes}</div>}
+      </div>
+    );
+  };
+
   return (
     <div style={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
       <div style={{padding: '14px 18px', borderBottom: '1px solid var(--ims-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px'}}>
@@ -1085,72 +1209,49 @@ function ExposureTestList({ records, setRecords, t, lang, canEdit, employees = {
           {canEdit && <button className="btn-primary" onClick={() => { setEditingRecord(null); setModalOpen(true); }} style={{fontSize: '11px', padding: '6px 12px'}}><Plus size={12} />{lang === 'id' ? 'Tambah Uji Paparan' : 'Add Exposure Test'}</button>}
         </div>
       </div>
-      {sortedRecords.map(r => {
-        const done = !!r.exposureTest;
-        const statusColor = done ? 'var(--ims-accent-2)' : 'var(--ims-gold)';
-        return (
-          <div key={r.id} style={{padding: '16px 18px', borderTop: '1px solid var(--ims-border)'}}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '10px'}}>
-              <div style={{flex: '1 1 320px'}}>
-                <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap'}}>
-                  <span className="mono" style={{fontSize: '12px', fontWeight: 700, color: 'var(--ims-text)'}}>{r.recordNo || r.exposureTestNo || '—'}</span>
-                  <span style={{fontSize: '11px', color: 'var(--ims-text-2)'}}>· {r.customer}</span>
-                </div>
-                <div style={{fontSize: '12px', fontWeight: 500, marginTop: '4px'}}>{r.modality} · {r.subModality}</div>
-                <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '4px'}}>👷 {resolveEmpName(employees, r.leadTechnician)}</div>
-              </div>
-              <div style={{textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px'}}>
-                <span style={{padding: '4px 10px', fontSize: '10px', background: statusColor + '25', color: statusColor, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase'}}>{done ? (lang === 'id' ? 'Selesai' : 'Completed') : (lang === 'id' ? 'Belum' : 'Pending')}</span>
-                <div style={{display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
-                  {canEdit && onOpenEditor && <button onClick={() => onOpenEditor('bauji_paparan', r, lang === 'id' ? 'Uji Paparan' : 'Exposure Test')} className="btn-primary" style={{fontSize: '10px', padding: '4px 8px'}} title={lang === 'id' ? 'Buat uji paparan di editor' : 'Create exposure test in editor'}><Edit2 size={11} />{lang === 'id' ? 'Buat uji paparan' : 'Create Exposure Test'}</button>}
-                  <button onClick={() => printBAUjiPaparanPdf(r, fmt, documentTemplates, employees)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}} title="PDF Uji Paparan"><FileText size={11} />PDF</button>
-                  {canEdit && <button onClick={() => { setEditingRecord(r); setModalOpen(true); }} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px'}}><Edit2 size={11} />Edit</button>}
-                  {canEdit && <button onClick={() => handleDelete(r.id)} className="btn-ghost" style={{fontSize: '10px', padding: '4px 8px', color: '#c03030'}}><Trash2 size={11} /></button>}
-                </div>
-              </div>
-            </div>
-            <div style={{display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '10px', color: 'var(--ims-text-2)', marginBottom: '8px'}}>
-              {r.exposureTestDate && <span><strong>{lang === 'id' ? 'Tgl Uji' : 'Test Date'}:</strong> <span className="mono">{r.exposureTestDate}</span></span>}
-              {r.installStart && <span><strong>{lang === 'id' ? 'Instalasi' : 'Install'}:</strong> <span className="mono">{r.installStart}</span></span>}
-            </div>
-            {r.notes && <div style={{padding: '8px 10px', background: 'var(--ims-bg-card-2)', fontSize: '11px', fontStyle: 'italic', color: 'var(--ims-text)'}}>📝 {r.notes}</div>}
-          </div>
-        );
-      })}
+      {recordGroups.map(group => (
+        <ProjectGroupShell key={group.key} group={group} lang={lang}>
+          {group.items.map(renderExposureRow)}
+        </ProjectGroupShell>
+      ))}
       {records.length === 0 && <div className="empty-state">{t.no_data}</div>}
       {modalOpen && <InstallRecordModal record={editingRecord} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} employees={employees} units={units} products={products} />}
       <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Uji Paparan?' : 'Delete Exposure Test?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
   );
 }
-function UnitPickerField({ units = [], customer, modality, subModality, onPick, lang }) {
-  const keyOf = (u) => `${u.customer}|${u.modality || ''}|${u.subModality || ''}`;
-  const curKey = (customer || modality || subModality) ? `${customer || ''}|${modality || ''}|${subModality || ''}` : '';
+function UnitPickerField({ units = [], customer, modality, subModality, sphNo, onPick, lang }) {
+  const keyOf = (u) => `${u.customer}|${u.modality || ''}|${u.subModality || ''}|${u.sphNo || ''}`;
+  const curKey = (customer || modality || subModality || sphNo) ? `${customer || ''}|${modality || ''}|${subModality || ''}|${sphNo || ''}` : '';
   const hasMatch = units.some(u => keyOf(u) === curKey);
   return (
     <Field label={lang === 'id' ? 'Tarik dari SPH (produk terkirim)' : 'Pull from SPH (delivered product)'} full>
       <select value={curKey} onChange={e => {
-        if (!e.target.value) { onPick({ customer: '', modality: '', subModality: '' }); return; }
+        if (!e.target.value) { onPick({ customer: '', modality: '', subModality: '', sphNo: '', sphProjectKey: null }); return; }
         const u = units.find(x => keyOf(x) === e.target.value);
         if (u) onPick(u);
       }}>
         <option value="">{lang === 'id' ? '— Pilih RS / produk terkirim —' : '— Select delivered RS / product —'}</option>
-        {!hasMatch && customer && <option value={curKey}>{customer}{modality ? ` — ${modality}` : ''}{subModality ? ` ${subModality}` : ''} {lang === 'id' ? '(input manual)' : '(manual entry)'}</option>}
-        {units.map(u => <option key={u.id || keyOf(u)} value={keyOf(u)}>{u.label || `${u.customer} — ${u.modality}${u.subModality ? ` ${u.subModality}` : ''}${u.sphNo ? ` · ${u.sphNo}` : ''}`}</option>)}
+        {!hasMatch && customer && <option value={curKey}>{formatTechnicalUnitLabel({ customer, modality, subModality, sphNo })} {lang === 'id' ? '(input manual)' : '(manual entry)'}</option>}
+        {units.map(u => <option key={u.id || keyOf(u)} value={keyOf(u)}>{u.label || formatTechnicalUnitLabel(u)}</option>)}
       </select>
     </Field>
   );
 }
-function findInstallRecordForUnit(installRecords = [], customer, modality, subModality) {
+function findInstallRecordForUnit(installRecords = [], customer, modality, subModality, sphNo) {
   if (!customer || !Array.isArray(installRecords)) return null;
   const candidates = installRecords.filter(ir => ir.customer === customer);
+  if (sphNo) {
+    const exact = candidates.find(ir => ir.modality === modality && (ir.subModality || '') === (subModality || '') && ir.sphNo === sphNo);
+    if (exact) return exact;
+  }
   let match = candidates.find(ir => ir.modality === modality && (ir.subModality || '') === (subModality || ''));
   if (!match) match = candidates.find(ir => ir.modality === modality);
-  if (!match && candidates.length) match = candidates[0];
+  if (!match && candidates.length === 1) match = candidates[0];
   return match || null;
 }
-function installLeadTechnicianName(installRecords = [], employees = {}, customer, modality, subModality) {
-  const rec = findInstallRecordForUnit(installRecords, customer, modality, subModality);
+function installLeadTechnicianName(installRecords = [], employees = {}, customer, modality, subModality, sphNo) {
+  const rec = findInstallRecordForUnit(installRecords, customer, modality, subModality, sphNo);
   return rec ? resolveEmpName(employees, rec.leadTechnician || '') : '';
 }
 function activeEmployeeNamesByRole(employees = {}, role) {
@@ -1201,7 +1302,7 @@ function InstallRecordModal({ record, onSave, onClose, t, lang, employees = {}, 
               <option value="delayed">{t.inst_status_delayed}</option>
             </select>
           </Field>
-          <UnitPickerField units={units} customer={form.customer} modality={form.modality} subModality={form.subModality} lang={lang} onPick={u => setForm(prev => ({ ...prev, customer: u.customer, modality: u.modality || prev.modality, subModality: u.subModality || '' }))} />
+          <UnitPickerField units={units} customer={form.customer} modality={form.modality} subModality={form.subModality} sphNo={form.sphNo} lang={lang} onPick={u => setForm(prev => ({ ...prev, customer: u.customer, modality: u.modality || prev.modality, subModality: u.subModality || '', sphNo: u.sphNo || '', sphProjectKey: u.sphProjectKey || null }))} />
           <Field label={t.customer} full><input value={form.customer} onChange={e => update('customer', e.target.value)} placeholder="RS / Klinik" /></Field>
           <Field label={t.modality}>
             <select value={form.modality} onChange={e => { update('modality', e.target.value); update('subModality', ''); }}>
@@ -1260,7 +1361,7 @@ function BASTModal({ record, onSave, onClose, t, lang, units = [], installRecord
   });
   const isEdit = !!record;
   const update = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
-  const syncedTech = installLeadTechnicianName(installRecords, employees, form.customer, form.modality, form.subModality);
+  const syncedTech = installLeadTechnicianName(installRecords, employees, form.customer, form.modality, form.subModality, form.sphNo);
   const technicianNames = activeEmployeeNamesByRole(employees, 'technician');
   const selectedHntiRep = (form.hntiRep && technicianNames.includes(form.hntiRep) ? form.hntiRep : '') || syncedTech || '';
   const hntiRepOptions = [...new Set([syncedTech, ...technicianNames].filter(Boolean))];
@@ -1281,9 +1382,9 @@ function BASTModal({ record, onSave, onClose, t, lang, units = [], installRecord
               <option value="signed">{t.bast_status_signed}</option>
             </select>
           </Field>
-          <UnitPickerField units={units} customer={form.customer} modality={form.modality} subModality={form.subModality} lang={lang} onPick={u => {
-            const leadTech = installLeadTechnicianName(installRecords, employees, u.customer, u.modality, u.subModality);
-            setForm(prev => ({ ...prev, customer: u.customer, modality: u.modality || prev.modality, subModality: u.subModality || '', hntiRep: leadTech || prev.hntiRep }));
+          <UnitPickerField units={units} customer={form.customer} modality={form.modality} subModality={form.subModality} sphNo={form.sphNo} lang={lang} onPick={u => {
+            const leadTech = installLeadTechnicianName(installRecords, employees, u.customer, u.modality, u.subModality, u.sphNo);
+            setForm(prev => ({ ...prev, customer: u.customer, modality: u.modality || prev.modality, subModality: u.subModality || '', sphNo: u.sphNo || '', sphProjectKey: u.sphProjectKey || null, hntiRep: leadTech || prev.hntiRep }));
           }} />
           <Field label={t.customer} full><input value={form.customer} onChange={e => update('customer', e.target.value)} /></Field>
           <Field label={t.modality}>
@@ -1329,7 +1430,7 @@ function TrainingCertModal({ record, onSave, onClose, t, lang, units = [], insta
   });
   const isEdit = !!record;
   const update = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
-  const syncedTech = installLeadTechnicianName(installRecords, employees, form.customer, form.modality, form.subModality);
+  const syncedTech = installLeadTechnicianName(installRecords, employees, form.customer, form.modality, form.subModality, form.sphNo);
   const technicianNames = activeEmployeeNamesByRole(employees, 'technician');
   const productSpecialists = activeEmployeeNamesByRole(employees, 'product_specialist');
   const technicianInstructor = form.instructor && technicianNames.includes(form.instructor) ? form.instructor : (syncedTech || form.instructor || '');
@@ -1351,9 +1452,9 @@ function TrainingCertModal({ record, onSave, onClose, t, lang, units = [], insta
               <option value="completed">{t.train_completed}</option>
             </select>
           </Field>
-          <UnitPickerField units={units} customer={form.customer} modality={form.modality} subModality={form.subModality} lang={lang} onPick={u => {
-            const leadTech = installLeadTechnicianName(installRecords, employees, u.customer, u.modality, u.subModality);
-            setForm(prev => ({ ...prev, customer: u.customer, modality: u.modality || prev.modality, subModality: u.subModality || '', instructor: leadTech || prev.instructor }));
+          <UnitPickerField units={units} customer={form.customer} modality={form.modality} subModality={form.subModality} sphNo={form.sphNo} lang={lang} onPick={u => {
+            const leadTech = installLeadTechnicianName(installRecords, employees, u.customer, u.modality, u.subModality, u.sphNo);
+            setForm(prev => ({ ...prev, customer: u.customer, modality: u.modality || prev.modality, subModality: u.subModality || '', sphNo: u.sphNo || '', sphProjectKey: u.sphProjectKey || null, instructor: leadTech || prev.instructor }));
           }} />
           <Field label={t.customer} full><input value={form.customer} onChange={e => update('customer', e.target.value)} /></Field>
           <Field label={t.modality}>

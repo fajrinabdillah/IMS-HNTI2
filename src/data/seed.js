@@ -262,13 +262,23 @@ function generateInstalledUnits(sourceData, bastRecords = []) {
   };
 
   const norm = (v) => String(v || '').trim().toLowerCase();
-  const unitKey = (r) => [r.customer, r.modality, r.subModality].map(norm).join('|');
+  const unitKey = (r) => {
+    const parts = [r.customer, r.modality, r.subModality];
+    if (r.sphNo) parts.push(r.sphNo);
+    return parts.map(norm).join('|');
+  };
 
-  const findSph = (bast) => (sourceData || []).find(s =>
-    norm(s.customer) === norm(bast.customer)
-    && norm(s.subModality || '') === norm(bast.subModality || '')
-    && norm(s.modality || '') === norm(bast.modality || '')
-  ) || (sourceData || []).find(s => norm(s.customer) === norm(bast.customer));
+  const findSph = (bast) => {
+    const list = sourceData || [];
+    const core = (s) => norm(s.customer) === norm(bast.customer)
+      && norm(s.subModality || '') === norm(bast.subModality || '')
+      && norm(s.modality || '') === norm(bast.modality || '');
+    if (bast.sphNo) {
+      const exact = list.find(s => core(s) && norm(s.sphNo) === norm(bast.sphNo));
+      if (exact) return exact;
+    }
+    return list.find(core) || list.find(s => norm(s.customer) === norm(bast.customer));
+  };
 
   const signedBasts = bastRecords.filter(b => b.status === 'signed' && b.signedDate);
   const seen = new Set();
@@ -294,7 +304,9 @@ function generateInstalledUnits(sourceData, bastRecords = []) {
 
     return {
       id: sph ? `unit_${sph.id}` : `unit_bast_${bast.id}`,
-      sphRef: sph?.sphNo || bast.bastNo || '',
+      sphRef: sph?.sphNo || bast.sphNo || bast.bastNo || '',
+      sphNo: sph?.sphNo || bast.sphNo || '',
+      sphProjectKey: sph?.sphProjectKey || null,
       customer: bast.customer,
       modality: bast.modality || sph?.modality,
       subModality: bast.subModality || sph?.subModality,

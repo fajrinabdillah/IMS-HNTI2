@@ -18,6 +18,16 @@ import { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, STATIC_TECH_ORDER, reso
 import { _memStore, _hasArtifactStorage, _hasLocalStorage, _SUPA_URL, _SUPA_KEY, _supaEnabled, _supaFetch, _supaSession, _SUPA_SESS_LS, _authFetch, _supaSignIn, _refreshInFlight, _supaRefreshTok, _supaSignOut, _restoreSupaSession, _getSupaTok, _supaReq, _pushVapidPublicKey, _urlBase64ToUint8Array, pushSupported, registerServiceWorker, savePushSubscription, enablePushNotifications, getPushPermissionStatus, sendServerPushNotification, _rtSocket, _rtHeartbeat, _rtRetryCount, _rtRetryTimer, _rtStatus, _setRtStatus, _hashStr, _recentWrites, _markRecentWrite, _isRecentSelfEcho, blockCloudApply, isCloudApplyBlocked, _rtJoinRef, _RT_TOPIC, _startRealtime, _scheduleRtRetry, _stopRealtime, _tokRefreshTimer, _startProactiveRefresh, _stopProactiveRefresh, storeGet, storeSet, storeDel, _persistPending, _persistTimer, debouncedStoreSet, flushPersist } from './src/utils/storage.js';
 import { mergeSphImportRecords } from './src/utils/sphImport.js';
 import { normalizeSphProjects } from './src/utils/sphProject.js';
+
+/** Pastikan setiap mutasi/load SPH melewati paket harga + kunci proyek multi-alat. */
+function normalizeSphDataset(rows, productList = []) {
+  const list = Array.isArray(rows) ? rows : [];
+  return normalizeSphProjects(normalizePoWon(syncSphDataToProductMaster(list, productList)));
+}
+
+function sphDataEqual(a, b) {
+  try { return JSON.stringify(a) === JSON.stringify(b); } catch { return false; }
+}
 import { generateHntiSph2026Seed, _RAW_ALL_SPH, ALL_SPH, buildSeedNotificationsFromSph, generateInstalledUnits, generateSeedManifestsFromSph, generateSeedCustomsDocsFromSph, SEED_MANIFESTS, SEED_CUSTOMS_DOCS, generateInstallDocs, INSTALL_DOCS, generateHistoricalBusinessTrips, _historical, HISTORICAL_BT, HISTORICAL_BTR, ALL_BUSINESS_TRIPS, ALL_BT_REALIZATIONS, generateRegulatoryRecords } from './src/data/seed.js';
 import { TOAST_EVENT, showToast } from './src/utils/toast.js';
 import { mergeDocumentTemplates, downloadDataUrl, downloadUploadedTemplate, previewUploadedTemplate, getUploadedDocumentTemplate, openDocumentTemplateOrHtml, downloadDocumentTemplateOrDoc, downloadCSV, downloadHtmlDoc, openPrintableHtml, getUserSignature, getUserDisplayName, findUserByRole, printHtmlStringAsPdf, renderDocLines, renderDocFooter, renderSignatureBlock, wrapDocumentInLetterhead, buildTextLetterheadHtml, buildHntiLetterheadHtml, renderDualSignatureHtml, buildEditorTemplate, getTemplateHtmlBody, fillTemplatePlaceholders, buildEditorBody, buildSPHDocumentHtml, downloadSPHWord, printSPHPdf, buildSPPDocumentHtml, downloadSPPWord, printSPPPdf, buildInvoiceKwitansiHtml, buildPrincipalPoHtml, buildBAIDocumentHtml, printBAIPdf, buildBAUjiFungsiDocumentHtml, printBAUjiFungsiPdf, buildBATrainingDocumentHtml, downloadBATrainingDoc, printBATrainingPdf, buildBASTBarangDocumentHtml, downloadBASTBarangDoc, printBASTBarangPdf, buildKwitansiHtml } from './src/utils/documents.js';
@@ -340,6 +350,14 @@ export default function App() {
   const [businessTrips, setBusinessTrips] = useState(ALL_BUSINESS_TRIPS);
   const [realizations, setRealizations] = useState(ALL_BT_REALIZATIONS);
   const [products, setProducts] = useState(PRODUCT_MASTER_SEED);
+  const setSphData = useCallback((updater) => {
+    setData(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      const normalized = normalizeSphDataset(next, products);
+      return sphDataEqual(normalized, prev) ? prev : normalized;
+    });
+  }, [products]);
+
   const [productSupportActivities, setProductSupportActivities] = useState([]);
   const [productSupportFiles, setProductSupportFiles] = useState([]);
   const [documentTemplates, setDocumentTemplates] = useState(DEFAULT_DOCUMENT_TEMPLATES);
@@ -374,6 +392,12 @@ export default function App() {
     if (session) { try { requestNotificationPermission(); } catch {} }
   }, [session]);
   const [loading, setLoading] = useState(true);
+
+  // Re-normalize SPH when product master changes (sync modality/brand + paket proyek).
+  useEffect(() => {
+    if (loading) return;
+    setSphData(prev => prev);
+  }, [products, loading, setSphData]);
   // Last sync timestamp - updated on every storage write (data changed) or manual refresh
   const [lastSync, setLastSync] = useState(Date.now());
   const handleRefresh = () => {
@@ -595,7 +619,7 @@ export default function App() {
         storeGet('ims_hnti:emp_v22'),
         storeGet('ims_hnti:bt_v22')
       ]);
-      if (d && !isCloudApplyBlocked(STORAGE_KEY)) try { setData(normalizeSphProjects(normalizePoWon(JSON.parse(d)))); } catch {}
+      if (d && !isCloudApplyBlocked(STORAGE_KEY)) try { setSphData(JSON.parse(d)); } catch {}
       if (l) setLang(l);
       if (s) try { setSession(JSON.parse(s)); } catch {}
       if (r) setExchangeRate(parseFloat(r) || DEFAULT_USD_IDR);
@@ -686,7 +710,7 @@ export default function App() {
         storeGet(NOTIF_KEY), storeGet(PRODUCT_SUPPORT_ACTIVITIES_KEY), storeGet(PRODUCT_SUPPORT_FILES_KEY), storeGet(DOCUMENT_TEMPLATE_KEY), storeGet(GENERATED_DOCS_KEY)
       ]);
       const safe = (v, setter) => { if (v) try { setter(JSON.parse(v)); } catch {} };
-      if (d && !isCloudApplyBlocked(STORAGE_KEY)) try { setData(normalizeSphProjects(normalizePoWon(JSON.parse(d)))); } catch {}
+      if (d && !isCloudApplyBlocked(STORAGE_KEY)) try { setSphData(JSON.parse(d)); } catch {}
       safe(rep, setReports); safe(iss, setIssues); safe(reg, setRegRecords);
       safe(akl, setAklRecords); safe(imp, setImportRecords); safe(pgl, setPengalihanRecords);
       safe(pi, setPiRecords); safe(pm, setPmSchedule); safe(mfst, setManifests);
@@ -711,7 +735,7 @@ export default function App() {
     } catch (e) {
       try { console.warn('[IMS resync] failed', e); } catch {}
     }
-  }, []);
+  }, [products, setSphData]);
   useEffect(() => {
     const prev = prevSyncRef.current;
     prevSyncRef.current = syncStatus;
@@ -763,7 +787,7 @@ export default function App() {
       switch (key) {
         case STORAGE_KEY:
           if (isCloudApplyBlocked(STORAGE_KEY)) return;
-          setData(normalizePoWon(v));
+          setSphData(v);
           break;
         case LANG_KEY: if (typeof v === 'string') setLang(v); break;
         case SESSION_KEY: /* sengaja diabaikan: sesi login per-device, jangan ditimpa device lain */ return;
@@ -817,15 +841,15 @@ export default function App() {
     };
     window.addEventListener('ims:cloud:change', handler);
     return () => window.removeEventListener('ims:cloud:change', handler);
-  }, [loading]);
+  }, [loading, setSphData]);
 
   // Master employee sync: sales/employee references in operational modules must never point
   // to inactive or deleted employees. Orphaned sales ownership is reassigned to Office.
   useEffect(() => {
     if (loading) return;
-    setData(prev => {
+    setSphData(prev => {
       const next = normalizeSalesOwnedRows(prev, employees, 'salesOwner');
-      return JSON.stringify(next) === JSON.stringify(prev) ? prev : normalizePoWon(next);
+      return sphDataEqual(next, prev) ? prev : next;
     });
     setReports(prev => {
       const next = normalizeSalesOwnedRows(prev, employees, 'salesId');
@@ -930,7 +954,7 @@ export default function App() {
     });
   };
   if (!session) return <><LoginScreen t={t} lang={lang} setLang={setLang} theme={theme} onLogin={handleLogin} employees={employees} /><ToastContainer /></>;
-  return <><AuthApp session={session} setSession={setSession} lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} t={t} data={data} setData={setData} reports={reports} setReports={setReports} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} regRecords={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} employees={employees} setEmployees={setEmployees} businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} installedUnits={installedUnits} baseInstalledUnits={baseInstalledUnits} fmt={fmt} fmtFull={fmtFull} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} lastSync={lastSync} onRefresh={handleRefresh} auditLog={auditLog} setAuditLog={setAuditLog} logAction={logAction} products={products} setProducts={setProducts} productSupportActivities={productSupportActivities} setProductSupportActivities={setProductSupportActivities} productSupportFiles={productSupportFiles} setProductSupportFiles={setProductSupportFiles} documentTemplates={documentTemplates} setDocumentTemplates={setDocumentTemplates} generatedDocs={generatedDocs} setGeneratedDocs={setGeneratedDocs} annotations={annotations} setAnnotations={setAnnotations} liveTechnicians={liveTechnicians} unitTechMap={unitTechMap} setUnitTechMap={setUnitTechMap} reportsSeen={reportsSeen} setReportsSeen={setReportsSeen} moduleAccess={moduleAccess} setModuleAccess={setModuleAccess} syncStatus={syncStatus} notifications={notifications} setNotifications={setNotifications} /><ToastContainer /></>;
+  return <><AuthApp session={session} setSession={setSession} lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} t={t} data={data} setData={setSphData} reports={reports} setReports={setReports} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} regRecords={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} employees={employees} setEmployees={setEmployees} businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} installedUnits={installedUnits} baseInstalledUnits={baseInstalledUnits} fmt={fmt} fmtFull={fmtFull} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} lastSync={lastSync} onRefresh={handleRefresh} auditLog={auditLog} setAuditLog={setAuditLog} logAction={logAction} products={products} setProducts={setProducts} productSupportActivities={productSupportActivities} setProductSupportActivities={setProductSupportActivities} productSupportFiles={productSupportFiles} setProductSupportFiles={setProductSupportFiles} documentTemplates={documentTemplates} setDocumentTemplates={setDocumentTemplates} generatedDocs={generatedDocs} setGeneratedDocs={setGeneratedDocs} annotations={annotations} setAnnotations={setAnnotations} liveTechnicians={liveTechnicians} unitTechMap={unitTechMap} setUnitTechMap={setUnitTechMap} reportsSeen={reportsSeen} setReportsSeen={setReportsSeen} moduleAccess={moduleAccess} setModuleAccess={setModuleAccess} syncStatus={syncStatus} notifications={notifications} setNotifications={setNotifications} /><ToastContainer /></>;
 }
 
 function LoginScreen({ t, lang, setLang, theme = 've', onLogin, employees }) {
@@ -1119,14 +1143,6 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
 
   const filteredData = session.role === 'sales' && session.salesId ? data.filter(s => s.salesOwner === session.salesId) : data;
 
-  useEffect(() => {
-    setData(prev => {
-      const synced = syncSphDataToProductMaster(prev, products);
-      if (synced === prev) return prev;
-      return normalizeSphProjects(normalizePoWon(synced));
-    });
-  }, [products, setData]);
-
   const handleSave = (sph) => {
     const isEdit = !!editingSph;
     // Strip internal markers before saving
@@ -1313,7 +1329,7 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
     setData(prev => {
       const merged = mergeSphImportRecords(prev, records);
       result = { added: merged.added, updated: merged.updated, total: merged.total };
-      return normalizeSphProjects(normalizePoWon(syncSphDataToProductMaster(merged.data, products)));
+      return merged.data;
     });
     flushPersist();
     blockCloudApply(STORAGE_KEY, 15000);

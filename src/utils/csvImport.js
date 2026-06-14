@@ -1,5 +1,6 @@
 // Extracted from App.jsx during modular refactor.
 import { _normHdr, _num, _normDate } from './format.js';
+import { normalizeSphStageId, defaultSphStageForStatus } from './domain.js';
 
 function detectDelimiter(text) {
   const sample = String(text || '').replace(/^\ufeff/, '').split(/\r?\n/).slice(0, 10).filter(l => l.trim()).join('\n');
@@ -78,7 +79,7 @@ const SPH_IMPORT_ALIASES = {
   notes: ['Notes', 'Catatan', 'Keterangan', 'Note'],
 };
 const _STATUS_ALIASES = { won: 'won', menang: 'won', lost: 'lost', kalah: 'lost', active: 'active', aktif: 'active', pending: 'active' };
-const _STAGE_VALID = ['sph_issued', 'follow_up', 'negotiation', 'tender', 'po_issued', 'lost'];
+const _STAGE_VALID = ['sph_sent', 'presentation_scheduled', 'presentation_done', 'ecatalog', 'negotiation', 'tender', 'po_issued', 'lost'];
 function parseSPHImport(text) {
   const rows = parseCSV(text);
   if (rows.length < 2) return { records: [], errors: ['File kosong atau tidak ada baris data.'], total: 0 };
@@ -97,8 +98,11 @@ function parseSPHImport(text) {
     if (!totalValue) totalValue = qty * unitPrice;
     const statusRaw = _normHdr(get('status'));
     const status = _STATUS_ALIASES[statusRaw] || 'active';
-    let stage = _normHdr(get('stage')).replace(/\s+/g, '_');
-    if (!_STAGE_VALID.includes(stage)) stage = status === 'won' ? 'po_issued' : status === 'lost' ? 'lost' : 'sph_issued';
+    const stageRaw = get('stage');
+    let stage = normalizeSphStageId(stageRaw);
+    if (!stage && stageRaw) stage = normalizeSphStageId(_normHdr(stageRaw));
+    if (!stage) stage = defaultSphStageForStatus(status);
+    if (!_STAGE_VALID.includes(stage)) stage = defaultSphStageForStatus(status);
     const rec = {
       sphNo, customer,
       customerType: get('customerType') || 'hospital',

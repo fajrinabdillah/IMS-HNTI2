@@ -1,5 +1,6 @@
 // SPH bulk import — merge CSV rows into existing deal records (line-item aware).
 import { normalizeSphProjects } from './sphProject.js';
+import { normalizeSphStageId, defaultSphStageForStatus } from './domain.js';
 
 function normPart(v) {
   return String(v ?? '').trim().toLowerCase();
@@ -11,11 +12,13 @@ export function sphImportLineKey(rec) {
 }
 
 function buildImportRecord(rec, today) {
+  const stage = normalizeSphStageId(rec.stage) || defaultSphStageForStatus(rec.status);
   return {
     ...rec,
+    stage,
     id: 'imp_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
     probability: rec.status === 'won' ? 100 : rec.status === 'lost' ? 0 : 50,
-    poStatus: rec.stage === 'po_issued' ? 'issued' : null,
+    poStatus: stage === 'po_issued' ? 'issued' : null,
     dpPaid: false,
     finalPaid: false,
     shippingStatus: null,

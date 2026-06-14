@@ -379,17 +379,72 @@ function getStageMetrics(sph) {
   const totalMs = Object.values(perStage).reduce((a, b) => a + b, 0);
   return { perStage, totalMs, currentStage, currentStageMs };
 }
+const SPH_STAGE_IDS = new Set(['sph_sent', 'presentation_scheduled', 'presentation_done', 'ecatalog', 'negotiation', 'tender', 'po_issued', 'lost']);
+const SPH_STAGE_ALIASES = {
+  sph_issued: 'sph_sent', sph_awal: 'sph_sent', sph_sent: 'sph_sent',
+  follow_up: 'presentation_scheduled', followup: 'presentation_scheduled',
+  presentation: 'presentation_scheduled', presentation_scheduled: 'presentation_scheduled',
+  presentation_done: 'presentation_done', presentasi_selesai: 'presentation_done',
+  ecatalog: 'ecatalog', e_catalog: 'ecatalog',
+  negosiasi: 'negotiation', negotiation: 'negotiation',
+  tender: 'tender', proses_tender: 'tender',
+  po_issued: 'po_issued', po_terbit: 'po_issued',
+  lost: 'lost', hilang: 'lost',
+};
+const SPH_STAGE_BASE_PROB = { sph_sent: 20, presentation_scheduled: 35, presentation_done: 50, ecatalog: 40, negotiation: 70, tender: 55, po_issued: 100, lost: 0 };
+
+function normalizeSphStageId(raw) {
+  const key = String(raw || '').trim().toLowerCase().replace(/\s+/g, '_');
+  if (!key) return null;
+  if (SPH_STAGE_IDS.has(key)) return key;
+  return SPH_STAGE_ALIASES[key] || null;
+}
+
+function defaultSphStageForStatus(status) {
+  if (status === 'won') return 'po_issued';
+  if (status === 'lost') return 'lost';
+  return 'sph_sent';
+}
+
+/** Map legacy / import stage ids to canonical pipeline stages used in IMS. */
+function normalizeSphStageRecords(arr) {
+  if (!Array.isArray(arr)) return arr;
+  return arr.map(s => {
+    if (!s || typeof s !== 'object') return s;
+    const mapped = normalizeSphStageId(s.stage);
+    if (mapped) return mapped === s.stage ? s : { ...s, stage: mapped };
+    if (s.stage && SPH_STAGE_IDS.has(s.stage)) return s;
+    const fallback = defaultSphStageForStatus(s.status);
+    return { ...s, stage: fallback };
+  });
+}
+
 function normalizePoWon(arr) {
   if (!Array.isArray(arr)) return arr;
   return arr.map(s => {
     if (!s || typeof s !== 'object') return s;
+    // Deal explicitly moved out of PO — jangan paksa kembali ke PO Terbit
+    if (s.stage && s.stage !== 'po_issued' && s.stage !== 'lost') {
+      if (s.status === 'won' || s.poStatus === 'issued') {
+        return {
+          ...s,
+          status: 'active',
+          poStatus: null,
+          probability: SPH_STAGE_BASE_PROB[s.stage] ?? s.probability ?? 50,
+        };
+      }
+      return s;
+    }
+    if (s.stage === 'lost' || s.status === 'lost') {
+      return s.status === 'lost' ? s : { ...s, status: 'lost', poStatus: null, probability: 0, stage: 'lost' };
+    }
     const poish = s.stage === 'po_issued' || s.poStatus === 'issued';
     if (poish && s.status !== 'lost' && s.status !== 'cancelled') {
       if (s.status !== 'won' || s.poStatus !== 'issued' || s.stage !== 'po_issued') {
         return { ...s, status: 'won', poStatus: 'issued', stage: 'po_issued', probability: 100 };
       }
-    } else if (s.status === 'won' && (s.poStatus !== 'issued' || s.stage !== 'po_issued')) {
-      return { ...s, poStatus: 'issued', stage: 'po_issued', probability: 100 };
+    } else if (s.status === 'won' && s.stage === 'po_issued') {
+      return { ...s, poStatus: 'issued', probability: 100 };
     }
     return s;
   });
@@ -621,4 +676,4 @@ function getPaymentSummary(p) {
   return { schedule, totalDue, totalPaid, outstanding, pctPaid, installmentsPaid, installmentsExpected };
 }
 
-export { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, STATIC_TECH_ORDER, resolveEmpName, resolveNamesInText, SALES_META_BY_ID, employeeSalesId, getActiveSalesTeam, activeSalesIdSet, normalizeSalesOwnedRows, isLiveEmployeeUsername, normalizeEmployeeOwnedRows, detectPaymentScheme, resolveCustomerSector, resolveDealModel, _addMonthsISO, computeInvoiceSchedule, resolveProductId, normalizeProduct, getRegStages, sanitizeRegStageHistory, migrateRegRecord, normalizeImportPipelineStatus, importPipelineLabel, projectHasDpReceived, manifestMatchesProject, appendStageHistoryEntry, getStageMetrics, normalizePoWon, calcIncentive, getIncentiveStatus, getNetMargin, calcNetProfit, getProductFileUrl, normalizeProductLookupText, getFactoryProductionDays, addDaysIso, getFactoryProductionInfo, resolveProductRecord, syncSphItemToProductMaster, syncSphRecordToProductMaster, syncSphDataToProductMaster, effectiveScheme, generatePaymentSchedule, getPaymentSummary };
+export { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, STATIC_TECH_ORDER, resolveEmpName, resolveNamesInText, SALES_META_BY_ID, employeeSalesId, getActiveSalesTeam, activeSalesIdSet, normalizeSalesOwnedRows, isLiveEmployeeUsername, normalizeEmployeeOwnedRows, detectPaymentScheme, resolveCustomerSector, resolveDealModel, _addMonthsISO, computeInvoiceSchedule, resolveProductId, normalizeProduct, getRegStages, sanitizeRegStageHistory, migrateRegRecord, normalizeImportPipelineStatus, importPipelineLabel, projectHasDpReceived, manifestMatchesProject, appendStageHistoryEntry, getStageMetrics, normalizeSphStageId, defaultSphStageForStatus, normalizeSphStageRecords, normalizePoWon, calcIncentive, getIncentiveStatus, getNetMargin, calcNetProfit, getProductFileUrl, normalizeProductLookupText, getFactoryProductionDays, addDaysIso, getFactoryProductionInfo, resolveProductRecord, syncSphItemToProductMaster, syncSphRecordToProductMaster, syncSphDataToProductMaster, effectiveScheme, generatePaymentSchedule, getPaymentSummary };

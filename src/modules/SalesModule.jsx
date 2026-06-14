@@ -15,11 +15,11 @@ import { buildEditorTemplate, downloadCSV, downloadSPHWord, downloadSPPWord, pri
 import { parseSPHImport } from '../utils/csvImport.js';
 import { filterBillableRows, formatPackageItemsSummary, formatPackageModalityLabel, getPackageComponents, sphBillableValue, countUniqueSphNumbers } from '../utils/sphPackage.js';
 import { showToast } from '../utils/toast.js';
-const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employees, setEmployees, session, lang, t, fmt, onRequestSPH, onRequestSPP, onWorkflowUpdate, onSaveDocument, onDeleteRequest, generatedDocs = [], products = [], documentTemplates = DEFAULT_DOCUMENT_TEMPLATES }) {
+const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employees, setEmployees, session, lang, t, fmt, onRequestSPH, onRequestSPP, onWorkflowUpdate, onSaveDocument, generatedDocs = [], setGeneratedDocs, products = [], documentTemplates = DEFAULT_DOCUMENT_TEMPLATES }) {
   const [open, setOpen] = useState('request');
   const [editingRequestId, setEditingRequestId] = useState(null);
   const [deleteQueueId, setDeleteQueueId] = useState(null);
-  const [deleteHistoryId, setDeleteHistoryId] = useState(null);
+  const [deleteDocId, setDeleteDocId] = useState(null);
   const [editorState, setEditorState] = useState(null); // { record, docType, html, title }
   const [requestKind, setRequestKind] = useState('sph'); // 'sph' | 'spp' — toggle form request
   const [form, setForm] = useState({
@@ -51,13 +51,9 @@ const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employ
   const addRequestItem = () => setForm(prev => prev.items.length >= 5 ? prev : ({ ...prev, items: [...prev.items, { productId: '', modality: '', brand: '', subModality: '', qty: 1, unitPrice: '' }] }));
   const removeRequestItem = (idx) => setForm(prev => ({ ...prev, items: prev.items.filter((_, i) => i !== idx).length ? prev.items.filter((_, i) => i !== idx) : [{ productId: '', modality: '', brand: '', subModality: '', qty: 1, unitPrice: '' }] }));
   const requestRows = data.filter(s => !s.salesDownloadedAt && s.status !== 'cancelled' && (s.sphWorkflowStatus === 'requested' || s.sphWorkflowStatus === 'admin_drafting' || s.sphWorkflowStatus === 'ready_for_sales'));
-  const requestHistoryRows = useMemo(() => data
-    .filter(s => s.status !== 'cancelled' && (!!s.salesDownloadedAt || s.sphWorkflowStatus === 'sales_downloaded'))
-    .sort((a, b) => String(b.salesDownloadedAt || b.lastUpdate || '').localeCompare(String(a.salesDownloadedAt || a.lastUpdate || ''))), [data]);
   const isAdminish = ['super_admin', 'gm', 'admin'].includes(session.role);
-  const canDeleteRequestHistory = isAdminish;
+  const canDeleteDoc = isAdminish;
   const deleteQueueTarget = data.find(s => s.id === deleteQueueId);
-  const deleteHistoryTarget = data.find(s => s.id === deleteHistoryId);
   // RBAC riwayat dokumen: sales hanya lihat dokumen miliknya; CEO/admin lihat semua
   const isCeoLevel = ['super_admin', 'gm', 'admin'].includes(session.role);
   const visibleDocs = useMemo(() => {
@@ -66,6 +62,7 @@ const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employ
     // sales: hanya requesterId === dirinya
     return list.filter(d => d.requesterId === session.username || d.requesterId === session.salesId || d.createdBy === session.username);
   }, [generatedDocs, isCeoLevel, session.username, session.salesId]);
+  const deleteDocTarget = visibleDocs.find(d => d.id === deleteDocId);
   const isPicSales = (s) => session?.role === 'sales' && (session.salesId === s.salesOwner || session.username === s.salesOwner);
   const openSphDrive = (s) => {
     const url = normalizeExternalUrl(s.sphDriveUrl || s.sppDriveUrl);
@@ -112,7 +109,6 @@ const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employ
         {[
           { id: 'request', label: lang === 'id' ? 'Request SPH / SPP' : 'SPH / SPP Request', icon: Plus },
           { id: 'queue', label: lang === 'id' ? `Antrian Admin (${requestRows.length})` : `Admin Queue (${requestRows.length})`, icon: Bell },
-          { id: 'history', label: lang === 'id' ? `Riwayat Request (${requestHistoryRows.length})` : `Request History (${requestHistoryRows.length})`, icon: Clock },
           { id: 'docs', label: lang === 'id' ? `Riwayat Dokumen (${visibleDocs.length})` : `Document History (${visibleDocs.length})`, icon: History },
         ].map(tb => {
           const Icon = tb.icon;
@@ -225,45 +221,12 @@ const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employ
         </div>
       )}
 
-      {open === 'history' && (
-        <div style={{padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px'}}>
-          <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginBottom: '2px'}}>
-            {lang === 'id'
-              ? 'Request yang sudah diunduh PIC sales. Admin / GM / CEO dapat menghapus riwayat agar antrian bersih.'
-              : 'Requests already downloaded by PIC sales. Admin / GM / CEO can delete history entries.'}
-          </div>
-          {requestHistoryRows.map(s => (
-            <div key={s.id} style={{padding: '12px', background: 'var(--ims-bg)', border: '1px solid var(--ims-border)', display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) auto', gap: '12px', alignItems: 'center'}}>
-              <div>
-                <div style={{fontSize: '13px', fontWeight: 700}}>{s.customer} · {s.subModality || s.modality}</div>
-                <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '3px'}}>
-                  <span className="mono">{s.sphNo}</span> · Sales: {resolveEmpName(employees, s.salesOwner)} · {SPH_WORKFLOW_LABELS[s.sphWorkflowStatus] || s.sphWorkflowStatus}
-                </div>
-                <div className="mono" style={{fontSize: '11px', color: 'var(--ims-text)', marginTop: '3px'}}>{fmt(s.totalValue || 0)}</div>
-                {s.salesDownloadedAt && (
-                  <div className="mono" style={{fontSize: '10px', color: 'var(--ims-accent-2)', marginTop: '4px'}}>
-                    ✓ {lang === 'id' ? 'Diunduh PIC' : 'Downloaded by PIC'}: {formatDateTime(s.salesDownloadedAt, lang)}
-                  </div>
-                )}
-              </div>
-              <div style={{display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
-                {(s.sphDriveUrl || s.sppDriveUrl) && (
-                  <button onClick={() => openSphDrive(s)} className="btn-ghost" style={{fontSize: '10px'}}><Download size={11} />Drive</button>
-                )}
-                {canDeleteRequestHistory && onDeleteRequest && (
-                  <button onClick={() => setDeleteHistoryId(s.id)} className="btn-ghost" style={{fontSize: '10px', color: '#c03030'}}><Trash2 size={11} />{lang === 'id' ? 'Hapus' : 'Delete'}</button>
-                )}
-              </div>
-            </div>
-          ))}
-          {requestHistoryRows.length === 0 && <div className="empty-state">{lang === 'id' ? 'Belum ada request yang diunduh sales' : 'No downloaded requests yet'}</div>}
-        </div>
-      )}
-
       {open === 'docs' && (
         <div style={{padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px'}}>
           <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginBottom: '4px'}}>
-            {isCeoLevel ? (lang === 'id' ? 'Menampilkan semua dokumen dari semua sales.' : 'Showing all documents.') : (lang === 'id' ? 'Menampilkan dokumen Anda saja.' : 'Showing your documents only.')}
+            {isCeoLevel
+              ? (lang === 'id' ? 'Menampilkan semua dokumen. Admin / GM / CEO dapat menghapus riwayat dokumen yang sudah diunduh sales.' : 'Showing all documents. Admin / GM / CEO can delete downloaded document history.')
+              : (lang === 'id' ? 'Menampilkan dokumen Anda saja.' : 'Showing your documents only.')}
           </div>
           {visibleDocs.map(doc => (
             <div key={doc.id} style={{padding: '12px', background: 'var(--ims-bg)', border: '1px solid var(--ims-border)', display: 'grid', gridTemplateColumns: 'minmax(280px,1fr) auto', gap: '12px', alignItems: 'center'}}>
@@ -277,6 +240,9 @@ const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employ
               <div style={{display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
                 <button onClick={() => printHtmlStringAsPdf(doc.docTitle + ' - ' + (doc.customer || ''), doc.html)} className="btn-primary" style={{fontSize: '10px', padding: '6px 10px'}} title="Cetak / Unduh PDF"><Download size={11} />Cetak PDF</button>
                 {isAdminish && <button onClick={() => { setEditorState({ record: { ...(data.find(s => s.id === doc.sourceId) || {}), id: doc.sourceId, customer: doc.customer, sphNo: doc.sphNo, requesterId: doc.requesterId, _existingDocId: doc.id }, docType: doc.docType, html: doc.html, title: (lang === 'id' ? 'Edit ' : 'Edit ') + doc.docTitle }); }} className="btn-ghost" style={{fontSize: '10px'}}><Edit2 size={11} />Edit</button>}
+                {canDeleteDoc && setGeneratedDocs && (
+                  <button onClick={() => setDeleteDocId(doc.id)} className="btn-ghost" style={{fontSize: '10px', color: '#c03030'}} title={lang === 'id' ? 'Hapus dari riwayat dokumen' : 'Remove from document history'}><Trash2 size={11} />{lang === 'id' ? 'Hapus' : 'Delete'}</button>
+                )}
               </div>
             </div>
           ))}
@@ -285,16 +251,19 @@ const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employ
       )}
 
       <ConfirmDialog
-        open={!!deleteHistoryId}
-        title={lang === 'id' ? 'Hapus riwayat request?' : 'Delete request history?'}
+        open={!!deleteDocId}
+        title={lang === 'id' ? 'Hapus riwayat dokumen?' : 'Delete document history?'}
         message={lang === 'id'
-          ? `Request ${deleteHistoryTarget?.sphNo || ''} · ${deleteHistoryTarget?.customer || ''} akan dihapus permanen dari IMS. Lanjutkan?`
-          : `Request ${deleteHistoryTarget?.sphNo || ''} · ${deleteHistoryTarget?.customer || ''} will be permanently removed from IMS. Continue?`}
+          ? `Dokumen "${deleteDocTarget?.docTitle || ''}"${deleteDocTarget?.customer ? ` · ${deleteDocTarget.customer}` : ''} akan dihapus permanen dari riwayat. Lanjutkan?`
+          : `Document "${deleteDocTarget?.docTitle || ''}"${deleteDocTarget?.customer ? ` · ${deleteDocTarget.customer}` : ''} will be permanently removed from history. Continue?`}
         onConfirm={() => {
-          if (deleteHistoryId && onDeleteRequest) onDeleteRequest(deleteHistoryId);
-          setDeleteHistoryId(null);
+          if (deleteDocId && setGeneratedDocs) {
+            setGeneratedDocs(prev => prev.filter(d => d.id !== deleteDocId));
+            showToast(lang === 'id' ? 'Dokumen dihapus dari riwayat' : 'Document removed from history', 'success');
+          }
+          setDeleteDocId(null);
         }}
-        onCancel={() => setDeleteHistoryId(null)}
+        onCancel={() => setDeleteDocId(null)}
         danger
         lang={lang}
       />
@@ -559,7 +528,7 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
   };
   const downloadSPHTemplate = () => {
     const header = ['SPH No', 'Pelanggan', 'Tipe', 'Jenis Proyek', 'Modality', 'Sub-Modality', 'Qty', 'Harga Satuan', 'Total Nilai', 'Stage', 'Status', 'Sales', 'Tanggal Terbit', 'Wilayah', 'Catatan'];
-    const example = ['SPH/2026/001', 'RS Contoh Sehat', 'hospital', 'private', 'CT Scan', 'CT 128 Slice', '1', '8200000000', '8200000000', 'po_issued', 'won', 'hatim', '2026-03-15', 'Jateng', 'Contoh — hapus baris ini sebelum impor'];
+    const example = ['SPH/2026/001', 'RS Contoh Sehat', 'hospital', 'private', 'CT Scan', 'CT 128 Slice', '1', '8200000000', '8200000000', 'sph_sent', 'active', 'hatim', '2026-03-15', 'Jateng', 'Contoh — hapus baris ini sebelum impor'];
     downloadCSV('HNTI_Template_Import_SPH.csv', [header, example]);
   };
 
@@ -703,7 +672,7 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
           onRequestSPP={onRequestSPP}
           onWorkflowUpdate={onWorkflowUpdate}
           onSaveDocument={onSaveDocument}
-          onDeleteRequest={onDelete}
+          setGeneratedDocs={setGeneratedDocs}
           generatedDocs={generatedDocs}
           documentTemplates={documentTemplates} />
       )}
@@ -783,6 +752,12 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
           <tbody>
             {visibleRows.map(s => {
               const stage = stageMap.get(s.stage);
+              const statusBadge = {
+                active: { label: t.status_active, color: '#5b87b8' },
+                won: { label: t.status_won, color: 'var(--ims-accent-2)' },
+                lost: { label: t.status_lost, color: '#8b3a3a' },
+                cancelled: { label: lang === 'id' ? 'Batal' : 'Cancelled', color: '#94a3b8' },
+              }[s.status] || { label: t.status_active, color: '#5b87b8' };
               const pt = projectTypeMap.get(s.projectType);
               const sales = salesMap.get(s.salesOwner);
               const isSelected = selectedSphIds.includes(s.id);
@@ -823,7 +798,12 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
                   </Td>
                   <Td align="right">{s.qty}</Td>
                   <Td align="right"><span className="mono" style={{fontWeight: 500}}>{fmt(sphBillableValue(s))}</span></Td>
-                  <Td>{stage && <span style={{display: 'inline-block', padding: '3px 7px', fontSize: '10px', background: stage.color + '25', color: stage.color, fontWeight: 600}}>{t[`stage_${s.stage}`]}</span>}</Td>
+                  <Td>
+                    <span style={{display: 'inline-block', padding: '3px 7px', fontSize: '10px', background: statusBadge.color + '25', color: statusBadge.color, fontWeight: 600}}>{statusBadge.label}</span>
+                    {stage && s.status === 'active' && (
+                      <div style={{fontSize: '9px', color: 'var(--ims-text-2)', marginTop: '3px'}}>{t[`stage_${s.stage}`] || s.stage}</div>
+                    )}
+                  </Td>
                   <Td>{sales ? sales.name : s.salesOwner}</Td>
                   <Td align="right">
                     {canEdit && <>

@@ -48,6 +48,8 @@ const PROJECT_SYNC_FIELDS = [
   'paymentScheme', 'dpPercent', 'installmentMonths', 'opsPercent',
 ];
 
+const STAGE_SYNC_FIELDS = ['stage', 'status', 'probability', 'sphWorkflowStatus', 'poStatus'];
+
 /**
  * Normalisasi data SPH:
  * - deteksi paket harga (Opsi B)
@@ -81,8 +83,13 @@ export function normalizeSphProjects(data) {
       list[i].projectPrimaryId = primary.id;
       list[i].financeAccountId = primary.id;
 
+      // Tahap/status proyek — satu sumber: baris primary (hindari revert saat edit)
+      STAGE_SYNC_FIELDS.forEach(f => {
+        list[i][f] = primary[f];
+      });
+
       if (!isPrimary) {
-        PROJECT_SYNC_FIELDS.forEach(f => {
+        PROJECT_SYNC_FIELDS.filter(f => !STAGE_SYNC_FIELDS.includes(f)).forEach(f => {
           const val = poSource[f] ?? paymentSource[f] ?? primary[f];
           if (val !== undefined && val !== null && val !== '') {
             list[i][f] = val;

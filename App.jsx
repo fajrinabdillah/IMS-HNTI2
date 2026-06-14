@@ -14,7 +14,7 @@ import { DOC_TYPE_LABELS, OFFICIAL_DOC_TEMPLATE_TYPES, DEFAULT_DOCUMENT_TEMPLATE
 import { IMS_THEMES, CHART_COLORS } from './src/constants/theme.js';
 import { SEED_FIELD_REPORTS, SEED_ISSUES, SEED_AKL_RECORDS, SEED_IMPORT_RECORDS, SEED_PENGALIHAN_RECORDS, SEED_PI_RECORDS, SEED_INSTALL_RECORDS, SEED_BAST_RECORDS, SEED_TRAINING_RECORDS, SEED_BUSINESS_TRIPS, SEED_BT_REALIZATIONS } from './src/constants/seedData.js';
 import { initialOf, formatCurrency, formatCurrencyFull, formatDateTime, parseSafeDateMs, dateOnlyFromValue, addDateOnlyDays, normalizeExternalUrl, formatDuration, inferMimeFromName, formatFileSize, escapeHtml, safeDocFilename, _normHdr, _num, _normDate } from './src/utils/format.js';
-import { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, STATIC_TECH_ORDER, resolveEmpName, resolveNamesInText, SALES_META_BY_ID, employeeSalesId, getActiveSalesTeam, activeSalesIdSet, normalizeSalesOwnedRows, isLiveEmployeeUsername, normalizeEmployeeOwnedRows, detectPaymentScheme, resolveCustomerSector, resolveDealModel, _addMonthsISO, computeInvoiceSchedule, resolveProductId, normalizeProduct, getRegStages, sanitizeRegStageHistory, migrateRegRecord, normalizeImportPipelineStatus, importPipelineLabel, projectHasDpReceived, manifestMatchesProject, appendStageHistoryEntry, getStageMetrics, normalizeSphStageRecords, normalizePoWon, calcIncentive, getIncentiveStatus, getNetMargin, calcNetProfit, getProductFileUrl, normalizeProductLookupText, getFactoryProductionDays, addDaysIso, getFactoryProductionInfo, resolveProductRecord, syncSphRecordToProductMaster, syncSphDataToProductMaster, effectiveScheme, generatePaymentSchedule, getPaymentSummary } from './src/utils/domain.js';
+import { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, STATIC_TECH_ORDER, resolveEmpName, resolveNamesInText, SALES_META_BY_ID, employeeSalesId, getActiveSalesTeam, activeSalesIdSet, normalizeSalesOwnedRows, isLiveEmployeeUsername, normalizeEmployeeOwnedRows, detectPaymentScheme, resolveCustomerSector, resolveDealModel, _addMonthsISO, computeInvoiceSchedule, resolveProductId, normalizeProduct, getRegStages, sanitizeRegStageHistory, migrateRegRecord, normalizeImportPipelineStatus, importPipelineLabel, projectHasDpReceived, manifestMatchesProject, appendStageHistoryEntry, getStageMetrics, applySphStageStatusCoherence, normalizeSphStageRecords, normalizePoWon, calcIncentive, getIncentiveStatus, getNetMargin, calcNetProfit, getProductFileUrl, normalizeProductLookupText, getFactoryProductionDays, addDaysIso, getFactoryProductionInfo, resolveProductRecord, syncSphRecordToProductMaster, syncSphDataToProductMaster, effectiveScheme, generatePaymentSchedule, getPaymentSummary } from './src/utils/domain.js';
 import { _memStore, _hasArtifactStorage, _hasLocalStorage, _SUPA_URL, _SUPA_KEY, _supaEnabled, _supaFetch, _supaSession, _SUPA_SESS_LS, _authFetch, _supaSignIn, _refreshInFlight, _supaRefreshTok, _supaSignOut, _restoreSupaSession, _getSupaTok, _supaReq, _pushVapidPublicKey, _urlBase64ToUint8Array, pushSupported, registerServiceWorker, savePushSubscription, enablePushNotifications, getPushPermissionStatus, sendServerPushNotification, _rtSocket, _rtHeartbeat, _rtRetryCount, _rtRetryTimer, _rtStatus, _setRtStatus, _hashStr, _recentWrites, _markRecentWrite, _isRecentSelfEcho, blockCloudApply, isCloudApplyBlocked, _rtJoinRef, _RT_TOPIC, _startRealtime, _scheduleRtRetry, _stopRealtime, _tokRefreshTimer, _startProactiveRefresh, _stopProactiveRefresh, storeGet, storeSet, storeDel, _persistPending, _persistTimer, debouncedStoreSet, flushPersist } from './src/utils/storage.js';
 import { mergeSphImportRecords } from './src/utils/sphImport.js';
 import { normalizeSphProjects } from './src/utils/sphProject.js';
@@ -22,7 +22,10 @@ import { normalizeSphProjects } from './src/utils/sphProject.js';
 /** Pastikan setiap mutasi/load SPH melewati paket harga + kunci proyek multi-alat. */
 function normalizeSphDataset(rows, productList = []) {
   const list = Array.isArray(rows) ? rows : [];
-  return normalizeSphProjects(normalizePoWon(normalizeSphStageRecords(syncSphDataToProductMaster(list, productList))));
+  const synced = syncSphDataToProductMaster(list, productList);
+  const staged = normalizeSphStageRecords(synced);
+  const grouped = normalizeSphProjects(staged);
+  return normalizePoWon(grouped);
 }
 
 function sphDataEqual(a, b) {
@@ -1148,23 +1151,10 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
     // Strip internal markers before saving
     const replaceOldIds = sph._replaceOldIds || [];
     const duplicateNote = sph._duplicateNote || null;
-    const clean = syncSphRecordToProductMaster({ ...sph }, products);
+    const clean = applySphStageStatusCoherence(syncSphRecordToProductMaster({ ...sph }, products));
     delete clean._replaceOldIds;
     delete clean._duplicateNote;
-
-    // Stage ⟺ status ⟺ PO — pastikan konsisten sebelum normalizePoWon
-    if (clean.stage === 'po_issued') {
-      clean.status = 'won';
-      clean.poStatus = 'issued';
-      clean.probability = 100;
-    } else if (clean.stage === 'lost') {
-      clean.status = 'lost';
-      clean.poStatus = null;
-      clean.probability = 0;
-    } else if (clean.stage) {
-      if (clean.status === 'won') clean.status = 'active';
-      if (clean.poStatus === 'issued') clean.poStatus = null;
-    }
+    clean.lastUpdate = new Date().toISOString().split('T')[0];
 
     // Tahap 11 — Phase 1: stage history tracking foundation untuk KPI scorecard
     const byUser = session?.username || 'unknown';

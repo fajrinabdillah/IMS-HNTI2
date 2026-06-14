@@ -406,6 +406,26 @@ function defaultSphStageForStatus(status) {
   return 'sph_sent';
 }
 
+/** Satu record SPH — selaraskan tahap, status, PO, dan probabilitas. */
+function applySphStageStatusCoherence(sph) {
+  if (!sph || typeof sph !== 'object') return sph;
+  const s = { ...sph };
+  if (s.stage === 'po_issued') {
+    s.status = 'won';
+    s.poStatus = 'issued';
+    s.probability = 100;
+  } else if (s.stage === 'lost') {
+    s.status = 'lost';
+    s.poStatus = null;
+    s.probability = 0;
+  } else if (s.stage) {
+    if (s.status === 'won') s.status = 'active';
+    if (s.poStatus === 'issued') s.poStatus = null;
+    if (SPH_STAGE_BASE_PROB[s.stage] !== undefined) s.probability = SPH_STAGE_BASE_PROB[s.stage];
+  }
+  return s;
+}
+
 /** Map legacy / import stage ids to canonical pipeline stages used in IMS. */
 function normalizeSphStageRecords(arr) {
   if (!Array.isArray(arr)) return arr;
@@ -676,4 +696,4 @@ function getPaymentSummary(p) {
   return { schedule, totalDue, totalPaid, outstanding, pctPaid, installmentsPaid, installmentsExpected };
 }
 
-export { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, STATIC_TECH_ORDER, resolveEmpName, resolveNamesInText, SALES_META_BY_ID, employeeSalesId, getActiveSalesTeam, activeSalesIdSet, normalizeSalesOwnedRows, isLiveEmployeeUsername, normalizeEmployeeOwnedRows, detectPaymentScheme, resolveCustomerSector, resolveDealModel, _addMonthsISO, computeInvoiceSchedule, resolveProductId, normalizeProduct, getRegStages, sanitizeRegStageHistory, migrateRegRecord, normalizeImportPipelineStatus, importPipelineLabel, projectHasDpReceived, manifestMatchesProject, appendStageHistoryEntry, getStageMetrics, normalizeSphStageId, defaultSphStageForStatus, normalizeSphStageRecords, normalizePoWon, calcIncentive, getIncentiveStatus, getNetMargin, calcNetProfit, getProductFileUrl, normalizeProductLookupText, getFactoryProductionDays, addDaysIso, getFactoryProductionInfo, resolveProductRecord, syncSphItemToProductMaster, syncSphRecordToProductMaster, syncSphDataToProductMaster, effectiveScheme, generatePaymentSchedule, getPaymentSummary };
+export { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, STATIC_TECH_ORDER, resolveEmpName, resolveNamesInText, SALES_META_BY_ID, employeeSalesId, getActiveSalesTeam, activeSalesIdSet, normalizeSalesOwnedRows, isLiveEmployeeUsername, normalizeEmployeeOwnedRows, detectPaymentScheme, resolveCustomerSector, resolveDealModel, _addMonthsISO, computeInvoiceSchedule, resolveProductId, normalizeProduct, getRegStages, sanitizeRegStageHistory, migrateRegRecord, normalizeImportPipelineStatus, importPipelineLabel, projectHasDpReceived, manifestMatchesProject, appendStageHistoryEntry, getStageMetrics, normalizeSphStageId, defaultSphStageForStatus, applySphStageStatusCoherence, normalizeSphStageRecords, normalizePoWon, calcIncentive, getIncentiveStatus, getNetMargin, calcNetProfit, getProductFileUrl, normalizeProductLookupText, getFactoryProductionDays, addDaysIso, getFactoryProductionInfo, resolveProductRecord, syncSphItemToProductMaster, syncSphRecordToProductMaster, syncSphDataToProductMaster, effectiveScheme, generatePaymentSchedule, getPaymentSummary };

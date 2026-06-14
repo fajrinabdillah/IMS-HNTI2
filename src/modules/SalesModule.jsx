@@ -459,10 +459,17 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
       try {
         const { records, errors } = parseSPHImport(String(ev.target.result || ''));
         if (!records.length) { setImportMsg({ ok: false, text: errors[0] || (lang === 'id' ? 'Tidak ada data valid.' : 'No valid data.') }); return; }
-        const res = (onImport && onImport(records)) || { added: 0, updated: 0 };
+        const res = (onImport && onImport(records)) || { added: 0, updated: 0, total: records.length };
+        setSphTab('list');
+        setFilterYear('all');
+        setSearch('');
+        setFilterStatus('all');
+        setFilterPType('all');
+        setFilterProduct('all');
+        setVisibleCount(Math.max(pageSize, records.length));
         setImportMsg({ ok: true, text: lang === 'id'
-          ? `${records.length} baris diproses → ${res.added} ditambah, ${res.updated} diperbarui${errors.length ? `, ${errors.length} dilewati` : ''}.`
-          : `${records.length} rows processed → ${res.added} added, ${res.updated} updated${errors.length ? `, ${errors.length} skipped` : ''}.` });
+          ? `${res.total ?? records.length} baris diproses → ${res.added} ditambah, ${res.updated} diperbarui${errors.length ? `, ${errors.length} dilewati` : ''}. Data disimpan — filter direset agar semua baris terlihat.`
+          : `${res.total ?? records.length} rows processed → ${res.added} added, ${res.updated} updated${errors.length ? `, ${errors.length} skipped` : ''}. Saved — filters reset to show all rows.` });
       } catch (err) { setImportMsg({ ok: false, text: (lang === 'id' ? 'Gagal membaca file: ' : 'Failed to read file: ') + err.message }); }
     };
     reader.readAsText(file);

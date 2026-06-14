@@ -15,7 +15,8 @@ import { IMS_THEMES, CHART_COLORS } from './src/constants/theme.js';
 import { SEED_FIELD_REPORTS, SEED_ISSUES, SEED_AKL_RECORDS, SEED_IMPORT_RECORDS, SEED_PENGALIHAN_RECORDS, SEED_PI_RECORDS, SEED_INSTALL_RECORDS, SEED_BAST_RECORDS, SEED_TRAINING_RECORDS, SEED_BUSINESS_TRIPS, SEED_BT_REALIZATIONS } from './src/constants/seedData.js';
 import { initialOf, formatCurrency, formatCurrencyFull, formatDateTime, parseSafeDateMs, dateOnlyFromValue, addDateOnlyDays, normalizeExternalUrl, formatDuration, inferMimeFromName, formatFileSize, escapeHtml, safeDocFilename, _normHdr, _num, _normDate } from './src/utils/format.js';
 import { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, STATIC_TECH_ORDER, resolveEmpName, resolveNamesInText, SALES_META_BY_ID, employeeSalesId, getActiveSalesTeam, activeSalesIdSet, normalizeSalesOwnedRows, isLiveEmployeeUsername, normalizeEmployeeOwnedRows, detectPaymentScheme, resolveCustomerSector, resolveDealModel, _addMonthsISO, computeInvoiceSchedule, resolveProductId, normalizeProduct, getRegStages, sanitizeRegStageHistory, migrateRegRecord, normalizeImportPipelineStatus, importPipelineLabel, projectHasDpReceived, manifestMatchesProject, appendStageHistoryEntry, getStageMetrics, normalizePoWon, calcIncentive, getIncentiveStatus, getNetMargin, calcNetProfit, getProductFileUrl, normalizeProductLookupText, getFactoryProductionDays, addDaysIso, getFactoryProductionInfo, resolveProductRecord, effectiveScheme, generatePaymentSchedule, getPaymentSummary } from './src/utils/domain.js';
-import { _memStore, _hasArtifactStorage, _hasLocalStorage, _SUPA_URL, _SUPA_KEY, _supaEnabled, _supaFetch, _supaSession, _SUPA_SESS_LS, _authFetch, _supaSignIn, _refreshInFlight, _supaRefreshTok, _supaSignOut, _restoreSupaSession, _getSupaTok, _supaReq, _pushVapidPublicKey, _urlBase64ToUint8Array, pushSupported, registerServiceWorker, savePushSubscription, enablePushNotifications, getPushPermissionStatus, sendServerPushNotification, _rtSocket, _rtHeartbeat, _rtRetryCount, _rtRetryTimer, _rtStatus, _setRtStatus, _hashStr, _recentWrites, _markRecentWrite, _isRecentSelfEcho, _rtJoinRef, _RT_TOPIC, _startRealtime, _scheduleRtRetry, _stopRealtime, _tokRefreshTimer, _startProactiveRefresh, _stopProactiveRefresh, storeGet, storeSet, storeDel, _persistPending, _persistTimer, debouncedStoreSet, flushPersist } from './src/utils/storage.js';
+import { _memStore, _hasArtifactStorage, _hasLocalStorage, _SUPA_URL, _SUPA_KEY, _supaEnabled, _supaFetch, _supaSession, _SUPA_SESS_LS, _authFetch, _supaSignIn, _refreshInFlight, _supaRefreshTok, _supaSignOut, _restoreSupaSession, _getSupaTok, _supaReq, _pushVapidPublicKey, _urlBase64ToUint8Array, pushSupported, registerServiceWorker, savePushSubscription, enablePushNotifications, getPushPermissionStatus, sendServerPushNotification, _rtSocket, _rtHeartbeat, _rtRetryCount, _rtRetryTimer, _rtStatus, _setRtStatus, _hashStr, _recentWrites, _markRecentWrite, _isRecentSelfEcho, blockCloudApply, isCloudApplyBlocked, _rtJoinRef, _RT_TOPIC, _startRealtime, _scheduleRtRetry, _stopRealtime, _tokRefreshTimer, _startProactiveRefresh, _stopProactiveRefresh, storeGet, storeSet, storeDel, _persistPending, _persistTimer, debouncedStoreSet, flushPersist } from './src/utils/storage.js';
+import { mergeSphImportRecords } from './src/utils/sphImport.js';
 import { generateHntiSph2026Seed, _RAW_ALL_SPH, ALL_SPH, buildSeedNotificationsFromSph, generateInstalledUnits, generateSeedManifestsFromSph, generateSeedCustomsDocsFromSph, SEED_MANIFESTS, SEED_CUSTOMS_DOCS, generateInstallDocs, INSTALL_DOCS, generateHistoricalBusinessTrips, _historical, HISTORICAL_BT, HISTORICAL_BTR, ALL_BUSINESS_TRIPS, ALL_BT_REALIZATIONS, generateRegulatoryRecords } from './src/data/seed.js';
 import { TOAST_EVENT, showToast } from './src/utils/toast.js';
 import { mergeDocumentTemplates, downloadDataUrl, downloadUploadedTemplate, previewUploadedTemplate, getUploadedDocumentTemplate, openDocumentTemplateOrHtml, downloadDocumentTemplateOrDoc, downloadCSV, downloadHtmlDoc, openPrintableHtml, getUserSignature, getUserDisplayName, findUserByRole, printHtmlStringAsPdf, renderDocLines, renderDocFooter, renderSignatureBlock, wrapDocumentInLetterhead, buildTextLetterheadHtml, buildHntiLetterheadHtml, renderDualSignatureHtml, buildEditorTemplate, getTemplateHtmlBody, fillTemplatePlaceholders, buildEditorBody, buildSPHDocumentHtml, downloadSPHWord, printSPHPdf, buildSPPDocumentHtml, downloadSPPWord, printSPPPdf, buildInvoiceKwitansiHtml, buildPrincipalPoHtml, buildBAIDocumentHtml, printBAIPdf, buildBAUjiFungsiDocumentHtml, printBAUjiFungsiPdf, buildBATrainingDocumentHtml, downloadBATrainingDoc, printBATrainingPdf, buildBASTBarangDocumentHtml, downloadBASTBarangDoc, printBASTBarangPdf, buildKwitansiHtml } from './src/utils/documents.js';
@@ -593,7 +594,7 @@ export default function App() {
         storeGet('ims_hnti:emp_v22'),
         storeGet('ims_hnti:bt_v22')
       ]);
-      if (d) try { setData(normalizePoWon(JSON.parse(d))); } catch {}
+      if (d && !isCloudApplyBlocked(STORAGE_KEY)) try { setData(normalizePoWon(JSON.parse(d))); } catch {}
       if (l) setLang(l);
       if (s) try { setSession(JSON.parse(s)); } catch {}
       if (r) setExchangeRate(parseFloat(r) || DEFAULT_USD_IDR);
@@ -667,6 +668,7 @@ export default function App() {
   // Solusi: setiap kali status transisi ke 'live', tarik ulang semua key dari Supabase.
   const prevSyncRef = useRef('offline');
   const isInitialLiveRef = useRef(true);
+  const resyncDebounceRef = useRef(null);
   const resyncFromCloud = useCallback(async () => {
     if (typeof window === 'undefined') return;
     try {
@@ -683,7 +685,7 @@ export default function App() {
         storeGet(NOTIF_KEY), storeGet(PRODUCT_SUPPORT_ACTIVITIES_KEY), storeGet(PRODUCT_SUPPORT_FILES_KEY), storeGet(DOCUMENT_TEMPLATE_KEY), storeGet(GENERATED_DOCS_KEY)
       ]);
       const safe = (v, setter) => { if (v) try { setter(JSON.parse(v)); } catch {} };
-      if (d) try { setData(normalizePoWon(JSON.parse(d))); } catch {}
+      if (d && !isCloudApplyBlocked(STORAGE_KEY)) try { setData(normalizePoWon(JSON.parse(d))); } catch {}
       safe(rep, setReports); safe(iss, setIssues); safe(reg, setRegRecords);
       safe(akl, setAklRecords); safe(imp, setImportRecords); safe(pgl, setPengalihanRecords);
       safe(pi, setPiRecords); safe(pm, setPmSchedule); safe(mfst, setManifests);
@@ -726,19 +728,26 @@ export default function App() {
   // re-kick Realtime kalau status bukan live.
   useEffect(() => {
     if (typeof document === 'undefined' || typeof window === 'undefined') return;
+    const scheduleResync = () => {
+      if (resyncDebounceRef.current) clearTimeout(resyncDebounceRef.current);
+      resyncDebounceRef.current = setTimeout(() => {
+        resyncDebounceRef.current = null;
+        if (isCloudApplyBlocked(STORAGE_KEY)) return;
+        resyncFromCloud();
+      }, 2000);
+    };
     const onVisible = () => {
       if (document.visibilityState !== 'visible') return;
-      if (!session) return; // hanya saat user logged-in
-      // Paksa kick Realtime kalau perlu — _startRealtime sudah idempotent (skip kalau sudah open)
+      if (!session) return;
       try { _startRealtime(); } catch {}
-      // Resync data dari cloud — tangkap perubahan dari device lain yang ter-miss saat suspend
-      resyncFromCloud();
+      scheduleResync();
     };
     document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('focus', onVisible);
     return () => {
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('focus', onVisible);
+      if (resyncDebounceRef.current) clearTimeout(resyncDebounceRef.current);
     };
   }, [session, resyncFromCloud]);
   useEffect(() => {
@@ -751,7 +760,10 @@ export default function App() {
       const v = parse(value);
       if (v === undefined || v === null) return; // parse gagal / payload rusak — jangan reset state
       switch (key) {
-        case STORAGE_KEY: setData(normalizePoWon(v)); break;
+        case STORAGE_KEY:
+          if (isCloudApplyBlocked(STORAGE_KEY)) return;
+          setData(normalizePoWon(v));
+          break;
         case LANG_KEY: if (typeof v === 'string') setLang(v); break;
         case SESSION_KEY: /* sengaja diabaikan: sesi login per-device, jangan ditimpa device lain */ return;
         case RATE_KEY: { const n = parseFloat(v); if (!isNaN(n)) setExchangeRate(n); break; }
@@ -1285,33 +1297,19 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
     showToast(status === 'final' ? (lang === 'id' ? 'Dokumen terkirim & siap diunduh' : 'Document sent & ready') : (lang === 'id' ? 'Draft tersimpan' : 'Draft saved'), 'success');
     return docId;
   };
-  // Bulk CSV import: match by SPH No → update existing, else add new. Returns {added, updated}.
+  // Bulk CSV import: match per line item (SPH No + pelanggan + produk) → update atau tambah baru.
   const handleImportSPH = (records) => {
-    const today = new Date().toISOString().split('T')[0];
-    const byNo = new Map(data.map(s => [String(s.sphNo).trim().toLowerCase(), s]));
-    const updates = new Map(); const newOnes = []; let added = 0, updated = 0;
-    records.forEach(rec => {
-      const key = String(rec.sphNo).trim().toLowerCase();
-      const existing = byNo.get(key);
-      if (existing && !String(existing.id).startsWith('imp_pending')) {
-        updates.set(existing.id, { ...existing, ...rec, id: existing.id, lastUpdate: today });
-        updated++;
-      } else {
-        const id = 'imp_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
-        const full = { ...rec, id,
-          probability: rec.status === 'won' ? 100 : rec.status === 'lost' ? 0 : 50,
-          poStatus: rec.stage === 'po_issued' ? 'issued' : null,
-          dpPaid: false, finalPaid: false, shippingStatus: null, customsStatus: null,
-          nextAction: '-', lastUpdate: today };
-        newOnes.push(full); byNo.set(key, { ...full, id: 'imp_pending' }); added++;
-      }
-    });
+    blockCloudApply(STORAGE_KEY, 15000);
+    let result = { added: 0, updated: 0, total: records.length };
     setData(prev => {
-      const merged = prev.map(s => updates.has(s.id) ? updates.get(s.id) : s);
-      return normalizePoWon([...merged, ...newOnes]);
+      const merged = mergeSphImportRecords(prev, records);
+      result = { added: merged.added, updated: merged.updated, total: merged.total };
+      return normalizePoWon(merged.data);
     });
-    logAction({ module: 'sph', action: 'import', entityLabel: lang === 'id' ? `Impor CSV (${records.length} baris)` : `CSV import (${records.length} rows)`, note: `${added} added, ${updated} updated` });
-    return { added, updated };
+    flushPersist();
+    blockCloudApply(STORAGE_KEY, 15000);
+    logAction({ module: 'sph', action: 'import', entityLabel: lang === 'id' ? `Impor CSV (${records.length} baris)` : `CSV import (${records.length} rows)`, note: `${result.added} added, ${result.updated} updated` });
+    return result;
   };
   const [deleteSphId, setDeleteSphId] = useState(null);
   const handleDelete = (id) => setDeleteSphId(id);

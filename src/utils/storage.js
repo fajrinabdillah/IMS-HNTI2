@@ -210,9 +210,21 @@ const _recentWrites = {}; // key → { h: hash, t: timestamp } untuk dedupe self
 const _markRecentWrite = (k, v) => { _recentWrites[k] = { h: _hashStr(typeof v === 'string' ? v : JSON.stringify(v)), t: Date.now() }; };
 const _isRecentSelfEcho = (k, v) => {
   const r = _recentWrites[k]; if (!r) return false;
-  if (Date.now() - r.t > 4000) { delete _recentWrites[k]; return false; }
+  if (Date.now() - r.t > 10000) { delete _recentWrites[k]; return false; }
   return _hashStr(typeof v === 'string' ? v : JSON.stringify(v)) === r.h;
 };
+// Cegah resync/realtime menimpa state lokal yang baru ditulis (race: file picker focus → resync sebelum persist selesai).
+const _cloudApplyBlocked = {};
+function blockCloudApply(key, ms = 12000) {
+  if (!key) return;
+  _cloudApplyBlocked[key] = Math.max(_cloudApplyBlocked[key] || 0, Date.now() + ms);
+}
+function isCloudApplyBlocked(key) {
+  const until = _cloudApplyBlocked[key];
+  if (!until) return false;
+  if (Date.now() > until) { delete _cloudApplyBlocked[key]; return false; }
+  return true;
+}
 let _rtJoinRef = null;
 const _RT_TOPIC = 'realtime:ims_kv_changes';
 const _startRealtime = () => {
@@ -374,6 +386,7 @@ const storeSet = async (k, v) => {
     try {
       const jv = (() => { try { return JSON.parse(v); } catch { return v; } })();
       _markRecentWrite(k, jv); // tandai sebelum kirim → cegah self-echo dari Realtime
+      blockCloudApply(k, 12000);
       await _supaReq('kv_store', {
         method: 'POST',
         headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
@@ -402,6 +415,7 @@ const _persistPending = {};
 let _persistTimer = null;
 function debouncedStoreSet(k, v) {
   _persistPending[k] = v;
+  blockCloudApply(k, 12000);
   if (_persistTimer) return;
   _persistTimer = setTimeout(() => {
     const batch = _persistPending; const keys = Object.keys(batch);
@@ -412,7 +426,12 @@ function debouncedStoreSet(k, v) {
 function flushPersist() {
   if (_persistTimer) { clearTimeout(_persistTimer); _persistTimer = null; }
   const keys = Object.keys(_persistPending);
-  for (const key of keys) { const val = _persistPending[key]; delete _persistPending[key]; storeSet(key, val); }
+  for (const key of keys) {
+    blockCloudApply(key, 12000);
+    const val = _persistPending[key];
+    delete _persistPending[key];
+    storeSet(key, val);
+  }
 }
 
-export { _memStore, _hasArtifactStorage, _hasLocalStorage, _SUPA_URL, _SUPA_KEY, _supaEnabled, _supaFetch, _supaSession, _SUPA_SESS_LS, _authFetch, _supaSignIn, _refreshInFlight, _supaRefreshTok, _supaSignOut, _restoreSupaSession, _getSupaTok, _supaReq, _pushVapidPublicKey, _urlBase64ToUint8Array, pushSupported, registerServiceWorker, savePushSubscription, enablePushNotifications, getPushPermissionStatus, sendServerPushNotification, _rtSocket, _rtHeartbeat, _rtRetryCount, _rtRetryTimer, _rtStatus, _setRtStatus, _hashStr, _recentWrites, _markRecentWrite, _isRecentSelfEcho, _rtJoinRef, _RT_TOPIC, _startRealtime, _scheduleRtRetry, _stopRealtime, _tokRefreshTimer, _startProactiveRefresh, _stopProactiveRefresh, storeGet, storeSet, storeDel, _persistPending, _persistTimer, debouncedStoreSet, flushPersist };
+export { _memStore, _hasArtifactStorage, _hasLocalStorage, _SUPA_URL, _SUPA_KEY, _supaEnabled, _supaFetch, _supaSession, _SUPA_SESS_LS, _authFetch, _supaSignIn, _refreshInFlight, _supaRefreshTok, _supaSignOut, _restoreSupaSession, _getSupaTok, _supaReq, _pushVapidPublicKey, _urlBase64ToUint8Array, pushSupported, registerServiceWorker, savePushSubscription, enablePushNotifications, getPushPermissionStatus, sendServerPushNotification, _rtSocket, _rtHeartbeat, _rtRetryCount, _rtRetryTimer, _rtStatus, _setRtStatus, _hashStr, _recentWrites, _markRecentWrite, _isRecentSelfEcho, blockCloudApply, isCloudApplyBlocked, _rtJoinRef, _RT_TOPIC, _startRealtime, _scheduleRtRetry, _stopRealtime, _tokRefreshTimer, _startProactiveRefresh, _stopProactiveRefresh, storeGet, storeSet, storeDel, _persistPending, _persistTimer, debouncedStoreSet, flushPersist };

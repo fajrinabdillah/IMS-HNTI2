@@ -108,10 +108,20 @@ function _num(v) {
   if (v == null || v === '') return 0;
   let s = String(v).replace(/[^0-9.,\-]/g, '').trim();
   if (s === '' || s === '-') return 0;
-  // If both . and , present, assume . thousand & , decimal (ID) → keep digits only as integer currency
-  if (s.includes('.') && s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
-  else if ((s.match(/,/g) || []).length === 1 && (s.match(/\./g) || []).length === 0) s = s.replace(',', '.');
-  else s = s.replace(/,/g, '');
+  const dotCount = (s.match(/\./g) || []).length;
+  const commaCount = (s.match(/,/g) || []).length;
+  if (dotCount && commaCount) {
+    // ID: 1.234.567,89 vs US: 1,234,567.89 — decimal separator is whichever appears last
+    if (s.lastIndexOf(',') > s.lastIndexOf('.')) s = s.replace(/\./g, '').replace(',', '.');
+    else s = s.replace(/,/g, '');
+  } else if (commaCount === 1 && dotCount === 0) {
+    s = s.replace(',', '.');
+  } else if (dotCount > 1 || (dotCount === 1 && /^\d{1,3}(\.\d{3})+$/.test(s))) {
+    // Indonesian thousand separators: 7.809.288.300
+    s = s.replace(/\./g, '');
+  } else {
+    s = s.replace(/,/g, '');
+  }
   const n = parseFloat(s);
   return isNaN(n) ? 0 : n;
 }

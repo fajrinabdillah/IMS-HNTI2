@@ -10,6 +10,8 @@ import { downloadCSV, openPrintableHtml } from '../utils/documents.js';
 import { getActiveSalesTeam, getPaymentSummary, getProductFileUrl, resolveEmpName, resolveNamesInText, resolveProductRecord } from '../utils/domain.js';
 import { normalizeExternalUrl } from '../utils/format.js';
 import { notify } from '../utils/notifications.js';
+import { groupSphProjects, sumGroupedProjectValue, sumWeightedGroupedPipeline, sumGroupedPoValue, countGroupedPoProjects, toFinanceAccounts } from '../utils/sphProject.js';
+import { isBillableSphRow } from '../utils/sphPackage.js';
 
 const PS_GLASS = {
   background: 'linear-gradient(145deg, rgba(91,141,239,0.10) 0%, rgba(47,143,111,0.06) 45%, rgba(123,63,181,0.05) 100%)',
@@ -561,7 +563,7 @@ function LifecycleKpiScorecard({ data, employees, installRecords = [], bastRecor
     const paidBySales = {};
     salesEmployees.forEach(e => {
       const sid = e.salesId || e.username;
-      paidBySales[sid] = data.filter(d => d.salesOwner === sid && d.poStatus === 'issued').reduce((s, p) => s + getPaymentSummary(p).totalPaid, 0);
+      paidBySales[sid] = toFinanceAccounts(data.filter(d => d.salesOwner === sid)).reduce((s, p) => s + getPaymentSummary(p).totalPaid, 0);
     });
     const maxPaid = Math.max(1, ...Object.values(paidBySales), 0);
 
@@ -908,14 +910,13 @@ function ExecutiveSummary({ data, reports, annotations, products, t, lang, fmt, 
     const won = data.filter(s => s.status === 'won');
     const lost = data.filter(s => s.status === 'lost');
     const poIssued = data.filter(s => s.poStatus === 'issued');
-    const totalPipeline = active.reduce((sum, s) => sum + (Number(s.totalValue)||0), 0);
-    const weightedPipeline = active.reduce((sum, s) => sum + ((Number(s.totalValue)||0) * (Number(s.probability)||0) / 100), 0);
-    const revenueYTD = won.reduce((sum, s) => sum + (Number(s.totalValue)||0), 0);
-    const poValue = poIssued.reduce((sum, s) => sum + (Number(s.totalValue)||0), 0);
+    const totalPipeline = sumGroupedProjectValue(active);
+    const weightedPipeline = sumWeightedGroupedPipeline(active);
+    const revenueYTD = sumGroupedProjectValue(won);
+    const poValue = sumGroupedPoValue(data);
     const winRate = (won.length + lost.length) > 0 ? (won.length / (won.length + lost.length)) * 100 : 0;
-    // Unique customers
     const customers = new Set(data.map(s => s.customer)).size;
-    return { active, won, lost, poIssued, totalPipeline, weightedPipeline, revenueYTD, poValue, winRate, customers };
+    return { active, won, lost, poIssued, totalPipeline, weightedPipeline, revenueYTD, poValue, winRate, customers, poProjectCount: countGroupedPoProjects(data) };
   }, [data]);
 
   // Sales performance — identical to SalesModule
@@ -925,17 +926,17 @@ function ExecutiveSummary({ data, reports, annotations, products, t, lang, fmt, 
     const lost = sd.filter(s => s.status === 'lost');
     return {
       name: sales.name,
-      pipeline: sd.filter(s => s.status === 'active').reduce((s, p) => s + (Number(p.totalValue)||0), 0),
-      won: won.reduce((s, p) => s + (Number(p.totalValue)||0), 0),
+      pipeline: sumGroupedProjectValue(sd.filter(s => s.status === 'active')),
+      won: sumGroupedProjectValue(sd.filter(s => s.status === 'won')),
       winRate: (won.length + lost.length) > 0 ? (won.length / (won.length + lost.length)) * 100 : 0,
-      poCount: sd.filter(s => s.poStatus === 'issued').length,
+      poCount: countGroupedPoProjects(sd),
     };
   }).sort((a, b) => (b.pipeline + b.won) - (a.pipeline + a.won)), [data]);
 
   // Modality distribution
   const modalityDist = useMemo(() => {
     const m = {};
-    data.filter(s => s.status === 'active' || s.status === 'won').forEach(s => {
+    data.filter(s => s.status === 'active' || s.status === 'won').filter(isBillableSphRow).forEach(s => {
       m[s.modality] = (m[s.modality] || 0) + (Number(s.totalValue)||0);
     });
     return Object.entries(m).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
@@ -944,12 +945,12 @@ function ExecutiveSummary({ data, reports, annotations, products, t, lang, fmt, 
   // Top customers by total value
   const topCustomers = useMemo(() => {
     const c = {};
-    data.forEach(s => { c[s.customer] = (c[s.customer] || 0) + (Number(s.totalValue)||0); });
+    data.filter(isBillableSphRow).forEach(s => { c[s.customer] = (c[s.customer] || 0) + (Number(s.totalValue)||0); });
     return Object.entries(c).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8);
   }, [data]);
 
   // KSO recurring (5-year visibility)
-  const ksoTotal = useMemo(() => data.filter(s => s.poStatus === 'issued' && (s.paymentScheme === 'kso' || s.projectType === 'kso')).reduce((sum, s) => sum + (Number(s.totalValue)||0), 0), [data]);
+  const ksoTotal = useMemo(() => sumGroupedPoValue(data.filter(s => s.poStatus === 'issued' && (s.paymentScheme === 'kso' || s.projectType === 'kso'))), [data]);
 
   const doPrint = () => {
     if (typeof window !== 'undefined' && window.print) window.print();
@@ -1140,22 +1141,15 @@ function CashFlowProjection({ data, t, lang, fmt }) {
   // === STEP 1: Historical base ===
   const base = useMemo(() => {
     // 2025 actual: PO issued in 2025
-    const won2025 = data.filter(s => s.poStatus === 'issued' && (s.issuedDate||'').startsWith('2025'))
-      .reduce((sum, s) => sum + (Number(s.totalValue)||0), 0);
-    // 2026 PO issued YTD
-    const po2026 = data.filter(s => s.poStatus === 'issued' && (s.issuedDate||'').startsWith('2026'))
-      .reduce((sum, s) => sum + (Number(s.totalValue)||0), 0);
-    // 2026 active pipeline weighted (expected to convert this year): value × probability
-    const pipeline2026 = data.filter(s => s.status === 'active')
-      .reduce((sum, s) => sum + (Number(s.totalValue)||0) * ((Number(s.probability)||0)/100), 0);
-    // 2026 full-year estimate = PO YTD + weighted pipeline
+    const won2025 = sumGroupedPoValue(data.filter(s => s.poStatus === 'issued' && (s.issuedDate||'').startsWith('2025')));
+    const po2026 = sumGroupedPoValue(data.filter(s => s.poStatus === 'issued' && (s.issuedDate||'').startsWith('2026')));
+    const pipeline2026 = sumWeightedGroupedPipeline(data.filter(s => s.status === 'active'));
     const est2026 = po2026 + pipeline2026;
-    // KSO recurring annual (bagi hasil) — sum of KSO contracts' annualized share
-    const ksoAnnual = data.filter(s => s.poStatus === 'issued' && (s.projectType === 'kso' || s.paymentScheme === 'kso'))
+    const ksoAnnual = toFinanceAccounts(data.filter(s => s.projectType === 'kso' || s.paymentScheme === 'kso'))
       .reduce((sum, s) => {
         const total = Number(s.totalValue)||0;
         const dpPct = typeof s.dpPercent === 'number' ? s.dpPercent : 10;
-        return sum + (total * (1 - dpPct/100)) / 5; // spread over 5yr, annual portion
+        return sum + (total * (1 - dpPct/100)) / 5;
       }, 0);
     return { won2025, po2026, pipeline2026, est2026, ksoAnnual };
   }, [data]);
@@ -1356,8 +1350,8 @@ function Valuation({ data, t, lang, fmt }) {
   // STEP 4 — Forward upside (shown separately, NOT in base): weighted pipeline × 0.6× EV/Rev.
   const activeData = useMemo(() => data.filter(s => s.status === 'active'), [data]);
   const wonData = useMemo(() => data.filter(s => s.status === 'won'), [data]);
-  const weightedPipeline = useMemo(() => activeData.reduce((s, p) => s + (Number(p.totalValue) || 0) * (Number(p.probability) || 0) / 100, 0), [activeData]);
-  const revenueYTD = useMemo(() => wonData.reduce((s, p) => s + (Number(p.totalValue) || 0), 0), [wonData]);
+  const weightedPipeline = useMemo(() => sumWeightedGroupedPipeline(activeData), [activeData]);
+  const revenueYTD = useMemo(() => sumGroupedProjectValue(wonData), [wonData]);
 
   // Methodology constants (sourced — see panel below)
   const MONTHS_ELAPSED = 5; // Jan–May 2026

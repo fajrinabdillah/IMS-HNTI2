@@ -320,11 +320,28 @@ function projectHasDpReceived(s) {
 function manifestMatchesProject(manifest, project) {
   if (!manifest || !project) return false;
   if (manifest.linkedProjectId && manifest.linkedProjectId === project.id) return true;
-  if (manifest.sphNo && project.sphNo && manifest.sphNo === project.sphNo) return true;
   if (project.manifestId && [manifest.id, manifest.manifestNo].includes(project.manifestId)) return true;
-  const customer = normalizeProductLookupText(project.customer);
-  const manifestCustomer = normalizeProductLookupText(manifest.customerName);
-  return !!(customer && manifestCustomer && (customer === manifestCustomer || customer.includes(manifestCustomer) || manifestCustomer.includes(customer)));
+
+  // sphNo saja ambigu untuk proyek multi-alat — wajib cocok peralatan (modality/typeBrand)
+  if (manifest.sphNo && project.sphNo && manifest.sphNo === project.sphNo) {
+    const typeHint = normalizeProductLookupText([manifest.typeBrand, manifest.modality].filter(Boolean).join(' '));
+    if (!typeHint) return false;
+    const lineText = normalizeProductLookupText([
+      project.subModality, project.modality, project.productBrand, project.brand, project.productType,
+    ].filter(Boolean).join(' '));
+    const modOk = !manifest.modality || lineText.includes(normalizeProductLookupText(manifest.modality))
+      || normalizeProductLookupText(manifest.modality).includes(normalizeProductLookupText(project.modality || ''));
+    const typeOk = !manifest.typeBrand || lineText.includes(normalizeProductLookupText(manifest.typeBrand))
+      || normalizeProductLookupText(manifest.typeBrand).includes(lineText);
+    return modOk && (typeOk || lineText.includes(typeHint) || typeHint.includes(lineText));
+  }
+
+  if (!manifest.sphNo) {
+    const customer = normalizeProductLookupText(project.customer);
+    const manifestCustomer = normalizeProductLookupText(manifest.customerName);
+    return !!(customer && manifestCustomer && (customer === manifestCustomer || customer.includes(manifestCustomer) || manifestCustomer.includes(customer)));
+  }
+  return false;
 }
 function appendStageHistoryEntry(sph, fromStage, toStage, byUser) {
   if (!sph || fromStage === toStage) return sph;

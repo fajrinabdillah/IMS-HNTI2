@@ -6,6 +6,8 @@ import { ChartTooltip, KPICard, PieCard } from '../components/ui.jsx';
 import { OPS_COST_DEFAULT } from '../constants/finance.js';
 import { getActiveSalesTeam, resolveEmpName } from '../utils/domain.js';
 import { currentYear } from '../utils/format.js';
+import { groupSphProjects, sumGroupedProjectValue, sumWeightedGroupedPipeline } from '../utils/sphProject.js';
+import { isBillableSphRow } from '../utils/sphPackage.js';
 function Dashboard({ data, reports, products, t, lang, session, fmt, employees = {} }) {
   // PERFORMANCE FIX: All filters/maps wrapped in useMemo to avoid recomputing on every render
   // (was causing scroll lag with 613 SPH records)
@@ -15,9 +17,9 @@ function Dashboard({ data, reports, products, t, lang, session, fmt, employees =
     const lostData = data.filter(s => s.status === 'lost');
     return {
       activeData, wonData, lostData,
-      totalPipeline: activeData.reduce((sum, s) => sum + s.totalValue, 0),
-      weightedPipeline: activeData.reduce((sum, s) => sum + (s.totalValue * s.probability / 100), 0),
-      revenueYTD: wonData.reduce((sum, s) => sum + s.totalValue, 0),
+      totalPipeline: sumGroupedProjectValue(activeData),
+      weightedPipeline: sumWeightedGroupedPipeline(activeData),
+      revenueYTD: sumGroupedProjectValue(wonData),
       winRate: (wonData.length + lostData.length) > 0 ? (wonData.length / (wonData.length + lostData.length)) * 100 : 0,
     };
   }, [data]);
@@ -25,12 +27,12 @@ function Dashboard({ data, reports, products, t, lang, session, fmt, employees =
 
   const funnelData = useMemo(() => STAGES.filter(s => s.id !== 'lost').map(stage => {
     const projects = activeData.filter(p => p.stage === stage.id);
-    return { name: t[`stage_${stage.id}`], value: projects.reduce((sum, p) => sum + p.totalValue, 0), count: projects.length, color: stage.color };
+    return { name: t[`stage_${stage.id}`], value: sumGroupedProjectValue(projects), count: groupSphProjects(projects).length, color: stage.color };
   }).filter(f => f.count > 0), [activeData, t]);
 
   const projectTypePieData = useMemo(() => PROJECT_TYPES.map(pt => {
     const projects = activeData.filter(s => s.projectType === pt.id);
-    return { name: t[`ptype_${pt.id}`], value: projects.reduce((s, p) => s + p.totalValue, 0), count: projects.length, color: pt.color };
+    return { name: t[`ptype_${pt.id}`], value: sumGroupedProjectValue(projects), count: groupSphProjects(projects).length, color: pt.color };
   }).filter(d => d.value > 0), [activeData, t]);
 
   // New #3: derive modality pie DYNAMICALLY from live SPH data so it always matches the
@@ -39,7 +41,7 @@ function Dashboard({ data, reports, products, t, lang, session, fmt, employees =
   const MODALITY_PALETTE = ['#1a4d8a', 'var(--ims-gold)', '#8a5a3a', '#5a8a5a', '#8a3a5a', '#3a8a8a', '#7b3fb5', '#c03030', '#d4780a', '#0f7a5a', '#5b87b8', '#b8860b', '#6a8a3a'];
   const modalityPieData = useMemo(() => {
     const map = new Map();
-    activeData.forEach(s => {
+    activeData.filter(isBillableSphRow).forEach(s => {
       const m = s.modality || (lang === 'id' ? 'Lainnya' : 'Other');
       if (!map.has(m)) map.set(m, { value: 0, count: 0 });
       const e = map.get(m); e.value += (Number(s.totalValue) || 0); e.count += 1;
@@ -52,9 +54,9 @@ function Dashboard({ data, reports, products, t, lang, session, fmt, employees =
   }, [activeData, lang]);
 
   const customerTypePieData = useMemo(() => [
-    { name: t.type_hospital, value: activeData.filter(s => s.customerType === 'hospital').reduce((s, p) => s + p.totalValue, 0), color: '#1a4d8a' },
-    { name: t.type_clinic, value: activeData.filter(s => s.customerType === 'clinic').reduce((s, p) => s + p.totalValue, 0), color: 'var(--ims-accent)' },
-    { name: t.type_subdistributor, value: activeData.filter(s => s.customerType === 'subdistributor').reduce((s, p) => s + p.totalValue, 0), color: '#5a8a5a' },
+    { name: t.type_hospital, value: sumGroupedProjectValue(activeData.filter(s => s.customerType === 'hospital')), color: '#1a4d8a' },
+    { name: t.type_clinic, value: sumGroupedProjectValue(activeData.filter(s => s.customerType === 'clinic')), color: 'var(--ims-accent)' },
+    { name: t.type_subdistributor, value: sumGroupedProjectValue(activeData.filter(s => s.customerType === 'subdistributor')), color: '#5a8a5a' },
   ].filter(d => d.value > 0), [activeData, t]);
 
   const monthlyTrend = useMemo(() => {
@@ -62,19 +64,19 @@ function Dashboard({ data, reports, products, t, lang, session, fmt, employees =
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     return months.map((m, i) => {
       const monthData = data.filter(s => { const d = new Date(s.issuedDate); return d.getFullYear() === yr && d.getMonth() === i; });
+      const poAccounts = monthData.filter(s => s.poStatus === 'issued');
       return {
         month: m,
-        pipeline: monthData.reduce((s, p) => s + p.totalValue, 0),
-        weighted: monthData.reduce((s, p) => s + (p.totalValue * p.probability / 100), 0),
-        // POIN 4: biaya operasional per bulan = Σ (totalValue × opsPercent), default 5%, sinkron modul Finance/Insentif
-        biayaOperasional: monthData.reduce((s, p) => s + (p.totalValue || 0) * (p.opsPercent !== undefined ? p.opsPercent : OPS_COST_DEFAULT), 0),
+        pipeline: sumGroupedProjectValue(monthData),
+        weighted: sumWeightedGroupedPipeline(monthData),
+        biayaOperasional: poAccounts.reduce((s, p) => s + (p.totalValue || 0) * (p.opsPercent !== undefined ? p.opsPercent : OPS_COST_DEFAULT), 0),
       };
     });
   }, [data]);
 
   const salesPerformance = useMemo(() => getActiveSalesTeam(employees).map(sales => {
     const sd = data.filter(s => s.salesOwner === sales.id);
-    return { name: resolveEmpName(employees, sales.id).split(' ')[0], pipeline: sd.filter(s => s.status === 'active').reduce((s, p) => s + p.totalValue, 0), won: sd.filter(s => s.status === 'won').reduce((s, p) => s + p.totalValue, 0) };
+    return { name: resolveEmpName(employees, sales.id).split(' ')[0], pipeline: sumGroupedProjectValue(sd.filter(s => s.status === 'active')), won: sumGroupedProjectValue(sd.filter(s => s.status === 'won')) };
   }).sort((a, b) => (b.pipeline + b.won) - (a.pipeline + a.won)), [data, employees]);
 
   const fieldStats = useMemo(() => ({

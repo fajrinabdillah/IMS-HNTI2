@@ -843,19 +843,23 @@ function ManifestList({ manifests, setManifests, data, setData, t, lang, canEdit
       const exists = prev.find(r => r.id === final.id);
       return exists ? prev.map(r => r.id === final.id ? final : r) : [...prev, final];
     });
-    if (final.linkedProjectId || final.sphNo) {
+    if (final.linkedProjectId || final.sphNo || final.modality || final.typeBrand) {
       const normalized = normalizeImportPipelineStatus(final.status);
       const nowIso = new Date().toISOString();
-      setData(prev => prev.map(s => (final.linkedProjectId && s.id === final.linkedProjectId) || (final.sphNo && s.sphNo === final.sphNo)
-        ? {
+      setData(prev => prev.map(s => {
+        const match = final.linkedProjectId
+          ? s.id === final.linkedProjectId
+          : manifestMatchesProject(final, s);
+        if (!match) return s;
+        return {
           ...s,
           manifestId: final.id,
           shippingStatus: normalized,
           ...(normalized === 'on_shipment' ? { sphWorkflowStatus: 'import_clearance', importClearanceAt: s.importClearanceAt || nowIso } : {}),
           ...(normalized === 'sent_client' ? { sphWorkflowStatus: 'goods_sent_client', goodsSentClientAt: s.goodsSentClientAt || nowIso, localDeliveryStatus: s.localDeliveryStatus || 'on_delivery', localDeliveryStartedAt: s.localDeliveryStartedAt || nowIso } : {}),
           ...(normalized === 'client_received' ? { sphWorkflowStatus: 'goods_received_client', clientReceivedAt: s.clientReceivedAt || nowIso, localDeliveryStatus: 'delivered_to_rs' } : {}),
-        }
-        : s));
+        };
+      }));
     }
     setModalOpen(false); setEditingRecord(null);
   };
@@ -967,14 +971,15 @@ function CustomsDocsList({ customsDocs, setCustomsDocs, manifests, setManifests,
     const manifest = manifests.find(m => m.manifestNo === final.manifestRef || m.id === final.manifestRef);
     const matchesCustomsProject = (s) => {
       if (final.linkedProjectId && s.id === final.linkedProjectId) return true;
-      if (final.sphNo && s.sphNo === final.sphNo) return true;
-      if (manifest && (s.manifestId === manifest.id || s.manifestId === manifest.manifestNo)) return true;
+      if (manifest && manifest.linkedProjectId && s.id === manifest.linkedProjectId) return true;
       if (manifest && manifestMatchesProject(manifest, s)) return true;
+      if (manifest && (s.manifestId === manifest.id || s.manifestId === manifest.manifestNo)) return true;
       const principal = normalizeProductLookupText((manifest?.principal || final.principal || ''));
+      if (!principal) return false;
       const projectText = normalizeProductLookupText([
-        s.productBrand, s.brand, s.principal, s.modality, s.subModality, s.productType, s.customer, s.sphNo,
+        s.productBrand, s.brand, s.principal, s.modality, s.subModality, s.productType, s.customer,
       ].filter(Boolean).join(' '));
-      return !!(principal && projectText.includes(principal));
+      return !!(projectText.includes(principal));
     };
     if (final.status === 'pib_payment') {
       setData(prev => prev.map(s => matchesCustomsProject(s) ? {
@@ -1163,7 +1168,11 @@ function ManifestModal({ record, data = [], onSave, onClose, t, lang }) {
           <Field label={lang === 'id' ? 'Data RS DP Diterima' : 'DP Received Customer'}>
             <select value={form.linkedProjectId || ''} onChange={e => selectProject(e.target.value)}>
               <option value="">—</option>
-              {dpProjects.map(p => <option key={p.id} value={p.id}>{p.customer} — {p.sphNo}</option>)}
+              {dpProjects.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.customer} — {p.subModality || p.modality || '-'} · {p.sphNo}
+                </option>
+              ))}
             </select>
           </Field>
           <Field label={t.ops_customer_name}><input value={form.customerName || ''} onChange={e => update('customerName', e.target.value)} /></Field>

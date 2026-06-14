@@ -6,6 +6,7 @@ import { ChartTooltip, Td, Th } from '../components/ui.jsx';
 import { DASHBOARD_GLASS, DashboardHero, DashboardKpiGrid, GlassPanel } from '../components/FuturisticDashboardShell.jsx';
 import { CHART_COLORS } from '../constants/theme.js';
 import { calcIncentive, getActiveSalesTeam, getIncentiveStatus } from '../utils/domain.js';
+import { toFinanceAccounts } from '../utils/sphProject.js';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
@@ -130,7 +131,7 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
     if (!isSales && incFilterSales !== 'all') {
       visibleData = visibleData.filter(s => s.salesOwner === incFilterSales);
     }
-    const poDeals = visibleData.filter(s => s.poStatus === 'issued');
+    const poDeals = toFinanceAccounts(visibleData);
     const dealsWithIncentive = poDeals.map(s => {
       const calc = calcIncentive(s);
       const stat = getIncentiveStatus(s);
@@ -142,7 +143,7 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
     const totalKsoSplit = dealsWithIncentive.filter(d => d._stat?.status === 'kso_prorata').reduce((sum, d) => sum + d._calc.incentive * (d._stat.progress || 0), 0);
     const ytdTotal = totalEstimated + totalReady + totalPaid + totalKsoSplit;
     const leaderboard = !isSales ? salesTeam.map(sales => {
-      const salesDeals = data.filter(s => s.salesOwner === sales.id && s.poStatus === 'issued');
+      const salesDeals = toFinanceAccounts(data.filter(s => s.salesOwner === sales.id));
       const total = salesDeals.reduce((sum, s) => sum + calcIncentive(s).incentive, 0);
       return { ...sales, total, dealsCount: salesDeals.length };
     }).sort((a, b) => b.total - a.total) : [];
@@ -305,7 +306,9 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
                   </Td>
                   <Td>
                     <div>{d.modality}</div>
-                    <div style={{fontSize: '10px', color: 'var(--ims-text-2)'}}>{d.subModality}</div>
+                    <div style={{fontSize: '10px', color: 'var(--ims-text-2)'}}>
+                      {d.isMultiItemProject ? `${d.projectModalityLabel || d.subModality} · ${d.projectLineCount} ${lang === 'id' ? 'alat' : 'units'}` : d.subModality}
+                    </div>
                   </Td>
                   {!isSales && <Td>{sales ? sales.name : d.salesOwner}</Td>}
                   <Td align="right"><span className="mono">{fmt(d.totalValue)}</span></Td>

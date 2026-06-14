@@ -2,6 +2,7 @@
 import { DEFAULT_DOCUMENT_TEMPLATES } from '../constants/docs.js';
 import { escapeHtml, inferMimeFromName, safeDocFilename } from './format.js';
 import { generatePaymentSchedule, resolveEmpName } from './domain.js';
+import { getDocumentLineItems } from './sphProject.js';
 import { showToast } from './toast.js';
 function mergeDocumentTemplates(stored = {}) {
   const src = stored && typeof stored === 'object' ? stored : {};
@@ -334,9 +335,7 @@ function buildSPHDocumentHtml(sph, employees = {}, fmt = (n) => n, templates = D
   const dpAmt = total * dp / 100;
   const remaining = total - dpAmt;
   const terms = Number(sph.installmentMonths || 12);
-  const items = Array.isArray(sph.items) && sph.items.length
-    ? sph.items.slice(0, 5)
-    : [{ modality: sph.modality, subModality: sph.subModality, brand: sph.productBrand || sph.brand || sph.principal, qty: sph.qty || 1, totalValue: total }];
+  const items = getDocumentLineItems(sph).slice(0, 8);
   const isCt = String(items[0]?.modality || sph.modality || '').toLowerCase().includes('ct');
   const templateNote = isCt
     ? 'Format mengikuti template SPH CT Scan HNTI: konfigurasi unit, workstation, garansi, instalasi, training, dan uji kesesuaian ditulis sebagai satu paket penawaran.'
@@ -373,9 +372,7 @@ function buildSPPDocumentHtml(sph, employees = {}, fmt = (n) => n, templates = D
   const tpl = mergeDocumentTemplates(templates);
   const salesName = resolveEmpName(employees, sph.salesOwner);
   const total = Number(sph.totalValue || 0);
-  const items = Array.isArray(sph.items) && sph.items.length
-    ? sph.items.slice(0, 8)
-    : [{ modality: sph.modality, subModality: sph.subModality, brand: sph.productBrand || sph.brand || sph.principal, qty: sph.qty || 1, totalValue: total }];
+  const items = getDocumentLineItems(sph).slice(0, 8);
   return `${buildHntiLetterheadHtml(tpl)}
     <h1 style="text-align:center;text-transform:uppercase;letter-spacing:.08em">Surat Permohonan Presentasi</h1>
     <p><strong>Nomor Dokumen:</strong> SPP-${escapeHtml(sph.sphNo || sph.id || '-')}<br><strong>Ref SPH:</strong> ${escapeHtml(sph.sphNo || '-')}<br><strong>Tanggal:</strong> ${escapeHtml(sph.presentationDate || sph.issuedDate || new Date().toISOString().split('T')[0])}</p>
@@ -398,6 +395,13 @@ function buildInvoiceKwitansiHtml(p, fmt, templates = DEFAULT_DOCUMENT_TEMPLATES
   const tpl = mergeDocumentTemplates(templates);
   const schedule = generatePaymentSchedule(p);
   const first = schedule[0] || { label: 'DP / Deposit', amount: (Number(p.totalValue) || 0) * ((Number(p.dpPercent) || 30) / 100), dueDate: p.issuedDate || '' };
+  const items = getDocumentLineItems(p);
+  const productLabel = items.length > 1
+    ? items.map(it => [it.subModality, it.modality].filter(Boolean).join(' ')).filter(Boolean).join(' + ')
+    : (p.subModality || p.modality || '-');
+  const itemsTable = items.length > 1 ? `
+    <table><thead><tr><th>No.</th><th>Equipment</th><th>Type</th><th>Brand</th><th>Qty</th></tr></thead>
+      <tbody>${items.map((it, idx) => `<tr><td>${idx + 1}</td><td>${escapeHtml(it.modality || '-')}</td><td>${escapeHtml(it.subModality || '-')}</td><td>${escapeHtml(it.brand || '-')}</td><td>${escapeHtml(it.qty || 1)}</td></tr>`).join('')}</tbody></table>` : '';
   const bankRows = (tpl.bankName || tpl.bankAccountNo || tpl.bankAccountName) ? `
     <h3>Rekening Pembayaran</h3>
     <table><tbody>
@@ -407,7 +411,8 @@ function buildInvoiceKwitansiHtml(p, fmt, templates = DEFAULT_DOCUMENT_TEMPLATES
     </tbody></table>` : '';
   return `${buildHntiLetterheadHtml(tpl)}
     <h1 style="text-align:center;text-transform:uppercase;letter-spacing:.08em">Invoice + Kwitansi</h1>
-    <p><strong>Kepada:</strong> ${escapeHtml(p.customer || '-')}<br><strong>Ref SPH:</strong> ${escapeHtml(p.sphNo || '-')}<br><strong>Produk:</strong> ${escapeHtml(p.subModality || p.modality || '-')}</p>
+    <p><strong>Kepada:</strong> ${escapeHtml(p.customer || '-')}<br><strong>Ref SPH:</strong> ${escapeHtml(p.sphNo || '-')}<br><strong>Produk:</strong> ${escapeHtml(productLabel)}</p>
+    ${itemsTable}
     <table><tbody>
       <tr><td>Termin</td><td>${escapeHtml(first.label)}</td></tr>
       <tr><td>Nilai Tagihan</td><td class="right">${escapeHtml(fmt(first.amount))}</td></tr>
@@ -422,11 +427,16 @@ function buildInvoiceKwitansiHtml(p, fmt, templates = DEFAULT_DOCUMENT_TEMPLATES
 }
 function buildPrincipalPoHtml(p, fmt, templates = DEFAULT_DOCUMENT_TEMPLATES) {
   const tpl = mergeDocumentTemplates(templates);
+  const items = getDocumentLineItems(p);
+  const rows = items.length
+    ? items.map((it, idx) => `<tr><td>${idx + 1}</td><td>${escapeHtml([it.modality, it.subModality].filter(Boolean).join(' · ') || '-')}</td><td>${escapeHtml(it.qty || 1)} Set</td><td class="right">${escapeHtml(fmt(it.totalValue || 0))}</td></tr>`).join('')
+    : `<tr><td>1</td><td>${escapeHtml(p.subModality || p.modality || '-')}</td><td>${escapeHtml(p.qty || 1)} Set</td><td class="right">${escapeHtml(fmt(p.totalValue || 0))}</td></tr>`;
   return `${buildHntiLetterheadHtml(tpl)}
     <h1 style="text-align:center;text-transform:uppercase;letter-spacing:.08em">Purchase Order</h1>
     <p><strong>To:</strong> ${escapeHtml(p.principal || 'Principal / Manufacturer')}<br><strong>Ref SPH:</strong> ${escapeHtml(p.sphNo || '-')}<br><strong>Date:</strong> ${new Date().toISOString().split('T')[0]}</p>
     <table><thead><tr><th>No.</th><th>Equipment</th><th>Qty</th><th class="right">Amount</th></tr></thead>
-      <tbody><tr><td>1</td><td>${escapeHtml(p.subModality || p.modality || '-')}</td><td>${escapeHtml(p.qty || 1)} Set</td><td class="right">${escapeHtml(fmt(p.totalValue || 0))}</td></tr></tbody></table>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="3" class="right"><strong>Total</strong></td><td class="right"><strong>${escapeHtml(fmt(p.totalValue || 0))}</strong></td></tr></tfoot></table>
     <h3>Terms</h3>
     ${renderDocLines(tpl.terms?.po)}
     ${renderSignatureBlock('operations', tpl, 'Novan Restu Aryanto', 'Operational Manager')}

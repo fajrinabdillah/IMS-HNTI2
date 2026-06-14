@@ -14,7 +14,7 @@ import { DASHBOARD_GLASS, DashboardHero, GlassPanel } from '../components/Futuri
 import { buildEditorTemplate, downloadCSV } from '../utils/documents.js';
 import { parsePaymentImport } from '../utils/csvImport.js';
 import { notify } from '../utils/notifications.js';
-import { toFinanceAccounts, resolveFinanceAccountId } from '../utils/sphProject.js';
+import { toFinanceAccounts, resolveFinanceAccountId, normalizeSphProjects } from '../utils/sphProject.js';
 function FinanceDashboardCharts({ filteredPoProjects, poProjects, financePerformance, lang, fmt, paymentTypeLabel, totalOpsCost = 0, opsCostRows = [] }) {
   const opsKey = lang === 'id' ? 'Biaya Ops' : 'Ops Cost';
   const valueKey = lang === 'id' ? 'Nilai SPH' : 'SPH Value';
@@ -191,6 +191,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
   const [financeProductFilter, setFinanceProductFilter] = useState('all');
   const payImportRef = useRef(null);
   const [payImportMsg, setPayImportMsg] = useState(null);
+  const updateSphData = (mapper) => setData(prev => normalizeSphProjects(mapper(prev)));
 
   const handleImportPayments = (e) => {
     const file = e.target.files && e.target.files[0];
@@ -209,7 +210,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
           if (!addById.has(id)) addById.set(id, []);
           addById.get(id).push(entry); applied++;
         });
-        setData(prev => prev.map(s => addById.has(s.id) ? { ...s, paymentHistory: [...(Array.isArray(s.paymentHistory) ? s.paymentHistory : []), ...addById.get(s.id)] } : s));
+        updateSphData(prev => prev.map(s => addById.has(s.id) ? { ...s, paymentHistory: [...(Array.isArray(s.paymentHistory) ? s.paymentHistory : []), ...addById.get(s.id)] } : s));
         setPayImportMsg({ ok: true, text: lang === 'id'
           ? `${records.length} baris diproses → ${applied} pembayaran ditambah${unmatched ? `, ${unmatched} tidak cocok (No SPH tak ditemukan)` : ''}.`
           : `${records.length} rows processed → ${applied} payments added${unmatched ? `, ${unmatched} unmatched (SPH No not found)` : ''}.` });
@@ -296,7 +297,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
     const resetFields = { open: true, sphId, amount: '', type: 'installment', date: new Date().toISOString().split('T')[0], note: '', editId: null };
     // EDIT mode: update existing payment entry (fix wrong amount/date/type)
     if (paymentForm.editId) {
-      setData(prev => prev.map(s => s.id === sphId ? {
+      updateSphData(prev => prev.map(s => s.id === sphId ? {
         ...s,
         paymentHistory: (s.paymentHistory || []).map(h => h.id === paymentForm.editId
           ? { ...h, date: paymentForm.date || h.date, amount: amt, type: paymentForm.type, note: paymentForm.note || '', editedAt: new Date().toISOString() }
@@ -313,7 +314,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
       note: paymentForm.note || '',
       recordedAt: new Date().toISOString(),
     };
-    setData(prev => prev.map(s => s.id === sphId ? { ...s, paymentHistory: [...(s.paymentHistory || []), payment] } : s));
+    updateSphData(prev => prev.map(s => s.id === sphId ? { ...s, paymentHistory: [...(s.paymentHistory || []), payment] } : s));
     setPaymentForm(resetFields); // stay open so the new payment appears in the list
   };
   // Open modal in EDIT mode pre-filled with an existing payment
@@ -323,7 +324,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
   const deletePayment = () => {
     if (!confirmDeletePayment) return;
     const { sphId, paymentId } = confirmDeletePayment;
-    setData(prev => prev.map(s => s.id === sphId ? { ...s, paymentHistory: (s.paymentHistory || []).filter(h => h.id !== paymentId) } : s));
+    updateSphData(prev => prev.map(s => s.id === sphId ? { ...s, paymentHistory: (s.paymentHistory || []).filter(h => h.id !== paymentId) } : s));
     setConfirmDeletePayment(null);
   };
   const scheduleKeyFor = (item) => `${item.type || 'term'}_${item.seq ?? 0}`;
@@ -345,7 +346,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
     if (!canEdit) return;
     const existing = findSchedulePayment(p, item);
     if (existing) {
-      setData(prev => prev.map(s => s.id === p.id ? { ...s, paymentHistory: (s.paymentHistory || []).filter(h => h.id !== existing.id) } : s));
+      updateSphData(prev => prev.map(s => s.id === p.id ? { ...s, paymentHistory: (s.paymentHistory || []).filter(h => h.id !== existing.id) } : s));
       return;
     }
     const key = scheduleKeyFor(item);
@@ -359,7 +360,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
       recordedAt: new Date().toISOString(),
       recordedBy: session.username || session.name || 'finance',
     };
-    setData(prev => prev.map(s => {
+    updateSphData(prev => prev.map(s => {
       if (s.id !== p.id) return s;
       const extra = item.type === 'dp' || payment.type === 'deposit'
         ? { dpPaid: true, dpDecisionAt: s.dpDecisionAt || new Date().toISOString(), dpConfirmedAt: s.dpConfirmedAt || new Date().toISOString(), sphWorkflowStatus: s.sphWorkflowStatus === 'dp_confirmed' ? s.sphWorkflowStatus : 'dp_confirmed' }
@@ -390,7 +391,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
     const existing = firstTerm ? findSchedulePayment(p, firstTerm) : null;
     const dpAmt = firstTerm ? (Number(firstTerm.amount) || 0) : (Number(p.totalValue) || 0) * ((Number(p.dpPercent) || 30) / 100);
     const payment = existing || { id: 'pay_dp_confirm_' + Date.now(), scheduleKey: firstTerm ? scheduleKeyFor(firstTerm) : 'dp_0', date: nowIso.split('T')[0], amount: dpAmt, type: p.projectType === 'kso' ? 'deposit' : 'dp', note: firstTerm ? `${firstTerm.label} dikonfirmasi Finance` : 'DP/deposit dikonfirmasi Finance', recordedAt: nowIso, recordedBy: session.username || session.name || 'finance' };
-    setData(prev => prev.map(s => {
+    updateSphData(prev => prev.map(s => {
       if (s.id !== p.id) return s;
       const exists = (s.paymentHistory || []).some(h => h.id === payment.id);
       return { ...s, dpPaid: true, dpDecisionAt: nowIso, dpConfirmedAt: nowIso, sphWorkflowStatus: 'dp_confirmed', nextAction: 'Finance membuat PO ke pabrik', paymentHistory: exists ? (s.paymentHistory || []) : [...(s.paymentHistory || []), payment] };
@@ -710,7 +711,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
                     <Td align="right"><span className="mono" style={{color: sum.outstanding > 0 ? '#c03030' : 'var(--ims-text-2)', fontWeight: 500}}>{fmt(sum.outstanding)}</span></Td>
                     <Td align="right">
                       {canEdit ? (
-                        <input type="number" step="0.5" min="0" max="100" value={((p.opsPercent !== undefined ? p.opsPercent : OPS_COST_DEFAULT) * 100)} onChange={e => { const pct = (Number(e.target.value) || 0) / 100; const memberIds = new Set((p.projectLines || []).map(l => l.id)); setData(prev => prev.map(x => (x.id === p.id || memberIds.has(x.id)) ? { ...x, opsPercent: pct } : x)); }} style={{width: '64px', textAlign: 'right', fontSize: '11px', padding: '4px 6px'}} title={lang === 'id' ? 'Biaya operasional proyek (sinkron dengan modul Insentif)' : 'Project operational cost (synced with Incentive)'} />
+                        <input type="number" step="0.5" min="0" max="100" value={((p.opsPercent !== undefined ? p.opsPercent : OPS_COST_DEFAULT) * 100)} onChange={e => { const pct = (Number(e.target.value) || 0) / 100; const memberIds = new Set((p.projectLines || []).map(l => l.id)); updateSphData(prev => prev.map(x => (x.id === p.id || memberIds.has(x.id)) ? { ...x, opsPercent: pct } : x)); }} style={{width: '64px', textAlign: 'right', fontSize: '11px', padding: '4px 6px'}} title={lang === 'id' ? 'Biaya operasional proyek (sinkron dengan modul Insentif)' : 'Project operational cost (synced with Incentive)'} />
                       ) : (
                         <span className="mono" style={{fontSize: '11px', color: 'var(--ims-text-2)'}}>{(((p.opsPercent !== undefined ? p.opsPercent : OPS_COST_DEFAULT) * 100)).toFixed(1)}%</span>
                       )}

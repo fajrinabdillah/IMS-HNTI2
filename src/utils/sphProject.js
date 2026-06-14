@@ -201,3 +201,72 @@ export function formatProjectEquipmentSummary(lines, lang = 'id') {
     return `${label} (${ship})`;
   }).join(' · ');
 }
+
+/** Baris billable untuk statistik pipeline — tanpa package_item. */
+export function getBillableRows(data) {
+  return (data || []).filter(isBillableSphRow);
+}
+
+/** Jumlah nilai pipeline/win per proyek (bukan per baris duplikat). */
+export function sumGroupedProjectValue(rows) {
+  return groupSphProjects(rows).reduce((s, g) => s + (Number(g.financeTotal) || 0), 0);
+}
+
+export function sumWeightedGroupedPipeline(rows) {
+  return groupSphProjects(rows).reduce((s, g) => {
+    const prob = Number(g.primary?.probability) || 0;
+    return s + (Number(g.financeTotal) || 0) * prob / 100;
+  }, 0);
+}
+
+export function countGroupedPoProjects(data) {
+  return groupSphProjects(data, { poIssuedOnly: true }).length;
+}
+
+export function sumGroupedPoValue(data) {
+  return toFinanceAccounts(data).reduce((s, a) => s + (Number(a.totalValue) || 0), 0);
+}
+
+/** Item baris untuk invoice / PO / SPH doc — dari projectLines atau anggota proyek. */
+export function getDocumentLineItems(record, allData = []) {
+  if (!record) return [];
+  if (Array.isArray(record.projectLines) && record.projectLines.length) {
+    return record.projectLines.map(l => ({
+      modality: l.modality,
+      subModality: l.subModality,
+      brand: l.productBrand || l.brand || l.principal,
+      qty: l.qty || 1,
+      totalValue: l.pricingMode === 'package_item' ? 0 : (Number(l.totalValue) || Number(l.unitPrice) || 0),
+      unitPrice: l.unitPrice,
+    }));
+  }
+  const key = record.sphProjectKey || sphProjectKey(record);
+  const siblings = (allData || []).filter(r => (r.sphProjectKey || sphProjectKey(r)) === key);
+  if (siblings.length > 1) {
+    const primary = pickProjectPrimary(siblings);
+    if (primary?.pricingMode === 'package_primary') {
+      const components = siblings.filter(r => r.pricingMode === 'package_item');
+      return [
+        { modality: primary.modality, subModality: primary.subModality, brand: primary.productBrand || primary.brand || primary.principal, qty: primary.qty || 1, totalValue: sphBillableValue(primary) },
+        ...components.map(c => ({ modality: c.modality, subModality: c.subModality, brand: c.productBrand || c.brand || c.principal, qty: c.qty || 1, totalValue: 0 })),
+      ];
+    }
+    const byMod = new Map();
+    siblings.filter(isBillableSphRow).forEach(l => {
+      const k = modalityKey(l);
+      const v = sphBillableValue(l);
+      if (!byMod.has(k) || v > byMod.get(k).totalValue) {
+        byMod.set(k, { modality: l.modality, subModality: l.subModality, brand: l.productBrand || l.brand || l.principal, qty: l.qty || 1, totalValue: v, unitPrice: l.unitPrice });
+      }
+    });
+    return [...byMod.values()];
+  }
+  return [{
+    modality: record.modality,
+    subModality: record.subModality,
+    brand: record.productBrand || record.brand || record.principal,
+    qty: record.qty || 1,
+    totalValue: Number(record.totalValue) || Number(record.unitPrice) || 0,
+    unitPrice: record.unitPrice,
+  }];
+}

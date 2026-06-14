@@ -228,6 +228,16 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
     });
   }, [installRecordsFiltered, data, recordsByUnit, filterYear, searchTerm]);
 
+  const installProjectGroups = useMemo(() => {
+    const map = new Map();
+    installProjects.forEach(p => {
+      const key = p.sphProjectKey || [p.sphNo, p.customer].filter(Boolean).join('\u0001') || p.id;
+      if (!map.has(key)) map.set(key, { key, customer: p.customer, sphNo: p.sphNo, projects: [] });
+      map.get(key).projects.push(p);
+    });
+    return [...map.values()].map(g => ({ ...g, isMultiItem: g.projects.length > 1 }));
+  }, [installProjects]);
+
   const isBastDoneForSph = (s) => {
     const bast = bastByUnit.get(unitKey(s));
     return !!s.bastDone || !!s.bastDate || s.installationStatus === 'installed' || bast?.status === 'signed';
@@ -344,16 +354,41 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
           <div style={{padding: '10px 14px', background: 'var(--ims-accent-2)10', borderLeft: '3px solid var(--ims-accent-2)', fontSize: '11px', color: '#1a4d2a'}}>
             🔗 {t.inst_prog_auto_synced}
           </div>
-          {installProjects.slice(0, visibleCount).map(p => {
+          {(() => {
+            const visibleIds = new Set(installProjects.slice(0, visibleCount).map(p => p.id));
+            return installProjectGroups.map(group => {
+              const visibleProjects = group.projects.filter(p => visibleIds.has(p.id));
+              if (!visibleProjects.length) return null;
+              return (
+                <div key={group.key} style={group.isMultiItem ? { padding: '16px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)' } : undefined}>
+                  {group.isMultiItem && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', paddingBottom: '10px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap', gap: '8px' }}>
+                      <div>
+                        <div style={{ fontSize: '14px', fontWeight: 700 }}>{group.customer}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '2px' }}><span className="mono">{group.sphNo}</span> · {group.projects.length} {lang === 'id' ? 'alat' : 'units'}</div>
+                      </div>
+                      <span style={{ padding: '2px 8px', fontSize: '9px', background: 'var(--ims-gold)25', color: 'var(--ims-gold)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{lang === 'id' ? 'PROYEK MULTI-ALAT' : 'MULTI-UNIT PROJECT'}</span>
+                    </div>
+                  )}
+                  {visibleProjects.map((p, lineIdx) => {
             const ss = getStepStatus(p);
             const rec = ss._rec;
             const recCompleted = rec?.status === 'completed';
             return (
-            <div key={p.id} style={{padding: '18px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
+            <div key={p.id} style={{padding: group.isMultiItem ? (lineIdx > 0 ? '14px 0 0' : '0') : '18px', background: group.isMultiItem ? 'transparent' : 'var(--ims-bg-card)', border: group.isMultiItem ? 'none' : '1px solid var(--ims-border)', borderTop: group.isMultiItem && lineIdx > 0 ? '1px dashed var(--ims-border)' : undefined, marginTop: group.isMultiItem && lineIdx > 0 ? '14px' : undefined}}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px', flexWrap: 'wrap', gap: '10px'}}>
                 <div>
-                  <div style={{fontSize: '14px', fontWeight: 600}}>{p.customer}</div>
-                  <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{p.subModality} · <span className="mono">{p.sphNo}</span></div>
+                  {group.isMultiItem ? (
+                    <>
+                      <div style={{fontSize: '13px', fontWeight: 600}}>{p.subModality || p.modality}</div>
+                      <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{p.productBrand || p.brand || p.product || '-'}</div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{fontSize: '14px', fontWeight: 600}}>{p.customer}</div>
+                      <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{p.subModality} · <span className="mono">{p.sphNo}</span></div>
+                    </>
+                  )}
                 </div>
                 <div style={{display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap'}}>
                   {p.shippingStatus && (
@@ -426,6 +461,10 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
             </div>
             );
           })}
+                </div>
+              );
+            });
+          })()}
           {installProjects.length > visibleCount && (
             <button onClick={() => setVisibleCount(v => v + CARD_PAGE)} style={{width: '100%', padding: '12px', background: 'var(--ims-bg-card)', border: '1px dashed var(--ims-gold)', color: '#8a6a2a', fontFamily: 'inherit', fontSize: '12px', fontWeight: 600, cursor: 'pointer', borderRadius: '4px'}}>
               {lang === 'id' ? `Tampilkan ${Math.min(CARD_PAGE, installProjects.length - visibleCount)} lainnya (${visibleCount} dari ${installProjects.length})` : `Show ${Math.min(CARD_PAGE, installProjects.length - visibleCount)} more (${visibleCount} of ${installProjects.length})`}

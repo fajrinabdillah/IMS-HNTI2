@@ -250,7 +250,7 @@ function ProductMasterModule({ products, setProducts, t, lang, canEdit, logActio
     </div>
   );
 }
-function ProductModal({ product, onSave, onCancel, t, lang, existing }) {
+function ProductModal({ product, onSave, onCancel, t, lang, existing = [] }) {
   const isEdit = !!product;
   const normalizedProduct = product ? {
     ...product,
@@ -260,16 +260,52 @@ function ProductModal({ product, onSave, onCancel, t, lang, existing }) {
     name: '', modality: '', brand: '', type: '', origin: '', principal: '', tkdn: 0, akl: '', active: true, notes: '', productFiles: {},
   });
   const [error, setError] = useState('');
+  const [otherFields, setOtherFields] = useState({});
+  const otherOptionLabel = lang === 'id' ? 'Lainnya' : 'Other';
 
-  // Catatan #5: modality list is dynamic — derived from modalities actually used by products.
-  // Adding = type a new name; deleting/renaming = handled by editing the products that use it.
-  const modalityOptions = useMemo(() => {
-    const set = new Set((existing || []).map(p => p.modality).filter(Boolean));
-    return Array.from(set).sort();
-  }, [existing]);
+  const uniqueOptions = (rows, field) => Array.from(new Set(rows.map(p => p[field]).filter(Boolean))).sort();
+  const modalityOptions = useMemo(() => uniqueOptions(existing, 'modality'), [existing]);
+  const brandOptions = useMemo(() => {
+    const scoped = existing.filter(p => !form.modality || p.modality === form.modality);
+    return uniqueOptions(scoped.length ? scoped : existing, 'brand');
+  }, [existing, form.modality]);
+  const typeOptions = useMemo(() => {
+    const scoped = existing.filter(p => (!form.modality || p.modality === form.modality) && (!form.brand || p.brand === form.brand));
+    return uniqueOptions(scoped.length ? scoped : existing, 'type');
+  }, [existing, form.modality, form.brand]);
+  const principalOptions = useMemo(() => {
+    const scoped = existing.filter(p => (!form.modality || p.modality === form.modality) && (!form.brand || p.brand === form.brand));
+    return uniqueOptions(scoped.length ? scoped : existing, 'principal');
+  }, [existing, form.modality, form.brand]);
 
   const update = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const updateProductFile = (key, value) => setForm(f => ({ ...f, productFiles: { ...(f.productFiles || {}), [key]: value } }));
+  const updateMasterSelect = (field, value) => {
+    if (value === otherOptionLabel) {
+      setOtherFields(prev => ({ ...prev, [field]: true }));
+      update(field, '');
+      return;
+    }
+    setOtherFields(prev => ({ ...prev, [field]: false }));
+    update(field, value);
+  };
+  const renderMasterSelectWithOther = (field, label, options, placeholder) => (
+    <Field label={label}>
+      <select value={otherFields[field] ? otherOptionLabel : (form[field] || '')} onChange={e => updateMasterSelect(field, e.target.value)}>
+        <option value="">{lang === 'id' ? 'Pilih' : 'Select'}</option>
+        {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+        <option value={otherOptionLabel}>{otherOptionLabel}</option>
+      </select>
+      {otherFields[field] && (
+        <input
+          value={form[field] || ''}
+          onChange={e => update(field, e.target.value)}
+          placeholder={placeholder}
+          style={{marginTop: '8px'}}
+        />
+      )}
+    </Field>
+  );
 
   const handleSubmit = () => {
     if (!form.name?.trim() || !form.brand?.trim() || !form.modality?.trim() || !form.type?.trim()) {
@@ -299,19 +335,9 @@ function ProductModal({ product, onSave, onCancel, t, lang, existing }) {
               <input value={form.name} onChange={e => update('name', e.target.value)} placeholder="contoh: MRI 1.5T Supermark" />
               <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '4px', fontStyle: 'italic'}}>{lang === 'id' ? 'Format: [Tipe] [Merek] — tampil di SPH' : 'Format: [Type] [Brand] — shown on SPH'}</div>
             </Field>
-            <Field label={lang === 'id' ? 'Modalitas' : 'Modality'}>
-              <input list="modality-options" value={form.modality} onChange={e => update('modality', e.target.value)} placeholder={lang === 'id' ? 'Pilih atau ketik sendiri...' : 'Select or type your own...'} />
-              <datalist id="modality-options">
-                {modalityOptions.map(m => <option key={m} value={m} />)}
-              </datalist>
-              <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '4px', fontStyle: 'italic'}}>{lang === 'id' ? 'Daftar diambil dari produk yang ada. Ketik nama baru untuk menambah modalitas; modalitas yang tak lagi dipakai produk akan hilang otomatis.' : 'List derived from existing products. Type a new name to add; unused modalities disappear automatically.'}</div>
-            </Field>
-            <Field label={lang === 'id' ? 'Merek' : 'Brand'}>
-              <input value={form.brand} onChange={e => update('brand', e.target.value)} placeholder="contoh: Precision, Innocare, Supermark" />
-            </Field>
-            <Field label={lang === 'id' ? 'Tipe / Model' : 'Type / Model'}>
-              <input value={form.type} onChange={e => update('type', e.target.value)} placeholder="contoh: MRI 1.5T, X-Ray Portable" />
-            </Field>
+            {renderMasterSelectWithOther('modality', lang === 'id' ? 'Modalitas' : 'Modality', modalityOptions, lang === 'id' ? 'Tulis modalitas baru' : 'Enter new modality')}
+            {renderMasterSelectWithOther('brand', lang === 'id' ? 'Merek' : 'Brand', brandOptions, lang === 'id' ? 'Tulis merek baru' : 'Enter new brand')}
+            {renderMasterSelectWithOther('type', lang === 'id' ? 'Tipe / Model' : 'Type / Model', typeOptions, lang === 'id' ? 'Tulis tipe/model baru' : 'Enter new type/model')}
             <Field label={lang === 'id' ? 'Negara Asal' : 'Country of Origin'}>
               <input list="origin-options" value={form.origin} onChange={e => update('origin', e.target.value)} placeholder={lang === 'id' ? 'Pilih atau ketik...' : 'Select or type...'} />
               <datalist id="origin-options">
@@ -325,9 +351,7 @@ function ProductModal({ product, onSave, onCancel, t, lang, existing }) {
                 <option value="Italy" />
               </datalist>
             </Field>
-            <Field label={lang === 'id' ? 'Principal (Pabrikan)' : 'Principal (Manufacturer)'}>
-              <input value={form.principal} onChange={e => update('principal', e.target.value)} placeholder="contoh: Anke Medical" />
-            </Field>
+            {renderMasterSelectWithOther('principal', lang === 'id' ? 'Principal (Pabrikan)' : 'Principal (Manufacturer)', principalOptions, lang === 'id' ? 'Tulis principal baru' : 'Enter new principal')}
             <Field label="TKDN %">
               <input type="number" min="0" max="100" value={form.tkdn} onChange={e => update('tkdn', Number(e.target.value) || 0)} placeholder="0-100" />
               <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '4px', fontStyle: 'italic'}}>{lang === 'id' ? '≥20% lolos lelang LKPP P3DN' : '≥20% qualifies for LKPP tender'}</div>

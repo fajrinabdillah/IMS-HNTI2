@@ -57,6 +57,8 @@ function Dashboard({ data, reports, products, t, lang, session, fmt, employees =
     { name: t.type_hospital, value: sumGroupedProjectValue(activeData.filter(s => s.customerType === 'hospital')), color: '#1a4d8a' },
     { name: t.type_clinic, value: sumGroupedProjectValue(activeData.filter(s => s.customerType === 'clinic')), color: 'var(--ims-accent)' },
     { name: t.type_subdistributor, value: sumGroupedProjectValue(activeData.filter(s => s.customerType === 'subdistributor')), color: '#5a8a5a' },
+    { name: t.type_partner, value: sumGroupedProjectValue(activeData.filter(s => s.customerType === 'partner')), color: '#7b3fb5' },
+    { name: t.type_personal, value: sumGroupedProjectValue(activeData.filter(s => s.customerType === 'personal')), color: '#d4780a' },
   ].filter(d => d.value > 0), [activeData, t]);
 
   const monthlyTrend = useMemo(() => {

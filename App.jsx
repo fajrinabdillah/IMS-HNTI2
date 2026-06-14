@@ -14,7 +14,7 @@ import { DOC_TYPE_LABELS, OFFICIAL_DOC_TEMPLATE_TYPES, DEFAULT_DOCUMENT_TEMPLATE
 import { IMS_THEMES, CHART_COLORS } from './src/constants/theme.js';
 import { SEED_FIELD_REPORTS, SEED_ISSUES, SEED_AKL_RECORDS, SEED_IMPORT_RECORDS, SEED_PENGALIHAN_RECORDS, SEED_PI_RECORDS, SEED_INSTALL_RECORDS, SEED_BAST_RECORDS, SEED_TRAINING_RECORDS, SEED_BUSINESS_TRIPS, SEED_BT_REALIZATIONS } from './src/constants/seedData.js';
 import { initialOf, formatCurrency, formatCurrencyFull, formatDateTime, parseSafeDateMs, dateOnlyFromValue, addDateOnlyDays, normalizeExternalUrl, formatDuration, inferMimeFromName, formatFileSize, escapeHtml, safeDocFilename, _normHdr, _num, _normDate } from './src/utils/format.js';
-import { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, STATIC_TECH_ORDER, resolveEmpName, resolveNamesInText, SALES_META_BY_ID, employeeSalesId, getActiveSalesTeam, activeSalesIdSet, normalizeSalesOwnedRows, isLiveEmployeeUsername, normalizeEmployeeOwnedRows, detectPaymentScheme, resolveCustomerSector, resolveDealModel, _addMonthsISO, computeInvoiceSchedule, resolveProductId, normalizeProduct, getRegStages, sanitizeRegStageHistory, migrateRegRecord, normalizeImportPipelineStatus, importPipelineLabel, projectHasDpReceived, manifestMatchesProject, appendStageHistoryEntry, getStageMetrics, normalizePoWon, calcIncentive, getIncentiveStatus, getNetMargin, calcNetProfit, getProductFileUrl, normalizeProductLookupText, getFactoryProductionDays, addDaysIso, getFactoryProductionInfo, resolveProductRecord, effectiveScheme, generatePaymentSchedule, getPaymentSummary } from './src/utils/domain.js';
+import { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, STATIC_TECH_ORDER, resolveEmpName, resolveNamesInText, SALES_META_BY_ID, employeeSalesId, getActiveSalesTeam, activeSalesIdSet, normalizeSalesOwnedRows, isLiveEmployeeUsername, normalizeEmployeeOwnedRows, detectPaymentScheme, resolveCustomerSector, resolveDealModel, _addMonthsISO, computeInvoiceSchedule, resolveProductId, normalizeProduct, getRegStages, sanitizeRegStageHistory, migrateRegRecord, normalizeImportPipelineStatus, importPipelineLabel, projectHasDpReceived, manifestMatchesProject, appendStageHistoryEntry, getStageMetrics, normalizePoWon, calcIncentive, getIncentiveStatus, getNetMargin, calcNetProfit, getProductFileUrl, normalizeProductLookupText, getFactoryProductionDays, addDaysIso, getFactoryProductionInfo, resolveProductRecord, syncSphRecordToProductMaster, syncSphDataToProductMaster, effectiveScheme, generatePaymentSchedule, getPaymentSummary } from './src/utils/domain.js';
 import { _memStore, _hasArtifactStorage, _hasLocalStorage, _SUPA_URL, _SUPA_KEY, _supaEnabled, _supaFetch, _supaSession, _SUPA_SESS_LS, _authFetch, _supaSignIn, _refreshInFlight, _supaRefreshTok, _supaSignOut, _restoreSupaSession, _getSupaTok, _supaReq, _pushVapidPublicKey, _urlBase64ToUint8Array, pushSupported, registerServiceWorker, savePushSubscription, enablePushNotifications, getPushPermissionStatus, sendServerPushNotification, _rtSocket, _rtHeartbeat, _rtRetryCount, _rtRetryTimer, _rtStatus, _setRtStatus, _hashStr, _recentWrites, _markRecentWrite, _isRecentSelfEcho, blockCloudApply, isCloudApplyBlocked, _rtJoinRef, _RT_TOPIC, _startRealtime, _scheduleRtRetry, _stopRealtime, _tokRefreshTimer, _startProactiveRefresh, _stopProactiveRefresh, storeGet, storeSet, storeDel, _persistPending, _persistTimer, debouncedStoreSet, flushPersist } from './src/utils/storage.js';
 import { mergeSphImportRecords } from './src/utils/sphImport.js';
 import { normalizeSphProjects } from './src/utils/sphProject.js';
@@ -1119,12 +1119,20 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
 
   const filteredData = session.role === 'sales' && session.salesId ? data.filter(s => s.salesOwner === session.salesId) : data;
 
+  useEffect(() => {
+    setData(prev => {
+      const synced = syncSphDataToProductMaster(prev, products);
+      if (synced === prev) return prev;
+      return normalizeSphProjects(normalizePoWon(synced));
+    });
+  }, [products, setData]);
+
   const handleSave = (sph) => {
     const isEdit = !!editingSph;
     // Strip internal markers before saving
     const replaceOldIds = sph._replaceOldIds || [];
     const duplicateNote = sph._duplicateNote || null;
-    const clean = { ...sph };
+    const clean = syncSphRecordToProductMaster({ ...sph }, products);
     delete clean._replaceOldIds;
     delete clean._duplicateNote;
 
@@ -1210,7 +1218,7 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
     const qty = Number(firstItem.qty) || 1;
     const unitPrice = Number(firstItem.unitPrice) || 0;
     const totalValue = items.reduce((sum, it) => sum + (Number(it.totalValue) || 0), 0);
-    const rec = {
+    const rec = syncSphRecordToProductMaster({
       id: newId,
       sphNo: `REQ-SPH/${today.substring(0, 4)}/${String(Date.now()).slice(-4)}`,
       customer: req.customer,
@@ -1247,7 +1255,7 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
       poStatus: null,
       paymentHistory: [],
       stageHistory: [{ from: null, to: 'request_sph', by: session.username, at: new Date().toISOString() }],
-    };
+    }, products);
     setData(prev => [...prev, rec]);
     const kindLabel = (req.docKind === 'spp') ? 'SPP' : 'SPH';
     notify({ role: 'admin' }, {
@@ -1305,7 +1313,7 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
     setData(prev => {
       const merged = mergeSphImportRecords(prev, records);
       result = { added: merged.added, updated: merged.updated, total: merged.total };
-      return normalizeSphProjects(normalizePoWon(merged.data));
+      return normalizeSphProjects(normalizePoWon(syncSphDataToProductMaster(merged.data, products)));
     });
     flushPersist();
     blockCloudApply(STORAGE_KEY, 15000);

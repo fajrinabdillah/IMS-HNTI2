@@ -117,6 +117,15 @@ const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employ
       {open === 'request' && (
         <div style={{padding: '16px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px'}}>
           <Field label={lang === 'id' ? 'Nama RS / Pelanggan' : 'Customer'}><input value={form.customer} onChange={e => update('customer', e.target.value)} /></Field>
+          <Field label={lang === 'id' ? 'Tipe Pelanggan' : 'Customer Type'}>
+            <select value={form.customerType} onChange={e => update('customerType', e.target.value)}>
+              <option value="hospital">{t.type_hospital}</option>
+              <option value="clinic">{t.type_clinic}</option>
+              <option value="subdistributor">{t.type_subdistributor}</option>
+              <option value="partner">{t.type_partner}</option>
+              <option value="personal">{t.type_personal}</option>
+            </select>
+          </Field>
           <Field label={lang === 'id' ? 'Jenis Proyek' : 'Project Type'}>
             <select value={form.projectType} onChange={e => update('projectType', e.target.value)}>
               {PROJECT_TYPES.map(pt => <option key={pt.id} value={pt.id}>{pt.id}</option>)}
@@ -2627,6 +2636,7 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
             <select value={form.customerType} onChange={e => update('customerType', e.target.value)}>
               <option value="hospital">{t.type_hospital}</option><option value="clinic">{t.type_clinic}</option>
               <option value="subdistributor">{t.type_subdistributor}</option><option value="partner">{t.type_partner}</option>
+              <option value="personal">{t.type_personal}</option>
             </select>
           </div>
           <div>

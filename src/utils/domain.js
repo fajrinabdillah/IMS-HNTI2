@@ -509,6 +509,51 @@ const resolveProductRecord = (source = {}, productList = []) => {
   }
   return products.find(p => sameModality(p) && sameBrand(p)) || null;
 };
+const applyProductMasterFields = (row = {}, product) => {
+  if (!row || !product) return row;
+  const next = {
+    ...row,
+    productId: product.id || row.productId || '',
+    modality: product.modality || row.modality || '',
+    subModality: product.type || row.subModality || '',
+    productType: product.type || row.productType || '',
+    brand: product.brand || row.brand || '',
+    productBrand: product.brand || row.productBrand || '',
+    productName: product.name || row.productName || '',
+    principal: product.principal || row.principal || '',
+    origin: product.origin || row.origin || '',
+  };
+  return Object.keys(next).some(k => next[k] !== row[k]) ? next : row;
+};
+const syncSphItemToProductMaster = (item = {}, productList = []) => {
+  const product = resolveProductRecord(item, productList);
+  return applyProductMasterFields(item, product);
+};
+const syncSphRecordToProductMaster = (sph = {}, productList = []) => {
+  if (!sph || typeof sph !== 'object') return sph;
+  const product = resolveProductRecord(sph, productList);
+  let next = applyProductMasterFields(sph, product);
+  let changed = next !== sph;
+  if (Array.isArray(sph.items)) {
+    const items = sph.items.map(item => syncSphItemToProductMaster(item, productList));
+    const itemsChanged = items.some((item, idx) => item !== sph.items[idx]);
+    if (itemsChanged) {
+      next = { ...next, items };
+      changed = true;
+    }
+  }
+  return changed ? next : sph;
+};
+const syncSphDataToProductMaster = (rows = [], productList = []) => {
+  if (!Array.isArray(rows)) return rows;
+  let changed = false;
+  const next = rows.map(row => {
+    const synced = syncSphRecordToProductMaster(row, productList);
+    if (synced !== row) changed = true;
+    return synced;
+  });
+  return changed ? next : rows;
+};
 const effectiveScheme = (p) => p.paymentScheme || (p.projectType === 'kso' ? 'kso' : (p.projectType === 'government' || p.projectType === 'tender' ? 'after_bast' : 'dp_installment'));
 function generatePaymentSchedule(p) {
   if (!p.poStatus || p.poStatus !== 'issued') return [];
@@ -576,4 +621,4 @@ function getPaymentSummary(p) {
   return { schedule, totalDue, totalPaid, outstanding, pctPaid, installmentsPaid, installmentsExpected };
 }
 
-export { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, STATIC_TECH_ORDER, resolveEmpName, resolveNamesInText, SALES_META_BY_ID, employeeSalesId, getActiveSalesTeam, activeSalesIdSet, normalizeSalesOwnedRows, isLiveEmployeeUsername, normalizeEmployeeOwnedRows, detectPaymentScheme, resolveCustomerSector, resolveDealModel, _addMonthsISO, computeInvoiceSchedule, resolveProductId, normalizeProduct, getRegStages, sanitizeRegStageHistory, migrateRegRecord, normalizeImportPipelineStatus, importPipelineLabel, projectHasDpReceived, manifestMatchesProject, appendStageHistoryEntry, getStageMetrics, normalizePoWon, calcIncentive, getIncentiveStatus, getNetMargin, calcNetProfit, getProductFileUrl, normalizeProductLookupText, getFactoryProductionDays, addDaysIso, getFactoryProductionInfo, resolveProductRecord, effectiveScheme, generatePaymentSchedule, getPaymentSummary };
+export { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, STATIC_TECH_ORDER, resolveEmpName, resolveNamesInText, SALES_META_BY_ID, employeeSalesId, getActiveSalesTeam, activeSalesIdSet, normalizeSalesOwnedRows, isLiveEmployeeUsername, normalizeEmployeeOwnedRows, detectPaymentScheme, resolveCustomerSector, resolveDealModel, _addMonthsISO, computeInvoiceSchedule, resolveProductId, normalizeProduct, getRegStages, sanitizeRegStageHistory, migrateRegRecord, normalizeImportPipelineStatus, importPipelineLabel, projectHasDpReceived, manifestMatchesProject, appendStageHistoryEntry, getStageMetrics, normalizePoWon, calcIncentive, getIncentiveStatus, getNetMargin, calcNetProfit, getProductFileUrl, normalizeProductLookupText, getFactoryProductionDays, addDaysIso, getFactoryProductionInfo, resolveProductRecord, syncSphItemToProductMaster, syncSphRecordToProductMaster, syncSphDataToProductMaster, effectiveScheme, generatePaymentSchedule, getPaymentSummary };

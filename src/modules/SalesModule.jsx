@@ -15,10 +15,11 @@ import { buildEditorTemplate, downloadCSV, downloadSPHWord, downloadSPPWord, pri
 import { parseSPHImport } from '../utils/csvImport.js';
 import { filterBillableRows, formatPackageItemsSummary, formatPackageModalityLabel, getPackageComponents, sphBillableValue, countUniqueSphNumbers } from '../utils/sphPackage.js';
 import { showToast } from '../utils/toast.js';
-const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employees, setEmployees, session, lang, fmt, onRequestSPH, onRequestSPP, onWorkflowUpdate, onSaveDocument, generatedDocs = [], products = [], documentTemplates = DEFAULT_DOCUMENT_TEMPLATES }) {
+const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employees, setEmployees, session, lang, t, fmt, onRequestSPH, onRequestSPP, onWorkflowUpdate, onSaveDocument, onDeleteRequest, generatedDocs = [], products = [], documentTemplates = DEFAULT_DOCUMENT_TEMPLATES }) {
   const [open, setOpen] = useState('request');
   const [editingRequestId, setEditingRequestId] = useState(null);
   const [deleteQueueId, setDeleteQueueId] = useState(null);
+  const [deleteHistoryId, setDeleteHistoryId] = useState(null);
   const [editorState, setEditorState] = useState(null); // { record, docType, html, title }
   const [requestKind, setRequestKind] = useState('sph'); // 'sph' | 'spp' — toggle form request
   const [form, setForm] = useState({
@@ -50,8 +51,13 @@ const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employ
   const addRequestItem = () => setForm(prev => prev.items.length >= 5 ? prev : ({ ...prev, items: [...prev.items, { productId: '', modality: '', brand: '', subModality: '', qty: 1, unitPrice: '' }] }));
   const removeRequestItem = (idx) => setForm(prev => ({ ...prev, items: prev.items.filter((_, i) => i !== idx).length ? prev.items.filter((_, i) => i !== idx) : [{ productId: '', modality: '', brand: '', subModality: '', qty: 1, unitPrice: '' }] }));
   const requestRows = data.filter(s => !s.salesDownloadedAt && s.status !== 'cancelled' && (s.sphWorkflowStatus === 'requested' || s.sphWorkflowStatus === 'admin_drafting' || s.sphWorkflowStatus === 'ready_for_sales'));
+  const requestHistoryRows = useMemo(() => data
+    .filter(s => s.status !== 'cancelled' && (!!s.salesDownloadedAt || s.sphWorkflowStatus === 'sales_downloaded'))
+    .sort((a, b) => String(b.salesDownloadedAt || b.lastUpdate || '').localeCompare(String(a.salesDownloadedAt || a.lastUpdate || ''))), [data]);
   const isAdminish = ['super_admin', 'gm', 'admin'].includes(session.role);
+  const canDeleteRequestHistory = isAdminish;
   const deleteQueueTarget = data.find(s => s.id === deleteQueueId);
+  const deleteHistoryTarget = data.find(s => s.id === deleteHistoryId);
   // RBAC riwayat dokumen: sales hanya lihat dokumen miliknya; CEO/admin lihat semua
   const isCeoLevel = ['super_admin', 'gm', 'admin'].includes(session.role);
   const visibleDocs = useMemo(() => {
@@ -106,6 +112,7 @@ const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employ
         {[
           { id: 'request', label: lang === 'id' ? 'Request SPH / SPP' : 'SPH / SPP Request', icon: Plus },
           { id: 'queue', label: lang === 'id' ? `Antrian Admin (${requestRows.length})` : `Admin Queue (${requestRows.length})`, icon: Bell },
+          { id: 'history', label: lang === 'id' ? `Riwayat Request (${requestHistoryRows.length})` : `Request History (${requestHistoryRows.length})`, icon: Clock },
           { id: 'docs', label: lang === 'id' ? `Riwayat Dokumen (${visibleDocs.length})` : `Document History (${visibleDocs.length})`, icon: History },
         ].map(tb => {
           const Icon = tb.icon;
@@ -218,6 +225,41 @@ const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employ
         </div>
       )}
 
+      {open === 'history' && (
+        <div style={{padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px'}}>
+          <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginBottom: '2px'}}>
+            {lang === 'id'
+              ? 'Request yang sudah diunduh PIC sales. Admin / GM / CEO dapat menghapus riwayat agar antrian bersih.'
+              : 'Requests already downloaded by PIC sales. Admin / GM / CEO can delete history entries.'}
+          </div>
+          {requestHistoryRows.map(s => (
+            <div key={s.id} style={{padding: '12px', background: 'var(--ims-bg)', border: '1px solid var(--ims-border)', display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) auto', gap: '12px', alignItems: 'center'}}>
+              <div>
+                <div style={{fontSize: '13px', fontWeight: 700}}>{s.customer} · {s.subModality || s.modality}</div>
+                <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '3px'}}>
+                  <span className="mono">{s.sphNo}</span> · Sales: {resolveEmpName(employees, s.salesOwner)} · {SPH_WORKFLOW_LABELS[s.sphWorkflowStatus] || s.sphWorkflowStatus}
+                </div>
+                <div className="mono" style={{fontSize: '11px', color: 'var(--ims-text)', marginTop: '3px'}}>{fmt(s.totalValue || 0)}</div>
+                {s.salesDownloadedAt && (
+                  <div className="mono" style={{fontSize: '10px', color: 'var(--ims-accent-2)', marginTop: '4px'}}>
+                    ✓ {lang === 'id' ? 'Diunduh PIC' : 'Downloaded by PIC'}: {formatDateTime(s.salesDownloadedAt, lang)}
+                  </div>
+                )}
+              </div>
+              <div style={{display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
+                {(s.sphDriveUrl || s.sppDriveUrl) && (
+                  <button onClick={() => openSphDrive(s)} className="btn-ghost" style={{fontSize: '10px'}}><Download size={11} />Drive</button>
+                )}
+                {canDeleteRequestHistory && onDeleteRequest && (
+                  <button onClick={() => setDeleteHistoryId(s.id)} className="btn-ghost" style={{fontSize: '10px', color: '#c03030'}}><Trash2 size={11} />{lang === 'id' ? 'Hapus' : 'Delete'}</button>
+                )}
+              </div>
+            </div>
+          ))}
+          {requestHistoryRows.length === 0 && <div className="empty-state">{lang === 'id' ? 'Belum ada request yang diunduh sales' : 'No downloaded requests yet'}</div>}
+        </div>
+      )}
+
       {open === 'docs' && (
         <div style={{padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px'}}>
           <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginBottom: '4px'}}>
@@ -241,6 +283,21 @@ const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employ
           {visibleDocs.length === 0 && <div className="empty-state">{lang === 'id' ? 'Belum ada dokumen tersimpan. Klik "Mulai" di Antrian Admin untuk membuat dokumen.' : 'No documents yet.'}</div>}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteHistoryId}
+        title={lang === 'id' ? 'Hapus riwayat request?' : 'Delete request history?'}
+        message={lang === 'id'
+          ? `Request ${deleteHistoryTarget?.sphNo || ''} · ${deleteHistoryTarget?.customer || ''} akan dihapus permanen dari IMS. Lanjutkan?`
+          : `Request ${deleteHistoryTarget?.sphNo || ''} · ${deleteHistoryTarget?.customer || ''} will be permanently removed from IMS. Continue?`}
+        onConfirm={() => {
+          if (deleteHistoryId && onDeleteRequest) onDeleteRequest(deleteHistoryId);
+          setDeleteHistoryId(null);
+        }}
+        onCancel={() => setDeleteHistoryId(null)}
+        danger
+        lang={lang}
+      />
 
       <ConfirmDialog
         open={!!deleteQueueId}
@@ -640,11 +697,13 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
           products={products}
           session={session}
           lang={lang}
+          t={t}
           fmt={fmt}
           onRequestSPH={onRequestSPH}
           onRequestSPP={onRequestSPP}
           onWorkflowUpdate={onWorkflowUpdate}
           onSaveDocument={onSaveDocument}
+          onDeleteRequest={onDelete}
           generatedDocs={generatedDocs}
           documentTemplates={documentTemplates} />
       )}

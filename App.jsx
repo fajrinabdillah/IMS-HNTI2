@@ -15,7 +15,7 @@ import { IMS_THEMES, CHART_COLORS } from './src/constants/theme.js';
 import { SEED_FIELD_REPORTS, SEED_ISSUES, SEED_AKL_RECORDS, SEED_IMPORT_RECORDS, SEED_PENGALIHAN_RECORDS, SEED_PI_RECORDS, SEED_INSTALL_RECORDS, SEED_BAST_RECORDS, SEED_TRAINING_RECORDS, SEED_BUSINESS_TRIPS, SEED_BT_REALIZATIONS } from './src/constants/seedData.js';
 import { initialOf, formatCurrency, formatCurrencyFull, formatDateTime, parseSafeDateMs, dateOnlyFromValue, addDateOnlyDays, normalizeExternalUrl, formatDuration, inferMimeFromName, formatFileSize, escapeHtml, safeDocFilename, _normHdr, _num, _normDate } from './src/utils/format.js';
 import { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, STATIC_TECH_ORDER, resolveEmpName, resolveNamesInText, SALES_META_BY_ID, employeeSalesId, getActiveSalesTeam, activeSalesIdSet, normalizeSalesOwnedRows, isLiveEmployeeUsername, normalizeEmployeeOwnedRows, detectPaymentScheme, resolveCustomerSector, resolveDealModel, _addMonthsISO, computeInvoiceSchedule, resolveProductId, normalizeProduct, getRegStages, sanitizeRegStageHistory, migrateRegRecord, normalizeImportPipelineStatus, importPipelineLabel, projectHasDpReceived, manifestMatchesProject, appendStageHistoryEntry, getStageMetrics, applySphStageStatusCoherence, normalizeSphStageRecords, normalizePoWon, calcIncentive, getIncentiveStatus, getNetMargin, calcNetProfit, getProductFileUrl, normalizeProductLookupText, getFactoryProductionDays, addDaysIso, getFactoryProductionInfo, resolveProductRecord, syncSphRecordToProductMaster, syncSphDataToProductMaster, effectiveScheme, generatePaymentSchedule, getPaymentSummary } from './src/utils/domain.js';
-import { _memStore, _hasArtifactStorage, _hasLocalStorage, _SUPA_URL, _SUPA_KEY, _supaEnabled, _supaFetch, _supaSession, _SUPA_SESS_LS, _authFetch, _supaSignIn, _refreshInFlight, _supaRefreshTok, _supaSignOut, _restoreSupaSession, _getSupaTok, _supaReq, _pushVapidPublicKey, _urlBase64ToUint8Array, pushSupported, registerServiceWorker, savePushSubscription, enablePushNotifications, getPushPermissionStatus, sendServerPushNotification, _rtSocket, _rtHeartbeat, _rtRetryCount, _rtRetryTimer, _rtStatus, _setRtStatus, _hashStr, _recentWrites, _markRecentWrite, _isRecentSelfEcho, blockCloudApply, isCloudApplyBlocked, _rtJoinRef, _RT_TOPIC, _startRealtime, _scheduleRtRetry, _stopRealtime, _tokRefreshTimer, _startProactiveRefresh, _stopProactiveRefresh, storeGet, storeSet, storeDel, _persistPending, _persistTimer, debouncedStoreSet, flushPersist } from './src/utils/storage.js';
+import { _memStore, _hasArtifactStorage, _hasLocalStorage, _SUPA_URL, _SUPA_KEY, _supaEnabled, _supaFetch, _supaSession, _SUPA_SESS_LS, _authFetch, _supaSignIn, _refreshInFlight, _supaRefreshTok, _supaSignOut, _restoreSupaSession, _getSupaTok, _supaReq, _pushVapidPublicKey, _urlBase64ToUint8Array, pushSupported, registerServiceWorker, savePushSubscription, enablePushNotifications, refreshPushSubscription, getPushPermissionStatus, sendServerPushNotification, _rtSocket, _rtHeartbeat, _rtRetryCount, _rtRetryTimer, _rtStatus, _setRtStatus, _hashStr, _recentWrites, _markRecentWrite, _isRecentSelfEcho, blockCloudApply, isCloudApplyBlocked, _rtJoinRef, _RT_TOPIC, _startRealtime, _scheduleRtRetry, _stopRealtime, _tokRefreshTimer, _startProactiveRefresh, _stopProactiveRefresh, storeGet, storeSet, storeDel, _persistPending, _persistTimer, debouncedStoreSet, flushPersist } from './src/utils/storage.js';
 import { mergeSphImportRecords } from './src/utils/sphImport.js';
 import { normalizeSphProjects } from './src/utils/sphProject.js';
 
@@ -35,7 +35,7 @@ import { generateHntiSph2026Seed, _RAW_ALL_SPH, ALL_SPH, buildSeedNotificationsF
 import { TOAST_EVENT, showToast } from './src/utils/toast.js';
 import { mergeDocumentTemplates, downloadDataUrl, downloadUploadedTemplate, previewUploadedTemplate, getUploadedDocumentTemplate, openDocumentTemplateOrHtml, downloadDocumentTemplateOrDoc, downloadCSV, downloadHtmlDoc, openPrintableHtml, getUserSignature, getUserDisplayName, findUserByRole, printHtmlStringAsPdf, renderDocLines, renderDocFooter, renderSignatureBlock, wrapDocumentInLetterhead, buildTextLetterheadHtml, buildHntiLetterheadHtml, renderDualSignatureHtml, buildEditorTemplate, getTemplateHtmlBody, fillTemplatePlaceholders, buildEditorBody, buildSPHDocumentHtml, downloadSPHWord, printSPHPdf, buildSPPDocumentHtml, downloadSPPWord, printSPPPdf, buildInvoiceKwitansiHtml, buildPrincipalPoHtml, buildBAIDocumentHtml, printBAIPdf, buildBAUjiFungsiDocumentHtml, printBAUjiFungsiPdf, buildBATrainingDocumentHtml, downloadBATrainingDoc, printBATrainingPdf, buildBASTBarangDocumentHtml, downloadBASTBarangDoc, printBASTBarangPdf, buildKwitansiHtml } from './src/utils/documents.js';
 import { parseCSV, buildColMap, SPH_IMPORT_ALIASES, _STATUS_ALIASES, _STAGE_VALID, parseSPHImport, PAY_IMPORT_ALIASES, _PAYTYPE_ALIASES, parsePaymentImport } from './src/utils/csvImport.js';
-import { appendAuditLog, pushDedupeMemory, notificationDedupeKey, pruneNotifications, hasRecentDuplicateNotification, pushNotificationToList, isNotificationForUser, countUnreadNotifications, requestNotificationPermission, triggerBrowserNotification, notify, formatNotifTime } from './src/utils/notifications.js';
+import { appendAuditLog, pushDedupeMemory, notificationDedupeKey, pruneNotifications, hasRecentDuplicateNotification, pushNotificationToList, isNotificationForUser, countUnreadNotifications, triggerBrowserNotification, notify, formatNotifTime } from './src/utils/notifications.js';
 import { getStoredTheme, setStoredTheme } from './src/utils/theme.js';
 import { IMSLogo, GlobalStyles, WIBClock, ChartTooltip, PieCard, KPICard, ReadOnlyBanner, Field, ConfirmDialog, LinkAttachment, SortToggle, Th, Td, SyncIndicator, ModuleErrorBoundary } from './src/components/ui.jsx';
 import { DocumentEditorModal } from './src/components/DocumentEditorModal.jsx';
@@ -390,10 +390,27 @@ export default function App() {
     window.addEventListener('ims:notify', onNotify);
     return () => window.removeEventListener('ims:notify', onNotify);
   }, [session, notifications, lang]);
-  // OS-level push: minta izin notifikasi desktop sekali setelah pengguna berhasil login.
+  // Web Push: daftarkan ulang subscription saat login & saat app dibuka kembali (penting untuk HP).
   useEffect(() => {
-    if (session) { try { requestNotificationPermission(); } catch {} }
-  }, [session]);
+    if (!session?.username) return;
+    let cancelled = false;
+    (async () => {
+      const result = await enablePushNotifications(session);
+      if (!cancelled && !result.ok && result.reason !== 'permission_denied') {
+        console.warn('[IMS] push registration:', result.reason);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [session?.username, session?.role]);
+
+  useEffect(() => {
+    if (!session?.username || typeof document === 'undefined') return;
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refreshPushSubscription(session);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [session?.username, session?.role]);
   const [loading, setLoading] = useState(true);
 
   // Re-normalize SPH when product master changes (sync modality/brand + paket proyek).

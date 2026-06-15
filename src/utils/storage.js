@@ -173,11 +173,19 @@ const enablePushNotifications = async (session) => {
         applicationServerKey: _urlBase64ToUint8Array(vapidKey),
       });
     }
-    const saved = await savePushSubscription(subscription.toJSON ? subscription.toJSON() : subscription, session);
+    const subJson = subscription.toJSON ? subscription.toJSON() : subscription;
+    const saved = await savePushSubscription(subJson, session);
     return saved.ok ? { ok: true } : { ok: false, reason: saved.error || 'save_failed' };
   } catch (err) {
     return { ok: false, reason: err?.message || 'failed' };
   }
+};
+
+/** Re-register push subscription (e.g. after login or app resume on mobile). */
+const refreshPushSubscription = async (session) => {
+  if (!session?.username || !pushSupported()) return { ok: false, reason: 'unsupported' };
+  if (Notification.permission !== 'granted') return { ok: false, reason: 'permission_denied' };
+  return enablePushNotifications(session);
 };
 const getPushPermissionStatus = () => {
   if (!pushSupported()) return 'unsupported';
@@ -434,4 +442,4 @@ function flushPersist() {
   }
 }
 
-export { _memStore, _hasArtifactStorage, _hasLocalStorage, _SUPA_URL, _SUPA_KEY, _supaEnabled, _supaFetch, _supaSession, _SUPA_SESS_LS, _authFetch, _supaSignIn, _refreshInFlight, _supaRefreshTok, _supaSignOut, _restoreSupaSession, _getSupaTok, _supaReq, _pushVapidPublicKey, _urlBase64ToUint8Array, pushSupported, registerServiceWorker, savePushSubscription, enablePushNotifications, getPushPermissionStatus, sendServerPushNotification, _rtSocket, _rtHeartbeat, _rtRetryCount, _rtRetryTimer, _rtStatus, _setRtStatus, _hashStr, _recentWrites, _markRecentWrite, _isRecentSelfEcho, blockCloudApply, isCloudApplyBlocked, _rtJoinRef, _RT_TOPIC, _startRealtime, _scheduleRtRetry, _stopRealtime, _tokRefreshTimer, _startProactiveRefresh, _stopProactiveRefresh, storeGet, storeSet, storeDel, _persistPending, _persistTimer, debouncedStoreSet, flushPersist };
+export { _memStore, _hasArtifactStorage, _hasLocalStorage, _SUPA_URL, _SUPA_KEY, _supaEnabled, _supaFetch, _supaSession, _SUPA_SESS_LS, _authFetch, _supaSignIn, _refreshInFlight, _supaRefreshTok, _supaSignOut, _restoreSupaSession, _getSupaTok, _supaReq, _pushVapidPublicKey, _urlBase64ToUint8Array, pushSupported, registerServiceWorker, savePushSubscription, enablePushNotifications, refreshPushSubscription, getPushPermissionStatus, sendServerPushNotification, _rtSocket, _rtHeartbeat, _rtRetryCount, _rtRetryTimer, _rtStatus, _setRtStatus, _hashStr, _recentWrites, _markRecentWrite, _isRecentSelfEcho, blockCloudApply, isCloudApplyBlocked, _rtJoinRef, _RT_TOPIC, _startRealtime, _scheduleRtRetry, _stopRealtime, _tokRefreshTimer, _startProactiveRefresh, _stopProactiveRefresh, storeGet, storeSet, storeDel, _persistPending, _persistTimer, debouncedStoreSet, flushPersist };

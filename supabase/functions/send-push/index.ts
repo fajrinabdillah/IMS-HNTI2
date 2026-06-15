@@ -26,9 +26,17 @@ type PushRow = {
   subscription: unknown;
 };
 
-function isTargetMatch(row: PushRow, target: Target = {}) {
+const LEADERSHIP_INBOX_ROLES = new Set(["gm", "manager_ops", "super_admin"]);
+const ADMIN_WORKFLOW_TYPES = new Set(["sph_request", "spp_request", "sph_ready", "spp_ready"]);
+
+function isTargetMatch(row: PushRow, target: Target = {}, payload: Record<string, unknown> = {}) {
   if (target.username && row.username === target.username) return true;
   if (target.role && row.role === target.role && !target.username) return true;
+  // Admin workflow alerts also push to GM, Ops Manager, and CEO devices.
+  if (target.role === "admin" && !target.username && LEADERSHIP_INBOX_ROLES.has(row.role)) {
+    const type = String(payload?.type || "");
+    if (ADMIN_WORKFLOW_TYPES.has(type)) return true;
+  }
   return false;
 }
 
@@ -77,13 +85,23 @@ serve(async (req) => {
     const target: Target = body.target || {};
     const payload = body.payload || {};
     const fromUser = body.fromUser || {};
-    const rows = (await fetchSubscriptions()).filter(row => isTargetMatch(row, target));
+    const rows = (await fetchSubscriptions()).filter(row => isTargetMatch(row, target, payload));
 
+    const titleMap: Record<string, string> = {
+      sph_request: "Permintaan SPH Baru",
+      spp_request: "Permintaan SPP Baru",
+      sph_ready: "SPH Siap Dikirim",
+      spp_ready: "SPP Siap Dikirim",
+      po_won: "PO Dimenangkan",
+      dp_paid: "DP / Deposit Diterima",
+      invoice_ready: "Invoice Siap",
+    };
+    const type = String(payload.type || "system");
     const pushPayload = JSON.stringify({
-      title: payload.title || "IMS HNTI",
+      title: payload.title || titleMap[type] || "IMS HNTI",
       body: payload.message || payload.body || "Notifikasi baru",
-      type: payload.type || "system",
-      tag: payload.type || "ims-hnti",
+      type,
+      tag: payload.tag || type || "ims-hnti",
       url: payload.url || notificationUrl(payload.link),
       link: payload.link || null,
       fromUser,

@@ -160,14 +160,18 @@ function triggerBrowserNotification(payload = {}, lang = 'id') {
 }
 function notify(target, payload, fromUser) {
   if (typeof window === 'undefined') return;
+  const enriched = {
+    ...payload,
+    title: payload?.title || notificationTitle(payload?.type, 'id'),
+  };
   try {
-    window.dispatchEvent(new CustomEvent('ims:notify', { detail: { target, payload, fromUser } }));
+    window.dispatchEvent(new CustomEvent('ims:notify', { detail: { target, payload: enriched, fromUser } }));
   } catch {}
-  const key = notificationDedupeKey(target, payload);
+  const key = notificationDedupeKey(target, enriched);
   const lastSent = pushDedupeMemory.get(key) || 0;
   if (Date.now() - lastSent > NOTIFICATION_DEDUPE_MS) {
     pushDedupeMemory.set(key, Date.now());
-    sendServerPushNotification(target, payload, fromUser);
+    sendServerPushNotification(target, enriched, fromUser);
   }
 }
 function formatNotifTime(iso, lang = 'id') {

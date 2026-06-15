@@ -10,7 +10,7 @@
 // secara default oleh server). Saat SW baru detected, kita skipWaiting dan claim clients
 // supaya tab user otomatis pakai versi baru tanpa harus close-reopen.
 
-const CACHE_VERSION = 'ims-hnti-v2-2026-06-09-push';
+const CACHE_VERSION = 'ims-hnti-v3-2026-06-15-push';
 const APP_SHELL_CACHE = `app-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 

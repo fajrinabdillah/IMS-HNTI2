@@ -2,28 +2,41 @@
 import { useState, useMemo } from 'react';
 import { Bell, Trash2 } from 'lucide-react';
 import { ConfirmDialog } from './ui.jsx';
-import { formatNotifTime, isNotificationForUser, pruneNotifications } from '../utils/notifications.js';
+import { formatNotifTime, isNotificationForUser, notificationContentKeyFromNotif, visibleNotificationsForUser } from '../utils/notifications.js';
 function NotificationBell({ notifications, setNotifications, session, t, lang, setView }) {
   const [open, setOpen] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
-  const filtered = useMemo(() => {
-    if (!Array.isArray(notifications)) return [];
-    return pruneNotifications(notifications).filter(n => isNotificationForUser(n, session));
-  }, [notifications, session]);
+  const filtered = useMemo(() => visibleNotificationsForUser(notifications, session), [notifications, session]);
   const unread = useMemo(() => filtered.filter(n => !n.readAt).length, [filtered]);
-  const markRead = (id) => {
-    setNotifications(prev => prev.map(n => n.id === id && !n.readAt ? { ...n, readAt: new Date().toISOString() } : n));
+  const markRead = (n) => {
+    const key = notificationContentKeyFromNotif(n);
+    const nowIso = new Date().toISOString();
+    setNotifications(prev => prev.map(item => {
+      if (!isNotificationForUser(item, session)) return item;
+      if (session.role === 'super_admin' && notificationContentKeyFromNotif(item) === key) {
+        return item.readAt ? item : { ...item, readAt: nowIso };
+      }
+      if (item.id === n.id && !item.readAt) return { ...item, readAt: nowIso };
+      return item;
+    }));
   };
   const markAllRead = () => {
     const nowIso = new Date().toISOString();
-    setNotifications(prev => prev.map(n => isNotificationForUser(n, session) && !n.readAt ? { ...n, readAt: nowIso } : n));
+    const visibleKeys = new Set(filtered.filter(n => !n.readAt).map(notificationContentKeyFromNotif));
+    setNotifications(prev => prev.map(n => {
+      if (!isNotificationForUser(n, session) || n.readAt) return n;
+      if (session.role === 'super_admin') {
+        return visibleKeys.has(notificationContentKeyFromNotif(n)) ? { ...n, readAt: nowIso } : n;
+      }
+      return filtered.some(v => v.id === n.id) ? { ...n, readAt: nowIso } : n;
+    }));
   };
   const confirmDelete = () => {
     setNotifications(prev => prev.filter(n => n.id !== deleteId));
     setDeleteId(null);
   };
   const handleClick = (n) => {
-    if (!n.readAt) markRead(n.id);
+    if (!n.readAt) markRead(n);
     if (n.link?.view && setView) {
       try { setView(n.link.view); } catch {}
     }

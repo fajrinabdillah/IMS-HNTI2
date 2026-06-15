@@ -1286,7 +1286,7 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
       link: { view: 'sph', id: newId },
     };
     const fromUser = { username: session.username, role: session.role };
-    ['admin', 'gm', 'manager_ops'].forEach(role => notify({ role }, notifPayload, fromUser));
+    notify({ role: 'admin' }, notifPayload, fromUser);
     logAction({ module: 'sph', action: 'create', entityId: newId, entityLabel: `${rec.sphNo} · ${rec.customer}`, note: `Request ${kindLabel} submitted by sales` });
   };
   // Request SPP = sama dengan SPH tapi docKind='spp'

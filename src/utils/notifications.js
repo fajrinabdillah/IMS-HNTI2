@@ -49,21 +49,46 @@ function pushNotificationToList(notifications, target, payload, fromUser) {
   };
   return [notif, ...clean].slice(0, MAX_NOTIFICATIONS);
 }
+const LEADERSHIP_INBOX_ROLES = ['gm', 'manager_ops'];
+const ADMIN_WORKFLOW_TYPES = new Set(['sph_request', 'spp_request', 'sph_ready', 'spp_ready']);
+
+function notificationContentKeyFromNotif(n) {
+  const link = n?.link ? `${n.link.view || ''}:${n.link.id || ''}` : '';
+  return [n?.type || 'system', String(n?.message || '').trim().toLowerCase(), link].join('|');
+}
+
 function isNotificationForUser(notif, session) {
   if (!session || !notif) return false;
-  // super_admin (CEO) sees all — oversight
-  if (session.role === 'super_admin') return true;
   // username-specific match
   if (notif.toUsername && notif.toUsername === session.username) return true;
   // role-broadcast match (no username constraint OR matching username)
   if (notif.toRole && notif.toRole === session.role) {
     if (!notif.toUsername || notif.toUsername === session.username) return true;
   }
+  // GM & Manager Ops ikut inbox alert workflow Admin (request/ready SPH & SPP)
+  if (notif.toRole === 'admin' && LEADERSHIP_INBOX_ROLES.includes(session.role) && ADMIN_WORKFLOW_TYPES.has(notif.type)) {
+    return true;
+  }
+  // CEO oversight — satu entri per event (dedupe di visibleNotificationsForUser)
+  if (session.role === 'super_admin') return true;
   return false;
 }
+
+function visibleNotificationsForUser(notifications, session) {
+  const list = pruneNotifications(notifications).filter(n => isNotificationForUser(n, session));
+  if (session?.role !== 'super_admin') return list;
+  const seen = new Set();
+  return list.filter(n => {
+    const key = notificationContentKeyFromNotif(n);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function countUnreadNotifications(notifications, session) {
   if (!Array.isArray(notifications)) return 0;
-  return notifications.filter(n => !n.readAt && isNotificationForUser(n, session)).length;
+  return visibleNotificationsForUser(notifications, session).filter(n => !n.readAt).length;
 }
 // Judul OS notification yang profesional, dipetakan dari tipe notifikasi internal.
 const NOTIF_TITLE_MAP = {
@@ -171,4 +196,4 @@ function formatNotifTime(iso, lang = 'id') {
   }
 }
 
-export { appendAuditLog, pushDedupeMemory, notificationDedupeKey, pruneNotifications, hasRecentDuplicateNotification, pushNotificationToList, isNotificationForUser, countUnreadNotifications, notificationTitle, requestNotificationPermission, triggerBrowserNotification, notify, formatNotifTime };
+export { appendAuditLog, pushDedupeMemory, notificationDedupeKey, notificationContentKeyFromNotif, pruneNotifications, hasRecentDuplicateNotification, pushNotificationToList, isNotificationForUser, visibleNotificationsForUser, countUnreadNotifications, notificationTitle, requestNotificationPermission, triggerBrowserNotification, notify, formatNotifTime };

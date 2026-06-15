@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Activity, AlertTriangle, ArrowUpRight, Bell, Check, CheckCircle2, ChevronDown, ClipboardList, Clock, Download, Edit2, FileCheck, FileText, History, Layers, LayoutDashboard, MapPin, Plus, RefreshCw, Search, Sparkles, Star, Target, TrendingUp, Trash2, Upload, Users, X, Zap } from 'lucide-react';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, PieChart, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { ChartTooltip, ConfirmDialog, Field, KPICard, ReadOnlyBanner, SortToggle, Td, Th, PieWithSummary } from '../components/ui.jsx';
+import { ChartTooltip, ConfirmDialog, CurrencyInput, Field, KPICard, ReadOnlyBanner, SortToggle, Td, Th, PieWithSummary } from '../components/ui.jsx';
 import { DASHBOARD_GLASS, DashboardHero, DashboardKpiGrid, GlassPanel, QuickNavGrid } from '../components/FuturisticDashboardShell.jsx';
 import { DocumentEditorModal } from '../components/DocumentEditorModal.jsx';
 import { DEFAULT_DOCUMENT_TEMPLATES } from '../constants/docs.js';
@@ -144,11 +144,15 @@ const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employ
               <Field label={lang === 'id' ? 'Brand / Merek' : 'Brand'}><select value={item.brand || ''} onChange={e => updateItem(idx, 'brand', e.target.value)} disabled={!item.modality}><option value="">Pilih</option>{brandsForItem(item).map(b => <option key={b} value={b}>{b}</option>)}</select></Field>
               <Field label={lang === 'id' ? 'Tipe Produk' : 'Product Type'}><select value={item.productId || ''} onChange={e => updateItem(idx, 'productId', e.target.value)} disabled={!item.modality}><option value="">Pilih</option>{productTypeOptionsForItem(item).map(p => <option key={p.id} value={p.id}>{p.type} · {p.name}</option>)}</select></Field>
               <Field label="Qty"><input type="number" value={item.qty} onChange={e => updateItem(idx, 'qty', e.target.value)} /></Field>
-              <Field label={lang === 'id' ? 'Harga Satuan' : 'Unit Price'}><input type="number" value={item.unitPrice} onChange={e => updateItem(idx, 'unitPrice', e.target.value)} /></Field>
+              <Field label={lang === 'id' ? 'Harga Satuan' : 'Unit Price'}><CurrencyInput lang={lang} value={item.unitPrice} onChange={v => updateItem(idx, 'unitPrice', v)} placeholder="0" /></Field>
               <div style={{display: 'flex', alignItems: 'end'}}><button type="button" onClick={() => removeRequestItem(idx)} className="btn-ghost" style={{fontSize: '10px', color: '#c03030'}}><Trash2 size={11} /></button></div>
             </div>
           ))}
-          <Field label="DP %"><input type="number" value={form.dpPercent} onChange={e => update('dpPercent', e.target.value)} /></Field>
+          <Field label="DP %">
+            <select value={form.dpPercent} onChange={e => update('dpPercent', Number(e.target.value))}>
+              {Array.from({ length: 21 }, (_, i) => i * 5).map(p => <option key={p} value={p}>{p}%</option>)}
+            </select>
+          </Field>
           <Field label={lang === 'id' ? 'Termin / Tenor Bulan' : 'Terms / Months'}><input type="number" value={form.installmentMonths} onChange={e => update('installmentMonths', e.target.value)} /></Field>
           <Field label={lang === 'id' ? 'Alamat Pelanggan' : 'Customer Address'} full><input value={form.customerAddress} onChange={e => update('customerAddress', e.target.value)} /></Field>
           <Field label={lang === 'id' ? 'Kondisi Manual / Editable' : 'Manual Editable Terms'} full><textarea rows={3} value={form.manualTerms} onChange={e => update('manualTerms', e.target.value)} placeholder={lang === 'id' ? 'Contoh: bonus backup unit, garansi khusus, delivery time, catatan tender...' : 'Special warranty, delivery time, tender notes...'} /></Field>
@@ -484,7 +488,7 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
   const [filterYear, setFilterYear] = useState(String(currentYear()));
   const [filterProduct, setFilterProduct] = useState('all');
   const [sortSPH, setSortSPH] = useState('date_desc');
-  const [sphTab, setSphTab] = useState('dashboard');
+  const [sphTab, setSphTab] = useState('list');
   const [pageSize, setPageSize] = useState(50);  // Pagination: 50 rows initial, "Load more" button
   const [visibleCount, setVisibleCount] = useState(50);
   const [detailSph, setDetailSph] = useState(null);
@@ -639,8 +643,8 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
 
       <div style={{display: 'flex', gap: '2px', marginBottom: '22px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
         {[
-          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: LayoutDashboard },
           { id: 'list', label: lang === 'id' ? 'Daftar SPH' : 'SPH List', icon: FileText },
+          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: LayoutDashboard },
         ].map(tb => {
           const Icon = tb.icon;
           const active = sphTab === tb.id;

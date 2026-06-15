@@ -313,6 +313,33 @@ function PieCard({ title, data, fmt }) {
     </div>
   );
 }
+
+function CurrencyInput({ value, onChange, lang = 'id', placeholder, style, ...rest }) {
+  const displayValue = useMemo(() => {
+    if (value === '' || value == null) return '';
+    const n = Number(value);
+    if (!Number.isFinite(n)) return '';
+    return n.toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { maximumFractionDigits: 0 });
+  }, [value, lang]);
+
+  const handleChange = (e) => {
+    const digits = e.target.value.replace(/\D/g, '');
+    onChange(digits === '' ? '' : Number(digits));
+  };
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={displayValue}
+      onChange={handleChange}
+      placeholder={placeholder || (lang === 'id' ? '0' : '0')}
+      style={{ fontVariantNumeric: 'tabular-nums', ...style }}
+      {...rest}
+    />
+  );
+}
+
 const KPICard = React.memo(function KPICard({ label, value, sublabel, trend, info, accent }) {
   const positive = trend >= 0;
   const [showInfo, setShowInfo] = useState(false);
@@ -462,4 +489,4 @@ class ModuleErrorBoundary extends React.Component {
   }
 }
 
-export { IMSLogo, GlobalStyles, WIBClock, ChartTooltip, PieCard, PieWithSummary, KPICard, ReadOnlyBanner, Field, ConfirmDialog, LinkAttachment, SortToggle, Th, Td, SyncIndicator, ModuleErrorBoundary };
+export { IMSLogo, GlobalStyles, WIBClock, ChartTooltip, PieCard, PieWithSummary, CurrencyInput, KPICard, ReadOnlyBanner, Field, ConfirmDialog, LinkAttachment, SortToggle, Th, Td, SyncIndicator, ModuleErrorBoundary };

@@ -2,6 +2,7 @@
 import React from 'react';
 import { Check, FileText, X } from 'lucide-react';
 import { showToast } from '../utils/toast.js';
+import { sanitizeOfficePaste } from '../utils/htmlPaste.js';
 function DocumentEditorModal({ open, onClose, title, initialHtml, docType, record = {}, onSave, saveLabel, lang = 'id', templateMode = false }) {
   const editorRef = React.useRef(null);
   const [dirty, setDirty] = React.useState(false);
@@ -107,14 +108,30 @@ function DocumentEditorModal({ open, onClose, title, initialHtml, docType, recor
     setDirty(true);
   };
 
-  const handleEditorPaste = () => {
-    // Biarkan paste bawaan browser (Word, dll.) — jangan preventDefault.
+  const handleEditorPaste = (e) => {
+    if (!templateMode) return;
+    e.preventDefault();
+    const html = e.clipboardData?.getData('text/html');
+    const text = e.clipboardData?.getData('text/plain') || '';
+    const cleaned = sanitizeOfficePaste(html, text);
+    if (typeof document !== 'undefined') {
+      document.execCommand('insertHTML', false, cleaned || '<br>');
+    }
     requestAnimationFrame(() => {
       const el = editorRef.current;
       if (!el) return;
       setDocumentContent(readEditorHtml(el));
       setDirty(true);
     });
+  };
+
+  const cleanEntireEditor = () => {
+    const el = editorRef.current;
+    if (!el) return;
+    const cleaned = sanitizeOfficePaste(el.innerHTML, el.textContent || '');
+    writeEditorHtml(el, cleaned || '<br>');
+    setDirty(true);
+    showToast(lang === 'id' ? 'Format Word/Excel dibersihkan — silakan edit teks/kolom' : 'Word/Excel formatting cleaned — you can edit text/columns now', 'success');
   };
 
   const handleSave = (status) => {
@@ -171,6 +188,15 @@ function DocumentEditorModal({ open, onClose, title, initialHtml, docType, recor
           <button type="button" onMouseDown={(e) => { e.preventDefault(); insertImagePrompt(); }} title="Insert image" style={{height: '30px', padding: '0 8px', background: 'var(--ims-bg-card-2)', border: '1px solid var(--ims-border)', color: 'var(--ims-text)', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px'}}>+ Gambar</button>
           {toolbarBtn('↺', 'undo', null, 'Undo')}
           {toolbarBtn('↻', 'redo', null, 'Redo')}
+          {templateMode && (
+            <>
+              <span style={{width: '1px', height: '20px', background: 'var(--ims-border)', margin: '0 4px'}} />
+              <button type="button" onMouseDown={(e) => { e.preventDefault(); cleanEntireEditor(); }} title={lang === 'id' ? 'Bersihkan format Word/Excel agar mudah diedit' : 'Clean Word/Excel formatting for easier editing'}
+                style={{height: '30px', padding: '0 10px', background: 'rgba(91,141,239,0.12)', border: '1px solid #5b8def', color: '#5b8def', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px', fontWeight: 700}}>
+                {lang === 'id' ? 'Bersihkan Word/Excel' : 'Clean Word/Excel'}
+              </button>
+            </>
+          )}
         </div>
 
         {/* POIN 2: Image toolbar — muncul saat gambar (stempel/TTD) dipilih */}
@@ -192,7 +218,7 @@ function DocumentEditorModal({ open, onClose, title, initialHtml, docType, recor
         )}
 
         {/* Editor area — .a4-page di dalam initialHtml sudah jadi kertas A4 dengan kop background */}
-        <style>{`.doc-editor-surface img{cursor:pointer;max-width:100%}.doc-editor-surface img:hover{outline:1px solid #5b8def88}`}</style>
+        <style>{`.doc-editor-surface img{cursor:pointer;max-width:100%}.doc-editor-surface img:hover{outline:1px solid #5b8def88}.doc-editor-surface table{border-collapse:collapse;width:100%;max-width:100%;margin:8px 0}.doc-editor-surface td,.doc-editor-surface th{border:1px solid #bbb;padding:6px 8px;vertical-align:top;min-width:48px;word-break:break-word}.doc-editor-surface td:empty::before,.doc-editor-surface th:empty::before{content:'\\00a0'}.doc-editor-surface p{margin:0 0 0.5em}.doc-editor-surface ul,.doc-editor-surface ol{margin:0 0 0.5em 1.2em;padding:0}`}</style>
         <div style={{flex: 1, overflow: 'auto', padding: '20px', background: '#525659', display: 'flex', justifyContent: 'center'}}>
           <div
             ref={editorRef}
@@ -210,6 +236,7 @@ function DocumentEditorModal({ open, onClose, title, initialHtml, docType, recor
         {/* Footer actions */}
         <div style={{padding: '12px 18px', borderTop: '1px solid var(--ims-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap'}}>
           <div style={{fontSize: '11px', color: 'var(--ims-text-2)'}}>
+            {templateMode && (lang === 'id' ? 'Paste dari Word/Excel otomatis dibersihkan. Klik sel tabel untuk edit kolom. ' : 'Word/Excel paste is auto-cleaned. Click table cells to edit columns. ')}
             {dirty ? (lang === 'id' ? '● Ada perubahan belum disimpan' : '● Unsaved changes') : (lang === 'id' ? 'Siap disimpan' : 'Ready')}
           </div>
           <div style={{display: 'flex', gap: '8px'}}>

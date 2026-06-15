@@ -33,7 +33,7 @@ function NotificationBell({ notifications, setNotifications, session, t, lang, s
   const typeColor = (type) => {
     switch (type) {
       case 'po_won': case 'dp_paid': return 'var(--ims-accent)';
-      case 'sph_request': case 'sph_ready': case 'invoice_ready': return 'var(--ims-gold)';
+      case 'sph_request': case 'spp_request': case 'sph_ready': case 'spp_ready': case 'invoice_ready': return 'var(--ims-gold)';
       case 'pnbp_due': case 'billing_due': case 'install_pending': return '#fbbf24';
       case 'shipping_arrived': case 'training_scheduled': return '#5b87b8';
       default: return 'var(--ims-text-2)';

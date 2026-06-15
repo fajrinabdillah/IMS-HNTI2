@@ -16,12 +16,11 @@ import { parseSPHImport } from '../utils/csvImport.js';
 import { filterBillableRows, formatPackageItemsSummary, formatPackageModalityLabel, getPackageComponents, sphBillableValue, countUniqueSphNumbers } from '../utils/sphPackage.js';
 import { showToast } from '../utils/toast.js';
 const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employees, setEmployees, session, lang, t, fmt, onRequestSPH, onRequestSPP, onWorkflowUpdate, onSaveDocument, generatedDocs = [], setGeneratedDocs, products = [], documentTemplates = DEFAULT_DOCUMENT_TEMPLATES }) {
-  const [open, setOpen] = useState('request');
+  const [open, setOpen] = useState('request_sph');
   const [editingRequestId, setEditingRequestId] = useState(null);
   const [deleteQueueId, setDeleteQueueId] = useState(null);
   const [deleteDocId, setDeleteDocId] = useState(null);
   const [editorState, setEditorState] = useState(null); // { record, docType, html, title }
-  const [requestKind, setRequestKind] = useState('sph'); // 'sph' | 'spp' — toggle form request
   const [form, setForm] = useState({
     customer: '', customerAddress: '', customerType: 'hospital', projectType: 'private',
     items: [{ productId: '', modality: '', brand: '', subModality: '', qty: 1, unitPrice: '' }],
@@ -81,7 +80,7 @@ const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employ
     }
   };
 
-  const submitRequest = (kind = requestKind) => {
+  const submitRequest = (kind) => {
     if (!form.customer.trim()) { showToast(lang === 'id' ? 'Nama pelanggan wajib diisi' : 'Customer name required', 'error'); return; }
     if (editingRequestId) {
       const first = (form.items || [])[0] || {};
@@ -91,7 +90,8 @@ const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employ
       setForm({ customer: '', customerAddress: '', customerType: 'hospital', projectType: 'private', items: [{ productId: '', modality: '', brand: '', subModality: '', qty: 1, unitPrice: '' }], dpPercent: 30, installmentMonths: 12, manualTerms: '', notes: '' });
       return;
     }
-    if (kind === 'spp') { onRequestSPP({ ...form, salesOwner: session.salesId || session.username }); } else { onRequestSPH({ ...form, salesOwner: session.salesId || session.username }); }
+    if (kind === 'spp') { onRequestSPP({ ...form, salesOwner: session.salesId || session.username }); showToast(lang === 'id' ? 'Request SPP terkirim ke Admin' : 'SPP request sent to Admin', 'success'); }
+    else { onRequestSPH({ ...form, salesOwner: session.salesId || session.username }); showToast(lang === 'id' ? 'Request SPH terkirim ke Admin' : 'SPH request sent to Admin', 'success'); }
     setForm({ customer: '', customerAddress: '', customerType: 'hospital', projectType: 'private', items: [{ productId: '', modality: '', brand: '', subModality: '', qty: 1, unitPrice: '' }], dpPercent: 30, installmentMonths: 12, manualTerms: '', notes: '' });
   };
   const editQueueRequest = (s) => {
@@ -101,23 +101,25 @@ const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employ
       items: Array.isArray(s.items) && s.items.length ? s.items.map(it => ({ productId: it.productId || '', modality: it.modality || '', brand: it.brand || it.productBrand || '', subModality: it.subModality || '', qty: it.qty || 1, unitPrice: it.unitPrice || '' })) : [{ productId: s.productId || '', modality: s.modality || '', brand: s.productBrand || '', subModality: s.subModality || '', qty: s.qty || 1, unitPrice: s.unitPrice || '' }],
       dpPercent: s.dpPercent || 30, installmentMonths: s.installmentMonths || 12, manualTerms: s.manualTerms || '', notes: s.notes || '',
     });
-    setOpen('request');
+    setOpen(s.docKind === 'spp' ? 'request_spp' : 'request_sph');
   };
+  const isRequestFormOpen = open === 'request_sph' || open === 'request_spp';
   return (
     <div style={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', marginBottom: '18px'}}>
       <div style={{padding: '12px 16px', borderBottom: '1px solid var(--ims-border)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
         {[
-          { id: 'request', label: lang === 'id' ? 'Request SPH / SPP' : 'SPH / SPP Request', icon: Plus },
-          { id: 'queue', label: lang === 'id' ? `Antrian Admin (${requestRows.length})` : `Admin Queue (${requestRows.length})`, icon: Bell },
-          { id: 'docs', label: lang === 'id' ? `Riwayat Dokumen (${visibleDocs.length})` : `Document History (${visibleDocs.length})`, icon: History },
+          { id: 'request_sph', label: lang === 'id' ? 'Request SPH' : 'Request SPH', icon: Plus, accent: 'var(--ims-accent)' },
+          { id: 'request_spp', label: lang === 'id' ? 'Request SPP' : 'Request SPP', icon: FileCheck, accent: 'var(--ims-accent-2)' },
+          { id: 'queue', label: lang === 'id' ? `Antrian Admin (${requestRows.length})` : `Admin Queue (${requestRows.length})`, icon: Bell, accent: 'var(--ims-accent)' },
+          { id: 'docs', label: lang === 'id' ? `Riwayat Dokumen (${visibleDocs.length})` : `Document History (${visibleDocs.length})`, icon: History, accent: 'var(--ims-accent)' },
         ].map(tb => {
           const Icon = tb.icon;
           const active = open === tb.id;
-          return <button key={tb.id} onClick={() => setOpen(tb.id)} style={{background: active ? 'var(--ims-accent)' : 'transparent', color: active ? '#fff' : 'var(--ims-text-2)', border: `1px solid ${active ? 'var(--ims-accent)' : 'var(--ims-border)'}`, padding: '7px 11px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px'}}><Icon size={12} />{tb.label}</button>;
+          return <button key={tb.id} onClick={() => setOpen(tb.id)} style={{background: active ? tb.accent : 'transparent', color: active ? '#fff' : 'var(--ims-text-2)', border: `1px solid ${active ? tb.accent : 'var(--ims-border)'}`, padding: '7px 11px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px'}}><Icon size={12} />{tb.label}</button>;
         })}
       </div>
 
-      {open === 'request' && (
+      {isRequestFormOpen && (
         <div style={{padding: '16px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px'}}>
           <Field label={lang === 'id' ? 'Nama RS / Pelanggan' : 'Customer'}><input value={form.customer} onChange={e => update('customer', e.target.value)} /></Field>
           <Field label={lang === 'id' ? 'Tipe Pelanggan' : 'Customer Type'}>
@@ -158,7 +160,11 @@ const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employ
           <Field label={lang === 'id' ? 'Kondisi Manual / Editable' : 'Manual Editable Terms'} full><textarea rows={3} value={form.manualTerms} onChange={e => update('manualTerms', e.target.value)} placeholder={lang === 'id' ? 'Contoh: bonus backup unit, garansi khusus, delivery time, catatan tender...' : 'Special warranty, delivery time, tender notes...'} /></Field>
           <Field label={lang === 'id' ? 'Catatan Internal' : 'Internal Notes'} full><textarea rows={2} value={form.notes} onChange={e => update('notes', e.target.value)} /></Field>
           <div style={{gridColumn: '1 / -1', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px'}}>
-            <span style={{fontSize: '11px', color: 'var(--ims-text-2)'}}>{lang === 'id' ? 'Request akan masuk ke Admin dan memunculkan notifikasi.' : 'Request will notify Admin.'}</span>
+            <span style={{fontSize: '11px', color: 'var(--ims-text-2)'}}>
+              {open === 'request_spp'
+                ? (lang === 'id' ? 'Request SPP → notifikasi Admin, GM, Manager Ops & CEO. Admin memakai template SPP.' : 'SPP request → notifies Admin, GM, Ops Manager & CEO. Admin uses SPP template.')
+                : (lang === 'id' ? 'Request SPH → notifikasi Admin, GM, Manager Ops & CEO. Admin memakai template SPH.' : 'SPH request → notifies Admin, GM, Ops Manager & CEO. Admin uses SPH template.')}
+            </span>
             {editingRequestId ? (
               <button className="btn-primary" onClick={submitRequest}><Check size={13} />{lang === 'id' ? 'Simpan Edit Request' : 'Save Request Edit'}</button>
             ) : (
@@ -175,15 +181,20 @@ const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employ
         <div style={{padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px'}}>
           {requestRows.map(s => {
             const driveUrl = s.sphDriveUrl || s.sppDriveUrl || '';
+            const isSpp = s.docKind === 'spp';
+            const kindLabel = isSpp ? 'SPP' : 'SPH';
             return (
               <div key={s.id} style={{padding: '12px', background: 'var(--ims-bg)', border: '1px solid var(--ims-border)', display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) minmax(320px, 0.9fr) auto', gap: '12px', alignItems: 'center'}}>
                 <div>
-                  <div style={{fontSize: '13px', fontWeight: 700}}>{s.customer} · {s.subModality}</div>
+                  <div style={{fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+                    <span style={{fontSize: '9px', fontWeight: 800, letterSpacing: '0.08em', padding: '2px 7px', background: isSpp ? 'var(--ims-accent-2)22' : 'var(--ims-accent)22', color: isSpp ? 'var(--ims-accent-2)' : 'var(--ims-accent)'}}>{kindLabel}</span>
+                    {s.customer} · {s.subModality}
+                  </div>
                   <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '3px'}}><span className="mono">{s.sphNo}</span> · Sales: {resolveEmpName(employees, s.salesOwner)} · {SPH_WORKFLOW_LABELS[s.sphWorkflowStatus] || s.sphWorkflowStatus}</div>
                   <div className="mono" style={{fontSize: '11px', color: 'var(--ims-text)', marginTop: '3px'}}>{fmt(s.totalValue || 0)} · DP {s.dpPercent || 0}% · {s.installmentMonths || 0} bulan</div>
                 </div>
                 <div>
-                  <div style={{fontSize: '9px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 800, marginBottom: '5px'}}>Google Drive SPH/SPP</div>
+                  <div style={{fontSize: '9px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 800, marginBottom: '5px'}}>Google Drive {kindLabel}</div>
                   <div style={{display: 'flex', gap: '6px', alignItems: 'center'}}>
                     <input
                       type="url"
@@ -213,10 +224,10 @@ const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employ
                     const docType = s.docKind === 'spp' ? 'spp' : 'sph';
                     const html = buildEditorTemplate(docType, s, employees, fmt, documentTemplates, s.requesterId || s.sphRequestedBy || s.salesOwner);
                     setEditorState({ record: s, docType, html, title: (docType === 'spp' ? 'Buat SPP — ' : 'Buat SPH — ') + (s.customer || '') });
-                    if (s.sphWorkflowStatus === 'requested') onWorkflowUpdate(s.id, { sphWorkflowStatus: 'admin_drafting', sphDraftStartedAt: new Date().toISOString(), workflowEvent: 'admin_drafting', nextAction: 'Admin membuat Surat SPH/SPP' }, { note: 'Admin mulai membuat dokumen' });
-                  }} className="btn-primary" style={{fontSize: '10px', padding: '6px 10px'}} title="Buka editor & isi otomatis dari template (tidak auto-download)"><Edit2 size={11} />Mulai</button>}
-                  <button onClick={() => downloadSPHWord(s, employees, fmt, documentTemplates)} className="btn-ghost" style={{fontSize: '10px'}} title="Unduh SPH Word"><Download size={11} />Unduh</button>
-                  {isAdminish && s.sphWorkflowStatus !== 'ready_for_sales' && <button onClick={() => onWorkflowUpdate(s.id, { sphWorkflowStatus: 'ready_for_sales', sphDocReadyAt: new Date().toISOString(), workflowEvent: 'ready_for_sales', nextAction: 'Sales menyampaikan penawaran ke klien' }, { note: 'SPH ready for sales', notify: { target: { username: s.salesOwner }, payload: { type: 'sph_ready', message: `SPH ${s.sphNo} untuk ${s.customer} sudah dibuat Admin dan siap disampaikan ke klien.`, link: { view: 'sph', id: s.id } } } })} className="btn-primary" style={{fontSize: '10px', padding: '6px 10px', background: 'var(--ims-accent-2)'}} title="Kirim SPH ke sales — sales akan mendapat notifikasi & bisa unduh PDF">Kirim ke Sales</button>}
+                    if (s.sphWorkflowStatus === 'requested') onWorkflowUpdate(s.id, { sphWorkflowStatus: 'admin_drafting', sphDraftStartedAt: new Date().toISOString(), workflowEvent: 'admin_drafting', nextAction: isSpp ? 'Admin membuat SPP dengan template HNTI' : 'Admin membuat SPH dengan template HNTI' }, { note: `Admin mulai membuat ${kindLabel}` });
+                  }} className="btn-primary" style={{fontSize: '10px', padding: '6px 10px'}} title={`Buka editor ${kindLabel} & isi otomatis dari template`}><Edit2 size={11} />Mulai {kindLabel}</button>}
+                  <button onClick={() => isSpp ? downloadSPPWord(s, employees, fmt, documentTemplates) : downloadSPHWord(s, employees, fmt, documentTemplates)} className="btn-ghost" style={{fontSize: '10px'}} title={`Unduh ${kindLabel} Word`}><Download size={11} />Unduh</button>
+                  {isAdminish && s.sphWorkflowStatus !== 'ready_for_sales' && <button onClick={() => onWorkflowUpdate(s.id, { sphWorkflowStatus: 'ready_for_sales', sphDocReadyAt: new Date().toISOString(), workflowEvent: 'ready_for_sales', nextAction: 'Sales menyampaikan penawaran ke klien' }, { note: `${kindLabel} ready for sales`, notify: { target: { username: s.salesOwner }, payload: { type: isSpp ? 'spp_ready' : 'sph_ready', message: `${kindLabel} ${s.sphNo} untuk ${s.customer} sudah dibuat Admin dan siap disampaikan ke klien.`, link: { view: 'sph', id: s.id } } } })} className="btn-primary" style={{fontSize: '10px', padding: '6px 10px', background: 'var(--ims-accent-2)'}} title={`Kirim ${kindLabel} ke sales`}>Kirim ke Sales</button>}
                 </div>
               </div>
             );

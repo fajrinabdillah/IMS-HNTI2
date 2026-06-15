@@ -1229,6 +1229,7 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
   const handleRequestSPH = (req) => {
     const today = new Date().toISOString().split('T')[0];
     const newId = 'req_sph_' + Date.now();
+    const isSpp = req.docKind === 'spp';
     const items = (Array.isArray(req.items) && req.items.length ? req.items : [req]).slice(0, 5).map((it, idx) => {
       const qty = Number(it.qty) || 1;
       const unitPrice = Number(it.unitPrice) || 0;
@@ -1240,7 +1241,7 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
     const totalValue = items.reduce((sum, it) => sum + (Number(it.totalValue) || 0), 0);
     const rec = syncSphRecordToProductMaster({
       id: newId,
-      sphNo: `REQ-SPH/${today.substring(0, 4)}/${String(Date.now()).slice(-4)}`,
+      sphNo: `${isSpp ? 'REQ-SPP' : 'REQ-SPH'}/${today.substring(0, 4)}/${String(Date.now()).slice(-4)}`,
       customer: req.customer,
       customerAddress: req.customerAddress || '',
       customerType: req.customerType || 'hospital',
@@ -1265,24 +1266,27 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
       installmentMonths: Number(req.installmentMonths) || 12,
       paymentScheme: req.projectType === 'kso' ? 'kso' : 'dp_installment',
       sphWorkflowStatus: 'requested',
-      docKind: req.docKind || 'sph', // 'sph' | 'spp'
+      docKind: isSpp ? 'spp' : 'sph',
       requesterId: session.username, // untuk RBAC download & TTD requester
       sphWorkflowStatus2: 'requested',
       sphRequestedAt: new Date().toISOString(),
       sphRequestedBy: session.username,
-      nextAction: req.docKind === 'spp' ? 'Admin membuat SPP dengan template HNTI' : 'Admin membuat SPH dengan template HNTI',
+      nextAction: isSpp ? 'Admin membuat SPP dengan template HNTI' : 'Admin membuat SPH dengan template HNTI',
       lastUpdate: today,
       poStatus: null,
       paymentHistory: [],
-      stageHistory: [{ from: null, to: 'request_sph', by: session.username, at: new Date().toISOString() }],
+      stageHistory: [{ from: null, to: isSpp ? 'request_spp' : 'request_sph', by: session.username, at: new Date().toISOString() }],
     }, products);
     setData(prev => [...prev, rec]);
-    const kindLabel = (req.docKind === 'spp') ? 'SPP' : 'SPH';
-    notify({ role: 'admin' }, {
-      type: 'sph_request',
+    const kindLabel = isSpp ? 'SPP' : 'SPH';
+    const notifType = isSpp ? 'spp_request' : 'sph_request';
+    const notifPayload = {
+      type: notifType,
       message: `Request ${kindLabel} baru dari ${session.name}: ${rec.customer} · ${rec.subModality}.`,
       link: { view: 'sph', id: newId },
-    }, { username: session.username, role: session.role });
+    };
+    const fromUser = { username: session.username, role: session.role };
+    ['admin', 'gm', 'manager_ops'].forEach(role => notify({ role }, notifPayload, fromUser));
     logAction({ module: 'sph', action: 'create', entityId: newId, entityLabel: `${rec.sphNo} · ${rec.customer}`, note: `Request ${kindLabel} submitted by sales` });
   };
   // Request SPP = sama dengan SPH tapi docKind='spp'

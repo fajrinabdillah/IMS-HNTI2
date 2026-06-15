@@ -68,7 +68,7 @@ function countUnreadNotifications(notifications, session) {
 // Judul OS notification yang profesional, dipetakan dari tipe notifikasi internal.
 const NOTIF_TITLE_MAP = {
   id: {
-    sph_request: 'Permintaan SPH Baru', sph_ready: 'SPH Siap Dikirim', sph_sent: 'SPH Terkirim',
+    sph_request: 'Permintaan SPH Baru', spp_request: 'Permintaan SPP Baru', sph_ready: 'SPH Siap Dikirim', spp_ready: 'SPP Siap Dikirim', sph_sent: 'SPH Terkirim',
     po_won: 'PO Dimenangkan', dp_paid: 'DP / Deposit Diterima', dp_followup: 'Follow-up DP',
     invoice_ready: 'Invoice Siap', billing_due: 'Tagihan Jatuh Tempo', pnbp_due: 'PNBP Jatuh Tempo',
     install_pending: 'Instalasi Menunggu', training_scheduled: 'Jadwal Training', shipping_arrived: 'Barang Tiba',
@@ -76,7 +76,7 @@ const NOTIF_TITLE_MAP = {
     system: 'Notifikasi IMS',
   },
   en: {
-    sph_request: 'New SPH Request', sph_ready: 'SPH Ready to Send', sph_sent: 'SPH Sent',
+    sph_request: 'New SPH Request', spp_request: 'New SPP Request', sph_ready: 'SPH Ready to Send', spp_ready: 'SPP Ready to Send', sph_sent: 'SPH Sent',
     po_won: 'PO Won', dp_paid: 'DP / Deposit Received', dp_followup: 'DP Follow-up',
     invoice_ready: 'Invoice Ready', billing_due: 'Billing Due', pnbp_due: 'PNBP Due',
     install_pending: 'Installation Pending', training_scheduled: 'Training Scheduled', shipping_arrived: 'Goods Arrived',

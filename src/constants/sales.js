@@ -4,10 +4,10 @@ const KSO_INVESTOR_PCT_OPTIONS = (() => {
 })();
 const KSO_YEAR_OPTIONS = [5, 6, 7, 8, 9, 10];
 const CICILAN_DP_OPTIONS = (() => {
-  const arr = []; for (let p = 10; p <= 100; p += 5) arr.push(p); return arr;
+  const arr = []; for (let p = 0; p <= 100; p++) arr.push(p); return arr;
 })();
 const CICILAN_TERM_OPTIONS = (() => {
-  const arr = []; for (let m = 1; m <= 36; m++) arr.push(m); return arr;
+  const arr = []; for (let m = 1; m <= 60; m++) arr.push(m); return arr;
 })();
 const PRODUCT_MASTER_SEED = [
   // === MRI (ANKE / Shenzhen Anke High-Tech, China) ===

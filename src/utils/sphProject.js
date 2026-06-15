@@ -44,7 +44,7 @@ const PROJECT_SYNC_FIELDS = [
   'dpPaid', 'finalPaid', 'dpConfirmedAt', 'dpDecisionAt', 'dpFollowupAt',
   'financePoNotifiedAt', 'financeDocsStatus', 'manufacturePoCreatedAt',
   'factoryPoSentAt', 'factoryDpPaidAt', 'supplierDpPaidAt',
-  'paymentScheme', 'dpPercent', 'installmentMonths', 'opsPercent',
+  'paymentScheme', 'dpPercent', 'installmentMonths', 'opsPercent', 'opsCostAmount', 'opsCostMode',
 ];
 
 /**

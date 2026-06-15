@@ -180,7 +180,7 @@ const computeInvoiceSchedule = (sph, baseDateOverride) => {
   }
   if (dm === 'cicilan') {
     const dpPct = Math.max(10, Math.min(100, Number(sph.dpPercent) || 30));
-    const termCount = Math.max(1, Math.min(36, Number(sph.installmentMonths) || 12));
+    const termCount = Math.max(1, Math.min(60, Number(sph.installmentMonths) || 12));
     const dpAmt = total * (dpPct / 100);
     const invoices = [{ seq: 1, date: baseDate, type: 'dp', label: `DP ${dpPct}%`, amount: dpAmt }];
     if (termCount > 1) {
@@ -469,16 +469,28 @@ function normalizePoWon(arr) {
     return s;
   });
 }
+function resolveOpsCost(sph) {
+  const totalValue = Number(sph?.totalValue) || 0;
+  const opsPercent = sph?.opsPercent !== undefined ? sph.opsPercent : OPS_COST_DEFAULT;
+  const manualAmount = Number(sph?.opsCostAmount) || 0;
+  const useManual = sph?.opsCostMode === 'manual' && manualAmount > 0;
+  const opsCostValue = useManual ? manualAmount : totalValue * opsPercent;
+  return {
+    opsCostValue,
+    opsPercent,
+    opsCostAmount: manualAmount > 0 ? manualAmount : null,
+    opsCostMode: useManual ? 'manual' : 'percent',
+  };
+}
 function calcIncentive(sph) {
   const grossPrice = sph.totalValue || 0;
   const dpp = grossPrice / (1 + PPN_RATE);
   const ppn = grossPrice - dpp;
   const pph23 = dpp * PPH23_RATE;
-  const opsPercent = sph.opsPercent !== undefined ? sph.opsPercent : OPS_COST_DEFAULT;
-  const opsCost = grossPrice * opsPercent;
-  const netSales = dpp - pph23 - opsCost;
+  const ops = resolveOpsCost(sph);
+  const netSales = dpp - pph23 - ops.opsCostValue;
   const incentive = netSales * INCENTIVE_RATE;
-  return { grossPrice, dpp, ppn, pph23, opsCost, opsPercent, netSales, incentive };
+  return { grossPrice, dpp, ppn, pph23, opsCost: ops.opsCostValue, opsPercent: ops.opsPercent, opsCostAmount: ops.opsCostAmount, opsCostMode: ops.opsCostMode, netSales, incentive };
 }
 function getIncentiveStatus(sph) {
   if (sph.poStatus !== 'issued') return null;
@@ -696,4 +708,4 @@ function getPaymentSummary(p) {
   return { schedule, totalDue, totalPaid, outstanding, pctPaid, installmentsPaid, installmentsExpected };
 }
 
-export { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, STATIC_TECH_ORDER, resolveEmpName, resolveNamesInText, SALES_META_BY_ID, employeeSalesId, getActiveSalesTeam, activeSalesIdSet, normalizeSalesOwnedRows, isLiveEmployeeUsername, normalizeEmployeeOwnedRows, detectPaymentScheme, resolveCustomerSector, resolveDealModel, _addMonthsISO, computeInvoiceSchedule, resolveProductId, normalizeProduct, getRegStages, sanitizeRegStageHistory, migrateRegRecord, normalizeImportPipelineStatus, importPipelineLabel, projectHasDpReceived, manifestMatchesProject, appendStageHistoryEntry, getStageMetrics, normalizeSphStageId, defaultSphStageForStatus, applySphStageStatusCoherence, normalizeSphStageRecords, normalizePoWon, calcIncentive, getIncentiveStatus, getNetMargin, calcNetProfit, getProductFileUrl, normalizeProductLookupText, getFactoryProductionDays, addDaysIso, getFactoryProductionInfo, resolveProductRecord, syncSphItemToProductMaster, syncSphRecordToProductMaster, syncSphDataToProductMaster, effectiveScheme, generatePaymentSchedule, getPaymentSummary };
+export { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, STATIC_TECH_ORDER, resolveEmpName, resolveNamesInText, SALES_META_BY_ID, employeeSalesId, getActiveSalesTeam, activeSalesIdSet, normalizeSalesOwnedRows, isLiveEmployeeUsername, normalizeEmployeeOwnedRows, detectPaymentScheme, resolveCustomerSector, resolveDealModel, _addMonthsISO, computeInvoiceSchedule, resolveProductId, normalizeProduct, getRegStages, sanitizeRegStageHistory, migrateRegRecord, normalizeImportPipelineStatus, importPipelineLabel, projectHasDpReceived, manifestMatchesProject, appendStageHistoryEntry, getStageMetrics, normalizeSphStageId, defaultSphStageForStatus, applySphStageStatusCoherence, normalizeSphStageRecords, normalizePoWon, resolveOpsCost, calcIncentive, getIncentiveStatus, getNetMargin, calcNetProfit, getProductFileUrl, normalizeProductLookupText, getFactoryProductionDays, addDaysIso, getFactoryProductionInfo, resolveProductRecord, syncSphItemToProductMaster, syncSphRecordToProductMaster, syncSphDataToProductMaster, effectiveScheme, generatePaymentSchedule, getPaymentSummary };

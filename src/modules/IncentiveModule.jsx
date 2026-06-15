@@ -5,7 +5,7 @@ import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, 
 import { ChartTooltip, Td, Th } from '../components/ui.jsx';
 import { DASHBOARD_GLASS, DashboardHero, DashboardKpiGrid, GlassPanel } from '../components/FuturisticDashboardShell.jsx';
 import { CHART_COLORS } from '../constants/theme.js';
-import { calcIncentive, getActiveSalesTeam, getIncentiveStatus } from '../utils/domain.js';
+import { calcIncentive, getActiveSalesTeam, getIncentiveStatus, resolveOpsCost } from '../utils/domain.js';
 import { toFinanceAccounts } from '../utils/sphProject.js';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -150,12 +150,14 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
     return { visibleData, poDeals, dealsWithIncentive, totalEstimated, totalReady, totalPaid, totalKsoSplit, ytdTotal, leaderboard };
   }, [data, isSales, session.salesId, incFilterSales, salesTeam]);
   const { poDeals, dealsWithIncentive, totalEstimated, totalReady, totalPaid, ytdTotal, leaderboard } = incentiveStats;
-
   const [selectedDeal, setSelectedDeal] = useState(null);
+  const liveSelectedDeal = selectedDeal ? (dealsWithIncentive.find(d => d.id === selectedDeal.id) || selectedDeal) : null;
 
-  const updateOpsPercent = (id, opsPercent) => {
+  const updateOpsCost = (accountId, patch) => {
     if (!canEdit && !isSales) return;
-    setData(prev => prev.map(s => s.id === id ? { ...s, opsPercent: Math.max(0, Math.min(0.5, opsPercent)) } : s));
+    setData(prev => prev.map(s => (s.id === accountId || s.financeAccountId === accountId)
+      ? { ...s, ...patch }
+      : s));
   };
 
   return (
@@ -334,28 +336,40 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
       </>
       )}
 
-      {selectedDeal && (
+      {liveSelectedDeal && (
         <div className="modal-overlay" onClick={() => setSelectedDeal(null)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '580px'}}>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px'}}>
               <div>
                 <div style={{fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--ims-text-2)', marginBottom: '4px'}}>{t.inc_detail_title}</div>
-                <h2 className="serif" style={{fontSize: '22px', margin: 0, fontWeight: 500}}>{selectedDeal.customer}</h2>
-                <div style={{fontSize: '12px', color: 'var(--ims-text-2)', marginTop: '4px'}}>{selectedDeal.modality} · {selectedDeal.subModality}</div>
+                <h2 className="serif" style={{fontSize: '22px', margin: 0, fontWeight: 500}}>{liveSelectedDeal.customer}</h2>
+                <div style={{fontSize: '12px', color: 'var(--ims-text-2)', marginTop: '4px'}}>{liveSelectedDeal.modality} · {liveSelectedDeal.subModality}</div>
               </div>
               <button onClick={() => setSelectedDeal(null)} style={{background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--ims-text-2)'}}><X size={20} /></button>
             </div>
             <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '12px'}}>
-              <div><div style={{fontSize: '10px', color: 'var(--ims-text-2)', textTransform: 'uppercase', letterSpacing: '0.1em'}}>{t.value}</div><div className="mono" style={{fontWeight: 600, marginTop: '4px'}}>{fmtFull(selectedDeal.totalValue)}</div></div>
-              <div><div style={{fontSize: '10px', color: 'var(--ims-text-2)', textTransform: 'uppercase', letterSpacing: '0.1em'}}>{t.inc_net_sales}</div><div className="mono" style={{fontWeight: 600, marginTop: '4px'}}>{fmtFull(selectedDeal._calc.netSales)}</div></div>
-              <div><div style={{fontSize: '10px', color: 'var(--ims-text-2)', textTransform: 'uppercase', letterSpacing: '0.1em'}}>{t.inc_amount}</div><div className="mono" style={{fontWeight: 700, marginTop: '4px', color: 'var(--ims-accent)'}}>{fmtFull(selectedDeal._calc.incentive)}</div></div>
-              <div><div style={{fontSize: '10px', color: 'var(--ims-text-2)', textTransform: 'uppercase', letterSpacing: '0.1em'}}>{t.inc_status_legend.replace(' :', '')}</div><div style={{marginTop: '4px'}}>{selectedDeal._stat && <span style={{padding: '3px 8px', fontSize: '10px', background: selectedDeal._stat.color + '25', color: selectedDeal._stat.color, fontWeight: 600}}>{t[selectedDeal._stat.label]}</span>}</div></div>
+              <div><div style={{fontSize: '10px', color: 'var(--ims-text-2)', textTransform: 'uppercase', letterSpacing: '0.1em'}}>{t.value}</div><div className="mono" style={{fontWeight: 600, marginTop: '4px'}}>{fmtFull(liveSelectedDeal.totalValue)}</div></div>
+              <div><div style={{fontSize: '10px', color: 'var(--ims-text-2)', textTransform: 'uppercase', letterSpacing: '0.1em'}}>{t.inc_net_sales}</div><div className="mono" style={{fontWeight: 600, marginTop: '4px'}}>{fmtFull(liveSelectedDeal._calc.netSales)}</div></div>
+              <div><div style={{fontSize: '10px', color: 'var(--ims-text-2)', textTransform: 'uppercase', letterSpacing: '0.1em'}}>{t.inc_amount}</div><div className="mono" style={{fontWeight: 700, marginTop: '4px', color: 'var(--ims-accent)'}}>{fmtFull(liveSelectedDeal._calc.incentive)}</div></div>
+              <div><div style={{fontSize: '10px', color: 'var(--ims-text-2)', textTransform: 'uppercase', letterSpacing: '0.1em'}}>{t.inc_status_legend.replace(' :', '')}</div><div style={{marginTop: '4px'}}>{liveSelectedDeal._stat && <span style={{padding: '3px 8px', fontSize: '10px', background: liveSelectedDeal._stat.color + '25', color: liveSelectedDeal._stat.color, fontWeight: 600}}>{t[liveSelectedDeal._stat.label]}</span>}</div></div>
             </div>
             {(canEdit || isSales) && (
               <div style={{marginTop: '18px', paddingTop: '18px', borderTop: '1px solid var(--ims-border)'}}>
-                <label style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600, display: 'block', marginBottom: '6px'}}>{t.inc_ops_percent}</label>
-                <input type="range" min="0" max="50" step="1" value={Math.round((selectedDeal.opsPercent || 0) * 100)} onChange={e => updateOpsPercent(selectedDeal.id, parseInt(e.target.value) / 100)} style={{width: '100%'}} />
-                <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '4px'}}>{Math.round((selectedDeal.opsPercent || 0) * 100)}%</div>
+                <div style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600, marginBottom: '10px'}}>{t.inc_ops_percent}</div>
+                <label style={{fontSize: '11px', color: 'var(--ims-text-2)', display: 'block', marginBottom: '6px'}}>{lang === 'id' ? 'Persentase dari nilai proyek' : 'Percentage of project value'}</label>
+                <input type="range" min="0" max="50" step="0.5" value={Math.round((liveSelectedDeal.opsPercent ?? resolveOpsCost(liveSelectedDeal).opsPercent) * 1000) / 10} onChange={e => updateOpsCost(liveSelectedDeal.id, { opsPercent: Math.max(0, Math.min(0.5, parseFloat(e.target.value) / 100)), opsCostMode: 'percent' })} style={{width: '100%'}} disabled={liveSelectedDeal.opsCostMode === 'manual' && liveSelectedDeal.opsCostAmount > 0} />
+                <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '4px', marginBottom: '14px'}}>{(((liveSelectedDeal.opsPercent ?? resolveOpsCost(liveSelectedDeal).opsPercent) * 100)).toFixed(1)}%</div>
+                <label style={{fontSize: '11px', color: 'var(--ims-text-2)', display: 'block', marginBottom: '6px'}}>{lang === 'id' ? 'Atau input manual (Rp)' : 'Or manual amount (IDR)'}</label>
+                <input type="number" min="0" step="1000000" value={liveSelectedDeal.opsCostAmount || ''} placeholder={lang === 'id' ? 'Kosongkan untuk pakai %' : 'Leave empty to use %'} onChange={e => {
+                  const raw = e.target.value;
+                  const amt = raw === '' ? null : Math.max(0, Number(raw) || 0);
+                  updateOpsCost(liveSelectedDeal.id, amt > 0 ? { opsCostAmount: amt, opsCostMode: 'manual' } : { opsCostAmount: null, opsCostMode: 'percent' });
+                }} style={{width: '100%', fontSize: '12px', padding: '8px 10px'}} />
+                <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '8px'}}>
+                  {lang === 'id' ? 'Biaya ops dipakai' : 'Ops cost used'}: <span className="mono" style={{fontWeight: 700, color: 'var(--ims-gold)'}}>{fmt(resolveOpsCost(liveSelectedDeal).opsCostValue)}</span>
+                  {' · '}{resolveOpsCost(liveSelectedDeal).opsCostMode === 'manual' ? (lang === 'id' ? 'sumber: manual' : 'source: manual') : (lang === 'id' ? 'sumber: %' : 'source: %')}
+                  {' · '}{lang === 'id' ? 'sinkron modul Finance' : 'synced with Finance'}
+                </div>
               </div>
             )}
           </div>

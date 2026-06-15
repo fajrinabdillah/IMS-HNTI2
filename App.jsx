@@ -128,13 +128,13 @@ SEED_NAME_TO_USERNAME['Rudi Susanto'] = 'teknisi2';    // → Muhammad Yusuf
 //   dealModel:      'cicilan' | 'kso' | 'ekatalog' | 'tender'
 //                                                  — diturunkan dari paymentScheme + projectType bila kosong
 //   dpPercent:      0–100 (sudah ada, dipakai utk cicilan)
-//   installmentMonths: 1–36 untuk cicilan, 60–120 untuk kso (dihitung dari ksoYears)
+//   installmentMonths: 1–60 untuk cicilan, 60–120 untuk kso (dihitung dari ksoYears)
 //   ksoYears:       5–10 (baru)
 //   ksoInvestorPct: 60.0–80.0 step 0.5 (baru) — porsi HNTI; porsi RS = 100 − ksoInvestorPct
 //
 // Helper resolveDealModel: 1 sumber kebenaran untuk seluruh modul hilir
 // Daftar opsi KSO investor% — 60.0, 60.5, …, 80.0 (41 opsi)
-// Opsi DP cicilan — 10, 15, 20, …, 100 (step 5%)
+// Opsi DP cicilan — 0, 1, 2, …, 100 (step 1%)
 
 // Tambah N bulan ke string tanggal 'YYYY-MM-DD'. Pakai UTC ops agar konsisten.
 

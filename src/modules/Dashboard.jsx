@@ -3,8 +3,8 @@ import { useMemo } from 'react';
 import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { BUSINESS_PARTNERS, MODALITY_COLORS, PROJECT_TYPES, STAGES } from '../constants/sales.js';
 import { ChartTooltip, KPICard, PieCard } from '../components/ui.jsx';
-import { OPS_COST_DEFAULT } from '../constants/finance.js';
-import { getActiveSalesTeam, resolveEmpName } from '../utils/domain.js';
+import { CHART_COLORS } from '../constants/theme.js';
+import { getActiveSalesTeam, resolveEmpName, resolveOpsCost } from '../utils/domain.js';
 import { currentYear } from '../utils/format.js';
 import { groupSphProjects, sumGroupedProjectValue, sumWeightedGroupedPipeline } from '../utils/sphProject.js';
 import { isBillableSphRow } from '../utils/sphPackage.js';
@@ -71,7 +71,7 @@ function Dashboard({ data, reports, products, t, lang, session, fmt, employees =
         month: m,
         pipeline: sumGroupedProjectValue(monthData),
         weighted: sumWeightedGroupedPipeline(monthData),
-        biayaOperasional: poAccounts.reduce((s, p) => s + (p.totalValue || 0) * (p.opsPercent !== undefined ? p.opsPercent : OPS_COST_DEFAULT), 0),
+        biayaOperasional: poAccounts.reduce((s, p) => s + resolveOpsCost(p).opsCostValue, 0),
       };
     });
   }, [data]);

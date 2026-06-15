@@ -160,7 +160,7 @@ const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employ
           ))}
           <Field label="DP %">
             <select value={form.dpPercent} onChange={e => update('dpPercent', Number(e.target.value))}>
-              {Array.from({ length: 21 }, (_, i) => i * 5).map(p => <option key={p} value={p}>{p}%</option>)}
+              {CICILAN_DP_OPTIONS.map(p => <option key={p} value={p}>{p}%</option>)}
             </select>
           </Field>
           <Field label={lang === 'id' ? 'Termin / Tenor Bulan' : 'Terms / Months'}><input type="number" value={form.installmentMonths} onChange={e => update('installmentMonths', e.target.value)} /></Field>
@@ -2602,7 +2602,7 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
           next.paymentScheme = 'dp_installment';
           next.projectType = sec === 'pemerintah' ? 'bumn' : 'private';
           if (!next.dpPercent) next.dpPercent = 30;
-          if (!next.installmentMonths || next.installmentMonths > 36) next.installmentMonths = 12;
+          if (!next.installmentMonths || next.installmentMonths > 60) next.installmentMonths = 12;
         } else if (v === 'kso') {
           next.paymentScheme = 'kso';
           next.projectType = 'kso';

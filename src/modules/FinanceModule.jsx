@@ -8,7 +8,7 @@ import { DEFAULT_DOCUMENT_TEMPLATES } from '../constants/docs.js';
 import { OPS_COST_DEFAULT, NET_MARGIN_BY_MODALITY, NET_MARGIN_DEFAULT } from '../constants/finance.js';
 import { MODALITY_COLORS } from '../constants/sales.js';
 import { CHART_COLORS } from '../constants/theme.js';
-import { effectiveScheme, getPaymentSummary, calcNetProfit, generatePaymentSchedule } from '../utils/domain.js';
+import { effectiveScheme, getPaymentSummary, calcNetProfit, generatePaymentSchedule, resolveOpsCost } from '../utils/domain.js';
 import { formatDuration, currentYear } from '../utils/format.js';
 import { DASHBOARD_GLASS, DashboardHero, GlassPanel } from '../components/FuturisticDashboardShell.jsx';
 import { buildEditorTemplate, downloadCSV } from '../utils/documents.js';
@@ -192,6 +192,10 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
   const payImportRef = useRef(null);
   const [payImportMsg, setPayImportMsg] = useState(null);
   const updateSphData = (mapper) => setData(prev => normalizeSphProjects(mapper(prev)));
+  const patchProjectOpsCost = (prev, p, patch) => {
+    const memberIds = new Set((p.projectLines || []).map(l => l.id));
+    return prev.map(x => (x.id === p.id || memberIds.has(x.id) || x.financeAccountId === p.id) ? { ...x, ...patch } : x);
+  };
 
   const handleImportPayments = (e) => {
     const file = e.target.files && e.target.files[0];
@@ -255,11 +259,14 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
     });
   }, [poProjects, schemeFilter, financeSearch, financeYear, financeProductFilter, financeSort]);
 
-  // Biaya operasional per proyek (sinkron dgn modul Insentif: opsPercent, default 5%).
-  // Nilai (biaya ops) = totalValue × opsPercent. TIDAK mempengaruhi nilai tagihan.
+  // Biaya operasional per proyek (sinkron dgn modul Insentif: opsPercent / opsCostAmount + opsCostMode).
   const opsCostRows = useMemo(() => filteredPoProjects.map(p => {
-    const opsPercent = p.opsPercent !== undefined ? p.opsPercent : OPS_COST_DEFAULT;
-    return { id: p.id, sphNo: p.sphNo, customer: p.customer, modality: p.modality || '', subModality: p.subModality || '', issuedDate: p.issuedDate || p.poIssuedAt || p.lastUpdate || '', totalValue: Number(p.totalValue) || 0, opsPercent, opsCostValue: (Number(p.totalValue) || 0) * opsPercent };
+    const ops = resolveOpsCost(p);
+    return {
+      id: p.id, sphNo: p.sphNo, customer: p.customer, modality: p.modality || '', subModality: p.subModality || '',
+      issuedDate: p.issuedDate || p.poIssuedAt || p.lastUpdate || '', totalValue: Number(p.totalValue) || 0,
+      opsPercent: ops.opsPercent, opsCostAmount: ops.opsCostAmount, opsCostMode: ops.opsCostMode, opsCostValue: ops.opsCostValue,
+    };
   }), [filteredPoProjects]);
   const totalOpsCost = useMemo(() => opsCostRows.reduce((s, r) => s + r.opsCostValue, 0), [opsCostRows]);
 
@@ -580,6 +587,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
                 <Th>{t.sph_number}</Th><Th>{t.customer}</Th>
                 <Th align="right">{lang === 'id' ? 'Nilai SPH' : 'SPH Value'}</Th>
                 <Th align="right">{lang === 'id' ? 'Biaya Ops %' : 'Ops %'}</Th>
+                <Th align="right">{lang === 'id' ? 'Biaya Ops (Manual)' : 'Ops (Manual)'}</Th>
                 <Th align="right">{lang === 'id' ? 'Nilai (Biaya Ops)' : 'Value (Ops Cost)'}</Th>
               </tr></thead>
               <tbody>
@@ -589,13 +597,14 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
                     <Td>{r.customer}</Td>
                     <Td align="right"><span className="mono">{fmt(r.totalValue)}</span></Td>
                     <Td align="right"><span className="mono">{(r.opsPercent * 100).toFixed(1)}%</span></Td>
+                    <Td align="right"><span className="mono">{r.opsCostMode === 'manual' && r.opsCostAmount ? fmt(r.opsCostAmount) : '—'}</span></Td>
                     <Td align="right"><span className="mono" style={{color: 'var(--ims-gold)', fontWeight: 600}}>{fmt(r.opsCostValue)}</span></Td>
                   </tr>
                 ))}
-                {opsCostRows.length === 0 && <tr><td colSpan={5} className="empty-state">{lang === 'id' ? 'Belum ada proyek' : 'No projects'}</td></tr>}
+                {opsCostRows.length === 0 && <tr><td colSpan={6} className="empty-state">{lang === 'id' ? 'Belum ada proyek' : 'No projects'}</td></tr>}
               </tbody>
               <tfoot><tr style={{borderTop: '2px solid var(--ims-border)', background: 'var(--ims-bg-card-2)'}}>
-                <Td><strong>{lang === 'id' ? 'TOTAL' : 'TOTAL'}</strong></Td><Td></Td><Td></Td><Td></Td>
+                <Td><strong>{lang === 'id' ? 'TOTAL' : 'TOTAL'}</strong></Td><Td></Td><Td></Td><Td></Td><Td></Td>
                 <Td align="right"><span className="mono" style={{fontWeight: 700, color: 'var(--ims-gold)'}}>{fmt(totalOpsCost)}</span></Td>
               </tr></tfoot>
             </table>
@@ -678,6 +687,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
               <Th align="right">{lang === 'id' ? 'Diterima' : 'Received'}</Th>
               <Th align="right">{lang === 'id' ? 'Tertunggak' : 'Outstanding'}</Th>
               <Th align="right">{lang === 'id' ? 'Biaya Ops %' : 'Ops Cost %'}</Th>
+              <Th align="right">{lang === 'id' ? 'Biaya Ops (Manual)' : 'Ops (Manual)'}</Th>
               <Th align="right">{lang === 'id' ? 'Nilai (Biaya Ops)' : 'Value (Ops Cost)'}</Th>
               <Th align="center">{lang === 'id' ? 'Progress' : 'Progress'}</Th>
               {canEdit && <Th align="center">{lang === 'id' ? 'Aksi' : 'Action'}</Th>}
@@ -688,6 +698,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
               const sum = getPaymentSummary(p);
               const isExpanded = expandedPo === p.id;
               const sch = effectiveScheme(p);
+              const ops = resolveOpsCost(p);
               return (
                 <React.Fragment key={p.id}>
                   <tr className="hover-row" style={{borderTop: '1px solid var(--ims-border)'}}>
@@ -711,12 +722,19 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
                     <Td align="right"><span className="mono" style={{color: sum.outstanding > 0 ? '#c03030' : 'var(--ims-text-2)', fontWeight: 500}}>{fmt(sum.outstanding)}</span></Td>
                     <Td align="right">
                       {canEdit ? (
-                        <input type="number" step="0.5" min="0" max="100" value={((p.opsPercent !== undefined ? p.opsPercent : OPS_COST_DEFAULT) * 100)} onChange={e => { const pct = (Number(e.target.value) || 0) / 100; const memberIds = new Set((p.projectLines || []).map(l => l.id)); updateSphData(prev => prev.map(x => (x.id === p.id || memberIds.has(x.id)) ? { ...x, opsPercent: pct } : x)); }} style={{width: '64px', textAlign: 'right', fontSize: '11px', padding: '4px 6px'}} title={lang === 'id' ? 'Biaya operasional proyek (sinkron dengan modul Insentif)' : 'Project operational cost (synced with Incentive)'} />
+                        <input type="number" step="0.1" min="0" max="100" value={((p.opsPercent !== undefined ? p.opsPercent : OPS_COST_DEFAULT) * 100)} onChange={e => { const pct = (Number(e.target.value) || 0) / 100; updateSphData(prev => patchProjectOpsCost(prev, p, { opsPercent: pct, opsCostMode: 'percent' })); }} style={{width: '64px', textAlign: 'right', fontSize: '11px', padding: '4px 6px', opacity: p.opsCostMode === 'manual' ? 0.55 : 1}} title={lang === 'id' ? 'Biaya operasional % (sinkron modul Insentif)' : 'Operational cost % (synced with Incentive)'} />
                       ) : (
                         <span className="mono" style={{fontSize: '11px', color: 'var(--ims-text-2)'}}>{(((p.opsPercent !== undefined ? p.opsPercent : OPS_COST_DEFAULT) * 100)).toFixed(1)}%</span>
                       )}
                     </Td>
-                    <Td align="right"><span className="mono" style={{color: 'var(--ims-gold)', fontWeight: 600}}>{fmt((p.totalValue || 0) * (p.opsPercent !== undefined ? p.opsPercent : OPS_COST_DEFAULT))}</span></Td>
+                    <Td align="right">
+                      {canEdit ? (
+                        <input type="number" min="0" step="1000000" value={p.opsCostAmount || ''} placeholder="—" onChange={e => { const raw = e.target.value; const amt = raw === '' ? null : Math.max(0, Number(raw) || 0); updateSphData(prev => patchProjectOpsCost(prev, p, amt > 0 ? { opsCostAmount: amt, opsCostMode: 'manual' } : { opsCostAmount: null, opsCostMode: 'percent' })); }} style={{width: '108px', textAlign: 'right', fontSize: '11px', padding: '4px 6px', opacity: p.opsCostMode === 'manual' ? 1 : 0.55}} title={lang === 'id' ? 'Input manual biaya operasional (prioritas jika diisi)' : 'Manual operational cost (used when filled)'} />
+                      ) : (
+                        <span className="mono" style={{fontSize: '11px', color: 'var(--ims-text-2)'}}>{p.opsCostMode === 'manual' && p.opsCostAmount ? fmt(p.opsCostAmount) : '—'}</span>
+                      )}
+                    </Td>
+                    <Td align="right"><span className="mono" style={{color: 'var(--ims-gold)', fontWeight: 600}}>{fmt(ops.opsCostValue)}</span></Td>
                     <Td align="center">
                       <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px'}}>
                         <div style={{width: '80px', height: '6px', background: 'var(--ims-border)', overflow: 'hidden'}}>

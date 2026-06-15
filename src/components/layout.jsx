@@ -124,7 +124,7 @@ function Header({ session, setSession, lang, setLang, theme = 've', setTheme, vi
             style={{background: pushStatus === 'granted' ? 'rgba(66,217,139,0.12)' : 'transparent', border: '1px solid var(--ims-border)', padding: '6px 9px', fontFamily: 'inherit', fontSize: '10px', cursor: (pushBusy || pushStatus === 'unsupported' || pushStatus === 'denied') ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '5px', color: pushStatus === 'granted' ? 'var(--ims-accent)' : 'var(--ims-text-2)', fontWeight: 700, opacity: pushStatus === 'unsupported' ? 0.45 : 1}}
           >
             <Bell size={12} strokeWidth={1.8} />
-            <span className="hide-mobile">{pushBusy ? '...' : pushStatus === 'granted' ? 'Push' : 'Push Off'}</span>
+            <span>{pushBusy ? '...' : pushStatus === 'granted' ? (lang === 'id' ? 'Push HP' : 'Push') : (lang === 'id' ? 'Aktifkan Push' : 'Enable Push')}</span>
           </button>
           <NotificationBell notifications={notifications} setNotifications={setNotifications} session={session} t={t} lang={lang} setView={setView} />
           <button onClick={() => setLang(lang === 'id' ? 'en' : 'id')} style={{background: 'transparent', border: '1px solid var(--ims-border)', padding: '6px 10px', fontFamily: 'inherit', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', letterSpacing: '0.1em', color: 'var(--ims-text)', fontWeight: 500}}>

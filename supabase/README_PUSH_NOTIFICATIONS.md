@@ -63,11 +63,11 @@ Fondasi push notification sudah disiapkan di frontend, service worker, SQL, dan 
 
 ## Cara pakai di HP/laptop
 
-1. Buka IMS dari domain HTTPS.
-2. Login.
-3. Klik tombol `Push Off` di header.
-4. Pilih `Allow / Izinkan`.
-5. Setelah berubah menjadi `Push`, perangkat tersebut sudah terdaftar.
+1. Buka IMS dari domain HTTPS (disarankan **Add to Home Screen** di iPhone/Android).
+2. Login dengan akun apa pun (semua role: sales, admin, finance, GM, CEO, dll.).
+3. Izinkan notifikasi saat browser/PWA meminta permission (otomatis saat login).
+4. Jika belum aktif, klik tombol **Aktifkan Push** di header lalu pilih **Allow / Izinkan**.
+5. Setelah berubah menjadi **Push HP**, perangkat sudah terdaftar — notifikasi muncul meskipun app ditutup.
 
-Catatan: iPhone/iPad biasanya perlu IMS dipasang ke Home Screen sebagai PWA terlebih dahulu agar push notification web berjalan stabil.
+Catatan: iPhone/iPad perlu IMS dipasang ke Home Screen sebagai PWA agar push web stabil.
 

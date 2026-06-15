@@ -26,28 +26,56 @@ type PushRow = {
   subscription: unknown;
 };
 
-const LEADERSHIP_INBOX_ROLES = new Set(["gm", "manager_ops", "super_admin"]);
+/** Mirror client isNotificationForUser — all roles/devices that see in-app alert get push. */
+const LEADERSHIP_INBOX_ROLES = new Set(["gm", "manager_ops"]);
 const ADMIN_WORKFLOW_TYPES = new Set(["sph_request", "spp_request", "sph_ready", "spp_ready"]);
 
-function isTargetMatch(row: PushRow, target: Target = {}, payload: Record<string, unknown> = {}) {
-  if (target.username && row.username === target.username) return true;
-  if (target.role && row.role === target.role && !target.username) return true;
-  // Admin workflow alerts also push to GM, Ops Manager, and CEO devices.
-  if (target.role === "admin" && !target.username && LEADERSHIP_INBOX_ROLES.has(row.role)) {
-    const type = String(payload?.type || "");
-    if (ADMIN_WORKFLOW_TYPES.has(type)) return true;
+function isPushRecipient(row: PushRow, target: Target = {}, payload: Record<string, unknown> = {}) {
+  const type = String(payload?.type || "system");
+  const toRole = target.role || null;
+  const toUsername = target.username || null;
+
+  if (toUsername && row.username === toUsername) return true;
+  if (toRole && row.role === toRole && !toUsername) return true;
+  if (toRole === "admin" && !toUsername && LEADERSHIP_INBOX_ROLES.has(row.role) && ADMIN_WORKFLOW_TYPES.has(type)) {
+    return true;
   }
+  if (row.role === "super_admin" && (toRole || toUsername)) return true;
   return false;
 }
 
-function notificationUrl(link: any) {
+function notificationUrl(link: unknown) {
   if (!link || typeof link !== "object") return "/";
+  const l = link as Record<string, unknown>;
   const params = new URLSearchParams();
-  if (link.view) params.set("view", String(link.view));
-  if (link.id) params.set("id", String(link.id));
+  if (l.view) params.set("view", String(l.view));
+  if (l.id) params.set("id", String(l.id));
   const q = params.toString();
   return q ? `/?${q}` : "/";
 }
+
+const TITLE_MAP: Record<string, string> = {
+  sph_request: "Permintaan SPH Baru",
+  spp_request: "Permintaan SPP Baru",
+  sph_ready: "SPH Siap Dikirim",
+  spp_ready: "SPP Siap Dikirim",
+  sph_sent: "SPH Terkirim",
+  po_won: "PO Dimenangkan",
+  dp_paid: "DP / Deposit Diterima",
+  dp_followup: "Follow-up DP",
+  invoice_ready: "Invoice Siap",
+  billing_due: "Tagihan Jatuh Tempo",
+  pnbp_due: "PNBP Jatuh Tempo",
+  install_pending: "Instalasi Menunggu",
+  training_scheduled: "Jadwal Training",
+  shipping_arrived: "Barang Tiba",
+  factory_po_sent: "PO ke Pabrik Terkirim",
+  factory_dp_paid: "DP Pabrik Dibayar",
+  pib_paid: "PIB Terbayar",
+  factory_production: "Produksi Pabrik",
+  customs_sppb: "SPPB Customs",
+  system: "Notifikasi IMS",
+};
 
 async function fetchSubscriptions() {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?active=eq.true&select=id,username,role,endpoint,subscription`, {
@@ -85,20 +113,17 @@ serve(async (req) => {
     const target: Target = body.target || {};
     const payload = body.payload || {};
     const fromUser = body.fromUser || {};
-    const rows = (await fetchSubscriptions()).filter(row => isTargetMatch(row, target, payload));
 
-    const titleMap: Record<string, string> = {
-      sph_request: "Permintaan SPH Baru",
-      spp_request: "Permintaan SPP Baru",
-      sph_ready: "SPH Siap Dikirim",
-      spp_ready: "SPP Siap Dikirim",
-      po_won: "PO Dimenangkan",
-      dp_paid: "DP / Deposit Diterima",
-      invoice_ready: "Invoice Siap",
-    };
+    const matched = (await fetchSubscriptions()).filter((row) => isPushRecipient(row, target, payload));
+    const byEndpoint = new Map<string, PushRow>();
+    for (const row of matched) {
+      if (row.endpoint && !byEndpoint.has(row.endpoint)) byEndpoint.set(row.endpoint, row);
+    }
+    const rows = [...byEndpoint.values()];
+
     const type = String(payload.type || "system");
     const pushPayload = JSON.stringify({
-      title: payload.title || titleMap[type] || "IMS HNTI",
+      title: payload.title || TITLE_MAP[type] || "IMS HNTI",
       body: payload.message || payload.body || "Notifikasi baru",
       type,
       tag: payload.tag || type || "ims-hnti",
@@ -110,16 +135,18 @@ serve(async (req) => {
 
     const results = await Promise.allSettled(rows.map(async (row) => {
       try {
-        await webpush.sendNotification(row.subscription as any, pushPayload);
-        return { id: row.id, ok: true };
-      } catch (err: any) {
-        if (err?.statusCode === 404 || err?.statusCode === 410) await disableSubscription(row.endpoint);
-        return { id: row.id, ok: false, statusCode: err?.statusCode || null, message: err?.message || "send_failed" };
+        await webpush.sendNotification(row.subscription as webpush.PushSubscription, pushPayload);
+        return { id: row.id, username: row.username, role: row.role, ok: true };
+      } catch (err: unknown) {
+        const e = err as { statusCode?: number; message?: string };
+        if (e?.statusCode === 404 || e?.statusCode === 410) await disableSubscription(row.endpoint);
+        return { id: row.id, username: row.username, role: row.role, ok: false, statusCode: e?.statusCode || null, message: e?.message || "send_failed" };
       }
     }));
 
     return Response.json({ ok: true, matched: rows.length, results }, { headers: corsHeaders });
-  } catch (err: any) {
-    return Response.json({ ok: false, error: err?.message || "send_push_failed" }, { status: 500, headers: corsHeaders });
+  } catch (err: unknown) {
+    const e = err as { message?: string };
+    return Response.json({ ok: false, error: e?.message || "send_push_failed" }, { status: 500, headers: corsHeaders });
   }
 });

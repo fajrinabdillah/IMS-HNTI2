@@ -84,4 +84,12 @@ function getProjectStageRows(sph) {
   }));
 }
 
-export { SPH_WORKFLOW_LABELS, SPH_PROJECT_STAGE_STEPS, projectStageDate, getProjectStageRows };
+/** Status workflow request SPH/SPP yang masuk antrian Admin (bukan seluruh SPH aktif). */
+const ADMIN_QUEUE_STATUSES = new Set(['requested', 'admin_drafting', 'ready_for_sales']);
+
+function isAdminQueueRequest(row) {
+  if (!row || row.status === 'cancelled' || row.salesDownloadedAt) return false;
+  return ADMIN_QUEUE_STATUSES.has(row.sphWorkflowStatus);
+}
+
+export { SPH_WORKFLOW_LABELS, SPH_PROJECT_STAGE_STEPS, projectStageDate, getProjectStageRows, ADMIN_QUEUE_STATUSES, isAdminQueueRequest };

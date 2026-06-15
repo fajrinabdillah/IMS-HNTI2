@@ -15,7 +15,7 @@ import { IMS_THEMES, CHART_COLORS } from './src/constants/theme.js';
 import { SEED_FIELD_REPORTS, SEED_ISSUES, SEED_AKL_RECORDS, SEED_IMPORT_RECORDS, SEED_PENGALIHAN_RECORDS, SEED_PI_RECORDS, SEED_INSTALL_RECORDS, SEED_BAST_RECORDS, SEED_TRAINING_RECORDS, SEED_BUSINESS_TRIPS, SEED_BT_REALIZATIONS } from './src/constants/seedData.js';
 import { initialOf, formatCurrency, formatCurrencyFull, formatDateTime, parseSafeDateMs, dateOnlyFromValue, addDateOnlyDays, normalizeExternalUrl, formatDuration, inferMimeFromName, formatFileSize, escapeHtml, safeDocFilename, _normHdr, _num, _normDate } from './src/utils/format.js';
 import { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, STATIC_TECH_ORDER, resolveEmpName, resolveNamesInText, SALES_META_BY_ID, employeeSalesId, getActiveSalesTeam, activeSalesIdSet, normalizeSalesOwnedRows, isLiveEmployeeUsername, normalizeEmployeeOwnedRows, detectPaymentScheme, resolveCustomerSector, resolveDealModel, _addMonthsISO, computeInvoiceSchedule, resolveProductId, normalizeProduct, getRegStages, sanitizeRegStageHistory, migrateRegRecord, normalizeImportPipelineStatus, importPipelineLabel, projectHasDpReceived, manifestMatchesProject, appendStageHistoryEntry, getStageMetrics, applySphStageStatusCoherence, normalizeSphStageRecords, normalizePoWon, calcIncentive, getIncentiveStatus, getNetMargin, calcNetProfit, getProductFileUrl, normalizeProductLookupText, getFactoryProductionDays, addDaysIso, getFactoryProductionInfo, resolveProductRecord, syncSphRecordToProductMaster, syncSphDataToProductMaster, effectiveScheme, generatePaymentSchedule, getPaymentSummary } from './src/utils/domain.js';
-import { _memStore, _hasArtifactStorage, _hasLocalStorage, _SUPA_URL, _SUPA_KEY, _supaEnabled, _supaFetch, _supaSession, _SUPA_SESS_LS, _authFetch, _supaSignIn, _refreshInFlight, _supaRefreshTok, _supaSignOut, _restoreSupaSession, _getSupaTok, _supaReq, _pushVapidPublicKey, _urlBase64ToUint8Array, pushSupported, registerServiceWorker, savePushSubscription, enablePushNotifications, refreshPushSubscription, getPushPermissionStatus, sendServerPushNotification, _rtSocket, _rtHeartbeat, _rtRetryCount, _rtRetryTimer, _rtStatus, _setRtStatus, _hashStr, _recentWrites, _markRecentWrite, _isRecentSelfEcho, blockCloudApply, isCloudApplyBlocked, _rtJoinRef, _RT_TOPIC, _startRealtime, _scheduleRtRetry, _stopRealtime, _tokRefreshTimer, _startProactiveRefresh, _stopProactiveRefresh, storeGet, storeSet, storeDel, _persistPending, _persistTimer, debouncedStoreSet, flushPersist } from './src/utils/storage.js';
+import { _memStore, _hasArtifactStorage, _hasLocalStorage, _SUPA_URL, _SUPA_KEY, _supaEnabled, _supaFetch, _supaSession, _SUPA_SESS_LS, _authFetch, _supaSignIn, _refreshInFlight, _supaRefreshTok, _supaSignOut, _restoreSupaSession, _getSupaTok, _supaReq, _pushVapidPublicKey, _urlBase64ToUint8Array, pushSupported, registerServiceWorker, savePushSubscription, enablePushNotifications, refreshPushSubscription, getPushPermissionStatus, sendServerPushNotification, _rtSocket, _rtHeartbeat, _rtRetryCount, _rtRetryTimer, _rtStatus, _setRtStatus, _hashStr, _recentWrites, _markRecentWrite, _isRecentSelfEcho, blockCloudApply, isCloudApplyBlocked, markSphLocalWrite, shouldRejectStaleSphCloud, _rtJoinRef, _RT_TOPIC, _startRealtime, _scheduleRtRetry, _stopRealtime, _tokRefreshTimer, _startProactiveRefresh, _stopProactiveRefresh, storeGet, storeSet, storeDel, _persistPending, _persistTimer, debouncedStoreSet, flushPersist } from './src/utils/storage.js';
 import { mergeSphImportRecords } from './src/utils/sphImport.js';
 import { normalizeSphProjects } from './src/utils/sphProject.js';
 
@@ -714,6 +714,18 @@ export default function App() {
   const prevSyncRef = useRef('offline');
   const isInitialLiveRef = useRef(true);
   const resyncDebounceRef = useRef(null);
+  const sphCountRef = useRef(0);
+  useEffect(() => { sphCountRef.current = Array.isArray(data) ? data.length : 0; }, [data]);
+  const applyCloudSphData = useCallback((incoming, source = 'cloud') => {
+    if (!Array.isArray(incoming)) return false;
+    if (isCloudApplyBlocked(STORAGE_KEY)) return false;
+    if (shouldRejectStaleSphCloud(incoming, sphCountRef.current)) {
+      try { console.warn(`[IMS resync] tolak snapshot SPH stale dari ${source}: cloud=${incoming.length}, lokal=${sphCountRef.current}`); } catch {}
+      return false;
+    }
+    setSphData(incoming);
+    return true;
+  }, [setSphData]);
   const resyncFromCloud = useCallback(async () => {
     if (typeof window === 'undefined') return;
     try {
@@ -730,7 +742,12 @@ export default function App() {
         storeGet(NOTIF_KEY), storeGet(PRODUCT_SUPPORT_ACTIVITIES_KEY), storeGet(PRODUCT_SUPPORT_FILES_KEY), storeGet(DOCUMENT_TEMPLATE_KEY), storeGet(GENERATED_DOCS_KEY)
       ]);
       const safe = (v, setter) => { if (v) try { setter(JSON.parse(v)); } catch {} };
-      if (d && !isCloudApplyBlocked(STORAGE_KEY)) try { setSphData(JSON.parse(d)); } catch {}
+      if (d && !isCloudApplyBlocked(STORAGE_KEY)) {
+        try {
+          const parsed = JSON.parse(d);
+          applyCloudSphData(parsed, 'resync');
+        } catch {}
+      }
       safe(rep, setReports); safe(iss, setIssues); safe(reg, setRegRecords);
       safe(akl, setAklRecords); safe(imp, setImportRecords); safe(pgl, setPengalihanRecords);
       safe(pi, setPiRecords); safe(pm, setPmSchedule); safe(mfst, setManifests);
@@ -755,7 +772,7 @@ export default function App() {
     } catch (e) {
       try { console.warn('[IMS resync] failed', e); } catch {}
     }
-  }, [products, setSphData]);
+  }, [products, applyCloudSphData]);
   useEffect(() => {
     const prev = prevSyncRef.current;
     prevSyncRef.current = syncStatus;
@@ -806,8 +823,7 @@ export default function App() {
       if (v === undefined || v === null) return; // parse gagal / payload rusak — jangan reset state
       switch (key) {
         case STORAGE_KEY:
-          if (isCloudApplyBlocked(STORAGE_KEY)) return;
-          setSphData(v);
+          applyCloudSphData(Array.isArray(v) ? v : null, 'realtime');
           break;
         case LANG_KEY: if (typeof v === 'string') setLang(v); break;
         case SESSION_KEY: /* sengaja diabaikan: sesi login per-device, jangan ditimpa device lain */ return;
@@ -1349,17 +1365,13 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
   };
   // Bulk CSV import: match per line item (SPH No + pelanggan + produk) → update atau tambah baru.
   const handleImportSPH = (records) => {
-    blockCloudApply(STORAGE_KEY, 15000);
-    let result = { added: 0, updated: 0, total: records.length };
-    setData(prev => {
-      const merged = mergeSphImportRecords(prev, records);
-      result = { added: merged.added, updated: merged.updated, total: merged.total };
-      return merged.data;
-    });
-    flushPersist();
-    blockCloudApply(STORAGE_KEY, 15000);
-    logAction({ module: 'sph', action: 'import', entityLabel: lang === 'id' ? `Impor CSV (${records.length} baris)` : `CSV import (${records.length} rows)`, note: `${result.added} added, ${result.updated} updated` });
-    return result;
+    blockCloudApply(STORAGE_KEY, 180000);
+    const merged = mergeSphImportRecords(data, records);
+    markSphLocalWrite(merged.data.length);
+    setData(merged.data);
+    storeSet(STORAGE_KEY, JSON.stringify(merged.data));
+    logAction({ module: 'sph', action: 'import', entityLabel: lang === 'id' ? `Impor CSV (${records.length} baris)` : `CSV import (${records.length} rows)`, note: `${merged.added} added, ${merged.updated} updated` });
+    return { added: merged.added, updated: merged.updated, total: merged.total };
   };
   const [deleteSphId, setDeleteSphId] = useState(null);
   const handleDelete = (id) => setDeleteSphId(id);

@@ -10,13 +10,20 @@ import { CICILAN_DP_OPTIONS, CICILAN_TERM_OPTIONS, KSO_INVESTOR_PCT_OPTIONS, KSO
 import { addDaysIso, computeInvoiceSchedule, detectSalesOwnerFromCustomer, getActiveSalesTeam, getFactoryProductionDays, resolveCustomerSector, resolveDealModel, resolveEmpName, resolveProductRecord } from '../utils/domain.js';
 import { formatDateTime, formatDuration, normalizeExternalUrl, todayStart, currentYear } from '../utils/format.js';
 import { CHART_COLORS } from '../constants/theme.js';
-import { getProjectStageRows, SPH_WORKFLOW_LABELS } from '../utils/sphStage.js';
+import { getProjectStageRows, SPH_WORKFLOW_LABELS, isAdminQueueRequest } from '../utils/sphStage.js';
 import { buildEditorTemplate, downloadCSV, downloadSPHWord, downloadSPPWord, printHtmlStringAsPdf, printSPHPdf, printSPPPdf } from '../utils/documents.js';
 import { parseSPHImport } from '../utils/csvImport.js';
 import { filterBillableRows, formatPackageItemsSummary, formatPackageModalityLabel, getPackageComponents, sphBillableValue, countUniqueSphNumbers } from '../utils/sphPackage.js';
 import { showToast } from '../utils/toast.js';
-const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employees, setEmployees, session, lang, t, fmt, onRequestSPH, onRequestSPP, onWorkflowUpdate, onSaveDocument, generatedDocs = [], setGeneratedDocs, products = [], documentTemplates = DEFAULT_DOCUMENT_TEMPLATES }) {
+const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employees, setEmployees, session, lang, t, fmt, onRequestSPH, onRequestSPP, onWorkflowUpdate, onSaveDocument, generatedDocs = [], setGeneratedDocs, products = [], documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, activeTab, onTabChange }) {
   const [open, setOpen] = useState('request_sph');
+  useEffect(() => {
+    if (activeTab) setOpen(activeTab);
+  }, [activeTab]);
+  const selectTab = (id) => {
+    setOpen(id);
+    onTabChange?.(id);
+  };
   const [editingRequestId, setEditingRequestId] = useState(null);
   const [deleteQueueId, setDeleteQueueId] = useState(null);
   const [deleteDocId, setDeleteDocId] = useState(null);
@@ -49,7 +56,7 @@ const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employ
   });
   const addRequestItem = () => setForm(prev => prev.items.length >= 5 ? prev : ({ ...prev, items: [...prev.items, { productId: '', modality: '', brand: '', subModality: '', qty: 1, unitPrice: '' }] }));
   const removeRequestItem = (idx) => setForm(prev => ({ ...prev, items: prev.items.filter((_, i) => i !== idx).length ? prev.items.filter((_, i) => i !== idx) : [{ productId: '', modality: '', brand: '', subModality: '', qty: 1, unitPrice: '' }] }));
-  const requestRows = data.filter(s => !s.salesDownloadedAt && s.status !== 'cancelled' && (s.sphWorkflowStatus === 'requested' || s.sphWorkflowStatus === 'admin_drafting' || s.sphWorkflowStatus === 'ready_for_sales'));
+  const requestRows = data.filter(isAdminQueueRequest);
   const isAdminish = ['super_admin', 'gm', 'admin'].includes(session.role);
   const canDeleteDoc = isAdminish;
   const deleteQueueTarget = data.find(s => s.id === deleteQueueId);
@@ -102,6 +109,7 @@ const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employ
       dpPercent: s.dpPercent || 30, installmentMonths: s.installmentMonths || 12, manualTerms: s.manualTerms || '', notes: s.notes || '',
     });
     setOpen(s.docKind === 'spp' ? 'request_spp' : 'request_sph');
+    onTabChange?.(s.docKind === 'spp' ? 'request_spp' : 'request_sph');
   };
   const isRequestFormOpen = open === 'request_sph' || open === 'request_spp';
   return (
@@ -115,7 +123,7 @@ const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employ
         ].map(tb => {
           const Icon = tb.icon;
           const active = open === tb.id;
-          return <button key={tb.id} onClick={() => setOpen(tb.id)} style={{background: active ? tb.accent : 'transparent', color: active ? '#fff' : 'var(--ims-text-2)', border: `1px solid ${active ? tb.accent : 'var(--ims-border)'}`, padding: '7px 11px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px'}}><Icon size={12} />{tb.label}</button>;
+          return <button key={tb.id} onClick={() => selectTab(tb.id)} style={{background: active ? tb.accent : 'transparent', color: active ? '#fff' : 'var(--ims-text-2)', border: `1px solid ${active ? tb.accent : 'var(--ims-border)'}`, padding: '7px 11px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px'}}><Icon size={12} />{tb.label}</button>;
         })}
       </div>
 
@@ -500,6 +508,7 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
   const [filterProduct, setFilterProduct] = useState('all');
   const [sortSPH, setSortSPH] = useState('date_desc');
   const [sphTab, setSphTab] = useState('list');
+  const [workflowTab, setWorkflowTab] = useState('request_sph');
   const [pageSize, setPageSize] = useState(50);  // Pagination: 50 rows initial, "Load more" button
   const [visibleCount, setVisibleCount] = useState(50);
   const [detailSph, setDetailSph] = useState(null);
@@ -668,7 +677,11 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
       </div>
 
       {sphTab === 'dashboard' && (
-        <SPHDashboard data={data} generatedDocs={generatedDocs} fmt={fmt} lang={lang} t={t} salesTeam={salesTeam} onNavigateTab={(id) => setSphTab(id === 'list' || id === 'queue' || id === 'po' ? 'list' : 'dashboard')} />
+        <SPHDashboard data={data} generatedDocs={generatedDocs} fmt={fmt} lang={lang} t={t} salesTeam={salesTeam} onNavigateTab={(id) => {
+          if (id === 'queue') { setSphTab('list'); setWorkflowTab('queue'); return; }
+          if (id === 'list' || id === 'po') { setSphTab('list'); return; }
+          setSphTab('dashboard');
+        }} />
       )}
 
       {sphTab === 'list' && (
@@ -689,7 +702,9 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
           onSaveDocument={onSaveDocument}
           setGeneratedDocs={setGeneratedDocs}
           generatedDocs={generatedDocs}
-          documentTemplates={documentTemplates} />
+          documentTemplates={documentTemplates}
+          activeTab={workflowTab}
+          onTabChange={setWorkflowTab} />
       )}
 
       <div className="kpi-grid-4" style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: 'var(--ims-border)', marginBottom: '18px', border: '1px solid var(--ims-border)'}}>
@@ -1045,10 +1060,24 @@ function SPHDashboard({ data, generatedDocs = [], fmt, lang, t, salesTeam, onNav
     const won = billable.filter(s => s.status === 'won');
     const lost = billable.filter(s => s.status === 'lost');
     const poIssued = billable.filter(s => s.poStatus === 'issued');
-    const queue = billable.filter(s => ['requested', 'admin_drafting', 'ready_for_sales'].includes(s.sphWorkflowStatus) || (!s.salesDownloadedAt && s.status !== 'cancelled'));
+    const queue = billable.filter(isAdminQueueRequest);
     const stageMap = STAGES.reduce((acc, st) => { acc[st.id] = billable.filter(s => s.stage === st.id).length; return acc; }, {});
     const stageData = STAGES.map(st => ({ name: (t[`stage_${st.id}`] || st.id).slice(0, 12), value: stageMap[st.id] || 0, fill: st.color }));
-    const modalityData = Object.entries(billable.reduce((acc, s) => { const k = s.modality || '?'; acc[k] = (acc[k] || 0) + 1; return acc; }, {})).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8);
+    const modalityMap = billable.reduce((acc, s) => {
+      const k = s.modality || (lang === 'id' ? 'Lainnya' : 'Other');
+      acc[k] = (acc[k] || 0) + 1;
+      return acc;
+    }, {});
+    const modalitySorted = Object.entries(modalityMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+    const modalityTop = modalitySorted.slice(0, 7);
+    const modalityRest = modalitySorted.slice(7);
+    if (modalityRest.length) {
+      modalityTop.push({
+        name: lang === 'id' ? 'Lainnya' : 'Other',
+        value: modalityRest.reduce((sum, e) => sum + e.value, 0),
+      });
+    }
+    const modalityData = modalityTop;
     const monthly = MONTHS.map((m, idx) => {
       const mm = String(idx + 1).padStart(2, '0');
       return { month: m, [lang === 'id' ? 'SPH Baru' : 'New SPH']: billable.filter(s => (s.issuedDate || '').substring(5, 7) === mm).length };
@@ -1064,8 +1093,8 @@ function SPHDashboard({ data, generatedDocs = [], fmt, lang, t, salesTeam, onNav
       { name: t.status_won, value: won.length, color: 'var(--ims-accent-2)' },
       { name: t.status_lost, value: lost.length, color: '#8b3a3a' },
     ].filter(x => x.value > 0);
-    const workflowBreakdown = queueBreakdown.length ? queueBreakdown : statusBreakdown;
-    return { active, won, lost, poIssued, queue, stageData, modalityData, monthly, topCustomers, workflowBreakdown, hasWorkflowQueue: queueBreakdown.length > 0, totalValue: billable.reduce((s, p) => s + sphBillableValue(p), 0), docsCount: (generatedDocs || []).length, billableCount: billable.length, projectCount: countUniqueSphNumbers(billable) };
+    const workflowBreakdown = queue.length ? queueBreakdown : statusBreakdown;
+    return { active, won, lost, poIssued, queue, stageData, modalityData, monthly, topCustomers, workflowBreakdown, hasWorkflowQueue: queue.length > 0, totalValue: billable.reduce((s, p) => s + sphBillableValue(p), 0), docsCount: (generatedDocs || []).length, billableCount: billable.length, projectCount: countUniqueSphNumbers(billable) };
   }, [data, generatedDocs, t, lang]);
 
   const quickLinks = [

@@ -233,6 +233,21 @@ function isCloudApplyBlocked(key) {
   if (Date.now() > until) { delete _cloudApplyBlocked[key]; return false; }
   return true;
 }
+/** Lindungi bulk import dari resync/realtime yang menimpa dengan snapshot cloud lama. */
+let _sphLocalGuard = { count: 0, at: 0 };
+function markSphLocalWrite(count) {
+  _sphLocalGuard = { count: Math.max(0, Number(count) || 0), at: Date.now() };
+}
+function shouldRejectStaleSphCloud(incoming, localCount = 0) {
+  const inc = Array.isArray(incoming) ? incoming.length : 0;
+  const guardCount = _sphLocalGuard.count || localCount || 0;
+  if (!guardCount) return false;
+  const age = Date.now() - (_sphLocalGuard.at || 0);
+  if (age > 15 * 60 * 1000) return false;
+  if (inc >= guardCount - 2) return false;
+  if (inc < guardCount * 0.85) return true;
+  return false;
+}
 let _rtJoinRef = null;
 const _RT_TOPIC = 'realtime:ims_kv_changes';
 const _startRealtime = () => {
@@ -442,4 +457,4 @@ function flushPersist() {
   }
 }
 
-export { _memStore, _hasArtifactStorage, _hasLocalStorage, _SUPA_URL, _SUPA_KEY, _supaEnabled, _supaFetch, _supaSession, _SUPA_SESS_LS, _authFetch, _supaSignIn, _refreshInFlight, _supaRefreshTok, _supaSignOut, _restoreSupaSession, _getSupaTok, _supaReq, _pushVapidPublicKey, _urlBase64ToUint8Array, pushSupported, registerServiceWorker, savePushSubscription, enablePushNotifications, refreshPushSubscription, getPushPermissionStatus, sendServerPushNotification, _rtSocket, _rtHeartbeat, _rtRetryCount, _rtRetryTimer, _rtStatus, _setRtStatus, _hashStr, _recentWrites, _markRecentWrite, _isRecentSelfEcho, blockCloudApply, isCloudApplyBlocked, _rtJoinRef, _RT_TOPIC, _startRealtime, _scheduleRtRetry, _stopRealtime, _tokRefreshTimer, _startProactiveRefresh, _stopProactiveRefresh, storeGet, storeSet, storeDel, _persistPending, _persistTimer, debouncedStoreSet, flushPersist };
+export { _memStore, _hasArtifactStorage, _hasLocalStorage, _SUPA_URL, _SUPA_KEY, _supaEnabled, _supaFetch, _supaSession, _SUPA_SESS_LS, _authFetch, _supaSignIn, _refreshInFlight, _supaRefreshTok, _supaSignOut, _restoreSupaSession, _getSupaTok, _supaReq, _pushVapidPublicKey, _urlBase64ToUint8Array, pushSupported, registerServiceWorker, savePushSubscription, enablePushNotifications, refreshPushSubscription, getPushPermissionStatus, sendServerPushNotification, _rtSocket, _rtHeartbeat, _rtRetryCount, _rtRetryTimer, _rtStatus, _setRtStatus, _hashStr, _recentWrites, _markRecentWrite, _isRecentSelfEcho, blockCloudApply, isCloudApplyBlocked, markSphLocalWrite, shouldRejectStaleSphCloud, _rtJoinRef, _RT_TOPIC, _startRealtime, _scheduleRtRetry, _stopRealtime, _tokRefreshTimer, _startProactiveRefresh, _stopProactiveRefresh, storeGet, storeSet, storeDel, _persistPending, _persistTimer, debouncedStoreSet, flushPersist };

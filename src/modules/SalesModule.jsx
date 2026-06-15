@@ -744,10 +744,10 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
         </select>
         <button onClick={() => {
           const header = ['SPH No', lang === 'id' ? 'Pelanggan' : 'Customer', lang === 'id' ? 'Tipe' : 'Type', lang === 'id' ? 'Jenis Proyek' : 'Project Type', 'Modality', 'Sub-Modality', 'Qty', lang === 'id' ? 'Harga Satuan' : 'Unit Price', lang === 'id' ? 'Total Nilai' : 'Total Value', 'Stage', lang === 'id' ? 'Status' : 'Status', 'Sales', lang === 'id' ? 'Tanggal Terbit' : 'Issue Date', lang === 'id' ? 'Update Terakhir' : 'Last Update'];
-          const rows = [header, ...allFiltered.map(s => [s.sphNo, s.customer, s.customerType, s.projectType, s.modality, s.subModality, s.qty, s.unitPrice, s.totalValue, s.stage, s.status, s.salesOwner, s.issuedDate, s.lastUpdate])];
+          const rows = [header, ...filtered.map(s => [s.sphNo, s.customer, s.customerType, s.projectType, s.modality, s.subModality, s.qty, s.unitPrice, sphBillableValue(s), s.stage, s.status, s.salesOwner, s.issuedDate, s.lastUpdate])];
           downloadCSV(`HNTI_SPH_${new Date().toISOString().split('T')[0]}.csv`, rows);
-        }} style={{background: 'var(--ims-accent-2)', border: 'none', color: '#fff', padding: '6px 12px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px', marginLeft: 'auto'}} title={lang === 'id' ? 'Export SPH ke CSV' : 'Export SPH to CSV'}>
-          <FileText size={12} />CSV ({allFiltered.length})
+        }} style={{background: 'var(--ims-accent-2)', border: 'none', color: '#fff', padding: '6px 12px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px', marginLeft: 'auto'}} title={lang === 'id' ? 'Export SPH ke CSV (baris billable, sama dengan Total SPH)' : 'Export billable SPH rows to CSV'}>
+          <FileText size={12} />CSV ({filtered.length})
         </button>
         {canEdit && <>
           <button onClick={() => importRef.current && importRef.current.click()} style={{background: '#1a4d8a', border: 'none', color: '#fff', padding: '6px 12px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px'}} title={lang === 'id' ? 'Impor SPH dari file CSV (migrasi data massal)' : 'Import SPH from CSV file (bulk migration)'}>
@@ -900,21 +900,21 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
 function PipelineDashboard({ data, allData, reports = [], pipelineStats, stageGroups, stages, salesTeam, t, lang, fmt, filterYear, probFilter, onNavigateTab }) {
   const glass = DASHBOARD_GLASS.pipeline;
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  const { pipelineData, totalDeals, totalValue, wonCount, lostCount, activeCount, winRate, winRateNum, winRateDen } = pipelineStats;
+  const { pipelineData, totalDeals, totalValue, projectCount, wonCount, lostCount, activeCount, winRate, winRateNum, winRateDen } = pipelineStats;
 
   const dash = useMemo(() => {
     const yr = filterYear === 'all' ? String(currentYear()) : filterYear;
     const hot = pipelineData.filter(p => (Number(p.probability) || 0) >= 70).length;
     const warm = pipelineData.filter(p => { const v = Number(p.probability) || 0; return v >= 40 && v < 70; }).length;
     const cold = pipelineData.filter(p => (Number(p.probability) || 0) < 40).length;
-    const weighted = pipelineData.filter(p => p.status === 'active').reduce((s, p) => s + (Number(p.totalValue) || 0) * (Number(p.probability) || 0) / 100, 0);
-    const poIssued = allData.filter(s => s.poStatus === 'issued' && (filterYear === 'all' || s.issuedDate?.startsWith(filterYear))).length;
+    const weighted = pipelineData.filter(p => p.status === 'active').reduce((s, p) => s + sphBillableValue(p) * (Number(p.probability) || 0) / 100, 0);
+    const poIssued = filterBillableRows(allData).filter(s => s.poStatus === 'issued' && (filterYear === 'all' || s.issuedDate?.startsWith(filterYear))).length;
     const funnelData = stages.map(st => ({
       name: (t[`stage_${st.id}`] || st.id).slice(0, 14),
       value: (stageGroups.get(st.id)?.projects || []).length,
       fill: st.color,
     }));
-    const modalityMap = pipelineData.reduce((acc, p) => { const k = p.modality || 'Other'; acc[k] = (acc[k] || 0) + (Number(p.totalValue) || 0); return acc; }, {});
+    const modalityMap = pipelineData.reduce((acc, p) => { const k = p.modality || 'Other'; acc[k] = (acc[k] || 0) + sphBillableValue(p); return acc; }, {});
     const modalityData = Object.entries(modalityMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8);
     const monthlyDeals = MONTHS.map((m, idx) => {
       const mm = String(idx + 1).padStart(2, '0');
@@ -924,7 +924,7 @@ function PipelineDashboard({ data, allData, reports = [], pipelineStats, stageGr
       return {
         month: m,
         [lang === 'id' ? 'Deal' : 'Deals']: monthRows.length,
-        [lang === 'id' ? 'Nilai' : 'Value']: monthRows.reduce((s, p) => s + (Number(p.totalValue) || 0), 0),
+        [lang === 'id' ? 'Nilai' : 'Value']: monthRows.reduce((s, p) => s + sphBillableValue(p), 0),
       };
     });
     const statusPie = [
@@ -934,7 +934,7 @@ function PipelineDashboard({ data, allData, reports = [], pipelineStats, stageGr
     ].filter(x => x.value > 0);
     const topSales = salesTeam.map(s => {
       const sd = pipelineData.filter(p => p.salesOwner === s.id);
-      return { name: s.name.split(' ')[0], value: sd.reduce((sum, p) => sum + (Number(p.totalValue) || 0), 0), deals: sd.length };
+      return { name: s.name.split(' ')[0], value: sd.reduce((sum, p) => sum + sphBillableValue(p), 0), deals: sd.length };
     }).filter(x => x.deals > 0).sort((a, b) => b.value - a.value).slice(0, 8);
     const visitReports = (reports || []).filter(r => filterYear === 'all' || (r.date || '').startsWith(filterYear)).length;
     const radarData = [
@@ -963,7 +963,7 @@ function PipelineDashboard({ data, allData, reports = [], pipelineStats, stageGr
         lang={lang}
       />
       <DashboardKpiGrid items={[
-        { label: lang === 'id' ? 'Total Deal' : 'Total Deals', value: totalDeals, sub: fmt(totalValue), color: glass.accent },
+        { label: lang === 'id' ? 'Total Deal' : 'Total Deals', value: totalDeals, sub: `${fmt(totalValue)} · ${projectCount} ${lang === 'id' ? 'surat' : 'refs'}`, color: glass.accent },
         { label: lang === 'id' ? 'Pipeline Aktif' : 'Active Pipeline', value: activeCount, sub: fmt(dash.weighted) + (lang === 'id' ? ' weighted' : ' weighted'), color: '#5b87b8' },
         { label: t.win_rate, value: winRateDen > 0 ? `${winRate.toFixed(1)}%` : '—', sub: `${winRateNum}/${winRateDen} closed`, color: 'var(--ims-accent-2)' },
         { label: lang === 'id' ? 'PO Terbit' : 'PO Issued', value: dash.poIssued, sub: `${dash.hot} hot · ${dash.warm} warm · ${dash.cold} cold`, color: 'var(--ims-gold)' },
@@ -1222,8 +1222,8 @@ function PipelineBoard({ data, allData, setData, employees = {}, session, logAct
     const sorted = [...arr];
     if (sortBy === 'prob_desc') sorted.sort((a, b) => (Number(b.probability) || 0) - (Number(a.probability) || 0));
     else if (sortBy === 'prob_asc') sorted.sort((a, b) => (Number(a.probability) || 0) - (Number(b.probability) || 0));
-    else if (sortBy === 'value_desc') sorted.sort((a, b) => (Number(b.totalValue) || 0) - (Number(a.totalValue) || 0));
-    else if (sortBy === 'value_asc') sorted.sort((a, b) => (Number(a.totalValue) || 0) - (Number(b.totalValue) || 0));
+    else if (sortBy === 'value_desc') sorted.sort((a, b) => sphBillableValue(b) - sphBillableValue(a));
+    else if (sortBy === 'value_asc') sorted.sort((a, b) => sphBillableValue(a) - sphBillableValue(b));
     return sorted;
   };
 
@@ -1232,9 +1232,11 @@ function PipelineBoard({ data, allData, setData, employees = {}, session, logAct
     const yearScoped = filterYear === 'all' ? data : data.filter(s => s.issuedDate?.startsWith(filterYear));
     const salesScoped = filterSales === 'all' ? yearScoped : yearScoped.filter(s => s.salesOwner === filterSales);
     const probScoped = probFilter === 'all' ? salesScoped : salesScoped.filter(s => probBucket(s) === probFilter);
-    const pipelineData = probScoped.filter(s => s.status === 'active' || s.status === 'won' || s.status === 'lost');
+    const billableScoped = filterBillableRows(probScoped);
+    const pipelineData = billableScoped.filter(s => s.status === 'active' || s.status === 'won' || s.status === 'lost');
     const totalDeals = pipelineData.length;
-    const totalValue = pipelineData.reduce((s, p) => s + (Number(p.totalValue) || 0), 0);
+    const totalValue = pipelineData.reduce((s, p) => s + sphBillableValue(p), 0);
+    const projectCount = countUniqueSphNumbers(pipelineData);
     const wonCount = pipelineData.filter(p => p.status === 'won').length;
     const lostCount = pipelineData.filter(p => p.status === 'lost').length;
     const activeCount = pipelineData.filter(p => p.status === 'active').length;
@@ -1245,14 +1247,15 @@ function PipelineBoard({ data, allData, setData, employees = {}, session, logAct
     // 'all': cumulative since inception
     const today = todayStart();
     const ttmStart = new Date(today); ttmStart.setMonth(ttmStart.getMonth() - 12);
-    const ttmDeals = data.filter(s => {
+    const billableAll = filterBillableRows(data);
+    const ttmDeals = billableAll.filter(s => {
       const d = s.issuedDate ? new Date(s.issuedDate) : null;
       return d && d >= ttmStart && (s.status === 'won' || s.status === 'lost');
     });
     const ttmWon = ttmDeals.filter(s => s.status === 'won').length;
     const ttmLost = ttmDeals.filter(s => s.status === 'lost').length;
 
-    const allClosed = data.filter(s => s.status === 'won' || s.status === 'lost');
+    const allClosed = billableAll.filter(s => s.status === 'won' || s.status === 'lost');
     const allWon = allClosed.filter(s => s.status === 'won').length;
     const allLost = allClosed.filter(s => s.status === 'lost').length;
 
@@ -1267,9 +1270,9 @@ function PipelineBoard({ data, allData, setData, employees = {}, session, logAct
     const winRate = winRateDen > 0 ? (winRateNum / winRateDen) * 100 : 0;
     const smallSample = winRateDen > 0 && winRateDen < 20;
 
-    return { pipelineData, totalDeals, totalValue, wonCount, lostCount, activeCount, winRate, winRateNum, winRateDen, winRateScope, smallSample, ttmWon, ttmLost, allWon, allLost };
+    return { pipelineData, totalDeals, totalValue, projectCount, wonCount, lostCount, activeCount, winRate, winRateNum, winRateDen, winRateScope, smallSample, ttmWon, ttmLost, allWon, allLost };
   }, [data, filterYear, winRateMode, probFilter, filterSales]);
-  const { pipelineData, totalDeals, totalValue, wonCount, lostCount, activeCount, winRate, winRateNum, winRateDen, winRateScope, smallSample } = pipelineStats;
+  const { pipelineData, totalDeals, totalValue, projectCount, wonCount, lostCount, activeCount, winRate, winRateNum, winRateDen, winRateScope, smallSample } = pipelineStats;
 
   // Stage definitions including lost - show statistical view of full journey
   const ALL_STAGES_WITH_LOST = STAGES;
@@ -1281,7 +1284,7 @@ function PipelineBoard({ data, allData, setData, employees = {}, session, logAct
     ALL_STAGES_WITH_LOST.forEach(stage => groups.set(stage.id, { projects: [], stageValue: 0 }));
     pipelineData.forEach(p => {
       const g = groups.get(p.stage);
-      if (g) { g.projects.push(p); g.stageValue += p.totalValue; }
+      if (g) { g.projects.push(p); g.stageValue += sphBillableValue(p); }
     });
     // Apply sort to each group's projects
     groups.forEach(g => { g.projects = sortDeals(g.projects); });
@@ -1468,7 +1471,7 @@ function PipelineBoard({ data, allData, setData, employees = {}, session, logAct
                         </div>
                         {pt && <div style={{display: 'inline-block', padding: '2px 6px', fontSize: '9px', background: pt.color + '25', color: pt.color, fontWeight: 600, letterSpacing: '0.05em', marginBottom: '8px', textTransform: 'uppercase'}}>{t[`ptype_${p.projectType}`]}</div>}
                         <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginBottom: '8px'}}>{p.subModality} · Qty {p.qty}</div>
-                        <div className="mono" style={{fontSize: '13px', fontWeight: 500}}>{fmt(p.totalValue)}</div>
+                        <div className="mono" style={{fontSize: '13px', fontWeight: 500}}>{fmt(sphBillableValue(p))}</div>
                         {p.stage === 'tender' && p.tenderSubStage && <div style={{padding: '3px 7px', background: 'var(--ims-gold)20', color: 'var(--ims-text-2)', fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: '6px', display: 'inline-block', fontWeight: 600}}>{t[`tender_${p.tenderSubStage}`]}</div>}
                       </div>
                       {/* Owner badge with reassign button — only for privileged roles */}
@@ -1573,9 +1576,10 @@ function SalesTeamDashboard({ data = [], reports = [], t, lang, fmt, employees =
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
   const dash = useMemo(() => {
-    const active = data.filter(s => s.status === 'active');
-    const won = data.filter(s => s.status === 'won' || s.stage === 'po_issued' || s.poStatus === 'issued');
-    const lost = data.filter(s => s.status === 'lost');
+    const billable = filterBillableRows(data);
+    const active = billable.filter(s => s.status === 'active');
+    const won = billable.filter(s => s.status === 'won' || s.stage === 'po_issued' || s.poStatus === 'issued');
+    const lost = billable.filter(s => s.status === 'lost');
     const winRateDen = won.length + lost.length;
     const winRate = winRateDen > 0 ? (won.length / winRateDen) * 100 : 0;
 
@@ -1584,7 +1588,7 @@ function SalesTeamDashboard({ data = [], reports = [], t, lang, fmt, employees =
     const funnelData = [
       {
         stage: lang === 'id' ? 'Request SPH/SPP' : 'SPH/SPP Request',
-        count: data.filter(s =>
+        count: billable.filter(s =>
           requestStages.has(s.stage)
           || s.sphWorkflowStatus === 'requested'
           || s.sphWorkflowStatus === 'admin_drafting'
@@ -1594,7 +1598,7 @@ function SalesTeamDashboard({ data = [], reports = [], t, lang, fmt, employees =
       },
       {
         stage: lang === 'id' ? 'Negosiasi' : 'Negotiation',
-        count: data.filter(s => negoStages.has(s.stage) && s.status === 'active').length,
+        count: billable.filter(s => negoStages.has(s.stage) && s.status === 'active').length,
         fill: '#06b6d4',
       },
       {
@@ -1606,9 +1610,9 @@ function SalesTeamDashboard({ data = [], reports = [], t, lang, fmt, employees =
 
     const monthlyPipeline = MONTHS.map((m, idx) => {
       const mm = String(idx + 1).padStart(2, '0');
-      const monthRows = data.filter(s => (s.issuedDate || '').substring(5, 7) === mm);
-      const activeVal = monthRows.filter(s => s.status === 'active').reduce((sum, p) => sum + (Number(p.totalValue) || 0), 0);
-      const wonVal = monthRows.filter(s => s.status === 'won').reduce((sum, p) => sum + (Number(p.totalValue) || 0), 0);
+      const monthRows = billable.filter(s => (s.issuedDate || '').substring(5, 7) === mm);
+      const activeVal = monthRows.filter(s => s.status === 'active').reduce((sum, p) => sum + sphBillableValue(p), 0);
+      const wonVal = monthRows.filter(s => s.status === 'won').reduce((sum, p) => sum + sphBillableValue(p), 0);
       return { month: m, [lang === 'id' ? 'Pipeline Aktif' : 'Active Pipeline']: activeVal, [lang === 'id' ? 'Deal Menang' : 'Won Deals']: wonVal };
     });
 
@@ -1621,8 +1625,8 @@ function SalesTeamDashboard({ data = [], reports = [], t, lang, fmt, employees =
     }).filter(d => d != null);
     const avgClosureDays = closureDays.length ? Math.round(closureDays.reduce((a, b) => a + b, 0) / closureDays.length) : 0;
 
-    const sppCount = data.filter(s => String(s.sphNo || '').toUpperCase().includes('SPP') || s.docKind === 'spp').length;
-    const sphCount = data.length - sppCount;
+    const sppCount = billable.filter(s => String(s.sphNo || '').toUpperCase().includes('SPP') || s.docKind === 'spp').length;
+    const sphCount = billable.length - sppCount;
 
     return { active, won, winRate, winRateDen, funnelData, monthlyPipeline, avgClosureDays, sppCount, sphCount };
   }, [data, lang]);
@@ -1644,10 +1648,10 @@ function SalesTeamDashboard({ data = [], reports = [], t, lang, fmt, employees =
         lang={lang}
       />
       <DashboardKpiGrid items={[
-        { label: lang === 'id' ? 'Penawaran Aktif' : 'Active Offers', value: dash.active.length, sub: fmt(dash.active.reduce((s, p) => s + (Number(p.totalValue) || 0), 0)), color: glass.accent },
+        { label: lang === 'id' ? 'Penawaran Aktif' : 'Active Offers', value: dash.active.length, sub: fmt(dash.active.reduce((s, p) => s + sphBillableValue(p), 0)), color: glass.accent },
         { label: t.win_rate, value: dash.winRateDen > 0 ? `${dash.winRate.toFixed(1)}%` : '—', sub: `${dash.won.length}/${dash.winRateDen} closed`, color: '#10b981' },
         { label: lang === 'id' ? 'Rata-rata Durasi Penutupan' : 'Avg. Deal Closure', value: dash.avgClosureDays ? `${dash.avgClosureDays} ${t.days}` : '—', sub: lang === 'id' ? 'dari SPH ke Won' : 'SPH to Won', color: '#06b6d4' },
-        { label: lang === 'id' ? 'Deal Menang' : 'Won Deals', value: dash.won.length, sub: fmt(dash.won.reduce((s, p) => s + (Number(p.totalValue) || 0), 0)), color: 'var(--ims-accent-2)' },
+        { label: lang === 'id' ? 'Deal Menang' : 'Won Deals', value: dash.won.length, sub: fmt(dash.won.reduce((s, p) => s + sphBillableValue(p), 0)), color: 'var(--ims-accent-2)' },
       ]} />
       <QuickNavGrid glass={glass} links={quickLinks} onNavigate={onNavigateTeam} />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '16px' }}>
@@ -1700,7 +1704,7 @@ function SalesModule({ data, reports, t, lang, fmt, employees = {} }) {
   // Filter: view all sales, or drill into one specific sales
   const [selectedSales, setSelectedSales] = useState('all');
   const stats = useMemo(() => salesTeam.map(sales => {
-    const sd = data.filter(s => s.salesOwner === sales.id);
+    const sd = filterBillableRows(data.filter(s => s.salesOwner === sales.id));
     const sr = reports.filter(r => r.salesId === sales.id);
     const active = sd.filter(s => s.status === 'active');
     const won = sd.filter(s => s.status === 'won');
@@ -1710,9 +1714,9 @@ function SalesModule({ data, reports, t, lang, fmt, employees = {} }) {
       ...sales,
       activeCount: active.length, wonCount: won.length, lostCount: lost.length,
       poCount: poIssued.length,
-      pipelineValue: active.reduce((s, p) => s + (Number(p.totalValue)||0), 0),
-      wonValue: won.reduce((s, p) => s + (Number(p.totalValue)||0), 0),
-      poValue: poIssued.reduce((s, p) => s + (Number(p.totalValue)||0), 0),
+      pipelineValue: active.reduce((s, p) => s + sphBillableValue(p), 0),
+      wonValue: won.reduce((s, p) => s + sphBillableValue(p), 0),
+      poValue: poIssued.reduce((s, p) => s + sphBillableValue(p), 0),
       winRate: (won.length + lost.length) > 0 ? (won.length / (won.length + lost.length)) * 100 : 0,
       visitsCount: sr.reduce((s, r) => s + (r.visits?.length || 0), 0),
       totalSPH: sd.length,
@@ -1727,7 +1731,7 @@ function SalesModule({ data, reports, t, lang, fmt, employees = {} }) {
   const [dealFilter, setDealFilter] = useState('all');
   const allSelectedDeals = useMemo(() => {
     if (selectedSales === 'all') return [];
-    return [...data.filter(s => s.salesOwner === selectedSales)].sort((a, b) => (Number(b.totalValue)||0) - (Number(a.totalValue)||0));
+    return [...filterBillableRows(data.filter(s => s.salesOwner === selectedSales))].sort((a, b) => sphBillableValue(b) - sphBillableValue(a));
   }, [data, selectedSales]);
   const dealCounts = useMemo(() => ({
     all: allSelectedDeals.length,

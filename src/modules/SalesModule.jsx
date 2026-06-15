@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Activity, AlertTriangle, ArrowUpRight, Bell, Check, CheckCircle2, ChevronDown, ClipboardList, Clock, Download, Edit2, FileCheck, FileText, History, Layers, LayoutDashboard, MapPin, Plus, RefreshCw, Search, Sparkles, Star, Target, TrendingUp, Trash2, Upload, Users, X, Zap } from 'lucide-react';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, PieChart, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { ChartTooltip, ConfirmDialog, Field, KPICard, ReadOnlyBanner, SortToggle, Td, Th } from '../components/ui.jsx';
+import { ChartTooltip, ConfirmDialog, Field, KPICard, ReadOnlyBanner, SortToggle, Td, Th, PieWithSummary } from '../components/ui.jsx';
 import { DASHBOARD_GLASS, DashboardHero, DashboardKpiGrid, GlassPanel, QuickNavGrid } from '../components/FuturisticDashboardShell.jsx';
 import { DocumentEditorModal } from '../components/DocumentEditorModal.jsx';
 import { DEFAULT_DOCUMENT_TEMPLATES } from '../constants/docs.js';
@@ -1085,15 +1085,14 @@ function SPHDashboard({ data, generatedDocs = [], fmt, lang, t, salesTeam, onNav
         </GlassPanel>
         <GlassPanel glass={glass}>
           <div className="card-title">{lang === 'id' ? 'Workflow SPH/SPP' : 'SPH/SPP Workflow'}</div>
-          <ResponsiveContainer width="100%" height={280}>
-            <PieChart>
-              <Pie data={dash.workflowBreakdown.length ? dash.workflowBreakdown : [{name: '-', value: 1, color: 'var(--ims-border)'}]} dataKey="value" nameKey="name" innerRadius={52} outerRadius={88}>
-                {(dash.workflowBreakdown.length ? dash.workflowBreakdown : [{name: '-', value: 1, color: 'var(--ims-border)'}]).map(e => <Cell key={e.name} fill={e.color} />)}
-              </Pie>
-              <Tooltip content={<ChartTooltip fmt={v => v} />} />
-              <Legend wrapperStyle={{fontSize: 10}} />
-            </PieChart>
-          </ResponsiveContainer>
+          <PieWithSummary
+            data={dash.workflowBreakdown}
+            innerRadius={52}
+            outerRadius={88}
+            height={200}
+            lang={lang}
+            emptyLabel={lang === 'id' ? 'Belum ada request aktif di workflow' : 'No active workflow requests'}
+          />
         </GlassPanel>
       </div>
       <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
@@ -1111,14 +1110,13 @@ function SPHDashboard({ data, generatedDocs = [], fmt, lang, t, salesTeam, onNav
         </GlassPanel>
         <GlassPanel glass={glass}>
           <div className="card-title">{lang === 'id' ? 'Modalitas' : 'Modality Mix'}</div>
-          <ResponsiveContainer width="100%" height={220}>
-            <PieChart>
-              <Pie data={dash.modalityData.length ? dash.modalityData : [{name: '-', value: 1}]} dataKey="value" nameKey="name" outerRadius={72}>
-                {dash.modalityData.map((e, i) => <Cell key={e.name} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-              </Pie>
-              <Tooltip content={<ChartTooltip fmt={v => v} />} />
-            </PieChart>
-          </ResponsiveContainer>
+          <PieWithSummary
+            data={dash.modalityData.map((e, i) => ({ ...e, color: CHART_COLORS[i % CHART_COLORS.length] }))}
+            outerRadius={72}
+            height={180}
+            lang={lang}
+            emptyLabel={lang === 'id' ? 'Belum ada data modalitas' : 'No modality data'}
+          />
         </GlassPanel>
       </div>
       <GlassPanel glass={glass}>

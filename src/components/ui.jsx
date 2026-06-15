@@ -1,8 +1,8 @@
 // Extracted from App.jsx during modular refactor.
 import React, { useState, useEffect, useMemo } from 'react';
 import { AlertTriangle, ArrowDownRight, ArrowUpRight, Eye, RefreshCw } from 'lucide-react';
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
-import { IMS_THEMES } from '../constants/theme.js';
+import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import { CHART_COLORS, IMS_THEMES } from '../constants/theme.js';
 import logoKecil from '../../logo3.png';
 const IMSLogo = React.memo(function IMSLogo({ size = 'md' }) {
   // Mengatur ukuran lebar logo secara proporsional sesuai kebutuhan komponen
@@ -235,6 +235,59 @@ const ChartTooltip = ({ active, payload, label, fmt }) => {
     </div>
   );
 };
+function PieWithSummary({ data = [], innerRadius = 0, outerRadius = 72, height = 200, fmt, lang = 'id', emptyLabel }) {
+  const items = (Array.isArray(data) ? data : []).filter(d => Number(d.value) > 0);
+  const total = items.reduce((s, d) => s + (Number(d.value) || 0), 0);
+  if (!items.length || total <= 0) {
+    return (
+      <div style={{height, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: 'var(--ims-text-2)'}}>
+        {emptyLabel || (lang === 'id' ? 'Belum ada data' : 'No data yet')}
+      </div>
+    );
+  }
+  const renderSegmentLabel = ({ cx, cy, midAngle, innerRadius: ir, outerRadius: or, value, percent }) => {
+    if (!value || percent < 0.05) return null;
+    const RADIAN = Math.PI / 180;
+    const radius = ir + (or - ir) * 0.55;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    return (
+      <text x={x} y={y} fill="#fff" textAnchor="middle" dominantBaseline="central" fontSize={10} fontWeight={700}>
+        {value}
+      </text>
+    );
+  };
+  return (
+    <>
+      <ResponsiveContainer width="100%" height={height}>
+        <PieChart>
+          <Pie data={items} dataKey="value" nameKey="name" innerRadius={innerRadius} outerRadius={outerRadius} label={renderSegmentLabel} labelLine={false}>
+            {items.map((e, i) => <Cell key={e.name} fill={e.color || CHART_COLORS[i % CHART_COLORS.length]} />)}
+          </Pie>
+          <Tooltip content={<ChartTooltip fmt={fmt || (v => v)} />} />
+          <Legend wrapperStyle={{fontSize: 10}} formatter={(value, entry) => `${value} (${entry?.payload?.value ?? 0})`} />
+        </PieChart>
+      </ResponsiveContainer>
+      <div style={{marginTop: '10px', display: 'grid', gap: '2px'}}>
+        <div style={{fontSize: '10px', color: 'var(--ims-text-2)', fontWeight: 600, marginBottom: '4px'}}>
+          {lang === 'id' ? `Total: ${total}` : `Total: ${total}`}
+        </div>
+        {items.map((d, i) => (
+          <div key={d.name} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', padding: '4px 0', borderBottom: i < items.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none'}}>
+            <span style={{display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0}}>
+              <span style={{width: 8, height: 8, borderRadius: '50%', background: d.color || CHART_COLORS[i % CHART_COLORS.length], flexShrink: 0}} />
+              <span style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{d.name}</span>
+            </span>
+            <span style={{color: 'var(--ims-text-2)', whiteSpace: 'nowrap', marginLeft: '8px'}}>
+              {d.value} ({((d.value / total) * 100).toFixed(1)}%)
+            </span>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 function PieCard({ title, data, fmt }) {
   const total = data.reduce((s, d) => s + d.value, 0);
   return (
@@ -408,4 +461,4 @@ class ModuleErrorBoundary extends React.Component {
   }
 }
 
-export { IMSLogo, GlobalStyles, WIBClock, ChartTooltip, PieCard, KPICard, ReadOnlyBanner, Field, ConfirmDialog, LinkAttachment, SortToggle, Th, Td, SyncIndicator, ModuleErrorBoundary };
+export { IMSLogo, GlobalStyles, WIBClock, ChartTooltip, PieCard, PieWithSummary, KPICard, ReadOnlyBanner, Field, ConfirmDialog, LinkAttachment, SortToggle, Th, Td, SyncIndicator, ModuleErrorBoundary };

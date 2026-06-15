@@ -250,6 +250,9 @@ function ProductMasterModule({ products, setProducts, t, lang, canEdit, logActio
     </div>
   );
 }
+const PRODUCT_STANDARD_ORIGINS = ['China', 'Korea', 'Taiwan', 'Japan', 'Germany', 'USA', 'Netherlands', 'Italy'];
+const productUniqueOptions = (rows, field) => Array.from(new Set(rows.map(p => p[field]).filter(Boolean))).sort();
+
 function ProductModal({ product, onSave, onCancel, t, lang, existing = [] }) {
   const isEdit = !!product;
   const normalizedProduct = product ? {
@@ -260,15 +263,29 @@ function ProductModal({ product, onSave, onCancel, t, lang, existing = [] }) {
     name: '', modality: '', brand: '', type: '', origin: '', principal: '', tkdn: 0, akl: '', active: true, notes: '', productFiles: {},
   });
   const [error, setError] = useState('');
-  const [otherFields, setOtherFields] = useState({});
+  const [otherFields, setOtherFields] = useState(() => {
+    if (!normalizedProduct) return {};
+    const init = {};
+    const check = (field, opts) => {
+      const v = normalizedProduct[field];
+      if (v && !opts.includes(v)) init[field] = true;
+    };
+    check('modality', productUniqueOptions(existing, 'modality'));
+    check('brand', productUniqueOptions(existing, 'brand'));
+    check('type', productUniqueOptions(existing, 'type'));
+    check('principal', productUniqueOptions(existing, 'principal'));
+    check('origin', [...new Set([...PRODUCT_STANDARD_ORIGINS, ...productUniqueOptions(existing, 'origin')])]);
+    return init;
+  });
   const otherOptionLabel = lang === 'id' ? 'Lainnya' : 'Other';
 
-  const uniqueOptions = (rows, field) => Array.from(new Set(rows.map(p => p[field]).filter(Boolean))).sort();
+  const uniqueOptions = productUniqueOptions;
   const modalityOptions = useMemo(() => uniqueOptions(existing, 'modality'), [existing]);
   const brandOptions = useMemo(() => {
     const scoped = existing.filter(p => !form.modality || p.modality === form.modality);
     return uniqueOptions(scoped.length ? scoped : existing, 'brand');
   }, [existing, form.modality]);
+  const originOptions = useMemo(() => [...new Set([...PRODUCT_STANDARD_ORIGINS, ...uniqueOptions(existing, 'origin')])].sort(), [existing]);
   const typeOptions = useMemo(() => {
     const scoped = existing.filter(p => (!form.modality || p.modality === form.modality) && (!form.brand || p.brand === form.brand));
     return uniqueOptions(scoped.length ? scoped : existing, 'type');
@@ -338,19 +355,7 @@ function ProductModal({ product, onSave, onCancel, t, lang, existing = [] }) {
             {renderMasterSelectWithOther('modality', lang === 'id' ? 'Modalitas' : 'Modality', modalityOptions, lang === 'id' ? 'Tulis modalitas baru' : 'Enter new modality')}
             {renderMasterSelectWithOther('brand', lang === 'id' ? 'Merek' : 'Brand', brandOptions, lang === 'id' ? 'Tulis merek baru' : 'Enter new brand')}
             {renderMasterSelectWithOther('type', lang === 'id' ? 'Tipe / Model' : 'Type / Model', typeOptions, lang === 'id' ? 'Tulis tipe/model baru' : 'Enter new type/model')}
-            <Field label={lang === 'id' ? 'Negara Asal' : 'Country of Origin'}>
-              <input list="origin-options" value={form.origin} onChange={e => update('origin', e.target.value)} placeholder={lang === 'id' ? 'Pilih atau ketik...' : 'Select or type...'} />
-              <datalist id="origin-options">
-                <option value="China" />
-                <option value="Korea" />
-                <option value="Taiwan" />
-                <option value="Japan" />
-                <option value="Germany" />
-                <option value="USA" />
-                <option value="Netherlands" />
-                <option value="Italy" />
-              </datalist>
-            </Field>
+            {renderMasterSelectWithOther('origin', lang === 'id' ? 'Negara Asal' : 'Country of Origin', originOptions, lang === 'id' ? 'Tulis negara asal baru' : 'Enter new country of origin')}
             {renderMasterSelectWithOther('principal', lang === 'id' ? 'Principal (Pabrikan)' : 'Principal (Manufacturer)', principalOptions, lang === 'id' ? 'Tulis principal baru' : 'Enter new principal')}
             <Field label="TKDN %">
               <input type="number" min="0" max="100" value={form.tkdn} onChange={e => update('tkdn', Number(e.target.value) || 0)} placeholder="0-100" />

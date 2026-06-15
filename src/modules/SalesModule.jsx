@@ -1039,12 +1039,18 @@ function SPHDashboard({ data, generatedDocs = [], fmt, lang, t, salesTeam, onNav
       return { month: m, [lang === 'id' ? 'SPH Baru' : 'New SPH']: billable.filter(s => (s.issuedDate || '').substring(5, 7) === mm).length };
     });
     const topCustomers = Object.entries(billable.reduce((acc, s) => { acc[s.customer] = (acc[s.customer] || 0) + sphBillableValue(s); return acc; }, {})).map(([name, value]) => ({ name: String(name).slice(0, 22), value })).sort((a, b) => b.value - a.value).slice(0, 10);
-    const workflowBreakdown = [
+    const queueBreakdown = [
       { name: lang === 'id' ? 'Request' : 'Request', value: billable.filter(s => s.sphWorkflowStatus === 'requested').length, color: '#5b87b8' },
       { name: lang === 'id' ? 'Draft Admin' : 'Admin Draft', value: billable.filter(s => s.sphWorkflowStatus === 'admin_drafting').length, color: 'var(--ims-gold)' },
       { name: lang === 'id' ? 'Siap Sales' : 'Ready Sales', value: billable.filter(s => s.sphWorkflowStatus === 'ready_for_sales').length, color: 'var(--ims-accent-2)' },
     ].filter(x => x.value > 0);
-    return { active, won, lost, poIssued, queue, stageData, modalityData, monthly, topCustomers, workflowBreakdown, totalValue: billable.reduce((s, p) => s + sphBillableValue(p), 0), docsCount: (generatedDocs || []).length, billableCount: billable.length, projectCount: countUniqueSphNumbers(billable) };
+    const statusBreakdown = [
+      { name: t.status_active, value: active.length, color: '#5b87b8' },
+      { name: t.status_won, value: won.length, color: 'var(--ims-accent-2)' },
+      { name: t.status_lost, value: lost.length, color: '#8b3a3a' },
+    ].filter(x => x.value > 0);
+    const workflowBreakdown = queueBreakdown.length ? queueBreakdown : statusBreakdown;
+    return { active, won, lost, poIssued, queue, stageData, modalityData, monthly, topCustomers, workflowBreakdown, hasWorkflowQueue: queueBreakdown.length > 0, totalValue: billable.reduce((s, p) => s + sphBillableValue(p), 0), docsCount: (generatedDocs || []).length, billableCount: billable.length, projectCount: countUniqueSphNumbers(billable) };
   }, [data, generatedDocs, t, lang]);
 
   const quickLinks = [
@@ -1085,13 +1091,18 @@ function SPHDashboard({ data, generatedDocs = [], fmt, lang, t, salesTeam, onNav
         </GlassPanel>
         <GlassPanel glass={glass}>
           <div className="card-title">{lang === 'id' ? 'Workflow SPH/SPP' : 'SPH/SPP Workflow'}</div>
+          <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginBottom: '8px'}}>
+            {dash.hasWorkflowQueue
+              ? (lang === 'id' ? 'Antrian request aktif' : 'Active request queue')
+              : (lang === 'id' ? 'Ringkasan status SPH (aktif / menang / hilang)' : 'SPH status summary (active / won / lost)')}
+          </div>
           <PieWithSummary
             data={dash.workflowBreakdown}
             innerRadius={52}
-            outerRadius={88}
-            height={200}
+            outerRadius={80}
+            height={210}
             lang={lang}
-            emptyLabel={lang === 'id' ? 'Belum ada request aktif di workflow' : 'No active workflow requests'}
+            emptyLabel={lang === 'id' ? 'Belum ada data SPH' : 'No SPH data yet'}
           />
         </GlassPanel>
       </div>
@@ -1112,8 +1123,8 @@ function SPHDashboard({ data, generatedDocs = [], fmt, lang, t, salesTeam, onNav
           <div className="card-title">{lang === 'id' ? 'Modalitas' : 'Modality Mix'}</div>
           <PieWithSummary
             data={dash.modalityData.map((e, i) => ({ ...e, color: CHART_COLORS[i % CHART_COLORS.length] }))}
-            outerRadius={72}
-            height={180}
+            outerRadius={64}
+            height={200}
             lang={lang}
             emptyLabel={lang === 'id' ? 'Belum ada data modalitas' : 'No modality data'}
           />

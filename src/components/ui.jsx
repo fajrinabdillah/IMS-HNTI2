@@ -1,7 +1,7 @@
 // Extracted from App.jsx during modular refactor.
 import React, { useState, useEffect, useMemo } from 'react';
 import { AlertTriangle, ArrowDownRight, ArrowUpRight, Eye, RefreshCw } from 'lucide-react';
-import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { CHART_COLORS, IMS_THEMES } from '../constants/theme.js';
 import logoKecil from '../../logo3.png';
 const IMSLogo = React.memo(function IMSLogo({ size = 'md' }) {
@@ -238,6 +238,8 @@ const ChartTooltip = ({ active, payload, label, fmt }) => {
 function PieWithSummary({ data = [], innerRadius = 0, outerRadius = 72, height = 200, fmt, lang = 'id', emptyLabel }) {
   const items = (Array.isArray(data) ? data : []).filter(d => Number(d.value) > 0);
   const total = items.reduce((s, d) => s + (Number(d.value) || 0), 0);
+  const safeOuter = Math.min(outerRadius, Math.max(48, Math.floor(height * 0.36)));
+  const safeInner = Math.min(innerRadius, Math.max(0, safeOuter - 28));
   if (!items.length || total <= 0) {
     return (
       <div style={{height, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: 'var(--ims-text-2)'}}>
@@ -260,12 +262,11 @@ function PieWithSummary({ data = [], innerRadius = 0, outerRadius = 72, height =
   return (
     <>
       <ResponsiveContainer width="100%" height={height}>
-        <PieChart>
-          <Pie data={items} dataKey="value" nameKey="name" innerRadius={innerRadius} outerRadius={outerRadius} label={renderSegmentLabel} labelLine={false}>
+        <PieChart margin={{ top: 20, right: 12, bottom: 12, left: 12 }}>
+          <Pie data={items} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={safeInner} outerRadius={safeOuter} label={renderSegmentLabel} labelLine={false}>
             {items.map((e, i) => <Cell key={e.name} fill={e.color || CHART_COLORS[i % CHART_COLORS.length]} />)}
           </Pie>
           <Tooltip content={<ChartTooltip fmt={fmt || (v => v)} />} />
-          <Legend wrapperStyle={{fontSize: 10}} formatter={(value, entry) => `${value} (${entry?.payload?.value ?? 0})`} />
         </PieChart>
       </ResponsiveContainer>
       <div style={{marginTop: '10px', display: 'grid', gap: '2px'}}>

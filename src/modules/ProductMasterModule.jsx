@@ -109,9 +109,14 @@ function ProductMasterModule({ products, setProducts, t, lang, canEdit, logActio
           <div style={{fontSize: '13px', color: 'var(--ims-text-2)', marginTop: '6px'}}>{lang === 'id' ? 'Database produk terpusat — tersinkron ke semua modul' : 'Centralized product database — synced to all modules'}</div>
         </div>
         {canEdit && (
-          <button onClick={() => { setEditingProduct(null); setModalOpen(true); }} style={{background: 'var(--ims-bg-alt)', color: '#fff', border: 'none', padding: '10px 18px', fontSize: '12px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '7px', letterSpacing: '0.03em'}}>
-            <Plus size={14} strokeWidth={2} />{lang === 'id' ? 'Tambah Produk' : 'Add Product'}
-          </button>
+          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px'}}>
+            <button onClick={() => { setEditingProduct(null); setModalOpen(true); }} style={{background: 'var(--ims-bg-alt)', color: '#fff', border: 'none', padding: '10px 18px', fontSize: '12px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '7px', letterSpacing: '0.03em'}}>
+              <Plus size={14} strokeWidth={2} />{lang === 'id' ? 'Tambah Produk' : 'Add Product'}
+            </button>
+            <span style={{fontSize: '10px', color: 'var(--ims-text-2)', maxWidth: '280px', lineHeight: 1.45, textAlign: 'right'}}>
+              {lang === 'id' ? 'Form tambah/edit: Modalitas, Merek & Asal Negara punya opsi ✚ Lainnya' : 'Add/edit form: Modality, Brand & Origin include ✚ Other option'}
+            </span>
+          </div>
         )}
       </div>
 
@@ -309,16 +314,17 @@ function ProductModal({ product, onSave, onCancel, t, lang, existing = [] }) {
   const renderMasterSelectWithOther = (field, label, options, placeholder) => (
     <Field label={label}>
       <select value={otherFields[field] ? otherOptionLabel : (form[field] || '')} onChange={e => updateMasterSelect(field, e.target.value)}>
-        <option value="">{lang === 'id' ? 'Pilih' : 'Select'}</option>
+        <option value="">{lang === 'id' ? '— Pilih —' : '— Select —'}</option>
+        <option value={otherOptionLabel}>{lang === 'id' ? '✚ Lainnya (isi manual)' : '✚ Other (type manually)'}</option>
         {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-        <option value={otherOptionLabel}>{otherOptionLabel}</option>
       </select>
       {otherFields[field] && (
         <input
           value={form[field] || ''}
           onChange={e => update(field, e.target.value)}
           placeholder={placeholder}
-          style={{marginTop: '8px'}}
+          style={{marginTop: '8px', borderColor: 'var(--ims-accent)'}}
+          autoFocus
         />
       )}
     </Field>

@@ -128,6 +128,118 @@ const PAY_IMPORT_ALIASES = {
   note: ['Note', 'Catatan', 'Keterangan', 'Notes'],
 };
 const _PAYTYPE_ALIASES = { dp: 'dp', deposit: 'dp', uangmuka: 'dp', installment: 'installment', cicilan: 'installment', angsuran: 'installment', final: 'final', pelunasan: 'final', lunas: 'final' };
+const FIELD_REPORT_IMPORT_ALIASES = {
+  reportId: ['Report ID', 'ID Laporan', 'ReportId'],
+  salesId: ['Sales ID', 'ID Sales', 'SalesId'],
+  salesName: ['Sales Name', 'Nama Sales', 'Sales'],
+  date: ['Date', 'Tanggal', 'Tgl Laporan'],
+  week: ['Week', 'Minggu'],
+  days: ['Field Days', 'Hari Lapangan', 'Days'],
+  nights: ['Nights', 'Malam Menginap'],
+  area: ['Focus Area', 'Area Fokus', 'Area'],
+  pipeN: ['Pipeline RS Count', 'Jumlah RS Pipeline', 'Pipe Count', 'PipeN'],
+  pipeVal: ['Pipeline Value', 'Estimasi Nilai', 'Pipe Value', 'PipeVal'],
+  closest: ['Closest RS', 'RS Paling Dekat Closing', 'Closest'],
+  win: ['Win', 'Win / Pencapaian', 'Pencapaian'],
+  block: ['Blocker', 'Hambatan Terbesar', 'Hambatan'],
+  next: ['Next Priority', 'Prioritas Minggu Depan', 'Next'],
+  fatigue: ['Fatigue', 'Tingkat Kelelahan'],
+  hospital: ['Hospital', 'Nama RS', 'RS'],
+  city: ['City', 'Kab/Kota', 'Kota'],
+  visitType: ['Visit Type', 'Kunjungan', 'Tipe Kunjungan'],
+  product: ['Product', 'Produk'],
+  pipeline: ['Pipeline Temp', 'Pipeline', 'Suhu Pipeline'],
+  contact: ['Contact', 'Kontak'],
+  visitNote: ['Visit Note', 'Catatan Kunjungan', 'Note', 'Catatan'],
+};
+const _VISIT_TYPE_ALIASES = {
+  first: 'first', pertam: 'first', followup: 'followup', demo: 'demo',
+  nego: 'nego', negosiasi: 'nego', negotiation: 'nego',
+  closed: 'closed', closing: 'closed', close: 'closed',
+};
+function resolveSalesIdFromImport(salesId, salesName, salesTeam = []) {
+  const sid = String(salesId || '').trim().toLowerCase();
+  if (sid) {
+    const hit = salesTeam.find(s => s.id === sid || s.username === sid);
+    if (hit) return hit.id;
+    return sid;
+  }
+  const name = String(salesName || '').trim().toLowerCase();
+  if (!name) return '';
+  const hit = salesTeam.find(s => String(s.name || '').toLowerCase().includes(name) || name.includes(String(s.name || '').toLowerCase()));
+  return hit?.id || '';
+}
+function parseFieldReportImport(text, salesTeam = []) {
+  const rows = parseCSV(text);
+  if (rows.length < 2) return { records: [], errors: ['File kosong atau tidak ada baris data.'], total: 0 };
+  const headerIdx = findHeaderRowIndex(rows, FIELD_REPORT_IMPORT_ALIASES, ['date']);
+  if (headerIdx < 0)
+    return { records: [], errors: ['Kolom wajib tidak ditemukan: butuh minimal "Date/Tanggal". Gunakan template CSV laporan lapangan.'], total: rows.length - 1 };
+  const cols = buildColMap(rows[headerIdx], FIELD_REPORT_IMPORT_ALIASES);
+  const grouped = new Map();
+  const errors = [];
+  for (let r = headerIdx + 1; r < rows.length; r++) {
+    const row = rows[r];
+    const get = (f) => cols[f] !== undefined ? String(row[cols[f]] ?? '').trim() : '';
+    const date = _normDate(get('date'));
+    const salesId = resolveSalesIdFromImport(get('salesId'), get('salesName'), salesTeam);
+    if (!date) { errors.push(`Baris ${r + 1}: dilewati (tanggal kosong).`); continue; }
+    if (!salesId) { errors.push(`Baris ${r + 1}: dilewati (Sales ID / Nama Sales tidak dikenali).`); continue; }
+    const reportIdRaw = get('reportId');
+    const groupKey = reportIdRaw || `${salesId}|${date}`;
+    if (!grouped.has(groupKey)) {
+      grouped.set(groupKey, {
+        id: reportIdRaw || `rpt_imp_${salesId}_${date.replace(/-/g, '')}_${Date.now()}_${grouped.size}`,
+        salesId,
+        date,
+        week: get('week') || 'Minggu 1',
+        days: _num(get('days')) || 0,
+        nights: _num(get('nights')) || 0,
+        area: get('area') || '',
+        pipeN: _num(get('pipeN')) || 0,
+        pipeVal: _num(get('pipeVal')) || 0,
+        closest: get('closest') || '',
+        win: get('win') || '',
+        block: get('block') || '',
+        next: get('next') || '',
+        fatigue: _num(get('fatigue')) || 0,
+        visits: [],
+        createdAt: new Date().toISOString(),
+      });
+    }
+    const rec = grouped.get(groupKey);
+    const hospital = get('hospital');
+    const visitTypeRaw = _normHdr(get('visitType'));
+    const visitType = _VISIT_TYPE_ALIASES[visitTypeRaw] || (['first', 'followup', 'demo', 'nego', 'closed'].includes(visitTypeRaw) ? visitTypeRaw : 'first');
+    if (hospital) {
+      rec.visits.push({
+        name: hospital,
+        city: get('city') || '',
+        visit: visitType,
+        product: get('product') || '',
+        pipeline: get('pipeline') || 'cold',
+        contact: get('contact') || '',
+        note: get('visitNote') || '',
+      });
+    }
+    if (get('week')) rec.week = get('week');
+    if (get('area')) rec.area = get('area');
+    if (get('win')) rec.win = get('win');
+    if (get('block')) rec.block = get('block');
+    if (get('next')) rec.next = get('next');
+    if (get('closest')) rec.closest = get('closest');
+    const d = _num(get('days')); if (d) rec.days = d;
+    const n = _num(get('nights')); if (n) rec.nights = n;
+    const pn = _num(get('pipeN')); if (pn) rec.pipeN = pn;
+    const pv = _num(get('pipeVal')); if (pv) rec.pipeVal = pv;
+    const ft = _num(get('fatigue')); if (ft) rec.fatigue = ft;
+  }
+  const records = [...grouped.values()].map(r => ({
+    ...r,
+    visits: r.visits.length ? r.visits : [{ name: '', city: '', visit: 'first', product: '', pipeline: 'cold', contact: '', note: '' }],
+  }));
+  return { records, errors, total: rows.length - headerIdx - 1 };
+}
 function parsePaymentImport(text) {
   const rows = parseCSV(text);
   if (rows.length < 2) return { records: [], errors: ['File kosong atau tidak ada baris data.'], total: 0 };
@@ -146,4 +258,4 @@ function parsePaymentImport(text) {
   return { records, errors, total: rows.length - headerIdx - 1 };
 }
 
-export { parseCSV, detectDelimiter, findHeaderRowIndex, buildColMap, SPH_IMPORT_ALIASES, _STATUS_ALIASES, _STAGE_VALID, parseSPHImport, PAY_IMPORT_ALIASES, _PAYTYPE_ALIASES, parsePaymentImport };
+export { parseCSV, detectDelimiter, findHeaderRowIndex, buildColMap, SPH_IMPORT_ALIASES, _STATUS_ALIASES, _STAGE_VALID, parseSPHImport, PAY_IMPORT_ALIASES, _PAYTYPE_ALIASES, parsePaymentImport, FIELD_REPORT_IMPORT_ALIASES, parseFieldReportImport };

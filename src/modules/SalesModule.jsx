@@ -12,7 +12,7 @@ import { formatDateTime, formatDuration, normalizeExternalUrl, todayStart, curre
 import { CHART_COLORS } from '../constants/theme.js';
 import { getProjectStageRows, SPH_WORKFLOW_LABELS, isAdminQueueRequest } from '../utils/sphStage.js';
 import { buildEditorTemplate, downloadCSV, downloadSPHWord, downloadSPPWord, printHtmlStringAsPdf, printSPHPdf, printSPPPdf } from '../utils/documents.js';
-import { parseSPHImport } from '../utils/csvImport.js';
+import { parseFieldReportImport, parseSPHImport } from '../utils/csvImport.js';
 import { filterBillableRows, formatPackageItemsSummary, formatPackageModalityLabel, getPackageComponents, sphBillableValue, countUniqueSphNumbers } from '../utils/sphPackage.js';
 import { showToast } from '../utils/toast.js';
 const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employees, setEmployees, session, lang, t, fmt, onRequestSPH, onRequestSPP, onWorkflowUpdate, onSaveDocument, generatedDocs = [], setGeneratedDocs, products = [], documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, activeTab, onTabChange }) {
@@ -1901,6 +1901,41 @@ function SalesModule({ data, reports, t, lang, fmt, employees = {} }) {
     </div>
   );
 }
+function canCreateFieldReport(session) {
+  return session.role === 'sales' || ['super_admin', 'gm', 'admin'].includes(session.role);
+}
+function buildFieldReportExportRows(reports, employees = {}) {
+  const header = [
+    'Report ID', 'Sales ID', 'Sales Name', 'Date', 'Week', 'Field Days', 'Nights', 'Focus Area',
+    'Pipeline RS Count', 'Pipeline Value', 'Closest RS', 'Win', 'Blocker', 'Next Priority', 'Fatigue',
+    'Hospital', 'City', 'Visit Type', 'Product', 'Pipeline Temp', 'Contact', 'Visit Note',
+  ];
+  const rows = [header];
+  reports.forEach(r => {
+    const salesName = resolveEmpName(employees, r.salesId);
+    const visits = (r.visits || []).length ? r.visits : [{ name: '', city: '', visit: '', product: '', pipeline: '', contact: '', note: '' }];
+    visits.forEach(v => {
+      rows.push([
+        r.id, r.salesId, salesName, r.date || '', r.week || '', r.days ?? '', r.nights ?? '', r.area || '',
+        r.pipeN ?? '', r.pipeVal ?? '', r.closest || '', r.win || '', r.block || '', r.next || '', r.fatigue ?? '',
+        v.name || '', v.city || '', v.visit || '', v.product || '', v.pipeline || '', v.contact || '', v.note || '',
+      ]);
+    });
+  });
+  return rows;
+}
+function buildFieldReportTemplateRow(lang) {
+  return [
+    'rpt_example_001', 'lukman', 'Lukman Effendi', '2026-05-16', 'Minggu 1', 4, 3, 'Solo + Sukoharjo',
+    2, 8500, 'RS Indriati Solo Baru',
+    lang === 'id' ? 'Closing RS Indriati' : 'Closed RS Indriati',
+    lang === 'id' ? 'Macet di jalan' : 'Traffic delay',
+    lang === 'id' ? 'Follow up RS PKU' : 'Follow up RS PKU',
+    2,
+    'RS PKU Muhammadiyah Solo', 'Solo', 'followup', 'CT Scan', 'warm', 'dr. Hendra', lang === 'id' ? 'Minta proposal detail' : 'Needs detailed proposal',
+  ];
+}
+
 function reportMatchesSearch(report, term, salesTeam = []) {
   if (!term) return true;
   const q = term.toLowerCase();
@@ -1921,6 +1956,9 @@ function reportMatchesSearch(report, term, salesTeam = []) {
 
 function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {}, reportsSeen = {}, setReportsSeen, issues = [], installRecords = [], canEdit = false }) {
   const salesTeam = useMemo(() => getActiveSalesTeam(employees), [employees]);
+  const importRef = useRef(null);
+  const canCreate = canCreateFieldReport(session);
+  const canImport = canCreate || canEdit;
   const markReportsRead = () => {
     if (!setReportsSeen || !reports.length) return;
     const dates = reports.map(r => r.date || '').filter(Boolean).sort();
@@ -1943,16 +1981,62 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
     [visibleReports, searchTerm, salesTeam]
   );
 
-  const tabItems = useMemo(() => (session.role === 'sales'
-    ? [
-        { id: 'new', label: editingReport ? t.sr_edit_report : t.sr_new, icon: ClipboardList },
-        { id: 'history', label: t.sr_history, icon: Clock },
-        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      ]
-    : [
-        { id: 'history', label: t.sr_history, icon: Clock },
-        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      ]), [session.role, editingReport, t]);
+  const tabItems = useMemo(() => {
+    const createTab = { id: 'new', label: editingReport ? t.sr_edit_report : t.sr_new, icon: ClipboardList };
+    const historyTab = { id: 'history', label: t.sr_history, icon: Clock };
+    const dashTab = { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard };
+    if (canCreate) return [createTab, historyTab, dashTab];
+    return [historyTab, dashTab];
+  }, [canCreate, editingReport, t]);
+
+  const handleExportCSV = () => {
+    const rows = buildFieldReportExportRows(visibleReports, employees);
+    downloadCSV(`HNTI_Laporan_Lapangan_${new Date().toISOString().split('T')[0]}.csv`, rows);
+    showToast(lang === 'id' ? `✓ ${visibleReports.length} laporan diekspor` : `✓ Exported ${visibleReports.length} reports`, 'success');
+  };
+  const handleDownloadTemplate = () => {
+    const header = buildFieldReportExportRows([], employees)[0];
+    downloadCSV('HNTI_Template_Import_Laporan_Lapangan.csv', [header, buildFieldReportTemplateRow(lang)]);
+  };
+  const handleImportCSV = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const { records, errors, total } = parseFieldReportImport(String(ev.target?.result || ''), salesTeam);
+        if (!records.length) {
+          showToast(errors[0] || (lang === 'id' ? 'Tidak ada data valid untuk diimpor' : 'No valid rows to import'), 'error');
+          return;
+        }
+        setReports(prev => {
+          const map = new Map(prev.map(r => [r.id, r]));
+          records.forEach(rec => {
+            const existing = map.get(rec.id);
+            if (existing) {
+              map.set(rec.id, {
+                ...existing,
+                ...rec,
+                visits: rec.visits.filter(v => v.name?.trim()).length ? rec.visits.filter(v => v.name?.trim()) : existing.visits,
+                updatedAt: new Date().toISOString(),
+              });
+            } else {
+              map.set(rec.id, rec);
+            }
+          });
+          return [...map.values()].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        });
+        const msg = lang === 'id'
+          ? `✓ ${records.length} laporan diimpor dari ${total} baris${errors.length ? ` (${errors.length} dilewati)` : ''}`
+          : `✓ Imported ${records.length} report(s) from ${total} row(s)${errors.length ? ` (${errors.length} skipped)` : ''}`;
+        showToast(msg, errors.length ? 'warning' : 'success');
+      } catch (err) {
+        showToast((lang === 'id' ? 'Gagal impor CSV: ' : 'CSV import failed: ') + err.message, 'error');
+      }
+    };
+    reader.readAsText(file);
+  };
 
   const handleEdit = (report) => {
     setEditingReport(report);
@@ -1984,7 +2068,7 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
         <div style={{fontSize: '13px', color: 'var(--ims-text-2)', marginTop: '6px'}}>{t.sr_subtitle}</div>
       </div>
 
-      <div style={{display: 'flex', gap: '2px', marginBottom: '22px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
+      <div style={{display: 'flex', gap: '2px', marginBottom: '14px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
         {tabItems.map(tb => {
           const Icon = tb.icon;
           const active = tab === tb.id;
@@ -1994,6 +2078,20 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
             </button>
           );
         })}
+        <div style={{marginLeft: 'auto', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', paddingBottom: '6px'}}>
+          <button onClick={handleExportCSV} style={{background: 'var(--ims-accent-2)', border: 'none', color: '#fff', padding: '6px 12px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px'}} title={lang === 'id' ? 'Export laporan ke CSV' : 'Export reports to CSV'}>
+            <Download size={12} />CSV ({visibleReports.length})
+          </button>
+          {canImport && <>
+            <button onClick={() => importRef.current?.click()} style={{background: '#1a4d8a', border: 'none', color: '#fff', padding: '6px 12px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px'}} title={lang === 'id' ? 'Impor laporan dari CSV' : 'Import reports from CSV'}>
+              <Upload size={12} />{lang === 'id' ? 'Import' : 'Import'}
+            </button>
+            <button onClick={handleDownloadTemplate} style={{background: 'transparent', border: '1px solid var(--ims-accent)', color: 'var(--ims-text-2)', padding: '6px 12px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px'}} title={lang === 'id' ? 'Unduh template CSV' : 'Download CSV template'}>
+              <FileText size={12} />{lang === 'id' ? 'Template' : 'Template'}
+            </button>
+            <input ref={importRef} type="file" accept=".csv,text/csv" onChange={handleImportCSV} style={{display: 'none'}} />
+          </>}
+        </div>
       </div>
 
       {tab === 'history' && (
@@ -2043,19 +2141,34 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
           installRecords={installRecords}
           fmt={fmt}
           onNavigateTab={(id) => {
-            if (id === 'new' && session.role === 'sales') setTab('new');
+            if (id === 'new' && canCreate) setTab('new');
             else if (id === 'history') setTab('history');
           }}
+          canCreate={canCreate}
         />
       )}
-      {tab === 'new' && session.role === 'sales' && <SRForm reports={reports} setReports={setReports} t={t} lang={lang} session={session} editingReport={editingReport} onSaved={handleSaved} onCancel={() => { setEditingReport(null); setTab('history'); }} employees={employees} />}
+      {tab === 'new' && canCreate && (
+        <SRForm
+          reports={reports}
+          setReports={setReports}
+          t={t}
+          lang={lang}
+          session={session}
+          editingReport={editingReport}
+          onSaved={handleSaved}
+          onCancel={() => { setEditingReport(null); setTab('history'); }}
+          employees={employees}
+          salesTeam={salesTeam}
+          allowSalesPicker={session.role !== 'sales'}
+        />
+      )}
       {tab === 'history' && <SRHistory reports={filteredReports} t={t} lang={lang} fmt={fmt} canDelete={canEdit} session={session} onEdit={handleEdit} onDelete={handleDelete} onBulkDelete={(ids) => setBulkDeleteReportIds(ids)} employees={employees} searchTerm={searchTerm} totalBeforeSearch={visibleReports.length} />}
       <ConfirmDialog open={!!deleteReportId} title={lang === 'id' ? 'Hapus Laporan?' : 'Delete Report?'} message={t.sr_confirm_delete || (lang === 'id' ? 'Yakin ingin menghapus laporan ini?' : 'Are you sure you want to delete this report?')} onConfirm={confirmDeleteReport} onCancel={() => setDeleteReportId(null)} danger lang={lang} />
       <ConfirmDialog open={!!bulkDeleteReportIds?.length} title={lang === 'id' ? 'Hapus Laporan Terpilih?' : 'Delete Selected Reports?'} message={lang === 'id' ? `Yakin ingin menghapus ${bulkDeleteReportIds?.length || 0} laporan terpilih secara permanen?` : `Permanently delete ${bulkDeleteReportIds?.length || 0} selected report(s)?`} onConfirm={confirmBulkDeleteReports} onCancel={() => setBulkDeleteReportIds(null)} danger lang={lang} />
     </div>
   );
 }
-function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRead, reportsSeen = {}, issues = [], installRecords = [], fmt = (n) => n, onNavigateTab }) {
+function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRead, reportsSeen = {}, issues = [], installRecords = [], fmt = (n) => n, onNavigateTab, canCreate = false }) {
   const salesTeam = useMemo(() => getActiveSalesTeam(employees), [employees]);
   const glass = DASHBOARD_GLASS.fieldReport;
   const todayStr = new Date().toISOString().split('T')[0];
@@ -2181,7 +2294,7 @@ function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRea
 
   const quickLinks = [
     { id: 'history', label: t.sr_history, count: reports.length, icon: Clock, color: glass.accent },
-    ...(session.role === 'sales' ? [{ id: 'new', label: t.sr_new, count: '＋', icon: ClipboardList, color: '#10b981' }] : []),
+    ...(canCreate ? [{ id: 'new', label: t.sr_new, count: '＋', icon: ClipboardList, color: '#10b981' }] : []),
     { id: 'visits', label: t.sr_visits_count, count: totalVisits, icon: MapPin, color: '#6366f1' },
     { id: 'deals', label: lang === 'id' ? 'Closing' : 'Closing', count: totalDeals, icon: Target, color: '#10b981' },
   ];
@@ -2350,10 +2463,17 @@ function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRea
     </div>
   );
 }
-function SRForm({ reports, setReports, t, lang, session, editingReport, onSaved, onCancel, employees = {} }) {
-  const _base = useMemo(() => getActiveSalesTeam(employees).find(s => s.id === session.salesId), [employees, session.salesId]);
-  const sales = _base ? { ..._base, name: resolveEmpName(employees, session.salesId) } : _base;
+function SRForm({ reports, setReports, t, lang, session, editingReport, onSaved, onCancel, employees = {}, salesTeam = [], allowSalesPicker = false }) {
   const isEdit = !!editingReport;
+  const isSalesUser = session.role === 'sales';
+  const [formSalesId, setFormSalesId] = useState(() => {
+    if (isEdit) return editingReport.salesId;
+    if (isSalesUser) return session.salesId;
+    return salesTeam[0]?.id || '';
+  });
+  const effectiveSalesId = isEdit ? (editingReport.salesId || formSalesId) : (isSalesUser ? session.salesId : formSalesId);
+  const _base = useMemo(() => salesTeam.find(s => s.id === effectiveSalesId), [salesTeam, effectiveSalesId]);
+  const sales = _base ? { ..._base, name: resolveEmpName(employees, effectiveSalesId) } : _base;
   const [form, setForm] = useState(editingReport || {
     date: '2026-05-16', week: 'Minggu 1', days: 0, nights: 0, area: '',
     visits: [{ name: '', city: '', visit: 'first', product: '', pipeline: 'cold', contact: '', note: '' }],
@@ -2366,10 +2486,14 @@ function SRForm({ reports, setReports, t, lang, session, editingReport, onSaved,
   const updateVisit = (i, k, v) => setForm(f => ({ ...f, visits: f.visits.map((vt, j) => j === i ? { ...vt, [k]: v } : vt) }));
 
   const handleSubmit = () => {
+    if (!effectiveSalesId) {
+      showToast(lang === 'id' ? 'Pilih sales terlebih dahulu' : 'Select a sales person first', 'error');
+      return;
+    }
     const validVisits = form.visits.filter(v => v.name.trim());
     const report = {
       id: isEdit ? form.id : 'rpt_' + Date.now(),
-      salesId: isEdit ? form.salesId : session.salesId,
+      salesId: isEdit ? form.salesId : effectiveSalesId,
       date: form.date, week: form.week, days: parseInt(form.days) || 0, nights: parseInt(form.nights) || 0,
       area: form.area, visits: validVisits, pipeN: parseInt(form.pipeN) || 0, pipeVal: parseInt(form.pipeVal) || 0,
       closest: form.closest,
@@ -2390,9 +2514,19 @@ function SRForm({ reports, setReports, t, lang, session, editingReport, onSaved,
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: '14px'}}>
       <div style={{padding: '14px 18px', background: 'linear-gradient(135deg, var(--ims-bg-alt) 0%, #2a3f5f 100%)', color: 'var(--ims-text)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px'}}>
-        <div>
+        <div style={{flex: 1}}>
           <div style={{fontSize: '10px', letterSpacing: '0.25em', textTransform: 'uppercase', color: 'var(--ims-accent)', marginBottom: '4px'}}>{isEdit ? t.sr_edit_report : (lang === 'id' ? 'Laporan untuk' : 'Report for')}</div>
-          <div style={{fontSize: '17px', fontWeight: 600}}>{sales?.name} · <span style={{opacity: 0.7, fontSize: '13px'}}>{lang === 'id' ? sales?.territory : sales?.territoryEn}</span></div>
+          {allowSalesPicker && !isEdit ? (
+            <div style={{display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap'}}>
+              <select value={formSalesId} onChange={e => setFormSalesId(e.target.value)} style={{minWidth: '220px', fontSize: '13px', fontWeight: 600}}>
+                {salesTeam.map(s => (
+                  <option key={s.id} value={s.id}>{resolveEmpName(employees, s.id)} · {lang === 'id' ? s.territory : s.territoryEn}</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div style={{fontSize: '17px', fontWeight: 600}}>{sales?.name || effectiveSalesId || '—'} · <span style={{opacity: 0.7, fontSize: '13px'}}>{lang === 'id' ? sales?.territory : sales?.territoryEn}</span></div>
+          )}
         </div>
         {isEdit && onCancel && (
           <button onClick={onCancel} style={{background: 'transparent', color: 'var(--ims-accent)', border: '1px solid var(--ims-accent)', padding: '6px 14px', fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.05em'}}>← {t.sr_back_to_history}</button>

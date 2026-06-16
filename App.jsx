@@ -59,7 +59,7 @@ import { IncentiveModule } from './src/modules/IncentiveModule.jsx';
 import { InstallationModule, InstallRecordsList, BASTList, TrainingCertList, UnitPickerField, findInstallRecordForUnit, installLeadTechnicianName, activeEmployeeNamesByRole, InstallRecordModal, BASTModal, TrainingCertModal } from './src/modules/InstallationModule.jsx';
 import { healTechnicianName, mergeUnitsWithPmSchedule, migrateModuleAccess } from './src/utils/technicalSupport.js';
 import { mergeSphImportRecords, healSphSalesFromImportLabels } from './src/utils/sphImport.js';
-import { isLikelySeedSphDataset, setSphHighWaterMark, shouldPersistSphData } from './src/utils/sphGuard.js';
+import { isLikelySeedSphDataset, setSphHighWaterMark, shouldPersistSphData, lockProductionSph, isProductionSphLocked } from './src/utils/sphGuard.js';
 import sphRestore2026 from './src/data/sphRestore2026.json';
 import { Dashboard } from './src/modules/Dashboard.jsx';
 import { RegulatoryDashboardCharts, RegulatoryModule, regStageLabel, RegDurationTimeline, UniformRegPipeline, RegulatoryRecordModal } from './src/modules/RegulatoryModule.jsx';
@@ -333,7 +333,8 @@ export default function App() {
     try { if (typeof document !== 'undefined' && document.body) document.body.setAttribute('data-ims-theme', theme); } catch {}
   }, [theme]);
   const [session, setSession] = useState(null);
-  const [data, setData] = useState(ALL_SPH);
+  const [data, setData] = useState([]);
+  const sphHydratedRef = useRef(false);
   const [reports, setReports] = useState(SEED_FIELD_REPORTS);
   const [issues, setIssues] = useState(SEED_ISSUES);
   const [pmSchedule, setPmSchedule] = useState([]);
@@ -683,8 +684,8 @@ export default function App() {
         await storeSet(V43_MIGRATION_MARKER, 'true');
       }
 
-      // V44 migration: pulihkan data SPH produksi jika tertimpa seed demo (60 baris SPH/2026/xxx).
-      // Snapshot dari HNTI_Template_Import_SPH_2026_updated_May_1.csv — 335 baris produk / 300 nomor surat.
+      // V44 migration: pulihkan data SPH produksi HANYA jika tertimpa seed demo eksplisit.
+      // Tidak pernah timpa data produksi ≥100 baris (lock / high-water).
       const V44_RESTORE_MARKER = 'ims_hnti:v44_sph_production_restore';
       const v44Restored = await storeGet(V44_RESTORE_MARKER);
       if (!v44Restored) {
@@ -692,7 +693,7 @@ export default function App() {
         let parsed = null;
         try { parsed = sphStored ? JSON.parse(sphStored) : null; } catch {}
         const count = Array.isArray(parsed) ? parsed.length : 0;
-        const needsRestore = !parsed || isLikelySeedSphDataset(parsed) || count <= 65;
+        const needsRestore = isLikelySeedSphDataset(parsed) && !isProductionSphLocked() && count < 100;
         if (needsRestore && Array.isArray(sphRestore2026) && sphRestore2026.length > 100) {
           let empData = USERS;
           const empStored = await storeGet('ims_hnti:emp_v22');
@@ -702,10 +703,26 @@ export default function App() {
           if (productStored) try { productList = JSON.parse(productStored); } catch {}
           const restored = healSphSalesFromImportLabels(normalizeSphDataset(sphRestore2026, productList), empData);
           await storeSet(STORAGE_KEY, JSON.stringify(restored));
-          setSphHighWaterMark(restored.length);
+          lockProductionSph(restored.length);
           markSphLocalWrite(restored.length);
         }
         await storeSet(V44_RESTORE_MARKER, 'true');
+      }
+
+      // V45: kunci production lock dari data tersimpan (cegah regresi ke seed setelah perbaikan manual).
+      const V45_LOCK_MARKER = 'ims_hnti:v45_sph_production_lock';
+      const v45Locked = await storeGet(V45_LOCK_MARKER);
+      if (!v45Locked) {
+        const sphStored = await storeGet(STORAGE_KEY);
+        if (sphStored) {
+          try {
+            const parsed = JSON.parse(sphStored);
+            if (Array.isArray(parsed) && parsed.length >= 100 && !isLikelySeedSphDataset(parsed)) {
+              lockProductionSph(parsed.length);
+            }
+          } catch {}
+        }
+        await storeSet(V45_LOCK_MARKER, 'true');
       }
 
       const [d, l, s, r, rep, iss, reg, akl, imp, pgl, pi, pm, mfst, cdoc, inst, bast, train, emp, bt] = await Promise.all([
@@ -723,11 +740,12 @@ export default function App() {
       if (d && !isCloudApplyBlocked(STORAGE_KEY)) try {
         const parsed = JSON.parse(d);
         setSphData(parsed);
-        if (Array.isArray(parsed) && parsed.length > 100 && !isLikelySeedSphDataset(parsed)) {
-          setSphHighWaterMark(parsed.length);
+        if (Array.isArray(parsed) && parsed.length >= 100 && !isLikelySeedSphDataset(parsed)) {
+          lockProductionSph(parsed.length);
           markSphLocalWrite(parsed.length);
         }
       } catch {}
+      sphHydratedRef.current = true;
       if (l) setLang(l);
       if (s) try { setSession(JSON.parse(s)); } catch {}
       if (r) setExchangeRate(parseFloat(r) || DEFAULT_USD_IDR);
@@ -773,7 +791,7 @@ export default function App() {
       if (reg) {
         try { setRegRecords(JSON.parse(reg)); } catch {}
       } else {
-        const sphData = d ? normalizePoWon(JSON.parse(d)) : ALL_SPH;
+        const sphData = d ? normalizePoWon(JSON.parse(d)) : [];
         let bastData = INSTALL_DOCS.bast;
         if (bast) try { bastData = JSON.parse(bast); } catch {}
         const units = generateInstalledUnits(sphData, bastData);
@@ -995,10 +1013,10 @@ export default function App() {
   }, [employees, loading]);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || !sphHydratedRef.current) return;
     if (!shouldPersistSphData(data)) return;
     markSphLocalWrite(data.length);
-    setSphHighWaterMark(data.length);
+    if (data.length >= 100) lockProductionSph(data.length);
     debouncedStoreSet(STORAGE_KEY, JSON.stringify(data));
     setLastSync(Date.now());
   }, [data, loading]);
@@ -1463,7 +1481,7 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
     blockCloudApply(STORAGE_KEY, 180000);
     const merged = mergeSphImportRecords(data, records, employees);
     markSphLocalWrite(merged.data.length);
-    setSphHighWaterMark(merged.data.length);
+    lockProductionSph(merged.data.length);
     setData(merged.data);
     storeSet(STORAGE_KEY, JSON.stringify(merged.data));
     logAction({ module: 'sph', action: 'import', entityLabel: lang === 'id' ? `Impor CSV (${records.length} baris)` : `CSV import (${records.length} rows)`, note: `${merged.added} added, ${merged.updated} updated` });

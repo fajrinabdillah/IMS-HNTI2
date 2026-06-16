@@ -1,5 +1,6 @@
 // Extracted from App.jsx during modular refactor.
-import { shouldRejectStaleSphCloud as rejectStaleSphCloud } from './sphGuard.js';
+import { shouldRejectStaleSphCloud as rejectStaleSphCloud, guardSphStoreWrite } from './sphGuard.js';
+import { STORAGE_KEY } from '../constants/storageKeys.js';
 const _memStore = {};
 const _hasArtifactStorage = typeof window !== 'undefined' && window.storage && typeof window.storage.get === 'function';
 const _hasLocalStorage = (() => {
@@ -396,6 +397,10 @@ const storeGet = async (k) => {
   return _memStore[k] ?? null;
 };
 const storeSet = async (k, v) => {
+  if (k === STORAGE_KEY) {
+    const guard = guardSphStoreWrite(k, v);
+    if (!guard.ok) return;
+  }
   // [1] Claude artifact preview
   if (_hasArtifactStorage) { try { await window.storage.set(k, v); return; } catch {} }
   // [2] Supabase upsert — gunakan session token jika ada
@@ -431,6 +436,10 @@ const storeDel = async (k) => {
 const _persistPending = {};
 let _persistTimer = null;
 function debouncedStoreSet(k, v) {
+  if (k === STORAGE_KEY) {
+    const guard = guardSphStoreWrite(k, v);
+    if (!guard.ok) return;
+  }
   _persistPending[k] = v;
   blockCloudApply(k, 12000);
   if (_persistTimer) return;

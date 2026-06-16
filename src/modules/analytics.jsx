@@ -228,7 +228,7 @@ function ProductSupportDashboard({ presentationProjects, activities, productFile
 }
 
 function ProductSupportModule({ data, trainingRecords, products, employees, session, t, lang, canEdit, fmt, activities = [], setActivities = () => {}, files = [], setFiles = () => {} }) {
-  const [tab, setTab] = useState('dashboard');
+  const [tab, setTab] = useState('presentations');
   const [presentationFilter, setPresentationFilter] = useState({ modality: 'all', type: 'all' });
   const [form, setForm] = useState({ hospital: '', sphId: '', productId: '', modality: '', brand: '', type: '', date: new Date().toISOString().split('T')[0], activityType: 'presentasi', note: '', competitor: '', attachmentUrl: '' });
   const [activityFilter, setActivityFilter] = useState({ specialist: 'all', activityType: 'all', search: '' });
@@ -348,11 +348,11 @@ function ProductSupportModule({ data, trainingRecords, products, employees, sess
       {!canEdit && <ReadOnlyBanner t={t} />}
       <div style={{display: 'flex', gap: '2px', marginBottom: '20px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
         {[
-          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: LayoutDashboard, count: presentationProjects.length + activities.length + upcomingTraining.length },
           { id: 'presentations', label: lang === 'id' ? 'Jadwal Presentasi' : 'Presentations', icon: CalendarDays, count: presentationProjects.length },
           { id: 'activities', label: lang === 'id' ? 'Activity Report' : 'Activity Report', icon: ClipboardList, count: activities.length },
           { id: 'files', label: lang === 'id' ? 'File Produk' : 'Product Files', icon: FolderOpen, count: productFileRows.reduce((sum, p) => sum + p.fileEntries.filter(f => f.url).length, 0) },
           { id: 'training', label: lang === 'id' ? 'Jadwal Training Produk' : 'Product Training', icon: Users, count: upcomingTraining.length },
+          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: LayoutDashboard, count: presentationProjects.length + activities.length + upcomingTraining.length },
         ].map(tb => {
           const Icon = tb.icon; const active = tab === tb.id;
           return <button key={tb.id} onClick={() => setTab(tb.id)} style={{background: 'transparent', border: 'none', padding: '10px 16px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 500, color: active ? 'var(--ims-accent)' : 'var(--ims-text-2)', borderBottom: active ? '2px solid var(--ims-border)' : '2px solid transparent', marginBottom: '-1px', display: 'flex', alignItems: 'center', gap: '7px'}}><Icon size={14} />{tb.label}<span style={{padding: '2px 7px', background: active ? 'var(--ims-accent)' : 'var(--ims-border)', color: active ? '#fff' : 'var(--ims-text-2)', fontSize: '10px', borderRadius: '10px'}}>{tb.count}</span></button>;

@@ -179,7 +179,7 @@ function FinanceDashboardCharts({ filteredPoProjects, poProjects, financePerform
 }
 function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate, session = {}, documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, employees = {}, onSaveDocument }) {
   const [financeEditor, setFinanceEditor] = useState(null); // { record, docType, html, title }
-  const [tab, setTab] = useState('dashboard');
+  const [tab, setTab] = useState('finance');
   const [expandedPo, setExpandedPo] = useState(null);
   const [paymentForm, setPaymentForm] = useState({ open: false, sphId: null, amount: '', type: 'installment', date: '', note: '' });
   const [confirmDeletePayment, setConfirmDeletePayment] = useState(null);
@@ -557,10 +557,10 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
       {/* Tabs */}
       <div style={{display: 'flex', gap: '2px', marginBottom: '22px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
         {[
-          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: Activity },
           { id: 'finance', label: t.np_tab_finance, icon: Wallet },
           { id: 'opscost', label: lang === 'id' ? 'Biaya Operasional' : 'Operational Cost', icon: DollarSign },
           { id: 'profit', label: t.np_tab_profit, icon: TrendingUp },
+          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: Activity },
         ].map(tb => {
           const Icon = tb.icon;
           const active = tab === tb.id;

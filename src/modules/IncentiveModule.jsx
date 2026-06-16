@@ -124,7 +124,7 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
   const salesTeam = useMemo(() => getActiveSalesTeam(employees), [employees]);
   const isSales = session.role === 'sales';
   const isOfficeAccount = session.salesId === 'office';
-  const [incTab, setIncTab] = useState('dashboard');
+  const [incTab, setIncTab] = useState('deals');
   const [incFilterSales, setIncFilterSales] = useState('all');
   const incentiveStats = useMemo(() => {
     let visibleData = isSales ? data.filter(s => s.salesOwner === session.salesId) : data;
@@ -179,8 +179,8 @@ function IncentiveModule({ data, setData, t, lang, session, fmt, fmtFull, canEdi
 
       <div style={{display: 'flex', gap: '2px', marginBottom: '22px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
         {[
-          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: LayoutDashboard },
           { id: 'deals', label: lang === 'id' ? 'Detail Insentif' : 'Incentive Detail', icon: Wallet },
+          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: LayoutDashboard },
         ].map(tb => {
           const Icon = tb.icon;
           const active = incTab === tb.id;

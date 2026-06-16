@@ -113,7 +113,7 @@ function RegulatoryDashboardCharts({ recordGroups, filterSearch = '', filterYear
   );
 }
 function RegulatoryModule({ records, setRegRecords, aklRecords, setAklRecords, importRecords, setImportRecords, pengalihanRecords, setPengalihanRecords, piRecords, setPiRecords, units, t, lang, fmt, canEdit, data = [], setData, products = [] }) {
-  const [tab, setTab] = useState('dashboard');
+  const [tab, setTab] = useState('akl');
   const [regSearch, setRegSearch] = useState('');
   const [regYear, setRegYear] = useState('all');
   const safeAklRecords = Array.isArray(aklRecords) ? aklRecords : [];
@@ -156,12 +156,12 @@ function RegulatoryModule({ records, setRegRecords, aklRecords, setAklRecords, i
       {/* Tabs - 5 stages with flow */}
       <div style={{display: 'flex', gap: '2px', marginBottom: '22px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
         {[
-          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: Activity, count: safeAklRecords.length + safeImportRecords.length + safePengalihanRecords.length + safePiRecords.length + safeBapetenRecords.length },
           { id: 'akl', label: t.reg_tab_akl, icon: FileCheck, count: safeAklRecords.length },
           { id: 'import', label: t.reg_tab_import, icon: FileSearch, count: safeImportRecords.length },
           { id: 'pengalihan', label: t.reg_tab_pengalihan, icon: Shield, count: safePengalihanRecords.length },
           { id: 'pi', label: t.reg_tab_pi, icon: Truck, count: safePiRecords.length },
           { id: 'bapeten', label: t.reg_tab_bapeten, icon: ShieldCheck, count: safeBapetenRecords.length },
+          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: Activity, count: safeAklRecords.length + safeImportRecords.length + safePengalihanRecords.length + safePiRecords.length + safeBapetenRecords.length },
         ].map(tb => {
           const Icon = tb.icon;
           const active = tab === tb.id;

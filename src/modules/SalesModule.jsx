@@ -1202,7 +1202,7 @@ function PipelineBoard({ data, allData, setData, employees = {}, session, logAct
   // Sales owner filter — 'all' or specific sales id
   const [filterSales, setFilterSales] = useState('all');
   const [reassignDeal, setReassignDeal] = useState(null);
-  const [boardTab, setBoardTab] = useState('dashboard');
+  const [boardTab, setBoardTab] = useState('kanban');
   const [filterYear, setFilterYear] = useState(String(currentYear()));
   // Win rate calculation mode: 'current' (filtered year only) | 'ttm' (trailing 12 months) | 'all' (cumulative)
   const [winRateMode, setWinRateMode] = useState('ttm');
@@ -1315,8 +1315,8 @@ function PipelineBoard({ data, allData, setData, employees = {}, session, logAct
 
       <div style={{display: 'flex', gap: '2px', marginBottom: '22px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
         {[
-          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: LayoutDashboard },
           { id: 'kanban', label: lang === 'id' ? 'Board Pipeline' : 'Pipeline Board', icon: Activity },
+          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: LayoutDashboard },
         ].map(tb => {
           const Icon = tb.icon;
           const active = boardTab === tb.id;
@@ -1708,7 +1708,7 @@ function SalesTeamDashboard({ data = [], reports = [], t, lang, fmt, employees =
 }
 
 function SalesModule({ data, reports, t, lang, fmt, employees = {} }) {
-  const [salesTab, setSalesTab] = useState('dashboard');
+  const [salesTab, setSalesTab] = useState('team');
   const salesTeam = useMemo(() => getActiveSalesTeam(employees), [employees]);
   // Filter: view all sales, or drill into one specific sales
   const [selectedSales, setSelectedSales] = useState('all');
@@ -1766,8 +1766,8 @@ function SalesModule({ data, reports, t, lang, fmt, employees = {} }) {
 
       <div style={{display: 'flex', gap: '2px', marginBottom: '22px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
         {[
-          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: LayoutDashboard },
           { id: 'team', label: lang === 'id' ? 'Tim Sales' : 'Sales Team', icon: Users },
+          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: LayoutDashboard },
         ].map(tb => {
           const Icon = tb.icon;
           const active = salesTab === tb.id;
@@ -1927,7 +1927,7 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
     const latest = dates[dates.length - 1] || '';
     setReportsSeen(prev => ({ ...prev, [session.username]: latest }));
   };
-  const [tab, setTab] = useState('dashboard');
+  const [tab, setTab] = useState(() => (session.role === 'sales' ? 'new' : 'history'));
   const [filterSales, setFilterSales] = useState('all');
   const [search, setSearch] = useState('');
   const [editingReport, setEditingReport] = useState(null);
@@ -1943,9 +1943,16 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
     [visibleReports, searchTerm, salesTeam]
   );
 
-  const tabs = session.role === 'sales' ? ['dashboard', 'new', 'history'] : ['dashboard', 'history'];
-  const tabLabels = { dashboard: t.sr_dashboard, new: editingReport ? t.sr_edit_report : t.sr_new, history: t.sr_history };
-  const tabIcons = { dashboard: Activity, new: ClipboardList, history: Clock };
+  const tabItems = useMemo(() => (session.role === 'sales'
+    ? [
+        { id: 'new', label: editingReport ? t.sr_edit_report : t.sr_new, icon: ClipboardList },
+        { id: 'history', label: t.sr_history, icon: Clock },
+        { id: 'dashboard', label: t.sr_dashboard, icon: Activity },
+      ]
+    : [
+        { id: 'history', label: t.sr_history, icon: Clock },
+        { id: 'dashboard', label: t.sr_dashboard, icon: Activity },
+      ]), [session.role, editingReport, t]);
 
   const handleEdit = (report) => {
     setEditingReport(report);
@@ -1978,12 +1985,12 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
       </div>
 
       <div style={{display: 'flex', gap: '2px', marginBottom: '22px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
-        {tabs.map(x => {
-          const Icon = tabIcons[x];
-          const active = tab === x;
+        {tabItems.map(tb => {
+          const Icon = tb.icon;
+          const active = tab === tb.id;
           return (
-            <button key={x} onClick={() => { setTab(x); if (x !== 'new') setEditingReport(null); }} style={{background: 'transparent', border: 'none', padding: '10px 18px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 500, color: active ? 'var(--ims-accent)' : 'var(--ims-text-2)', borderBottom: active ? '2px solid var(--ims-border)' : '2px solid transparent', marginBottom: '-1px', display: 'flex', alignItems: 'center', gap: '7px', letterSpacing: '0.03em'}}>
-              <Icon size={14} strokeWidth={1.5} />{tabLabels[x]}
+            <button key={tb.id} onClick={() => { setTab(tb.id); if (tb.id !== 'new') setEditingReport(null); }} style={{background: 'transparent', border: 'none', padding: '10px 18px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 500, color: active ? 'var(--ims-accent)' : 'var(--ims-text-2)', borderBottom: active ? '2px solid var(--ims-border)' : '2px solid transparent', marginBottom: '-1px', display: 'flex', alignItems: 'center', gap: '7px', letterSpacing: '0.03em'}}>
+              <Icon size={14} strokeWidth={1.5} />{tb.label}
             </button>
           );
         })}

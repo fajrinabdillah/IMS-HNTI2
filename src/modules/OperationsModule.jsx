@@ -158,7 +158,7 @@ function OperationsDashboardCharts({ poProjects, poProjectValueTotal = 0, visibl
   );
 }
 function OperationsModule({ data, setData, manifests, setManifests, customsDocs, setCustomsDocs, t, lang, canEdit, fmt, session }) {
-  const [tab, setTab] = useState('dashboard');
+  const [tab, setTab] = useState('manifest');
   const [productionConfirmId, setProductionConfirmId] = useState(null);
   const [editingProductionId, setEditingProductionId] = useState(null);
   const [productionEditDraft, setProductionEditDraft] = useState({ startAt: '', days: 30 });
@@ -549,12 +549,12 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
 
       <div style={{display: 'flex', gap: '2px', marginBottom: '22px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
         {[
-          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: Activity },
           { id: 'manifest', label: t.ops_tab_manifest, icon: Briefcase },
           { id: 'production', label: t.ops_tab_production, icon: Wrench },
           { id: 'customs', label: t.ops_tab_customs, icon: FileText },
           { id: 'local', label: t.ops_tab_local, icon: Truck },
           { id: 'shipment', label: t.ops_tab_shipment, icon: Truck },
+          { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: Activity },
         ].map(tb => {
           const Icon = tb.icon;
           const active = tab === tb.id;

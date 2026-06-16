@@ -740,7 +740,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
                         <div style={{width: '80px', height: '6px', background: 'var(--ims-border)', overflow: 'hidden'}}>
                           <div style={{height: '100%', width: `${sum.pctPaid}%`, background: sum.pctPaid >= 100 ? 'var(--ims-accent-2)' : 'var(--ims-gold)'}} />
                         </div>
-                        <div style={{fontSize: '10px', color: 'var(--ims-text-2)'}}>{sum.pctPaid}%{sum.installmentsExpected > 0 && ` · ${sum.installmentsPaid}/${sum.installmentsExpected}`}</div>
+                        <div style={{fontSize: '10px', color: 'var(--ims-text-2)'}}>{sum.pctPaid}%{sum.installmentsExpected > 0 && ` · ${sum.installmentsPaid}/${sum.installmentsExpected} ${lang === 'id' ? 'cicilan' : 'inst.'}`}</div>
                       </div>
                     </Td>
                     {canEdit && (
@@ -788,7 +788,15 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
                         </div>
                         <details open style={{marginTop: '10px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
                           <summary style={{padding: '10px 12px', cursor: 'pointer', fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 800}}>
-                            {lang === 'id' ? 'Termin Pembayaran dari SPH' : 'Payment Terms from SPH'} · {generatePaymentSchedule(p).length} {lang === 'id' ? 'termin' : 'terms'}
+                            {(() => {
+                              const sched = generatePaymentSchedule(p);
+                              const cicilanTerms = sched.filter(x => x.type === 'installment').length;
+                              const hasDp = sched.some(x => x.type === 'dp');
+                              const termLabel = sch === 'dp_installment' && hasDp
+                                ? (lang === 'id' ? `DP + ${p.installmentMonths || cicilanTerms} cicilan` : `DP + ${p.installmentMonths || cicilanTerms} installments`)
+                                : `${sched.length} ${lang === 'id' ? 'termin' : 'terms'}`;
+                              return `${lang === 'id' ? 'Termin Pembayaran dari SPH' : 'Payment Terms from SPH'} · ${termLabel}`;
+                            })()}
                           </summary>
                           <div style={{borderTop: '1px solid var(--ims-border)'}}>
                             {generatePaymentSchedule(p).map((item, idx) => {

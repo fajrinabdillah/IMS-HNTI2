@@ -179,25 +179,23 @@ const computeInvoiceSchedule = (sph, baseDateOverride) => {
     };
   }
   if (dm === 'cicilan') {
-    const dpPct = Math.max(10, Math.min(100, Number(sph.dpPercent) || 30));
+    const dpPct = Math.max(0, Math.min(100, Number(sph.dpPercent) ?? 30));
     const termCount = Math.max(1, Math.min(60, Number(sph.installmentMonths) || 12));
     const dpAmt = total * (dpPct / 100);
     const invoices = [{ seq: 1, date: baseDate, type: 'dp', label: `DP ${dpPct}%`, amount: dpAmt }];
-    if (termCount > 1) {
+    // installmentMonths = jumlah cicilan SETELAH DP (DP tidak dihitung sebagai termin cicilan)
+    if (dpPct < 100 && termCount >= 1) {
       const remaining = total - dpAmt;
-      const perInst = remaining / (termCount - 1);
-      for (let i = 1; i < termCount; i++) {
+      const perInst = remaining / termCount;
+      for (let i = 1; i <= termCount; i++) {
         invoices.push({
           seq: i + 1,
           date: _addMonthsISO(baseDate, i),
           type: 'installment',
-          label: `Cicilan ${i}/${termCount - 1}`,
+          label: termCount === 1 ? 'Pelunasan' : `Cicilan ${i}/${termCount}`,
           amount: perInst
         });
       }
-    } else if (dpPct < 100) {
-      // termCount=1 tapi DP<100% → invoice ke-2 pelunasan
-      invoices.push({ seq: 2, date: _addMonthsISO(baseDate, 1), type: 'final', label: 'Pelunasan', amount: total - dpAmt });
     }
     return { scheme: 'cicilan', totalCount: invoices.length, invoices };
   }
@@ -672,17 +670,20 @@ function generatePaymentSchedule(p) {
     const termCount = (typeof p.installmentMonths === 'number' && p.installmentMonths > 0 ? p.installmentMonths : 12);
     const dpAmt = total * (dpPercent / 100);
     schedule.push({ seq: 0, label: `DP ${dpPercent}%`, dueDate: p.issuedDate || '', amount: dpAmt, type: 'dp' });
-    if (termCount > 1) {
+    // installmentMonths = jumlah cicilan SETELAH DP (DP tidak dihitung sebagai termin cicilan)
+    if (dpPercent < 100 && termCount >= 1) {
       const remaining = total - dpAmt;
-      const monthly = remaining / (termCount - 1);
-      for (let i = 1; i < termCount; i++) {
+      const perInst = remaining / termCount;
+      for (let i = 1; i <= termCount; i++) {
         const due = new Date(issueDate); due.setMonth(due.getMonth() + i);
-        schedule.push({ seq: i, label: `Cicilan ${i}/${termCount - 1}`, dueDate: due.toISOString().split('T')[0], amount: monthly, type: 'installment' });
+        schedule.push({
+          seq: i,
+          label: termCount === 1 ? 'Pelunasan' : `Cicilan ${i}/${termCount}`,
+          dueDate: due.toISOString().split('T')[0],
+          amount: perInst,
+          type: 'installment',
+        });
       }
-    } else if (dpPercent < 100) {
-      // 1 termin tapi DP <100% → 1 invoice pelunasan
-      const due = new Date(issueDate); due.setMonth(due.getMonth() + 1);
-      schedule.push({ seq: 1, label: 'Pelunasan', dueDate: due.toISOString().split('T')[0], amount: total - dpAmt, type: 'final' });
     }
   } else if (dm === 'ekatalog' || dm === 'tender') {
     schedule.push({ seq: 0, label: dm === 'tender' ? 'Pelunasan 100% (Tender — setelah BAST)' : 'Pelunasan 100% (e-Katalog — setelah BAST)', dueDate: p.issuedDate || '', amount: total, type: 'full_after_bast' });

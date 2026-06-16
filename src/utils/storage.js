@@ -1,4 +1,5 @@
 // Extracted from App.jsx during modular refactor.
+import { shouldRejectStaleSphCloud as rejectStaleSphCloud } from './sphGuard.js';
 const _memStore = {};
 const _hasArtifactStorage = typeof window !== 'undefined' && window.storage && typeof window.storage.get === 'function';
 const _hasLocalStorage = (() => {
@@ -239,14 +240,7 @@ function markSphLocalWrite(count) {
   _sphLocalGuard = { count: Math.max(0, Number(count) || 0), at: Date.now() };
 }
 function shouldRejectStaleSphCloud(incoming, localCount = 0) {
-  const inc = Array.isArray(incoming) ? incoming.length : 0;
-  const guardCount = _sphLocalGuard.count || localCount || 0;
-  if (!guardCount) return false;
-  const age = Date.now() - (_sphLocalGuard.at || 0);
-  if (age > 15 * 60 * 1000) return false;
-  if (inc >= guardCount - 2) return false;
-  if (inc < guardCount * 0.85) return true;
-  return false;
+  return rejectStaleSphCloud(incoming, localCount, _sphLocalGuard.count);
 }
 let _rtJoinRef = null;
 const _RT_TOPIC = 'realtime:ims_kv_changes';

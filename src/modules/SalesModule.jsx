@@ -7,7 +7,8 @@ import { DASHBOARD_GLASS, DashboardHero, DashboardKpiGrid, GlassPanel, QuickNavG
 import { DocumentEditorModal } from '../components/DocumentEditorModal.jsx';
 import { DEFAULT_DOCUMENT_TEMPLATES } from '../constants/docs.js';
 import { CICILAN_DP_OPTIONS, CICILAN_TERM_OPTIONS, KSO_INVESTOR_PCT_OPTIONS, KSO_YEAR_OPTIONS, MODALITY_COLORS, PROJECT_TYPES, STAGES, TENDER_SUBSTAGES } from '../constants/sales.js';
-import { addDaysIso, computeInvoiceSchedule, detectSalesOwnerFromCustomer, getActiveSalesTeam, getFactoryProductionDays, resolveCustomerSector, resolveDealModel, resolveEmpName, resolveProductRecord } from '../utils/domain.js';
+import { OFFICE_SALES_ID } from '../constants/org.js';
+import { addDaysIso, computeInvoiceSchedule, detectSalesOwnerFromCustomer, getActiveSalesTeam, getFactoryProductionDays, resolveCustomerSector, resolveDealModel, resolveEmpName, resolveProductRecord, resolveSalesOwnerId } from '../utils/domain.js';
 import { formatDateTime, formatDuration, normalizeExternalUrl, todayStart, currentYear } from '../utils/format.js';
 import { CHART_COLORS } from '../constants/theme.js';
 import { getProjectStageRows, SPH_WORKFLOW_LABELS, isAdminQueueRequest } from '../utils/sphStage.js';
@@ -1494,7 +1495,7 @@ function PipelineBoard({ data, allData, setData, employees = {}, session, logAct
                           <span style={{fontSize: '10px', color: '#c03030', fontStyle: 'italic'}}>{lang === 'id' ? 'Belum ada owner' : 'Unassigned'}</span>
                         )}
                         {isPrivilegedRole && canEdit && (
-                          <button onClick={(e) => { e.stopPropagation(); setReassignDeal({ deal: p, newOwner: p.salesOwner || 'lukman' }); }} style={{background: 'transparent', border: '1px solid var(--ims-border)', color: '#1a4d8a', padding: '2px 6px', cursor: 'pointer', fontSize: '9px', fontFamily: 'inherit', fontWeight: 600, letterSpacing: '0.03em', flexShrink: 0}} title={lang === 'id' ? 'Ubah owner sales' : 'Reassign sales owner'}>
+                          <button onClick={(e) => { e.stopPropagation(); setReassignDeal({ deal: p, newOwner: p.salesOwner || salesTeam[0]?.id || OFFICE_SALES_ID }); }} style={{background: 'transparent', border: '1px solid var(--ims-border)', color: '#1a4d8a', padding: '2px 6px', cursor: 'pointer', fontSize: '9px', fontFamily: 'inherit', fontWeight: 600, letterSpacing: '0.03em', flexShrink: 0}} title={lang === 'id' ? 'Ubah owner sales' : 'Reassign sales owner'}>
                             ⇄ {lang === 'id' ? 'Ubah' : 'Reassign'}
                           </button>
                         )}
@@ -1927,9 +1928,10 @@ function buildFieldReportExportRows(reports, employees = {}) {
   });
   return rows;
 }
-function buildFieldReportTemplateRow(lang) {
+function buildFieldReportTemplateRow(lang, employees = {}) {
+  const sampleSales = getActiveSalesTeam(employees).find(s => !s.isOffice) || { id: OFFICE_SALES_ID, name: 'Office' };
   return [
-    'rpt_example_001', 'lukman', 'Lukman Effendi', '2026-05-16', 'Minggu 1', 4, 3, 'Solo + Sukoharjo',
+    'rpt_example_001', sampleSales.id, sampleSales.name, '2026-05-16', 'Minggu 1', 4, 3, 'Solo + Sukoharjo',
     2, 8500, 'RS Indriati Solo Baru',
     lang === 'id' ? 'Closing RS Indriati' : 'Closed RS Indriati',
     lang === 'id' ? 'Macet di jalan' : 'Traffic delay',
@@ -1999,7 +2001,7 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
   };
   const handleDownloadTemplate = () => {
     const header = buildFieldReportExportRows([], employees)[0];
-    downloadCSV('HNTI_Template_Import_Laporan_Lapangan.csv', [header, buildFieldReportTemplateRow(lang)]);
+    downloadCSV('HNTI_Template_Import_Laporan_Lapangan.csv', [header, buildFieldReportTemplateRow(lang, employees)]);
   };
   const handleImportCSV = (e) => {
     const file = e.target.files?.[0];
@@ -2797,20 +2799,34 @@ function SRHistory({ reports, t, lang, canDelete = false, onEdit, onDelete, onBu
     </div>
   );
 }
-function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, products, employees = {} }) {
-  const [form, setForm] = useState(sph || {
+function createEmptySphForm() {
+  return {
     sphNo: `SPH/2026/${String(Date.now()).slice(-3)}`,
     customer: '', customerType: 'hospital', projectType: 'private',
     modality: 'CT Scan', subModality: '', qty: 1, unitPrice: 0, totalValue: 0,
-    issuedDate: '2026-05-16', salesOwner: 'lukman', region: 'Jateng',
+    issuedDate: new Date().toISOString().split('T')[0], salesOwner: OFFICE_SALES_ID, region: 'Jateng',
     status: 'active', stage: 'sph_sent', probability: 20,
-    notes: '', nextAction: '', lastUpdate: '2026-05-16',
+    notes: '', nextAction: '', lastUpdate: new Date().toISOString().split('T')[0],
     poStatus: null, dpPaid: false, finalPaid: false, shippingStatus: null, customsStatus: null,
-    // Tahap 8 — Deal Model defaults (RS Swasta + Cicilan default)
     customerSector: 'swasta', dealModel: 'cicilan',
     paymentScheme: 'dp_installment', dpPercent: 30, installmentMonths: 12,
     ksoYears: 5, ksoInvestorPct: 70,
-  });
+  };
+}
+function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, products, employees = {} }) {
+  const [form, setForm] = useState(createEmptySphForm);
+
+  useEffect(() => {
+    if (sph) {
+      setForm({
+        ...createEmptySphForm(),
+        ...sph,
+        salesOwner: resolveSalesOwnerId(sph.importSalesLabel || sph.salesOwner, employees) || sph.salesOwner || OFFICE_SALES_ID,
+      });
+    } else {
+      setForm(createEmptySphForm());
+    }
+  }, [sph?.id, employees]);
 
   // Duplicate detection — detect SPH dengan customer+modality+subModality yang sama
   // Excludes self (kalau edit), excludes lost/cancelled, excludes status 'won' yang sudah closed
@@ -2834,20 +2850,30 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
 
   // Active products only — for autocomplete dropdown
   const activeProducts = useMemo(() => (products || []).filter(p => p.active !== false), [products]);
-  const salesOwnerOptions = useMemo(() => Object.entries(employees || {})
-    .filter(([id, emp]) => emp.role === 'sales' && emp.active !== false)
-    .map(([id, emp]) => ({ id, name: emp.name }))
-    .sort((a, b) => a.name.localeCompare(b.name)), [employees]);
+  const salesOwnerOptions = useMemo(() => getActiveSalesTeam(employees).sort((a, b) => a.name.localeCompare(b.name)), [employees]);
   const modalityOptions = useMemo(() => {
     const set = new Set(activeProducts.map(p => p.modality).filter(Boolean));
+    if (form.modality) set.add(form.modality);
     return Array.from(set).sort();
-  }, [activeProducts]);
-  // Filter sub-modalities by selected modality
+  }, [activeProducts, form.modality]);
+  // Filter sub-modalities by selected modality; always keep current imported value visible
   const subModalityOptions = useMemo(() => {
-    return activeProducts.filter(p => p.modality === form.modality).map(p => ({
+    const scoped = activeProducts.filter(p => !form.modality || p.modality === form.modality);
+    const list = (scoped.length ? scoped : activeProducts).map(p => ({
       id: p.id, type: p.type, brand: p.brand, name: p.name, principal: p.principal, origin: p.origin,
     }));
-  }, [activeProducts, form.modality]);
+    if (form.subModality && !list.some(p => p.type === form.subModality)) {
+      list.unshift({
+        id: '_imported',
+        type: form.subModality,
+        brand: form.productBrand || form.brand || '-',
+        name: form.subModality,
+        principal: form.principal || '',
+        origin: form.origin || '',
+      });
+    }
+    return list;
+  }, [activeProducts, form.modality, form.subModality, form.productBrand, form.brand, form.principal, form.origin]);
   const enrichSphProductLink = (raw) => {
     const prod = resolveProductRecord({
       productId: raw.productId,
@@ -2943,8 +2969,8 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
           next.partner = prod.brand;
         }
       }
-      // If customer changes, also auto-detect sales owner (if not yet set or matches old territory)
-      if (k === 'customer' && v && typeof detectSalesOwnerFromCustomer === 'function') {
+      // If customer changes on NEW form only, auto-detect sales owner
+      if (k === 'customer' && v && !sph && typeof detectSalesOwnerFromCustomer === 'function') {
         const suggested = detectSalesOwnerFromCustomer(v);
         if (suggested) next.salesOwner = suggested;
       }

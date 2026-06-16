@@ -2,6 +2,20 @@
 import { _normHdr, _num, _normDate } from './format.js';
 import { normalizeSphStageId, defaultSphStageForStatus } from './domain.js';
 
+const _CUSTOMER_TYPE_ALIASES = {
+  hospital: 'hospital', rs: 'hospital', 'rumah sakit': 'hospital', rumah_sakit: 'hospital',
+  clinic: 'clinic', klinik: 'clinic',
+  subdistributor: 'subdistributor', 'sub distributor': 'subdistributor', sub_dealer: 'subdistributor',
+  partner: 'partner', mitra: 'partner',
+  personal: 'personal', perorangan: 'personal',
+};
+const _PROJECT_TYPE_ALIASES = {
+  private: 'private', swasta: 'private', privat: 'private',
+  government: 'government', pemerintah: 'government', pemda: 'government',
+  tender: 'tender', lelang: 'tender',
+  kso: 'kso', bumn: 'bumn',
+};
+
 function detectDelimiter(text) {
   const sample = String(text || '').replace(/^\ufeff/, '').split(/\r?\n/).slice(0, 10).filter(l => l.trim()).join('\n');
   let commas = 0; let semis = 0; let tabs = 0; let inQuotes = false;
@@ -100,18 +114,22 @@ function parseSPHImport(text) {
     const status = _STATUS_ALIASES[statusRaw] || 'active';
     const stageRaw = get('stage');
     let stage = normalizeSphStageId(stageRaw);
-    if (!stage && stageRaw) stage = normalizeSphStageId(_normHdr(stageRaw));
+    if (!stage && stageRaw) stage = normalizeSphStageId(_normHdr(stageRaw).replace(/\s+/g, '_'));
     if (!stage) stage = defaultSphStageForStatus(status);
     if (!_STAGE_VALID.includes(stage)) stage = defaultSphStageForStatus(status);
+    const customerTypeRaw = _normHdr(get('customerType'));
+    const projectTypeRaw = _normHdr(get('projectType'));
+    const salesRaw = get('salesOwner');
     const rec = {
       sphNo, customer,
-      customerType: get('customerType') || 'hospital',
-      projectType: get('projectType') || 'private',
+      customerType: _CUSTOMER_TYPE_ALIASES[customerTypeRaw] || get('customerType') || 'hospital',
+      projectType: _PROJECT_TYPE_ALIASES[projectTypeRaw] || get('projectType') || 'private',
       modality: get('modality') || '-',
       subModality: get('subModality') || '-',
       qty, unitPrice, totalValue,
       stage, status,
-      salesOwner: get('salesOwner') || '',
+      salesOwner: salesRaw,
+      importSalesLabel: salesRaw,
       region: get('region') || '-',
       issuedDate: _normDate(get('issuedDate')) || new Date().toISOString().split('T')[0],
       notes: get('notes') || '',

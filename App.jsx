@@ -16,7 +16,7 @@ import { SEED_FIELD_REPORTS, SEED_ISSUES, SEED_AKL_RECORDS, SEED_IMPORT_RECORDS,
 import { initialOf, formatCurrency, formatCurrencyFull, formatDateTime, parseSafeDateMs, dateOnlyFromValue, addDateOnlyDays, normalizeExternalUrl, formatDuration, inferMimeFromName, formatFileSize, escapeHtml, safeDocFilename, _normHdr, _num, _normDate } from './src/utils/format.js';
 import { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, STATIC_TECH_ORDER, resolveEmpName, resolveNamesInText, SALES_META_BY_ID, employeeSalesId, getActiveSalesTeam, activeSalesIdSet, normalizeSalesOwnedRows, isLiveEmployeeUsername, normalizeEmployeeOwnedRows, detectPaymentScheme, resolveCustomerSector, resolveDealModel, _addMonthsISO, computeInvoiceSchedule, resolveProductId, normalizeProduct, getRegStages, sanitizeRegStageHistory, migrateRegRecord, normalizeImportPipelineStatus, importPipelineLabel, projectHasDpReceived, manifestMatchesProject, appendStageHistoryEntry, getStageMetrics, applySphStageStatusCoherence, normalizeSphStageRecords, normalizePoWon, calcIncentive, getIncentiveStatus, getNetMargin, calcNetProfit, getProductFileUrl, normalizeProductLookupText, getFactoryProductionDays, addDaysIso, getFactoryProductionInfo, resolveProductRecord, syncSphRecordToProductMaster, syncSphDataToProductMaster, effectiveScheme, generatePaymentSchedule, getPaymentSummary } from './src/utils/domain.js';
 import { _memStore, _hasArtifactStorage, _hasLocalStorage, _SUPA_URL, _SUPA_KEY, _supaEnabled, _supaFetch, _supaSession, _SUPA_SESS_LS, _authFetch, _supaSignIn, _refreshInFlight, _supaRefreshTok, _supaSignOut, _restoreSupaSession, _getSupaTok, _supaReq, _pushVapidPublicKey, _urlBase64ToUint8Array, pushSupported, registerServiceWorker, savePushSubscription, enablePushNotifications, refreshPushSubscription, getPushPermissionStatus, sendServerPushNotification, _rtSocket, _rtHeartbeat, _rtRetryCount, _rtRetryTimer, _rtStatus, _setRtStatus, _hashStr, _recentWrites, _markRecentWrite, _isRecentSelfEcho, blockCloudApply, isCloudApplyBlocked, markSphLocalWrite, shouldRejectStaleSphCloud, _rtJoinRef, _RT_TOPIC, _startRealtime, _scheduleRtRetry, _stopRealtime, _tokRefreshTimer, _startProactiveRefresh, _stopProactiveRefresh, storeGet, storeSet, storeDel, _persistPending, _persistTimer, debouncedStoreSet, flushPersist } from './src/utils/storage.js';
-import { mergeSphImportRecords } from './src/utils/sphImport.js';
+import { stripRemovedEmployees, healCollection } from './src/utils/purgeLegacyEmployees.js';
 import { normalizeSphProjects } from './src/utils/sphProject.js';
 
 /** Pastikan setiap mutasi/load SPH melewati paket harga + kunci proyek multi-alat. */
@@ -58,6 +58,9 @@ import { TechnicalSupportModule } from './src/modules/TechnicalSupportModule.jsx
 import { IncentiveModule } from './src/modules/IncentiveModule.jsx';
 import { InstallationModule, InstallRecordsList, BASTList, TrainingCertList, UnitPickerField, findInstallRecordForUnit, installLeadTechnicianName, activeEmployeeNamesByRole, InstallRecordModal, BASTModal, TrainingCertModal } from './src/modules/InstallationModule.jsx';
 import { healTechnicianName, mergeUnitsWithPmSchedule, migrateModuleAccess } from './src/utils/technicalSupport.js';
+import { mergeSphImportRecords, healSphSalesFromImportLabels } from './src/utils/sphImport.js';
+import { isLikelySeedSphDataset, setSphHighWaterMark, shouldPersistSphData } from './src/utils/sphGuard.js';
+import sphRestore2026 from './src/data/sphRestore2026.json';
 import { Dashboard } from './src/modules/Dashboard.jsx';
 import { RegulatoryDashboardCharts, RegulatoryModule, regStageLabel, RegDurationTimeline, UniformRegPipeline, RegulatoryRecordModal } from './src/modules/RegulatoryModule.jsx';
 
@@ -88,11 +91,6 @@ import { RegulatoryDashboardCharts, RegulatoryModule, regStageLabel, RegDuration
 // ===== Universal employee-name sync layer =====
 // Maps an original seed display-name → username, built from the static USERS seed.
 Object.entries(USERS).forEach(([un, info]) => { if (info.name) SEED_NAME_TO_USERNAME[info.name] = un; });
-// Tahap 11 Phase 1.5 fix: legacy tech names dari deploy lama yang masih persist di production data.
-// Map ke username teknisi aktif supaya resolveEmpName otomatis heal saat render.
-SEED_NAME_TO_USERNAME['Eko Prasetyo'] = 'teknisi3';   // → Muh. Nur Ichsan
-SEED_NAME_TO_USERNAME['Budi Hartono'] = 'teknisi';     // → Robby Dwi Setiawan
-SEED_NAME_TO_USERNAME['Rudi Susanto'] = 'teknisi2';    // → Muhammad Yusuf
 // Static technician order (from USERS seed) — used for positional fallback when a technician
 // username has been renamed in the live DB (e.g. 'teknisi' → 'teknisi1').
 // Derive a 1-2 letter avatar initial from a name (always computed from the live name so it
@@ -101,7 +99,7 @@ SEED_NAME_TO_USERNAME['Rudi Susanto'] = 'teknisi2';    // → Muhammad Yusuf
 // current live employee name. Resilient to renamed usernames via technician positional fallback.
 
 // Resolve any seed technician name embedded inside a free-text string (e.g. training instructor
-// "Robby Dwi Setiawan + Aplikator") to the current live employee name, so renamed staff never leak.
+// "teknisi + Aplikator") to the current live employee name, so renamed staff never leak.
 
 
 
@@ -166,7 +164,7 @@ SEED_NAME_TO_USERNAME['Rudi Susanto'] = 'teknisi2';    // → Muhammad Yusuf
 // key: "oldModality::oldSubModality" → { modality, subModality } sesuai master
 
 // Territory auto-correction: apply detectSalesOwnerFromCustomer to seed
-// → Semarang RS → Hatim, Solo RS → Lukman, Surabaya RS → Bagus, Hermina/Mitra Keluarga/Pramita → pusat
+// → Semarang/Solo RS → Hatim, Surabaya RS → Bagus, Hermina/Mitra Keluarga/Pramita → pusat
 // Sub-dealer and Office tetap (tidak dimapping ke kota tertentu)
 
 
@@ -349,7 +347,7 @@ export default function App() {
   const [importRecords, setImportRecords] = useState(SEED_IMPORT_RECORDS);
   const [pengalihanRecords, setPengalihanRecords] = useState(SEED_PENGALIHAN_RECORDS);
   const [piRecords, setPiRecords] = useState(SEED_PI_RECORDS);
-  const [employees, setEmployees] = useState(USERS);
+  const [employees, setEmployees] = useState(() => stripRemovedEmployees(USERS));
   const [businessTrips, setBusinessTrips] = useState(ALL_BUSINESS_TRIPS);
   const [realizations, setRealizations] = useState(ALL_BT_REALIZATIONS);
   const [products, setProducts] = useState(PRODUCT_MASTER_SEED);
@@ -542,17 +540,15 @@ export default function App() {
       const V40_MIGRATION_MARKER = 'ims_hnti:v40_techname_migrated';
       const v40Migrated = await storeGet(V40_MIGRATION_MARKER);
       if (!v40Migrated) {
-        // Mapping nama lama → nama baru (urutan stable supaya konsisten)
+        // Mapping nama orphan (bukan karyawan) → username teknisi di master karyawan
         const ORPHAN_TECH_MAP = {
-          'Eko Prasetyo': 'Muh. Nur Ichsan',
-          'Budi Hartono': 'Robby Dwi Setiawan',
-          'Rudi Susanto': 'Muhammad Yusuf',
-          // Tambahan defensive: nama fiktif lain yang mungkin pernah ada
-          'Eko': 'Muh. Nur Ichsan',
-          'Budi': 'Robby Dwi Setiawan',
-          'Rudi': 'Muhammad Yusuf',
+          'Eko Prasetyo': 'teknisi3',
+          'Budi Hartono': 'teknisi',
+          'Rudi Susanto': 'teknisi2',
+          'Eko': 'teknisi3',
+          'Budi': 'teknisi',
+          'Rudi': 'teknisi2',
         };
-        const ACTIVE_TECHS = Object.values(USERS).filter(u => u.role === 'technician' && u.active).map(u => u.name);
         const healName = (val) => {
           if (typeof val !== 'string' || !val) return val;
           // Direct map first
@@ -570,7 +566,7 @@ export default function App() {
           if (!rec || typeof rec !== 'object') return rec;
           const next = { ...rec };
           // Common technician fields across modules
-          ['technician', 'technicianName', 'pic', 'assignedTo', 'leadTech', 'pelaksana'].forEach(k => {
+          ['technician', 'technicianName', 'pic', 'assignedTo', 'leadTech', 'leadTechnician', 'instructor', 'pelaksana'].forEach(k => {
             if (next[k] !== undefined) next[k] = healName(next[k]);
           });
           ['technicians', 'team', 'crew'].forEach(k => {
@@ -627,6 +623,91 @@ export default function App() {
         await storeSet(V41_MIGRATION_MARKER, 'true');
       }
 
+      // V42 migration: hapus Lukman dari data persisten & master karyawan bootstrap
+      const V42_MIGRATION_MARKER = 'ims_hnti:v42_purge_lukman_migrated';
+      const v42Migrated = await storeGet(V42_MIGRATION_MARKER);
+      if (!v42Migrated) {
+        const healStoredArray = async (key) => {
+          const stored = await storeGet(key);
+          if (!stored) return;
+          try {
+            const parsed = JSON.parse(stored);
+            if (!Array.isArray(parsed)) return;
+            const healed = healCollection(parsed);
+            if (JSON.stringify(healed) !== stored) await storeSet(key, JSON.stringify(healed));
+          } catch {}
+        };
+        const empStored = await storeGet('ims_hnti:emp_v22');
+        if (empStored) {
+          try {
+            const parsed = stripRemovedEmployees(JSON.parse(empStored));
+            if (JSON.stringify(parsed) !== empStored) await storeSet('ims_hnti:emp_v22', JSON.stringify(parsed));
+          } catch {}
+        }
+        const sphStored = await storeGet(STORAGE_KEY);
+        if (sphStored) {
+          try {
+            const parsed = JSON.parse(sphStored);
+            if (Array.isArray(parsed)) {
+              const healed = healCollection(parsed);
+              if (JSON.stringify(healed) !== sphStored) await storeSet(STORAGE_KEY, JSON.stringify(healed));
+            }
+          } catch {}
+        }
+        await healStoredArray(REPORTS_KEY);
+        await healStoredArray('ims_hnti:bt_v22');
+        await healStoredArray('ims_hnti:inst_v30');
+        await healStoredArray('ims_hnti:bast_v30');
+        await healStoredArray('ims_hnti:train_v30');
+        await healStoredArray('ims_hnti:pm_v22');
+        await storeSet(V42_MIGRATION_MARKER, 'true');
+      }
+
+      // V43 migration: pulihkan salesOwner dari label CSV / reassignment metadata → salesId
+      const V43_MIGRATION_MARKER = 'ims_hnti:v43_sph_sales_import_healed';
+      const v43Migrated = await storeGet(V43_MIGRATION_MARKER);
+      if (!v43Migrated) {
+        const sphStored = await storeGet(STORAGE_KEY);
+        if (sphStored) {
+          try {
+            let empData = USERS;
+            const empStored = await storeGet('ims_hnti:emp_v22');
+            if (empStored) empData = stripRemovedEmployees(JSON.parse(empStored));
+            const parsed = JSON.parse(sphStored);
+            if (Array.isArray(parsed)) {
+              const healed = healSphSalesFromImportLabels(parsed, empData);
+              if (JSON.stringify(healed) !== sphStored) await storeSet(STORAGE_KEY, JSON.stringify(healed));
+            }
+          } catch {}
+        }
+        await storeSet(V43_MIGRATION_MARKER, 'true');
+      }
+
+      // V44 migration: pulihkan data SPH produksi jika tertimpa seed demo (60 baris SPH/2026/xxx).
+      // Snapshot dari HNTI_Template_Import_SPH_2026_updated_May_1.csv — 335 baris produk / 300 nomor surat.
+      const V44_RESTORE_MARKER = 'ims_hnti:v44_sph_production_restore';
+      const v44Restored = await storeGet(V44_RESTORE_MARKER);
+      if (!v44Restored) {
+        const sphStored = await storeGet(STORAGE_KEY);
+        let parsed = null;
+        try { parsed = sphStored ? JSON.parse(sphStored) : null; } catch {}
+        const count = Array.isArray(parsed) ? parsed.length : 0;
+        const needsRestore = !parsed || isLikelySeedSphDataset(parsed) || count <= 65;
+        if (needsRestore && Array.isArray(sphRestore2026) && sphRestore2026.length > 100) {
+          let empData = USERS;
+          const empStored = await storeGet('ims_hnti:emp_v22');
+          if (empStored) empData = stripRemovedEmployees(JSON.parse(empStored));
+          const productStored = await storeGet(PRODUCT_KEY);
+          let productList = PRODUCT_MASTER_SEED;
+          if (productStored) try { productList = JSON.parse(productStored); } catch {}
+          const restored = healSphSalesFromImportLabels(normalizeSphDataset(sphRestore2026, productList), empData);
+          await storeSet(STORAGE_KEY, JSON.stringify(restored));
+          setSphHighWaterMark(restored.length);
+          markSphLocalWrite(restored.length);
+        }
+        await storeSet(V44_RESTORE_MARKER, 'true');
+      }
+
       const [d, l, s, r, rep, iss, reg, akl, imp, pgl, pi, pm, mfst, cdoc, inst, bast, train, emp, bt] = await Promise.all([
         storeGet(STORAGE_KEY), storeGet(LANG_KEY), storeGet(SESSION_KEY),
         storeGet(RATE_KEY), storeGet(REPORTS_KEY),
@@ -639,7 +720,14 @@ export default function App() {
         storeGet('ims_hnti:emp_v22'),
         storeGet('ims_hnti:bt_v22')
       ]);
-      if (d && !isCloudApplyBlocked(STORAGE_KEY)) try { setSphData(JSON.parse(d)); } catch {}
+      if (d && !isCloudApplyBlocked(STORAGE_KEY)) try {
+        const parsed = JSON.parse(d);
+        setSphData(parsed);
+        if (Array.isArray(parsed) && parsed.length > 100 && !isLikelySeedSphDataset(parsed)) {
+          setSphHighWaterMark(parsed.length);
+          markSphLocalWrite(parsed.length);
+        }
+      } catch {}
       if (l) setLang(l);
       if (s) try { setSession(JSON.parse(s)); } catch {}
       if (r) setExchangeRate(parseFloat(r) || DEFAULT_USD_IDR);
@@ -655,7 +743,7 @@ export default function App() {
       if (inst) try { setInstallRecords(JSON.parse(inst)); } catch {}
       if (bast) try { setBastRecords(JSON.parse(bast)); } catch {}
       if (train) try { setTrainingRecords(JSON.parse(train)); } catch {}
-      if (emp) try { setEmployees(JSON.parse(emp)); } catch {}
+      if (emp) try { setEmployees(stripRemovedEmployees(JSON.parse(emp))); } catch {}
       if (bt) try { setBusinessTrips(JSON.parse(bt)); } catch {}
       const btrStored = await storeGet('ims_hnti:btr_v22');
       if (btrStored) try { setRealizations(JSON.parse(btrStored)); } catch {}
@@ -906,7 +994,14 @@ export default function App() {
     });
   }, [employees, loading]);
 
-  useEffect(() => { if (!loading) { debouncedStoreSet(STORAGE_KEY, JSON.stringify(data)); setLastSync(Date.now()); } }, [data, loading]);
+  useEffect(() => {
+    if (loading) return;
+    if (!shouldPersistSphData(data)) return;
+    markSphLocalWrite(data.length);
+    setSphHighWaterMark(data.length);
+    debouncedStoreSet(STORAGE_KEY, JSON.stringify(data));
+    setLastSync(Date.now());
+  }, [data, loading]);
   useEffect(() => { if (!loading) debouncedStoreSet(REPORTS_KEY, JSON.stringify(reports)); }, [reports, loading]);
   useEffect(() => { if (!loading) debouncedStoreSet('ims_hnti:issues_v30', JSON.stringify(issues)); }, [issues, loading]);
   useEffect(() => { if (!loading) debouncedStoreSet('ims_hnti:reg_v30', JSON.stringify(regRecords)); }, [regRecords, loading]);
@@ -1366,8 +1461,9 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
   // Bulk CSV import: match per line item (SPH No + pelanggan + produk) → update atau tambah baru.
   const handleImportSPH = (records) => {
     blockCloudApply(STORAGE_KEY, 180000);
-    const merged = mergeSphImportRecords(data, records);
+    const merged = mergeSphImportRecords(data, records, employees);
     markSphLocalWrite(merged.data.length);
+    setSphHighWaterMark(merged.data.length);
     setData(merged.data);
     storeSet(STORAGE_KEY, JSON.stringify(merged.data));
     logAction({ module: 'sph', action: 'import', entityLabel: lang === 'id' ? `Impor CSV (${records.length} baris)` : `CSV import (${records.length} rows)`, note: `${merged.added} added, ${merged.updated} updated` });
@@ -1408,7 +1504,7 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
         {view === 'sales' && canRead('sales') && <SalesModule data={data} reports={reports} t={t} lang={lang} fmt={fmt} employees={employees} />}
         {view === 'sales_report' && canRead('sales_report') && <SalesReport reports={reports} setReports={setReports} t={t} lang={lang} session={session} fmt={fmt} employees={employees} reportsSeen={reportsSeen} setReportsSeen={setReportsSeen} issues={issues} installRecords={installRecords} canEdit={canEdit('sales_report')} />}
         {view === 'finance' && canRead('finance') && <FinanceModule data={data} setData={setData} t={t} lang={lang} canEdit={canEdit('finance')} fmt={fmt} onWorkflowUpdate={handleWorkflowUpdate} session={session} documentTemplates={documentTemplates} employees={employees} onSaveDocument={handleSaveDocument} />}
-        {view === 'operations' && canRead('operations') && <OperationsModule data={data} setData={setData} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} t={t} lang={lang} canEdit={canEdit('operations')} fmt={fmt} session={session} />}
+        {view === 'operations' && canRead('operations') && <OperationsModule data={data} setData={setData} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} products={products} t={t} lang={lang} canEdit={canEdit('operations')} fmt={fmt} session={session} />}
         {view === 'technical_support' && canRead('technical_support') && <TechnicalSupportModule data={data} setData={setData} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} units={baseInstalledUnits} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} t={t} lang={lang} canEdit={canEdit('technical_support')} fmt={fmt} employees={employees} liveTechnicians={liveTechnicians} regRecords={regRecords} products={products} documentTemplates={documentTemplates} onSaveDocument={handleSaveDocument} session={session} unitTechMap={unitTechMap} setUnitTechMap={setUnitTechMap} />}
         {view === 'regulatory' && canRead('regulatory') && <RegulatoryModule records={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} units={installedUnits} t={t} lang={lang} fmt={fmt} canEdit={canEdit('regulatory')} data={data} setData={setData} products={products} />}
         {view === 'incentive' && canRead('incentive') && <IncentiveModule data={data} setData={setData} t={t} lang={lang} session={session} fmt={fmt} fmtFull={fmtFull} canEdit={canEdit('incentive')} employees={employees} />}

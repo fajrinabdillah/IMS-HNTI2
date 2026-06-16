@@ -1,13 +1,12 @@
 // Extracted from App.jsx during modular refactor.
 const DEFAULT_USD_IDR = 18000;
 const SALES_TEAM = [
-  { id: 'lukman', name: 'Lukman Effendi', initial: 'LE', territory: 'Jateng + DIY B', territoryEn: 'Central Java + DIY B', accent: '#1a6bb0' },
-  { id: 'hatim', name: 'Ahmad Hatim Ashshidiq', initial: 'HT', territory: 'Jateng A', territoryEn: 'Central Java A', accent: '#d4780a' },
-  { id: 'dwi', name: 'Dwi Wahyudianto', initial: 'DW', territory: 'Jabodetabek + Jabar', territoryEn: 'Jabodetabek + West Java', accent: '#c03030' },
-  { id: 'tri', name: 'Tri Sutjahjono', initial: 'TS', territory: 'Jatim 1', territoryEn: 'East Java 1', accent: '#12855a' },
-  { id: 'bagus', name: 'Bagus Iswahyudi', initial: 'BI', territory: 'Jatim 2', territoryEn: 'East Java 2', accent: '#7b3fb5' },
-  { id: 'icha', name: 'Ika Apriani', initial: 'IA', territory: 'Jabodetabek + Jabar (bawah Dwi)', territoryEn: 'Jabodetabek + West Java (under Dwi)', accent: '#d4a8c8', supervisedBy: 'dwi' },
-  { id: 'office', name: 'HNT Indonesia (Office)', initial: 'HO', territory: 'Nasional', territoryEn: 'Nationwide', accent: 'var(--ims-accent)', isOffice: true },
+  { id: 'hatim', territory: 'Jateng A + Selatan + DIY', territoryEn: 'Central Java A + South + DIY', accent: '#d4780a' },
+  { id: 'dwi', territory: 'Jabodetabek + Jabar', territoryEn: 'Jabodetabek + West Java', accent: '#c03030' },
+  { id: 'tri', territory: 'Jatim 1', territoryEn: 'East Java 1', accent: '#12855a' },
+  { id: 'bagus', territory: 'Jatim 2', territoryEn: 'East Java 2', accent: '#7b3fb5' },
+  { id: 'icha', territory: 'Jabodetabek + Jabar (bawah Dwi)', territoryEn: 'Jabodetabek + West Java (under Dwi)', accent: '#d4a8c8', supervisedBy: 'dwi' },
+  { id: 'office', territory: 'Nasional', territoryEn: 'Nationwide', accent: 'var(--ims-accent)', isOffice: true },
 ];
 const TERRITORY_MAP = {
   // === Hatim — Jateng A (Semarang, sekitar, Pati, Tegal, Brebes, Cirebon coastal) ===
@@ -15,13 +14,13 @@ const TERRITORY_MAP = {
   'pati': 'hatim', 'rembang': 'hatim', 'blora': 'hatim', 'grobogan': 'hatim', 'bojonegoro': 'hatim',
   'tegal': 'hatim', 'brebes': 'hatim', 'pemalang': 'hatim', 'pekalongan': 'hatim',
   'tuban': 'hatim',
-  // === Lukman — Jateng selatan + DIY B ===
-  'solo': 'lukman', 'surakarta': 'lukman', 'sukoharjo': 'lukman', 'karanganyar': 'lukman',
-  'sragen': 'lukman', 'wonogiri': 'lukman', 'klaten': 'lukman', 'boyolali': 'lukman',
-  'magelang': 'lukman', 'salatiga': 'lukman', 'temanggung': 'lukman', 'wonosobo': 'lukman',
-  'banjarnegara': 'lukman', 'purbalingga': 'lukman', 'banyumas': 'lukman', 'purwokerto': 'lukman',
-  'cilacap': 'lukman', 'kebumen': 'lukman', 'purworejo': 'lukman',
-  'yogyakarta': 'lukman', 'sleman': 'lukman', 'bantul': 'lukman', 'kulon progo': 'lukman', 'gunung kidul': 'lukman',
+  // === Hatim — Jateng (Semarang, selatan, DIY) ===
+  'solo': 'hatim', 'surakarta': 'hatim', 'sukoharjo': 'hatim', 'karanganyar': 'hatim',
+  'sragen': 'hatim', 'wonogiri': 'hatim', 'klaten': 'hatim', 'boyolali': 'hatim',
+  'magelang': 'hatim', 'salatiga': 'hatim', 'temanggung': 'hatim', 'wonosobo': 'hatim',
+  'banjarnegara': 'hatim', 'purbalingga': 'hatim', 'banyumas': 'hatim', 'purwokerto': 'hatim',
+  'cilacap': 'hatim', 'kebumen': 'hatim', 'purworejo': 'hatim',
+  'yogyakarta': 'hatim', 'sleman': 'hatim', 'bantul': 'hatim', 'kulon progo': 'hatim', 'gunung kidul': 'hatim',
   // === Dwi — Jabodetabek + Jabar (mayoritas), Icha membantu di bawahnya ===
   'jakarta': 'dwi', 'bekasi': 'dwi', 'tangerang': 'dwi', 'depok': 'dwi', 'bogor': 'dwi',
   'bandung': 'dwi', 'cimahi': 'dwi', 'sumedang': 'dwi', 'karawang': 'dwi', 'purwakarta': 'dwi',
@@ -42,7 +41,7 @@ const TERRITORY_MAP = {
   // === Luar Jawa → Office sementara ===
   'medan': 'office', 'palembang': 'office', 'makassar': 'office', 'manado': 'office', 'pontianak': 'office',
 };
-const SALES_IDS_WITH_OFFICE = ['lukman', 'hatim', 'dwi', 'tri', 'bagus', 'office'];
+const SALES_IDS_WITH_OFFICE = ['hatim', 'dwi', 'tri', 'bagus', 'office'];
 const POSITION_ALLOWANCE = {
   'Staff': 130000,
   'Product Specialist': 150000,
@@ -69,7 +68,6 @@ const USERS = {
   'regulatory': { password: 'hnti2026', role: 'regulatory', name: 'Ananda Rifki Bayu Saputra', initial: 'AR', position: 'Staff', allowancePerDay: 130000, active: true },
   'product': { password: 'hnti2026', role: 'product_specialist', name: 'Rivan Riyadi', initial: 'RR', position: 'Staff', allowancePerDay: 130000, active: true },
   'product2': { password: 'hnti2026', role: 'product_specialist', name: 'Octavianus Hernandes', initial: 'OH', position: 'Staff', allowancePerDay: 130000, active: true },
-  'lukman': { password: 'hnti2026', role: 'sales', name: 'Lukman Effendi', initial: 'LE', salesId: 'lukman', position: 'Staff', allowancePerDay: 130000, active: true },
   'hatim': { password: 'hnti2026', role: 'sales', name: 'Ahmad Hatim Ashshidiq', initial: 'AH', salesId: 'hatim', position: 'Staff', allowancePerDay: 130000, active: true },
   'dwi': { password: 'hnti2026', role: 'sales', name: 'Dwi Wahyudianto', initial: 'DW', salesId: 'dwi', position: 'Manager', allowancePerDay: 175000, active: true },
   'tri': { password: 'hnti2026', role: 'sales', name: 'Tri Sutjahjono', initial: 'TS', salesId: 'tri', position: 'Manager', allowancePerDay: 175000, active: true },

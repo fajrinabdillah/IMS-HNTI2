@@ -7,7 +7,7 @@ import { CHART_COLORS } from '../constants/theme.js';
 import { IMPORT_PIPELINE_STEPS } from '../constants/regulatory.js';
 import { addDateOnlyDays, dateOnlyFromValue, formatDateTime, currentYear } from '../utils/format.js';
 import { DASHBOARD_GLASS, DashboardHero, GlassPanel } from '../components/FuturisticDashboardShell.jsx';
-import { addDaysIso, getFactoryProductionDays, getFactoryProductionInfo, importPipelineLabel, manifestMatchesProject, normalizeImportPipelineStatus, normalizeProductLookupText, projectHasDpReceived } from '../utils/domain.js';
+import { addDaysIso, getFactoryProductionDays, getFactoryProductionInfo, getProductPrincipalOptions, importPipelineLabel, manifestMatchesProject, normalizeImportPipelineStatus, normalizeProductLookupText, projectHasDpReceived } from '../utils/domain.js';
 import { flushPersist } from '../utils/storage.js';
 import { notify } from '../utils/notifications.js';
 import { showToast } from '../utils/toast.js';
@@ -157,7 +157,7 @@ function OperationsDashboardCharts({ poProjects, poProjectValueTotal = 0, visibl
     </div>
   );
 }
-function OperationsModule({ data, setData, manifests, setManifests, customsDocs, setCustomsDocs, t, lang, canEdit, fmt, session }) {
+function OperationsModule({ data, setData, manifests, setManifests, customsDocs, setCustomsDocs, products = [], t, lang, canEdit, fmt, session }) {
   const [tab, setTab] = useState('manifest');
   const [productionConfirmId, setProductionConfirmId] = useState(null);
   const [editingProductionId, setEditingProductionId] = useState(null);
@@ -750,8 +750,8 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
         </div>
       )}
 
-      {tab === 'manifest' && <ManifestList manifests={visibleManifests} setManifests={setManifests} data={data} setData={setData} t={t} lang={lang} canEdit={canEdit} fmt={fmt} />}
-      {tab === 'customs' && <CustomsDocsList customsDocs={visibleCustomsDocs} setCustomsDocs={setCustomsDocs} manifests={visibleManifests} setManifests={setManifests} data={data} setData={setData} t={t} lang={lang} canEdit={canEdit} session={session} />}
+      {tab === 'manifest' && <ManifestList manifests={visibleManifests} setManifests={setManifests} data={data} setData={setData} products={products} t={t} lang={lang} canEdit={canEdit} fmt={fmt} />}
+      {tab === 'customs' && <CustomsDocsList customsDocs={visibleCustomsDocs} setCustomsDocs={setCustomsDocs} manifests={visibleManifests} setManifests={setManifests} data={data} setData={setData} products={products} t={t} lang={lang} canEdit={canEdit} session={session} />}
       {tab === 'local' && (
         <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
           {localProjectGroups.map(group => (
@@ -827,7 +827,7 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
     </div>
   );
 }
-function ManifestList({ manifests, setManifests, data, setData, t, lang, canEdit, fmt }) {
+function ManifestList({ manifests, setManifests, data, setData, products = [], t, lang, canEdit, fmt }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc');
@@ -945,12 +945,12 @@ function ManifestList({ manifests, setManifests, data, setData, t, lang, canEdit
         </tbody>
       </table>
       {manifests.length === 0 && <div className="empty-state">{t.no_data}</div>}
-      {modalOpen && <ManifestModal record={editingRecord} data={data} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
+      {modalOpen && <ManifestModal record={editingRecord} data={data} products={products} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
       <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Manifest?' : 'Delete Manifest?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
   );
 }
-function CustomsDocsList({ customsDocs, setCustomsDocs, manifests, setManifests, data, setData, t, lang, canEdit, session }) {
+function CustomsDocsList({ customsDocs, setCustomsDocs, manifests, setManifests, data, setData, products = [], t, lang, canEdit, session }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [sortBy, setSortBy] = useState('date_desc');
@@ -1108,12 +1108,28 @@ function CustomsDocsList({ customsDocs, setCustomsDocs, manifests, setManifests,
         </tbody>
       </table>
       {sortedDocs.length === 0 && <div className="empty-state">{t.no_data}</div>}
-      {modalOpen && <CustomsDocModal record={editingRecord} manifests={manifests} data={data} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
+      {modalOpen && <CustomsDocModal record={editingRecord} manifests={manifests} data={data} products={products} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingRecord(null); }} t={t} lang={lang} />}
       <ConfirmDialog open={!!deleteId} title={lang === 'id' ? 'Hapus Dokumen?' : 'Delete Document?'} message={lang === 'id' ? 'Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.' : 'Are you sure you want to delete this record? This action cannot be undone.'} onConfirm={confirmDelete} onCancel={() => setDeleteId(null)} danger lang={lang} />
     </div>
   );
 }
-function ManifestModal({ record, data = [], onSave, onClose, t, lang }) {
+function PrincipalSelect({ value, onChange, products = [], lang }) {
+  const options = useMemo(() => getProductPrincipalOptions(products), [products]);
+  const known = new Set(options.map(o => o.principal));
+  const extra = value && !known.has(value) ? [{ principal: value, origin: '' }] : [];
+  const all = [...options, ...extra];
+  return (
+    <select value={value || ''} onChange={e => onChange(e.target.value)}>
+      <option value="">—</option>
+      {all.map(({ principal, origin }) => (
+        <option key={principal} value={principal}>
+          {origin ? `${principal} (${origin})` : principal}
+        </option>
+      ))}
+    </select>
+  );
+}
+function ManifestModal({ record, data = [], products = [], onSave, onClose, t, lang }) {
   const today = new Date().toISOString().split('T')[0];
   const dpProjects = useMemo(() => (data || []).filter(s => s.poStatus === 'issued' && projectHasDpReceived(s)), [data]);
   const [form, setForm] = useState(record ? {
@@ -1129,8 +1145,17 @@ function ManifestModal({ record, data = [], onSave, onClose, t, lang }) {
     itemsCount: 1, freightCost: 0,
     status: 'plan_order', notes: '',
   });
+  const principalOptions = useMemo(() => getProductPrincipalOptions(products), [products]);
   const isEdit = !!record;
   const update = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
+  const selectPrincipal = (principal) => {
+    const match = principalOptions.find(o => o.principal === principal);
+    setForm(prev => ({
+      ...prev,
+      principal,
+      ...(match?.origin ? { principalOrigin: match.origin } : {}),
+    }));
+  };
   const selectProject = (projectId) => {
     const p = dpProjects.find(s => s.id === projectId);
     if (!p) {
@@ -1180,15 +1205,7 @@ function ManifestModal({ record, data = [], onSave, onClose, t, lang }) {
           <Field label={t.ops_type_brand}><input value={form.typeBrand || ''} onChange={e => update('typeBrand', e.target.value)} /></Field>
           <Field label={t.ops_sph_no}><input value={form.sphNo || ''} onChange={e => update('sphNo', e.target.value)} /></Field>
           <Field label={t.imp_principal}>
-            <select value={form.principal} onChange={e => update('principal', e.target.value)}>
-              <option value="">—</option>
-              <option value="SG Healthcare">SG Healthcare (Korea)</option>
-              <option value="ANKE">ANKE (China)</option>
-              <option value="SINO MDT">SINO MDT (China)</option>
-              <option value="Hyde Medical">Hyde Medical (China)</option>
-              <option value="Angell">Angell (China)</option>
-              <option value="Innocare">Innocare (Taiwan)</option>
-            </select>
+            <PrincipalSelect value={form.principal} onChange={selectPrincipal} products={products} lang={lang} />
           </Field>
           <Field label={lang === 'id' ? 'Asal Kota/Negara' : 'Origin'}><input value={form.principalOrigin} onChange={e => update('principalOrigin', e.target.value)} placeholder="Shanghai, China" /></Field>
           <Field label={t.ops_vessel}>
@@ -1213,7 +1230,7 @@ function ManifestModal({ record, data = [], onSave, onClose, t, lang }) {
     </div>
   );
 }
-function CustomsDocModal({ record, manifests, data = [], onSave, onClose, t, lang }) {
+function CustomsDocModal({ record, manifests, data = [], products = [], onSave, onClose, t, lang }) {
   const today = new Date().toISOString().split('T')[0];
   const normalizedRecord = record ? {
     ...record,
@@ -1272,7 +1289,9 @@ function CustomsDocModal({ record, manifests, data = [], onSave, onClose, t, lan
           <Field label={t.ops_sph_no}><input value={form.sphNo || ''} onChange={e => update('sphNo', e.target.value)} /></Field>
           <Field label={t.ops_modality}><input value={form.modality || ''} onChange={e => update('modality', e.target.value)} /></Field>
           <Field label={t.ops_type_brand}><input value={form.typeBrand || ''} onChange={e => update('typeBrand', e.target.value)} /></Field>
-          <Field label={t.imp_principal}><input value={form.principal || ''} onChange={e => update('principal', e.target.value)} /></Field>
+          <Field label={t.imp_principal}>
+            <PrincipalSelect value={form.principal} onChange={v => update('principal', v)} products={products} lang={lang} />
+          </Field>
           <Field label={t.ops_vessel}>
             <select value={form.shippingMode || 'sea'} onChange={e => update('shippingMode', e.target.value)}>
               <option value="sea">Laut</option>

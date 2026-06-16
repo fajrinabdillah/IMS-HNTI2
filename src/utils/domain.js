@@ -29,6 +29,10 @@ const detectSalesOwnerFromCustomer = (customerName) => {
   return 'office';
 };
 const TECHNICIAN_NAMES = Object.values(USERS).filter(u => u.role === 'technician' && u.active).map(u => u.name);
+const TECHNICIAN_USERNAMES = Object.entries(USERS)
+  .filter(([u, e]) => e.role === 'technician' && e.active)
+  .sort(([a], [b]) => a.localeCompare(b))
+  .map(([u]) => u);
 const STATIC_TECH_ORDER = Object.entries(USERS).filter(([u, i]) => i.role === 'technician').map(([u, i]) => ({ un: u, name: i.name }));
 function resolveEmpName(employees, val) {
   if (!val || !employees) return val || '';
@@ -77,7 +81,7 @@ function getActiveSalesTeam(employees = {}) {
       if (seen.has(id)) return null;
       seen.add(id);
       const meta = SALES_META_BY_ID[id] || {};
-      const name = emp.name || meta.name || id;
+      const name = emp.name || username;
       return {
         ...meta,
         id,
@@ -97,11 +101,74 @@ function getActiveSalesTeam(employees = {}) {
 function activeSalesIdSet(employees = {}) {
   return new Set(getActiveSalesTeam(employees).map(s => s.id));
 }
+/** Map CSV / display sales label → canonical salesId (hatim, dwi, tri, bagus, icha, office). */
+function resolveSalesOwnerId(raw, employees = {}) {
+  const val = String(raw || '').trim();
+  if (!val) return OFFICE_SALES_ID;
+  const lower = val.toLowerCase();
+  const team = getActiveSalesTeam(employees);
+  const activeIds = activeSalesIdSet(employees);
+
+  // Exact salesId
+  if (activeIds.has(lower) || activeIds.has(val)) return activeIds.has(val) ? val : lower;
+
+  // Match username or salesId on employee record
+  for (const [username, emp] of Object.entries(employees || {})) {
+    if (!emp || emp.role !== 'sales' || emp.active === false) continue;
+    const sid = employeeSalesId(username, emp);
+    if (username.toLowerCase() === lower || sid.toLowerCase() === lower) return sid;
+  }
+
+  // Office aliases
+  if (/^(office|kantor|hnt indonesia|hnti office)/i.test(val)) return OFFICE_SALES_ID;
+
+  // Name / nickname match against active sales team
+  const tokens = lower.split(/[\s/(),]+/).filter(t => t.length >= 2);
+  let best = null;
+  let bestScore = 0;
+  for (const s of team) {
+    const name = String(s.name || '').toLowerCase();
+    const id = String(s.id || '').toLowerCase();
+    if (name === lower || id === lower) return s.id;
+    if (name.includes(lower) || lower.includes(name)) {
+      const score = Math.min(name.length, lower.length);
+      if (score > bestScore) { bestScore = score; best = s.id; }
+    }
+    for (const tok of tokens) {
+      if (tok.length < 3) continue;
+      if (name.includes(tok) || id === tok) {
+        const score = tok.length + (id === tok ? 10 : 0);
+        if (score > bestScore) { bestScore = score; best = s.id; }
+      }
+    }
+  }
+  if (best && activeIds.has(best)) return best;
+  return val;
+}
 function normalizeSalesOwnedRows(rows = [], employees = {}, field = 'salesOwner') {
   const activeIds = activeSalesIdSet(employees);
   return rows.map(row => {
-    const current = row?.[field];
-    if (!row || current === OFFICE_SALES_ID || activeIds.has(current)) return row;
+    if (!row) return row;
+    const current = row[field];
+    const rawCandidates = [
+      row.importSalesLabel,
+      row._reassignedToOffice?.from,
+      row._autoReassigned?.from,
+      current,
+    ].filter(v => v !== undefined && v !== null && String(v).trim() !== '');
+    let resolved = current;
+    for (const raw of rawCandidates) {
+      const id = resolveSalesOwnerId(raw, employees);
+      if (activeIds.has(id)) { resolved = id; break; }
+    }
+    if (resolved !== current && activeIds.has(resolved)) {
+      return {
+        ...row,
+        [field]: resolved,
+        ...(resolved === OFFICE_SALES_ID ? {} : { _salesOwnerResolved: { from: current, at: new Date().toISOString() } }),
+      };
+    }
+    if (current === OFFICE_SALES_ID || activeIds.has(current)) return row;
     return {
       ...row,
       [field]: OFFICE_SALES_ID,
@@ -384,9 +451,13 @@ const SPH_STAGE_ALIASES = {
   presentation: 'presentation_scheduled', presentation_scheduled: 'presentation_scheduled',
   presentation_done: 'presentation_done', presentasi_selesai: 'presentation_done',
   ecatalog: 'ecatalog', e_catalog: 'ecatalog',
+  sph_terkirim: 'sph_sent', sph_dikirim: 'sph_sent', terkirim: 'sph_sent',
+  presentasi_dijadwalkan: 'presentation_scheduled', jadwal_presentasi: 'presentation_scheduled',
+  presentasi_selesai: 'presentation_done', demo_selesai: 'presentation_done',
+  e_katalog: 'ecatalog', ekatalog: 'ecatalog',
   negosiasi: 'negotiation', negotiation: 'negotiation',
-  tender: 'tender', proses_tender: 'tender',
-  po_issued: 'po_issued', po_terbit: 'po_issued',
+  tender: 'tender', proses_tender: 'tender', pengadaan: 'tender',
+  po_issued: 'po_issued', po_terbit: 'po_issued', po: 'po_issued',
   inactive: 'inactive', non_aktif: 'inactive', nonaktif: 'inactive',
   lost: 'lost', hilang: 'lost',
 };
@@ -719,5 +790,17 @@ function getPaymentSummary(p) {
   const installmentsExpected = schedule.filter(x => x.type === 'installment' || x.type === 'revenue_share').length;
   return { schedule, totalDue, totalPaid, outstanding, pctPaid, installmentsPaid, installmentsExpected };
 }
+function getProductPrincipalOptions(products = []) {
+  const map = new Map();
+  for (const p of products || []) {
+    if (!p || p.active === false) continue;
+    const principal = String(p.principal || '').trim();
+    if (!principal || map.has(principal)) continue;
+    map.set(principal, String(p.origin || '').trim());
+  }
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([principal, origin]) => ({ principal, origin }));
+}
 
-export { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, STATIC_TECH_ORDER, resolveEmpName, resolveNamesInText, SALES_META_BY_ID, employeeSalesId, getActiveSalesTeam, activeSalesIdSet, normalizeSalesOwnedRows, isLiveEmployeeUsername, normalizeEmployeeOwnedRows, detectPaymentScheme, resolveCustomerSector, resolveDealModel, _addMonthsISO, computeInvoiceSchedule, resolveProductId, normalizeProduct, getRegStages, sanitizeRegStageHistory, migrateRegRecord, normalizeImportPipelineStatus, importPipelineLabel, projectHasDpReceived, manifestMatchesProject, appendStageHistoryEntry, getStageMetrics, normalizeSphStageId, defaultSphStageForStatus, applySphStageStatusCoherence, normalizeSphStageRecords, normalizePoWon, resolveOpsCost, calcIncentive, getIncentiveStatus, getNetMargin, calcNetProfit, getProductFileUrl, normalizeProductLookupText, getFactoryProductionDays, addDaysIso, getFactoryProductionInfo, resolveProductRecord, syncSphItemToProductMaster, syncSphRecordToProductMaster, syncSphDataToProductMaster, effectiveScheme, generatePaymentSchedule, getPaymentSummary };
+export { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, TECHNICIAN_USERNAMES, STATIC_TECH_ORDER, resolveEmpName, resolveNamesInText, SALES_META_BY_ID, employeeSalesId, getActiveSalesTeam, activeSalesIdSet, resolveSalesOwnerId, normalizeSalesOwnedRows, isLiveEmployeeUsername, normalizeEmployeeOwnedRows, detectPaymentScheme, resolveCustomerSector, resolveDealModel, _addMonthsISO, computeInvoiceSchedule, resolveProductId, normalizeProduct, getRegStages, sanitizeRegStageHistory, migrateRegRecord, normalizeImportPipelineStatus, importPipelineLabel, projectHasDpReceived, manifestMatchesProject, appendStageHistoryEntry, getStageMetrics, normalizeSphStageId, defaultSphStageForStatus, applySphStageStatusCoherence, normalizeSphStageRecords, normalizePoWon, resolveOpsCost, calcIncentive, getIncentiveStatus, getNetMargin, calcNetProfit, getProductFileUrl, normalizeProductLookupText, getFactoryProductionDays, addDaysIso, getFactoryProductionInfo, resolveProductRecord, syncSphItemToProductMaster, syncSphRecordToProductMaster, syncSphDataToProductMaster, effectiveScheme, generatePaymentSchedule, getPaymentSummary, getProductPrincipalOptions };

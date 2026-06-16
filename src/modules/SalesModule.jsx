@@ -1902,7 +1902,10 @@ function SalesModule({ data, reports, t, lang, fmt, employees = {} }) {
   );
 }
 function canCreateFieldReport(session) {
-  return session.role === 'sales' || ['super_admin', 'gm', 'admin'].includes(session.role);
+  if (!session?.role) return false;
+  if (session.role === 'sales') return true;
+  return ['super_admin', 'gm', 'admin', 'manager_ops'].includes(session.role)
+    || session.username === 'ceo';
 }
 function buildFieldReportExportRows(reports, employees = {}) {
   const header = [
@@ -2068,7 +2071,7 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
         <div style={{fontSize: '13px', color: 'var(--ims-text-2)', marginTop: '6px'}}>{t.sr_subtitle}</div>
       </div>
 
-      <div style={{display: 'flex', gap: '2px', marginBottom: '14px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
+      <div style={{display: 'flex', gap: '2px', marginBottom: '0', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap'}}>
         {tabItems.map(tb => {
           const Icon = tb.icon;
           const active = tab === tb.id;
@@ -2078,20 +2081,22 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
             </button>
           );
         })}
-        <div style={{marginLeft: 'auto', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', paddingBottom: '6px'}}>
-          <button onClick={handleExportCSV} style={{background: 'var(--ims-accent-2)', border: 'none', color: '#fff', padding: '6px 12px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px'}} title={lang === 'id' ? 'Export laporan ke CSV' : 'Export reports to CSV'}>
-            <Download size={12} />CSV ({visibleReports.length})
+      </div>
+
+      <div style={{display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', margin: '14px 0 18px', padding: '10px 12px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
+        <span style={{fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600, marginRight: '4px'}}>{lang === 'id' ? 'Data CSV' : 'CSV Data'}</span>
+        <button onClick={handleExportCSV} style={{background: 'var(--ims-accent-2)', border: 'none', color: '#fff', padding: '7px 14px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px'}} title={lang === 'id' ? 'Export laporan ke CSV' : 'Export reports to CSV'}>
+          <Download size={12} />{lang === 'id' ? 'Export CSV' : 'Export CSV'} ({visibleReports.length})
+        </button>
+        {canImport && <>
+          <button onClick={() => importRef.current?.click()} style={{background: '#1a4d8a', border: 'none', color: '#fff', padding: '7px 14px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px'}} title={lang === 'id' ? 'Impor laporan dari CSV' : 'Import reports from CSV'}>
+            <Upload size={12} />{lang === 'id' ? 'Import CSV' : 'Import CSV'}
           </button>
-          {canImport && <>
-            <button onClick={() => importRef.current?.click()} style={{background: '#1a4d8a', border: 'none', color: '#fff', padding: '6px 12px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px'}} title={lang === 'id' ? 'Impor laporan dari CSV' : 'Import reports from CSV'}>
-              <Upload size={12} />{lang === 'id' ? 'Import' : 'Import'}
-            </button>
-            <button onClick={handleDownloadTemplate} style={{background: 'transparent', border: '1px solid var(--ims-accent)', color: 'var(--ims-text-2)', padding: '6px 12px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px'}} title={lang === 'id' ? 'Unduh template CSV' : 'Download CSV template'}>
-              <FileText size={12} />{lang === 'id' ? 'Template' : 'Template'}
-            </button>
-            <input ref={importRef} type="file" accept=".csv,text/csv" onChange={handleImportCSV} style={{display: 'none'}} />
-          </>}
-        </div>
+          <button onClick={handleDownloadTemplate} style={{background: 'transparent', border: '1px solid var(--ims-accent)', color: 'var(--ims-text-2)', padding: '7px 14px', fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px'}} title={lang === 'id' ? 'Unduh template CSV' : 'Download CSV template'}>
+            <FileText size={12} />{lang === 'id' ? 'Template CSV' : 'CSV Template'}
+          </button>
+          <input ref={importRef} type="file" accept=".csv,text/csv" onChange={handleImportCSV} style={{display: 'none'}} />
+        </>}
       </div>
 
       {tab === 'history' && (

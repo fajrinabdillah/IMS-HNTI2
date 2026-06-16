@@ -1947,11 +1947,11 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
     ? [
         { id: 'new', label: editingReport ? t.sr_edit_report : t.sr_new, icon: ClipboardList },
         { id: 'history', label: t.sr_history, icon: Clock },
-        { id: 'dashboard', label: t.sr_dashboard, icon: Activity },
+        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
       ]
     : [
         { id: 'history', label: t.sr_history, icon: Clock },
-        { id: 'dashboard', label: t.sr_dashboard, icon: Activity },
+        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
       ]), [session.role, editingReport, t]);
 
   const handleEdit = (report) => {
@@ -1996,7 +1996,7 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
         })}
       </div>
 
-      {(tab === 'dashboard' || tab === 'history') && (
+      {tab === 'history' && (
         <div style={{display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center', flexWrap: 'wrap'}}>
           <div style={{position: 'relative', flex: '1 1 280px', maxWidth: '420px'}}>
             <Search size={14} style={{position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--ims-text-2)', pointerEvents: 'none'}} />
@@ -2030,7 +2030,24 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
         </div>
       )}
 
-      {tab === 'dashboard' && <SRDashboard reports={filteredReports} t={t} lang={lang} employees={employees} session={session} onMarkRead={markReportsRead} reportsSeen={reportsSeen} issues={issues} installRecords={installRecords} fmt={fmt} searchTerm={searchTerm} totalReports={visibleReports.length} />}
+      {tab === 'dashboard' && (
+        <SRDashboard
+          reports={visibleReports}
+          t={t}
+          lang={lang}
+          employees={employees}
+          session={session}
+          onMarkRead={markReportsRead}
+          reportsSeen={reportsSeen}
+          issues={issues}
+          installRecords={installRecords}
+          fmt={fmt}
+          onNavigateTab={(id) => {
+            if (id === 'new' && session.role === 'sales') setTab('new');
+            else if (id === 'history') setTab('history');
+          }}
+        />
+      )}
       {tab === 'new' && session.role === 'sales' && <SRForm reports={reports} setReports={setReports} t={t} lang={lang} session={session} editingReport={editingReport} onSaved={handleSaved} onCancel={() => { setEditingReport(null); setTab('history'); }} employees={employees} />}
       {tab === 'history' && <SRHistory reports={filteredReports} t={t} lang={lang} fmt={fmt} canDelete={canEdit} session={session} onEdit={handleEdit} onDelete={handleDelete} onBulkDelete={(ids) => setBulkDeleteReportIds(ids)} employees={employees} searchTerm={searchTerm} totalBeforeSearch={visibleReports.length} />}
       <ConfirmDialog open={!!deleteReportId} title={lang === 'id' ? 'Hapus Laporan?' : 'Delete Report?'} message={t.sr_confirm_delete || (lang === 'id' ? 'Yakin ingin menghapus laporan ini?' : 'Are you sure you want to delete this report?')} onConfirm={confirmDeleteReport} onCancel={() => setDeleteReportId(null)} danger lang={lang} />
@@ -2038,20 +2055,23 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
     </div>
   );
 }
-function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRead, reportsSeen = {}, issues = [], installRecords = [], fmt = (n) => n, searchTerm = '', totalReports = 0 }) {
+function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRead, reportsSeen = {}, issues = [], installRecords = [], fmt = (n) => n, onNavigateTab }) {
   const salesTeam = useMemo(() => getActiveSalesTeam(employees), [employees]);
   const glass = DASHBOARD_GLASS.fieldReport;
   const todayStr = new Date().toISOString().split('T')[0];
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
   const stats = useMemo(() => {
     const totalVisits = reports.reduce((s, r) => s + (r.visits?.length || 0), 0);
     const totalDays = reports.reduce((s, r) => s + (r.days || 0), 0);
-    const totalDeals = reports.reduce((s, r) => s + (r.visits?.filter(v => v.visit === 'closed').length || 0), 0);
+    const totalDeals = reports.reduce((s, r) => s + (r.visits?.filter(v => v.visit === 'closed' || v.pipeline === 'win').length || 0), 0);
     const reportsToday = reports.filter(r => r.date === todayStr).length;
+    const pipeValue = reports.reduce((s, r) => s + (Number(r.pipeVal) || 0), 0);
     const openIssues = (issues || []).filter(i => i.status !== 'resolved').length;
     const resolvedIssues = (issues || []).filter(i => i.status === 'resolved').length;
     const issueTotal = openIssues + resolvedIssues;
     const resolutionPct = issueTotal > 0 ? Math.round((resolvedIssues / issueTotal) * 100) : 0;
+    const avgVisitsPerReport = reports.length ? (totalVisits / reports.length).toFixed(1) : '0';
 
     const visitTrend = [];
     const dayMap = {};
@@ -2063,26 +2083,82 @@ function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRea
       visitTrend.push({ label: date.slice(5), visits, date });
     });
 
-    const routineVisits = reports.reduce((s, r) => s + (r.visits?.filter(v => ['first', 'followup', 'demo'].includes(v.visit)).length || 0), 0);
-    const negoVisits = reports.reduce((s, r) => s + (r.visits?.filter(v => v.visit === 'nego' || v.pipeline === 'proposal').length || 0), 0);
-    const closedVisits = reports.reduce((s, r) => s + (r.visits?.filter(v => v.visit === 'closed' || v.pipeline === 'win').length || 0), 0);
-    const installCount = (installRecords || []).filter(r => r.status !== 'completed').length;
-    const troubleshooting = openIssues;
+    const visitTypeLabels = {
+      first: lang === 'id' ? 'First Visit' : 'First Visit',
+      followup: lang === 'id' ? 'Follow-up' : 'Follow-up',
+      demo: 'Demo',
+      nego: lang === 'id' ? 'Negosiasi' : 'Negotiation',
+      closed: lang === 'id' ? 'Closing' : 'Closing',
+    };
+    const visitTypeCounts = { first: 0, followup: 0, demo: 0, nego: 0, closed: 0 };
+    reports.forEach(r => {
+      (r.visits || []).forEach(v => {
+        const k = visitTypeCounts[v.visit] !== undefined ? v.visit : (v.pipeline === 'win' ? 'closed' : 'first');
+        if (visitTypeCounts[k] !== undefined) visitTypeCounts[k] += 1;
+      });
+    });
+    const visitTypePie = Object.entries(visitTypeCounts)
+      .map(([k, value]) => ({ name: visitTypeLabels[k] || k, value, fill: { first: '#f59e0b', followup: '#5b87b8', demo: '#6366f1', nego: '#a855f7', closed: '#10b981' }[k] }))
+      .filter(x => x.value > 0);
 
+    const routineVisits = visitTypeCounts.first + visitTypeCounts.followup + visitTypeCounts.demo;
+    const negoVisits = visitTypeCounts.nego;
+    const closedVisits = visitTypeCounts.closed;
+    const installCount = (installRecords || []).filter(r => r.status !== 'completed').length;
     const categoryData = [
       { name: lang === 'id' ? 'Kunjungan Rutin' : 'Routine Visits', value: routineVisits, fill: '#f59e0b' },
-      { name: lang === 'id' ? 'Instalasi Baru' : 'New Installation', value: installCount, fill: '#10b981' },
-      { name: lang === 'id' ? 'Troubleshooting' : 'Troubleshooting', value: troubleshooting, fill: '#c03030' },
+      { name: lang === 'id' ? 'Instalasi Aktif' : 'Active Installs', value: installCount, fill: '#10b981' },
+      { name: lang === 'id' ? 'Issue Open' : 'Open Issues', value: openIssues, fill: '#c03030' },
       { name: lang === 'id' ? 'Negosiasi/Closing' : 'Negotiation/Closing', value: negoVisits + closedVisits, fill: '#6366f1' },
-    ].filter(x => x.value > 0);
+    ];
 
     const bySales = {};
     reports.forEach(r => {
-      if (!bySales[r.salesId]) bySales[r.salesId] = { count: 0 };
+      if (!bySales[r.salesId]) bySales[r.salesId] = { count: 0, reports: 0 };
       bySales[r.salesId].count += r.visits?.length || 0;
+      bySales[r.salesId].reports += 1;
     });
 
-    return { totalVisits, totalDays, totalDeals, reportsToday, openIssues, resolutionPct, visitTrend, categoryData, bySales };
+    const hospitalMap = {};
+    reports.forEach(r => {
+      (r.visits || []).forEach(v => {
+        const name = String(v.name || '').trim();
+        if (!name) return;
+        hospitalMap[name] = (hospitalMap[name] || 0) + 1;
+      });
+    });
+    const topHospitals = Object.entries(hospitalMap)
+      .map(([name, value]) => ({ name: name.length > 22 ? name.slice(0, 22) + '…' : name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8);
+
+    const monthlyMap = {};
+    reports.forEach(r => {
+      const mm = (r.date || '').substring(5, 7);
+      if (!mm) return;
+      monthlyMap[mm] = (monthlyMap[mm] || 0) + 1;
+    });
+    const monthlyReports = MONTHS.map((m, idx) => {
+      const mm = String(idx + 1).padStart(2, '0');
+      return {
+        month: m,
+        [lang === 'id' ? 'Laporan' : 'Reports']: monthlyMap[mm] || 0,
+        [lang === 'id' ? 'Kunjungan' : 'Visits']: reports.filter(r => (r.date || '').substring(5, 7) === mm).reduce((s, r) => s + (r.visits?.length || 0), 0),
+      };
+    });
+
+    const radarData = [
+      { pillar: lang === 'id' ? 'Kunjungan' : 'Visits', score: Math.min(100, totalVisits * 3), full: 100 },
+      { pillar: lang === 'id' ? 'Hari Lapang' : 'Field Days', score: Math.min(100, totalDays * 5), full: 100 },
+      { pillar: lang === 'id' ? 'Closing' : 'Closing', score: Math.min(100, totalDeals * 12), full: 100 },
+      { pillar: lang === 'id' ? 'Laporan' : 'Reports', score: Math.min(100, reports.length * 8), full: 100 },
+      { pillar: lang === 'id' ? 'Resolusi' : 'Resolution', score: resolutionPct, full: 100 },
+    ];
+
+    return {
+      totalVisits, totalDays, totalDeals, reportsToday, openIssues, resolutionPct, visitTrend,
+      categoryData, bySales, visitTypePie, topHospitals, monthlyReports, radarData, pipeValue, avgVisitsPerReport,
+    };
   }, [reports, issues, installRecords, lang, todayStr]);
 
   const isManager = ['super_admin', 'gm', 'manager_ops'].includes(session.role);
@@ -2098,69 +2174,66 @@ function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRea
     return reports.filter(r => (r.date || '') > cutStr).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   }, [reports, isManager, reportsSeen, session.username]);
 
-  if (!reports.length && searchTerm && totalReports > 0) return (
-    <div style={{padding: '60px 30px', textAlign: 'center', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
-      <Search size={36} strokeWidth={1.2} style={{color: 'var(--ims-text-2)', marginBottom: '12px'}} />
-      <div style={{fontSize: '14px', color: 'var(--ims-text-2)', fontStyle: 'italic'}}>
-        {lang === 'id'
-          ? `Tidak ada laporan cocok dengan "${searchTerm}" dari ${totalReports} laporan.`
-          : `No reports match "${searchTerm}" out of ${totalReports} reports.`}
-      </div>
-    </div>
-  );
+  const {
+    totalVisits, totalDays, totalDeals, reportsToday, openIssues, resolutionPct, visitTrend,
+    categoryData, bySales, visitTypePie, topHospitals, monthlyReports, radarData, pipeValue, avgVisitsPerReport,
+  } = stats;
 
-  if (!reports.length && !issues.length && !installRecords.length) return (
-    <div style={{padding: '60px 30px', textAlign: 'center', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
-      <ClipboardList size={36} strokeWidth={1.2} style={{color: 'var(--ims-text-2)', marginBottom: '12px'}} />
-      <div style={{fontSize: '14px', color: 'var(--ims-text-2)', fontStyle: 'italic'}}>{t.sr_no_reports}</div>
-    </div>
-  );
-
-  const { totalVisits, totalDays, totalDeals, reportsToday, openIssues, resolutionPct, visitTrend, categoryData, bySales } = stats;
+  const quickLinks = [
+    { id: 'history', label: t.sr_history, count: reports.length, icon: Clock, color: glass.accent },
+    ...(session.role === 'sales' ? [{ id: 'new', label: t.sr_new, count: '＋', icon: ClipboardList, color: '#10b981' }] : []),
+    { id: 'visits', label: t.sr_visits_count, count: totalVisits, icon: MapPin, color: '#6366f1' },
+    { id: 'deals', label: lang === 'id' ? 'Closing' : 'Closing', count: totalDeals, icon: Target, color: '#10b981' },
+  ];
 
   return (
-    <div style={{display: 'grid', gap: '18px'}}>
+    <div style={{display: 'grid', gap: '18px', marginBottom: '22px'}}>
       {isManager && recentReports.length > 0 && (
-        <div style={{background: 'var(--ims-bg-alt)', color: 'var(--ims-text)', padding: '14px 18px', borderRadius: '4px', display: 'flex', alignItems: 'flex-start', gap: '12px'}}>
-          <Bell size={18} strokeWidth={1.8} style={{color: 'var(--ims-accent)', flexShrink: 0, marginTop: '2px'}} />
+        <div style={{background: 'linear-gradient(90deg, rgba(245,158,11,0.15), rgba(249,115,22,0.08))', border: '1px solid rgba(245,158,11,0.35)', padding: '14px 18px', display: 'flex', alignItems: 'flex-start', gap: '12px'}}>
+          <Bell size={18} strokeWidth={1.8} style={{color: glass.accent, flexShrink: 0, marginTop: '2px'}} />
           <div style={{flex: 1}}>
             <div style={{fontSize: '13px', fontWeight: 600, marginBottom: '6px'}}>{lang === 'id' ? `${recentReports.length} laporan lapangan baru belum dibaca` : `${recentReports.length} new field reports unread`}</div>
             <div style={{display: 'flex', flexWrap: 'wrap', gap: '6px'}}>
               {recentReports.slice(0, 8).map(r => {
                 const nm = resolveEmpName(employees, r.salesId);
-                return <span key={r.id} style={{fontSize: '11px', background: 'rgba(200,169,106,0.18)', color: '#e8dcc0', padding: '2px 9px', borderRadius: '10px'}}>{nm.split(' ')[0]} · {r.date}</span>;
+                return <span key={r.id} style={{fontSize: '11px', background: 'rgba(245,158,11,0.2)', color: 'var(--ims-text)', padding: '2px 9px', borderRadius: '10px'}}>{nm.split(' ')[0]} · {r.date}</span>;
               })}
-              {recentReports.length > 8 && <span style={{fontSize: '11px', color: 'var(--ims-accent)', padding: '2px 4px'}}>+{recentReports.length - 8}</span>}
+              {recentReports.length > 8 && <span style={{fontSize: '11px', color: glass.accent, padding: '2px 4px'}}>+{recentReports.length - 8}</span>}
             </div>
           </div>
-          {onMarkRead && <button onClick={onMarkRead} style={{background: 'var(--ims-accent)', color: 'var(--ims-text)', border: 'none', padding: '7px 14px', fontSize: '11px', fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', borderRadius: '4px', flexShrink: 0, alignSelf: 'center', display: 'flex', alignItems: 'center', gap: '6px'}}><CheckCircle2 size={13} />{lang === 'id' ? 'Tandai Sudah Dibaca' : 'Mark as Read'}</button>}
+          {onMarkRead && <button onClick={onMarkRead} style={{background: glass.accent, color: '#fff', border: 'none', padding: '7px 14px', fontSize: '11px', fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', borderRadius: '4px', flexShrink: 0, alignSelf: 'center', display: 'flex', alignItems: 'center', gap: '6px'}}><CheckCircle2 size={13} />{lang === 'id' ? 'Tandai Sudah Dibaca' : 'Mark as Read'}</button>}
         </div>
       )}
 
       <DashboardHero
         glass={glass}
-        badge={lang === 'id' ? 'Field Ops Command' : 'Field Ops Command'}
+        badge={lang === 'id' ? 'Laporan Lapangan Command Center' : 'Field Report Command Center'}
         title={lang === 'id' ? 'Dashboard Laporan Lapangan' : 'Field Report Dashboard'}
-        subtitle={lang === 'id' ? 'Sinkron kunjungan sales, instalasi teknisi, dan keluhan/perbaikan lapangan.' : 'Sync sales visits, technician installs, and field issues/repairs.'}
+        subtitle={lang === 'id' ? 'Intelijen lapangan realtime — kunjungan RS, pipeline, closing, dan performa tim sales.' : 'Realtime field intelligence — hospital visits, pipeline, closings, and sales team performance.'}
         lang={lang}
-        showSync={false}
+        showSync
       />
 
       <DashboardKpiGrid items={[
-        { label: lang === 'id' ? 'Laporan Hari Ini' : 'Reports Today', value: reportsToday, sub: `${reports.length} ${lang === 'id' ? 'total laporan' : 'total reports'}`, color: glass.accent },
-        { label: lang === 'id' ? 'Menunggu Respons' : 'Awaiting Response', value: openIssues, sub: lang === 'id' ? 'issue/perbaikan open' : 'open issues/repairs', color: '#c03030' },
-        { label: lang === 'id' ? 'Penyelesaian Lapangan' : 'Field Resolution', value: `${resolutionPct}%`, sub: lang === 'id' ? 'masalah terselesaikan' : 'issues resolved', color: '#10b981' },
-        { label: t.sr_visits_count, value: totalVisits, sub: `${totalDays} ${lang === 'id' ? 'hari lapangan' : 'field days'}`, color: '#6366f1' },
+        { label: t.sr_total_reports, value: reports.length, sub: `${reportsToday} ${lang === 'id' ? 'hari ini' : 'today'}`, color: glass.accent },
+        { label: t.sr_visits_count, value: totalVisits, sub: `${avgVisitsPerReport} ${lang === 'id' ? 'avg/laporan' : 'avg/report'}`, color: '#6366f1' },
+        { label: t.sr_field_days_total, value: totalDays, sub: `${totalDeals} closing`, color: '#10b981' },
+        { label: lang === 'id' ? 'Estimasi Pipeline' : 'Pipeline Est.', value: pipeValue ? `${pipeValue} ${lang === 'id' ? 'jt' : 'M'}` : '—', sub: lang === 'id' ? 'dari laporan mingguan' : 'from weekly reports', color: '#a855f7' },
+        { label: lang === 'id' ? 'Issue Lapangan' : 'Field Issues', value: openIssues, sub: `${resolutionPct}% ${lang === 'id' ? 'terselesaikan' : 'resolved'}`, color: openIssues ? '#c03030' : '#10b981' },
       ]} />
 
-      <div style={{display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '16px'}}>
+      <QuickNavGrid glass={glass} links={quickLinks} onNavigate={(id) => {
+        if (id === 'history' || id === 'new') onNavigateTab?.(id);
+      }} />
+
+      <div style={{display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '16px'}}>
         <GlassPanel glass={glass}>
-          <div className="card-title" style={{display: 'flex', alignItems: 'center', gap: '8px'}}><Activity size={15} color={glass.accent} /> {lang === 'id' ? 'Tren Kunjungan Lapangan' : 'Field Visit Trend'}</div>
-          <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={visitTrend.length ? visitTrend : [{ label: '-', visits: 0 }]} margin={{top: 8, right: 16, left: 0, bottom: 8}}>
+          <div className="card-title" style={{display: 'flex', alignItems: 'center', gap: '8px'}}><Activity size={15} color={glass.accent} /> {lang === 'id' ? 'Tren Kunjungan (14 hari)' : 'Visit Trend (14 days)'}</div>
+          <ResponsiveContainer width="100%" height={240}>
+            <AreaChart data={visitTrend.length ? visitTrend : [{ label: '—', visits: 0 }]} margin={{top: 8, right: 12, left: 0, bottom: 8}}>
               <defs>
                 <linearGradient id="srVisitGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4} />
+                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.45} />
                   <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.02} />
                 </linearGradient>
               </defs>
@@ -2173,40 +2246,105 @@ function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRea
           </ResponsiveContainer>
         </GlassPanel>
         <GlassPanel glass={glass}>
-          <div className="card-title" style={{display: 'flex', alignItems: 'center', gap: '8px'}}><MapPin size={15} color={glass.accent} /> {lang === 'id' ? 'Kategori Laporan Terbanyak' : 'Top Report Categories'}</div>
+          <div className="card-title" style={{display: 'flex', alignItems: 'center', gap: '8px'}}><Target size={15} color={glass.accent} /> {lang === 'id' ? 'Tipe Kunjungan' : 'Visit Types'}</div>
+          <ResponsiveContainer width="100%" height={240}>
+            <PieChart>
+              <Pie data={visitTypePie.length ? visitTypePie : [{ name: '—', value: 1, fill: 'var(--ims-border)' }]} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={48} outerRadius={78} paddingAngle={2}>
+                {(visitTypePie.length ? visitTypePie : [{ name: '—', value: 1, fill: 'var(--ims-border)' }]).map(e => <Cell key={e.name} fill={e.fill} />)}
+              </Pie>
+              <Tooltip content={<ChartTooltip fmt={v => v} />} />
+              <Legend wrapperStyle={{fontSize: 10}} />
+            </PieChart>
+          </ResponsiveContainer>
+        </GlassPanel>
+        <GlassPanel glass={glass}>
+          <div className="card-title" style={{display: 'flex', alignItems: 'center', gap: '8px'}}><Zap size={15} color={glass.accent} /> {lang === 'id' ? 'Radar Operasi Lapangan' : 'Field Ops Radar'}</div>
+          <ResponsiveContainer width="100%" height={240}>
+            <RadarChart data={radarData} outerRadius="72%">
+              <PolarGrid stroke="rgba(245,158,11,0.15)" />
+              <PolarAngleAxis dataKey="pillar" tick={{fill: 'var(--ims-text-2)', fontSize: 9}} />
+              <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
+              <Radar dataKey="score" stroke={glass.accent} fill={glass.accent} fillOpacity={0.35} />
+            </RadarChart>
+          </ResponsiveContainer>
+        </GlassPanel>
+      </div>
+
+      <div style={{display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '16px'}}>
+        <GlassPanel glass={glass}>
+          <div className="card-title" style={{display: 'flex', alignItems: 'center', gap: '8px'}}><TrendingUp size={15} color={glass.accent} /> {lang === 'id' ? 'Laporan & Kunjungan Bulanan' : 'Monthly Reports & Visits'}</div>
           <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={categoryData.length ? categoryData : [{ name: '-', value: 0, fill: 'var(--ims-border)' }]} margin={{top: 8, right: 16, left: 0, bottom: 40}}>
+            <ComposedChart data={monthlyReports}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(245,158,11,0.1)" vertical={false} />
-              <XAxis dataKey="name" tick={{fontSize: 9}} interval={0} angle={-18} textAnchor="end" height={50} />
+              <XAxis dataKey="month" tick={{fontSize: 10}} />
+              <YAxis yAxisId="left" allowDecimals={false} tick={{fontSize: 10}} />
+              <YAxis yAxisId="right" orientation="right" allowDecimals={false} tick={{fontSize: 10}} />
+              <Tooltip content={<ChartTooltip fmt={v => v} />} />
+              <Legend wrapperStyle={{fontSize: 10}} />
+              <Bar yAxisId="left" dataKey={lang === 'id' ? 'Laporan' : 'Reports'} fill={glass.accent} radius={[3, 3, 0, 0]} />
+              <Line yAxisId="right" type="monotone" dataKey={lang === 'id' ? 'Kunjungan' : 'Visits'} stroke="#6366f1" strokeWidth={2} dot={{r: 3}} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </GlassPanel>
+        <GlassPanel glass={glass}>
+          <div className="card-title" style={{display: 'flex', alignItems: 'center', gap: '8px'}}><MapPin size={15} color={glass.accent} /> {lang === 'id' ? 'Mix Aktivitas Lapangan' : 'Field Activity Mix'}</div>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={categoryData} margin={{top: 8, right: 16, left: 0, bottom: 40}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(245,158,11,0.1)" vertical={false} />
+              <XAxis dataKey="name" tick={{fontSize: 9}} interval={0} angle={-16} textAnchor="end" height={48} />
               <YAxis allowDecimals={false} tick={{fontSize: 10}} />
               <Tooltip content={<ChartTooltip fmt={v => v} />} />
-              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                {(categoryData.length ? categoryData : [{ name: '-', value: 0, fill: 'var(--ims-border)' }]).map(e => <Cell key={e.name} fill={e.fill} />)}
-              </Bar>
+              <Bar dataKey="value" radius={[4, 4, 0, 0]}>{categoryData.map(e => <Cell key={e.name} fill={e.fill} />)}</Bar>
             </BarChart>
           </ResponsiveContainer>
         </GlassPanel>
       </div>
 
-      {Object.keys(bySales).length > 0 && (
-        <GlassPanel glass={glass}>
-          <div className="card-title">{lang === 'id' ? 'Kunjungan per Sales' : 'Visits per Sales'}</div>
-          {Object.entries(bySales).map(([id, st]) => {
-            const sales = salesTeam.find(s => s.id === id);
-            if (!sales) return null;
-            const pct = Math.min((st.count / Math.max(totalVisits, 1)) * 100, 100);
-            return (
-              <div key={id} style={{marginBottom: '12px'}}>
-                <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px'}}>
-                  <span style={{fontWeight: 500}}>{sales.name} <span style={{color: 'var(--ims-text-2)', fontSize: '11px'}}>· {lang === 'id' ? sales.territory : sales.territoryEn}</span></span>
-                  <span className="mono" style={{color: 'var(--ims-text-2)', fontSize: '11px'}}>{st.count}</span>
-                </div>
-                <div style={{height: '6px', background: 'var(--ims-bg-card-2)', overflow: 'hidden', borderRadius: '3px'}}>
-                  <div style={{height: '100%', width: `${pct}%`, background: `linear-gradient(90deg, ${glass.accent}, #f97316)`, transition: 'width 0.5s'}} />
-                </div>
-              </div>
-            );
-          })}
+      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+        {topHospitals.length > 0 && (
+          <GlassPanel glass={glass}>
+            <div className="card-title">{lang === 'id' ? 'Top RS Dikunjungi' : 'Top Hospitals Visited'}</div>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={topHospitals} layout="vertical" margin={{top: 4, right: 16, left: 4, bottom: 4}}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(245,158,11,0.08)" horizontal={false} />
+                <XAxis type="number" allowDecimals={false} tick={{fontSize: 10}} />
+                <YAxis type="category" dataKey="name" width={100} tick={{fontSize: 9}} />
+                <Tooltip content={<ChartTooltip fmt={v => v} />} />
+                <Bar dataKey="value" fill={glass.accent} radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </GlassPanel>
+        )}
+        {Object.keys(bySales).length > 0 && (
+          <GlassPanel glass={glass}>
+            <div className="card-title">{lang === 'id' ? 'Performa Kunjungan per Sales' : 'Visit Performance by Sales'}</div>
+            {Object.entries(bySales)
+              .sort((a, b) => b[1].count - a[1].count)
+              .map(([id, st]) => {
+                const sales = salesTeam.find(s => s.id === id);
+                if (!sales) return null;
+                const pct = Math.min((st.count / Math.max(totalVisits, 1)) * 100, 100);
+                return (
+                  <div key={id} style={{marginBottom: '12px'}}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px'}}>
+                      <span style={{fontWeight: 500}}>{sales.name} <span style={{color: 'var(--ims-text-2)', fontSize: '11px'}}>· {st.reports} {lang === 'id' ? 'laporan' : 'reports'}</span></span>
+                      <span className="mono" style={{color: glass.accent, fontSize: '11px', fontWeight: 600}}>{st.count}</span>
+                    </div>
+                    <div style={{height: '6px', background: 'var(--ims-bg-card-2)', overflow: 'hidden', borderRadius: '3px'}}>
+                      <div style={{height: '100%', width: `${pct}%`, background: `linear-gradient(90deg, ${glass.accent}, #f97316)`, transition: 'width 0.5s'}} />
+                    </div>
+                  </div>
+                );
+              })}
+          </GlassPanel>
+        )}
+      </div>
+
+      {!reports.length && (
+        <GlassPanel glass={glass} style={{textAlign: 'center', padding: '28px'}}>
+          <ClipboardList size={32} strokeWidth={1.2} style={{color: glass.accent, marginBottom: '10px', opacity: 0.7}} />
+          <div style={{fontSize: '14px', color: 'var(--ims-text-2)'}}>{t.sr_no_reports}</div>
+          <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '6px'}}>{lang === 'id' ? 'Dashboard siap — data akan muncul setelah laporan pertama dikirim.' : 'Dashboard ready — data will appear after the first report is submitted.'}</div>
         </GlassPanel>
       )}
     </div>

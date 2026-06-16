@@ -379,7 +379,7 @@ function getStageMetrics(sph) {
   const totalMs = Object.values(perStage).reduce((a, b) => a + b, 0);
   return { perStage, totalMs, currentStage, currentStageMs };
 }
-const SPH_STAGE_IDS = new Set(['sph_sent', 'presentation_scheduled', 'presentation_done', 'ecatalog', 'negotiation', 'tender', 'po_issued', 'lost']);
+const SPH_STAGE_IDS = new Set(['sph_sent', 'presentation_scheduled', 'presentation_done', 'ecatalog', 'negotiation', 'tender', 'po_issued', 'inactive', 'lost']);
 const SPH_STAGE_ALIASES = {
   sph_issued: 'sph_sent', sph_awal: 'sph_sent', sph_sent: 'sph_sent',
   follow_up: 'presentation_scheduled', followup: 'presentation_scheduled',
@@ -389,9 +389,10 @@ const SPH_STAGE_ALIASES = {
   negosiasi: 'negotiation', negotiation: 'negotiation',
   tender: 'tender', proses_tender: 'tender',
   po_issued: 'po_issued', po_terbit: 'po_issued',
+  inactive: 'inactive', non_aktif: 'inactive', nonaktif: 'inactive',
   lost: 'lost', hilang: 'lost',
 };
-const SPH_STAGE_BASE_PROB = { sph_sent: 20, presentation_scheduled: 35, presentation_done: 50, ecatalog: 40, negotiation: 70, tender: 55, po_issued: 100, lost: 0 };
+const SPH_STAGE_BASE_PROB = { sph_sent: 20, presentation_scheduled: 35, presentation_done: 50, ecatalog: 40, negotiation: 70, tender: 55, po_issued: 100, inactive: 0, lost: 0 };
 
 function normalizeSphStageId(raw) {
   const key = String(raw || '').trim().toLowerCase().replace(/\s+/g, '_');
@@ -403,6 +404,7 @@ function normalizeSphStageId(raw) {
 function defaultSphStageForStatus(status) {
   if (status === 'won') return 'po_issued';
   if (status === 'lost') return 'lost';
+  if (status === 'inactive') return 'inactive';
   return 'sph_sent';
 }
 
@@ -416,6 +418,10 @@ function applySphStageStatusCoherence(sph) {
     s.probability = 100;
   } else if (s.stage === 'lost') {
     s.status = 'lost';
+    s.poStatus = null;
+    s.probability = 0;
+  } else if (s.stage === 'inactive') {
+    s.status = 'inactive';
     s.poStatus = null;
     s.probability = 0;
   } else if (s.stage) {
@@ -443,8 +449,13 @@ function normalizePoWon(arr) {
   if (!Array.isArray(arr)) return arr;
   return arr.map(s => {
     if (!s || typeof s !== 'object') return s;
+    if (s.stage === 'inactive' || s.status === 'inactive') {
+      return s.status === 'inactive' && s.stage === 'inactive' && s.poStatus == null && s.probability === 0
+        ? s
+        : { ...s, status: 'inactive', stage: 'inactive', poStatus: null, probability: 0 };
+    }
     // Deal explicitly moved out of PO — jangan paksa kembali ke PO Terbit
-    if (s.stage && s.stage !== 'po_issued' && s.stage !== 'lost') {
+    if (s.stage && s.stage !== 'po_issued' && s.stage !== 'lost' && s.stage !== 'inactive') {
       if (s.status === 'won' || s.poStatus === 'issued') {
         return {
           ...s,

@@ -114,7 +114,7 @@ function generateHntiSph2026Seed() {
       ...(spec.stage === 'ecatalog' ? { ecatalogWaitingAt: branchAt } : {}),
       ...(spec.stage === 'lost' ? { lostAt: branchAt } : {}),
       ...(isPo ? {
-        clientPoInfoAt: poAt, poIssuedAt: poAt, poInputAt: poAt,
+        clientPoInfoAt: poAt, poIssuedAt: poAt, contractProcessAt: poAt, poInputAt: poAt,
         financePoNotifiedAt: poAt, financeDocsReadyAt: poAt,
         manufacturePoCreatedAt: poAt, principalPoStatus: 'sent', principalPoSentAt: poAt,
       } : {}),
@@ -147,6 +147,7 @@ function generateHntiSph2026Seed() {
       [stageDates.presentationDoneAt ? 'presentation_done' : null, stageDates.presentationDoneAt],
       [branchStep, branchAt],
       [isPo ? 'client_po_info' : null, poAt],
+      [isPo ? 'contract_process' : null, poAt],
       [isPo ? 'po_input_ims' : null, poAt],
       [isPo ? 'invoice_ready' : null, poAt],
       [dpReceived ? 'dp_confirmed' : null, dpAt],

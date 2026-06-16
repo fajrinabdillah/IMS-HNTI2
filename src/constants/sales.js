@@ -93,6 +93,7 @@ const STAGES = [
   { id: 'negotiation', baseProbability: 70, color: 'var(--ims-accent)' },
   { id: 'tender', baseProbability: 55, color: 'var(--ims-gold-dim)' },
   { id: 'po_issued', baseProbability: 100, color: 'var(--ims-accent-2)' },
+  { id: 'inactive', baseProbability: 0, color: '#64748b' },
   { id: 'lost', baseProbability: 0, color: '#8b3a3a' },
 ];
 const PROJECT_TYPES = [

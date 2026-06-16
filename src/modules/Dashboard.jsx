@@ -25,7 +25,7 @@ function Dashboard({ data, reports, products, t, lang, session, fmt, employees =
   }, [data]);
   const { activeData, wonData, lostData, totalPipeline, weightedPipeline, revenueYTD, winRate } = stats;
 
-  const funnelData = useMemo(() => STAGES.filter(s => s.id !== 'lost').map(stage => {
+  const funnelData = useMemo(() => STAGES.filter(s => s.id !== 'lost' && s.id !== 'inactive').map(stage => {
     const projects = activeData.filter(p => p.stage === stage.id);
     return { name: t[`stage_${stage.id}`], value: sumGroupedProjectValue(projects), count: groupSphProjects(projects).length, color: stage.color };
   }).filter(f => f.count > 0), [activeData, t]);

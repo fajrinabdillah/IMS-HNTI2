@@ -351,7 +351,8 @@ function SPHDetailModal({ sph, allSph = [], employees, lang, fmt, onClose, onWor
     { label: 'Admin: Mulai SPH/SPP', patch: { sphWorkflowStatus: 'admin_drafting', sphDraftStartedAt: actionNow(), workflowEvent: 'admin_drafting', nextAction: 'Admin membuat Surat SPH/SPP' }, notify: { target: { role: 'admin' }, payload: { type: 'sph_request', message: `Request SPH/SPP ${sph.customer} sedang diproses Admin.`, link: { view: 'sph', id: sph.id } } } },
     { label: 'Admin: SPH/SPP selesai', patch: { sphWorkflowStatus: 'ready_for_sales', sphDocReadyAt: actionNow(), workflowEvent: 'ready_for_sales', nextAction: 'Sales menyampaikan penawaran ke klien' }, notify: { target: { username: sph.salesOwner }, payload: { type: 'sph_ready', message: `SPH/SPP ${sph.customer} siap disampaikan ke klien.`, link: { view: 'sph', id: sph.id } } } },
     { label: 'Sales: Penawaran dikirim', patch: { sphWorkflowStatus: 'offer_sent', offerSentAt: actionNow(), workflowEvent: 'offer_sent', nextAction: 'Menunggu informasi PO dari klien' } },
-    { label: 'Sales: PO dari klien', patch: { stage: 'po_issued', status: 'won', poStatus: 'issued', probability: 100, sphWorkflowStatus: 'client_po_info', clientPoInfoAt: actionNow(), poIssuedAt: actionNow(), workflowEvent: 'client_po_info', nextAction: 'Admin input SPH/SPP & PO ke IMS' }, notify: { target: { role: 'admin' }, payload: { type: 'po_won', message: `Informasi PO diterima untuk ${sph.customer}. Admin perlu input SPH/SPP & PO ke IMS.`, link: { view: 'sph', id: sph.id } } } },
+    { label: 'Sales: PO dari klien', patch: { stage: 'po_issued', status: 'won', poStatus: 'issued', probability: 100, sphWorkflowStatus: 'client_po_info', clientPoInfoAt: actionNow(), poIssuedAt: actionNow(), workflowEvent: 'client_po_info', nextAction: 'Proses kontrak dengan klien' }, notify: { target: { role: 'admin' }, payload: { type: 'po_won', message: `Informasi PO diterima untuk ${sph.customer}. Lanjut proses kontrak.`, link: { view: 'sph', id: sph.id } } } },
+    { label: 'Sales: Proses Kontrak', patch: { sphWorkflowStatus: 'contract_process', contractProcessAt: actionNow(), workflowEvent: 'contract_process', nextAction: 'Admin input SPH/SPP & PO ke IMS' } },
     { label: 'Admin: Input SPH/SPP IMS', patch: { sphWorkflowStatus: 'po_input_ims', poInputAt: actionNow(), financePoNotifiedAt: actionNow(), workflowEvent: 'po_input_ims', nextAction: 'Finance membuat invoice penagihan DP' }, notify: { target: { role: 'finance' }, payload: { type: 'po_won', message: `SPH/SPP ${sph.customer} sudah diinput ke IMS. Finance perlu membuat invoice DP.`, link: { view: 'finance', id: sph.id } } } },
     { label: 'Finance: Invoice DP', patch: { sphWorkflowStatus: 'invoice_ready', financeDocsStatus: 'ready_for_sales', financeDocsReadyAt: actionNow(), workflowEvent: 'invoice_ready', nextAction: 'Sales follow-up pembayaran DP/deposit' }, notify: { target: { username: sph.salesOwner }, payload: { type: 'invoice_ready', message: `Invoice DP ${sph.customer} sudah siap. Sales perlu follow-up klien.`, link: { view: 'sph', id: sph.id } } } },
     { label: 'Sales: Follow-up DP', patch: { sphWorkflowStatus: 'dp_followup', dpFollowupAt: actionNow(), workflowEvent: 'dp_followup', nextAction: 'Menunggu konfirmasi pembayaran DP dari klien' } },
@@ -729,7 +730,7 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
         </select>
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{width: 'auto', minWidth: '130px'}}>
           <option value="all">{lang === 'id' ? 'Semua Status' : 'All Status'}</option>
-          <option value="active">{t.status_active}</option><option value="won">{t.status_won}</option><option value="lost">{t.status_lost}</option>
+          <option value="active">{t.status_active}</option><option value="won">{t.status_won}</option><option value="lost">{t.status_lost}</option><option value="inactive">{t.status_inactive}</option>
         </select>
         <select value={filterProduct} onChange={e => setFilterProduct(e.target.value)} style={{width: 'auto', minWidth: '160px'}}>
           <option value="all">{lang === 'id' ? 'Semua Produk' : 'All Products'}</option>
@@ -786,6 +787,7 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
                 active: { label: t.status_active, color: '#5b87b8' },
                 won: { label: t.status_won, color: 'var(--ims-accent-2)' },
                 lost: { label: t.status_lost, color: '#8b3a3a' },
+                inactive: { label: t.status_inactive, color: '#64748b' },
                 cancelled: { label: lang === 'id' ? 'Batal' : 'Cancelled', color: '#94a3b8' },
               }[s.status] || { label: t.status_active, color: '#5b87b8' };
               const pt = projectTypeMap.get(s.projectType);
@@ -2526,7 +2528,7 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
     const ownId = sph?.id;
     return existingData.filter(s => {
       if (s.id === ownId) return false;
-      if (s.status === 'lost' || s.status === 'cancelled') return false;
+      if (s.status === 'lost' || s.status === 'cancelled' || s.status === 'inactive') return false;
       // Match customer (case-insensitive) + modality + subModality
       return (
         s.customer?.toLowerCase().trim() === form.customer.toLowerCase().trim() &&
@@ -2583,15 +2585,17 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
         // Stage ⟺ status ⟺ poStatus coherence (review #1/#3): PO Terbit = Menang.
         if (v === 'po_issued') { next.poStatus = 'issued'; next.status = 'won'; next.probability = 100; }
         else if (v === 'lost') { next.status = 'lost'; next.poStatus = null; }
-        else { if (next.status === 'won' || next.status === 'lost') next.status = 'active'; next.poStatus = null; }
+        else if (v === 'inactive') { next.status = 'inactive'; next.poStatus = null; next.probability = 0; }
+        else { if (next.status === 'won' || next.status === 'lost' || next.status === 'inactive') next.status = 'active'; next.poStatus = null; }
       }
       if (k === 'status') {
         // Reverse coupling so the Status dropdown stays consistent with stage/PO.
         if (v === 'won') { next.stage = 'po_issued'; next.poStatus = 'issued'; next.probability = 100; }
         else if (v === 'lost') { next.stage = 'lost'; next.poStatus = null; }
+        else if (v === 'inactive') { next.stage = 'inactive'; next.poStatus = null; next.probability = 0; }
         else { // active
           next.poStatus = null;
-          if (next.stage === 'po_issued' || next.stage === 'lost') {
+          if (next.stage === 'po_issued' || next.stage === 'lost' || next.stage === 'inactive') {
             next.stage = 'negotiation';
             const ns = STAGES.find(s => s.id === 'negotiation');
             if (ns) next.probability = ns.baseProbability;
@@ -2791,7 +2795,7 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
           <div>
             <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600, marginBottom: '6px'}}>{t.status}</label>
             <select value={form.status} onChange={e => update('status', e.target.value)}>
-              <option value="active">{t.status_active}</option><option value="won">{t.status_won}</option><option value="lost">{t.status_lost}</option>
+              <option value="active">{t.status_active}</option><option value="won">{t.status_won}</option><option value="lost">{t.status_lost}</option><option value="inactive">{t.status_inactive}</option>
             </select>
           </div>
           {form.stage === 'tender' && (

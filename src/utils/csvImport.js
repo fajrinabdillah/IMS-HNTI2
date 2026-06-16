@@ -79,7 +79,7 @@ const SPH_IMPORT_ALIASES = {
   notes: ['Notes', 'Catatan', 'Keterangan', 'Note'],
 };
 const _STATUS_ALIASES = { won: 'won', menang: 'won', lost: 'lost', kalah: 'lost', active: 'active', aktif: 'active', pending: 'active' };
-const _STAGE_VALID = ['sph_sent', 'presentation_scheduled', 'presentation_done', 'ecatalog', 'negotiation', 'tender', 'po_issued', 'lost'];
+const _STAGE_VALID = ['sph_sent', 'presentation_scheduled', 'presentation_done', 'ecatalog', 'negotiation', 'tender', 'po_issued', 'inactive', 'lost'];
 function parseSPHImport(text) {
   const rows = parseCSV(text);
   if (rows.length < 2) return { records: [], errors: ['File kosong atau tidak ada baris data.'], total: 0 };

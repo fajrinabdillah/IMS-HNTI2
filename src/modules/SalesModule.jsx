@@ -902,13 +902,14 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
 function PipelineDashboard({ data, allData, reports = [], pipelineStats, stageGroups, stages, salesTeam, t, lang, fmt, filterYear, probFilter, onNavigateTab }) {
   const glass = DASHBOARD_GLASS.pipeline;
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  const { pipelineData, totalDeals, totalValue, projectCount, wonCount, lostCount, activeCount, winRate, winRateNum, winRateDen } = pipelineStats;
+  const { pipelineData, totalDeals, totalValue, projectCount, wonCount, lostCount, activeCount, inactiveCount, winRate, winRateNum, winRateDen } = pipelineStats;
 
   const dash = useMemo(() => {
     const yr = filterYear === 'all' ? String(currentYear()) : filterYear;
-    const hot = pipelineData.filter(p => (Number(p.probability) || 0) >= 70).length;
-    const warm = pipelineData.filter(p => { const v = Number(p.probability) || 0; return v >= 40 && v < 70; }).length;
-    const cold = pipelineData.filter(p => (Number(p.probability) || 0) < 40).length;
+    const pursuit = pipelineData.filter(p => p.status === 'active');
+    const hot = pursuit.filter(p => (Number(p.probability) || 0) >= 70).length;
+    const warm = pursuit.filter(p => { const v = Number(p.probability) || 0; return v >= 40 && v < 70; }).length;
+    const cold = pursuit.filter(p => (Number(p.probability) || 0) < 40).length;
     const weighted = pipelineData.filter(p => p.status === 'active').reduce((s, p) => s + sphBillableValue(p) * (Number(p.probability) || 0) / 100, 0);
     const poIssued = filterBillableRows(allData).filter(s => s.poStatus === 'issued' && (filterYear === 'all' || s.issuedDate?.startsWith(filterYear))).length;
     const funnelData = stages.map(st => ({
@@ -933,6 +934,7 @@ function PipelineDashboard({ data, allData, reports = [], pipelineStats, stageGr
       { name: t.status_active, value: activeCount, color: '#5b87b8' },
       { name: t.status_won, value: wonCount, color: 'var(--ims-accent-2)' },
       { name: t.status_lost, value: lostCount, color: '#8b3a3a' },
+      { name: t.status_inactive, value: inactiveCount, color: '#64748b' },
     ].filter(x => x.value > 0);
     const topSales = salesTeam.map(s => {
       const sd = pipelineData.filter(p => p.salesOwner === s.id);
@@ -947,7 +949,7 @@ function PipelineDashboard({ data, allData, reports = [], pipelineStats, stageGr
       { pillar: lang === 'id' ? 'Kunjungan' : 'Visits', score: Math.min(100, visitReports * 5), full: 100 },
     ];
     return { hot, warm, cold, weighted, poIssued, funnelData, modalityData, monthlyDeals, statusPie, topSales, visitReports, radarData };
-  }, [pipelineData, allData, reports, stages, stageGroups, salesTeam, filterYear, activeCount, wonCount, lostCount, winRate, t, lang]);
+  }, [pipelineData, allData, reports, stages, stageGroups, salesTeam, filterYear, activeCount, wonCount, lostCount, inactiveCount, winRate, t, lang]);
 
   const quickLinks = [
     { id: 'kanban', label: lang === 'id' ? 'Board Pipeline' : 'Pipeline Board', count: totalDeals, icon: LayoutDashboard, color: glass.accent },
@@ -965,7 +967,7 @@ function PipelineDashboard({ data, allData, reports = [], pipelineStats, stageGr
         lang={lang}
       />
       <DashboardKpiGrid items={[
-        { label: lang === 'id' ? 'Total Deal' : 'Total Deals', value: totalDeals, sub: `${fmt(totalValue)} · ${projectCount} ${lang === 'id' ? 'surat' : 'refs'}`, color: glass.accent },
+        { label: lang === 'id' ? 'Total Deal' : 'Total Deals', value: totalDeals, sub: `${fmt(totalValue)} · ${projectCount} ${lang === 'id' ? 'surat' : 'refs'}${inactiveCount ? ` · ${inactiveCount} ${lang === 'id' ? 'non-aktif' : 'inactive'}` : ''}`, color: glass.accent },
         { label: lang === 'id' ? 'Pipeline Aktif' : 'Active Pipeline', value: activeCount, sub: fmt(dash.weighted) + (lang === 'id' ? ' weighted' : ' weighted'), color: '#5b87b8' },
         { label: t.win_rate, value: winRateDen > 0 ? `${winRate.toFixed(1)}%` : '—', sub: `${winRateNum}/${winRateDen} closed`, color: 'var(--ims-accent-2)' },
         { label: lang === 'id' ? 'PO Terbit' : 'PO Issued', value: dash.poIssued, sub: `${dash.hot} hot · ${dash.warm} warm · ${dash.cold} cold`, color: 'var(--ims-gold)' },
@@ -1061,6 +1063,7 @@ function SPHDashboard({ data, generatedDocs = [], fmt, lang, t, salesTeam, onNav
     const active = billable.filter(s => s.status === 'active');
     const won = billable.filter(s => s.status === 'won');
     const lost = billable.filter(s => s.status === 'lost');
+    const inactive = billable.filter(s => s.status === 'inactive');
     const poIssued = billable.filter(s => s.poStatus === 'issued');
     const queue = billable.filter(isAdminQueueRequest);
     const stageMap = STAGES.reduce((acc, st) => { acc[st.id] = billable.filter(s => s.stage === st.id).length; return acc; }, {});
@@ -1094,6 +1097,7 @@ function SPHDashboard({ data, generatedDocs = [], fmt, lang, t, salesTeam, onNav
       { name: t.status_active, value: active.length, color: '#5b87b8' },
       { name: t.status_won, value: won.length, color: 'var(--ims-accent-2)' },
       { name: t.status_lost, value: lost.length, color: '#8b3a3a' },
+      { name: t.status_inactive, value: inactive.length, color: '#64748b' },
     ].filter(x => x.value > 0);
     const workflowBreakdown = queue.length ? queueBreakdown : statusBreakdown;
     return { active, won, lost, poIssued, queue, stageData, modalityData, monthly, topCustomers, workflowBreakdown, hasWorkflowQueue: queue.length > 0, totalValue: billable.reduce((s, p) => s + sphBillableValue(p), 0), docsCount: (generatedDocs || []).length, billableCount: billable.length, projectCount: countUniqueSphNumbers(billable) };
@@ -1235,13 +1239,14 @@ function PipelineBoard({ data, allData, setData, employees = {}, session, logAct
     const salesScoped = filterSales === 'all' ? yearScoped : yearScoped.filter(s => s.salesOwner === filterSales);
     const probScoped = probFilter === 'all' ? salesScoped : salesScoped.filter(s => probBucket(s) === probFilter);
     const billableScoped = filterBillableRows(probScoped);
-    const pipelineData = billableScoped.filter(s => s.status === 'active' || s.status === 'won' || s.status === 'lost');
+    const pipelineData = billableScoped.filter(s => s.status === 'active' || s.status === 'won' || s.status === 'lost' || s.status === 'inactive');
     const totalDeals = pipelineData.length;
     const totalValue = pipelineData.reduce((s, p) => s + sphBillableValue(p), 0);
     const projectCount = countUniqueSphNumbers(pipelineData);
     const wonCount = pipelineData.filter(p => p.status === 'won').length;
     const lostCount = pipelineData.filter(p => p.status === 'lost').length;
     const activeCount = pipelineData.filter(p => p.status === 'active').length;
+    const inactiveCount = pipelineData.filter(p => p.status === 'inactive').length;
 
     // WIN RATE MODE — choose denominator carefully to avoid misleading numbers
     // 'current': year-filtered closed only (can be misleading early in year due to small sample)
@@ -1272,9 +1277,9 @@ function PipelineBoard({ data, allData, setData, employees = {}, session, logAct
     const winRate = winRateDen > 0 ? (winRateNum / winRateDen) * 100 : 0;
     const smallSample = winRateDen > 0 && winRateDen < 20;
 
-    return { pipelineData, totalDeals, totalValue, projectCount, wonCount, lostCount, activeCount, winRate, winRateNum, winRateDen, winRateScope, smallSample, ttmWon, ttmLost, allWon, allLost };
+    return { pipelineData, totalDeals, totalValue, projectCount, wonCount, lostCount, activeCount, inactiveCount, winRate, winRateNum, winRateDen, winRateScope, smallSample, ttmWon, ttmLost, allWon, allLost };
   }, [data, filterYear, winRateMode, probFilter, filterSales]);
-  const { pipelineData, totalDeals, totalValue, projectCount, wonCount, lostCount, activeCount, winRate, winRateNum, winRateDen, winRateScope, smallSample } = pipelineStats;
+  const { pipelineData, totalDeals, totalValue, projectCount, wonCount, lostCount, activeCount, inactiveCount, winRate, winRateNum, winRateDen, winRateScope, smallSample } = pipelineStats;
 
   // Stage definitions including lost - show statistical view of full journey
   const ALL_STAGES_WITH_LOST = STAGES;
@@ -1445,17 +1450,19 @@ function PipelineBoard({ data, allData, setData, employees = {}, session, logAct
           const projects = group.projects;
           const stageValue = group.stageValue;
           const isLostCol = stage.id === 'lost';
+          const isInactiveCol = stage.id === 'inactive';
           const isWonCol = stage.id === 'po_issued';
           return (
             <div key={stage.id} style={{minWidth: '280px', flex: '0 0 280px'}}>
               <div style={{padding: '14px', background: 'var(--ims-bg-card)', borderTop: `3px solid ${stage.color}`, borderLeft: '1px solid var(--ims-border)', borderRight: '1px solid var(--ims-border)', borderBottom: '1px solid var(--ims-border)', marginBottom: '10px'}} title={lang === 'id' ? `${projects.length} deal sedang di stage ini` : `${projects.length} deals at this stage`}>
                 <div style={{fontSize: '10px', letterSpacing: '0.15em', color: 'var(--ims-text-2)', textTransform: 'uppercase', fontWeight: 600}}>{t[`stage_${stage.id}`]}</div>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '4px'}}>
-                  <span className="serif" style={{fontSize: '22px', fontWeight: 500, color: isLostCol ? '#8b3a3a' : isWonCol ? 'var(--ims-accent-2)' : 'var(--ims-accent)'}}>{projects.length}</span>
+                  <span className="serif" style={{fontSize: '22px', fontWeight: 500, color: isLostCol ? '#8b3a3a' : isInactiveCol ? '#64748b' : isWonCol ? 'var(--ims-accent-2)' : 'var(--ims-accent)'}}>{projects.length}</span>
                   <span className="mono" style={{fontSize: '11px', color: 'var(--ims-text)', fontWeight: 500}}>{fmt(stageValue)}</span>
                 </div>
                 <div style={{fontSize: '9px', color: 'var(--ims-text-2)', marginTop: '4px', fontStyle: 'italic'}}>
                   {isLostCol ? (lang === 'id' ? 'Deal kalah / batal' : 'Lost / cancelled deals')
+                    : isInactiveCol ? (lang === 'id' ? 'Alternatif — RS pilih SPH lain' : 'Alternate — hospital chose another quote')
                     : isWonCol ? (lang === 'id' ? 'Closed won — PO terbit' : 'Closed won — PO issued')
                     : (lang === 'id' ? 'Sedang di stage ini' : 'Currently at this stage')}
                 </div>
@@ -1465,10 +1472,10 @@ function PipelineBoard({ data, allData, setData, employees = {}, session, logAct
                   const pt = projectTypeMap.get(p.projectType);
                   const owner = salesTeam.find(s => s.id === p.salesOwner);
                   return (
-                    <div key={p.id} className="card-hover" style={{padding: '13px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', opacity: isLostCol ? 0.75 : 1}}>
+                    <div key={p.id} className="card-hover" style={{padding: '13px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', opacity: (isLostCol || isInactiveCol) ? 0.75 : 1}}>
                       <div onClick={() => canEdit && onEdit(p)} style={{cursor: canEdit ? 'pointer' : 'default'}}>
                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', gap: '8px'}}>
-                          <div style={{fontSize: '12px', fontWeight: 600, lineHeight: 1.3, textDecoration: isLostCol ? 'line-through' : 'none'}}>{p.customer}</div>
+                          <div style={{fontSize: '12px', fontWeight: 600, lineHeight: 1.3, textDecoration: (isLostCol || isInactiveCol) ? 'line-through' : 'none'}}>{p.customer}</div>
                           <div style={{width: '26px', height: '26px', borderRadius: '50%', background: stage.color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 600, flexShrink: 0}}>{p.probability}</div>
                         </div>
                         {pt && <div style={{display: 'inline-block', padding: '2px 6px', fontSize: '9px', background: pt.color + '25', color: pt.color, fontWeight: 600, letterSpacing: '0.05em', marginBottom: '8px', textTransform: 'uppercase'}}>{t[`ptype_${p.projectType}`]}</div>}

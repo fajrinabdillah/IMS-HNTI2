@@ -12,6 +12,7 @@ import { flushPersist } from '../utils/storage.js';
 import { notify } from '../utils/notifications.js';
 import { showToast } from '../utils/toast.js';
 import { groupSphProjects, shippingStatusLabel } from '../utils/sphProject.js';
+import { sphPackageGroupKey } from '../utils/sphPackage.js';
 function CustomsNoteEditor({ value, isHold, onSave, t, lang }) {
   const [draft, setDraft] = useState(value || '');
   const [justSaved, setJustSaved] = useState(false);
@@ -181,7 +182,11 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
     const matchYear = opsYear === 'all' || ['issuedDate', 'dpConfirmedAt', 'factoryProductionStartedAt', 'goodsSentClientAt', 'clientReceivedAt'].some(k => String(s?.[k] || '').startsWith(opsYear));
     return matchSearch && matchYear;
   };
-  const filteredData = useMemo(() => data.filter(matchesOpsProject), [data, opsSearchTerm, opsYear]);
+  const filteredData = useMemo(() => {
+    const matched = data.filter(matchesOpsProject);
+    const keys = new Set(matched.map(s => sphPackageGroupKey(s)));
+    return keys.size ? data.filter(s => keys.has(sphPackageGroupKey(s))) : matched;
+  }, [data, opsSearchTerm, opsYear]);
   const visibleManifests = useMemo(() => manifests.filter(m => {
     const linked = data.find(s => manifestMatchesProject(m, s));
     const text = [m.manifestNo, m.customerName, m.sphNo, m.modality, m.typeBrand, m.principal, linked?.customer, linked?.sphNo].filter(Boolean).join(' ').toLowerCase();
@@ -198,10 +203,13 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
     return matchSearch && matchYear;
   }), [customsDocs, manifests, data, opsSearchTerm, opsYear]);
   // Operations reads every PO whose DP/deposit is received, including completed logistics history.
-  const poProjects = useMemo(() => filteredData.filter(s =>
-    s.poStatus === 'issued' &&
-    projectHasDpReceived(s)
-  ), [filteredData]);
+  const poProjects = useMemo(() => {
+    const issuedKeys = new Set(filteredData.filter(s => s.poStatus === 'issued').map(s => sphPackageGroupKey(s)));
+    return filteredData.filter(s =>
+      issuedKeys.has(sphPackageGroupKey(s)) &&
+      projectHasDpReceived(s)
+    );
+  }, [filteredData]);
   const poProjectGroups = useMemo(() => groupSphProjects(poProjects), [poProjects]);
   const findManifestForProject = (project) => manifests.find(m => manifestMatchesProject(m, project));
   const localProjects = useMemo(() => filteredData.filter(s =>

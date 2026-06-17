@@ -35,13 +35,13 @@ function TechnicalSupportModule({
   const [tab, setTab] = useState('progress');
 
   const tabs = [
-    { id: 'progress', label: t.inst_tab_progress, icon: Wrench },
     { id: 'records', label: t.inst_tab_records, icon: ClipboardList },
     { id: 'bast', label: t.inst_tab_bast, icon: FileCheck },
     { id: 'training', label: t.inst_tab_training, icon: Users },
     { id: 'exposure', label: lang === 'id' ? 'Uji Paparan' : 'Exposure Test', icon: Radiation },
     { id: 'pm', label: lang === 'id' ? 'Jadwal PM' : 'PM Schedule', icon: CalendarDays },
     { id: 'issues', label: lang === 'id' ? 'Perbaikan & Keluhan' : 'Repairs & Complaints', icon: AlertTriangle },
+    { id: 'progress', label: t.inst_tab_progress, icon: Wrench },
     { id: 'dashboard', label: lang === 'id' ? 'Dashboard' : 'Dashboard', icon: Activity },
   ];
 

@@ -40,7 +40,7 @@ export function getProjectFinanceTotal(lines) {
 }
 
 const PROJECT_SYNC_FIELDS = [
-  'poIssuedAt', 'poIssuedDate', 'poDate', 'poYear',
+  'poStatus', 'poIssuedAt', 'poIssuedDate', 'poDate', 'poYear',
   'dpPaid', 'finalPaid', 'dpConfirmedAt', 'dpDecisionAt', 'dpFollowupAt',
   'financePoNotifiedAt', 'financeDocsStatus', 'manufacturePoCreatedAt',
   'factoryPoSentAt', 'factoryDpPaidAt', 'supplierDpPaidAt',
@@ -124,7 +124,12 @@ export function normalizeSphProjects(data) {
 
 export function groupSphProjects(lines, { poIssuedOnly = false } = {}) {
   let rows = lines || [];
-  if (poIssuedOnly) rows = rows.filter(s => s.poStatus === 'issued');
+  if (poIssuedOnly) {
+    const issuedKeys = new Set(
+      rows.filter(s => s.poStatus === 'issued').map(s => s.sphProjectKey || sphProjectKey(s))
+    );
+    rows = rows.filter(s => issuedKeys.has(s.sphProjectKey || sphProjectKey(s)));
+  }
 
   const groups = new Map();
   rows.forEach(line => {

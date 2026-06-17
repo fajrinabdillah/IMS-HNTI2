@@ -2838,32 +2838,37 @@ function createEmptySphForm() {
 }
 function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, products, employees = {} }) {
   const [form, setForm] = useState(createEmptySphForm);
+  const existingDataRef = useRef(existingData);
+  existingDataRef.current = existingData;
 
   useEffect(() => {
     if (sph) {
-      const siblings = getProjectSiblings(existingData, sph);
+      const siblings = getProjectSiblings(existingDataRef.current, sph);
       setForm(projectToFormState(sph, siblings, employees));
     } else {
       setForm(createEmptySphForm());
     }
-  }, [sph?.id, employees, existingData]);
+  }, [sph?.id, employees]);
 
-  // Duplicate detection — detect SPH dengan customer+modality+subModality yang sama
-  // Excludes self (kalau edit), excludes lost/cancelled, excludes status 'won' yang sudah closed
+  // Duplicate detection — skip semua baris proyek yang sedang diedit
   const duplicates = useMemo(() => {
-    if (!existingData || !form.customer || !form.modality || !form.subModality) return [];
-    const ownId = sph?.id;
+    if (!existingData || !form.customer) return [];
+    const ownIds = new Set(
+      sph ? getProjectSiblings(existingData, sph).map(s => s.id) : []
+    );
+    if (sph?.id) ownIds.add(sph.id);
+    const first = (form.lineItems || [])[0] || form;
+    if (!first.modality && !first.subModality) return [];
     return existingData.filter(s => {
-      if (s.id === ownId) return false;
+      if (ownIds.has(s.id)) return false;
       if (s.status === 'lost' || s.status === 'cancelled' || s.status === 'inactive') return false;
-      // Match customer (case-insensitive) + modality + subModality
       return (
         s.customer?.toLowerCase().trim() === form.customer.toLowerCase().trim() &&
-        s.modality?.toLowerCase() === form.modality.toLowerCase() &&
-        s.subModality?.toLowerCase().trim() === form.subModality.toLowerCase().trim()
+        s.modality?.toLowerCase() === String(first.modality || '').toLowerCase() &&
+        s.subModality?.toLowerCase().trim() === String(first.subModality || '').toLowerCase().trim()
       );
     });
-  }, [existingData, form.customer, form.modality, form.subModality, sph]);
+  }, [existingData, form.customer, form.lineItems, sph]);
 
   // Modal state for duplicate confirmation
   const [duplicatePrompt, setDuplicatePrompt] = useState(null); // null | { action: 'save_both' | 'replace' | 'cancel' }
@@ -3059,10 +3064,14 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
       lineItems: (form.lineItems || []).filter(it => String(it.subModality || '').trim() || String(it.modality || '').trim()),
     };
     if (!payload.lineItems.length) {
-      showToast(lang === 'id' ? 'Minimal satu item produk wajib diisi' : 'At least one product item required', 'error');
+      showToast(lang === 'id' ? 'Minimal satu item produk wajib diisi (pilih tipe/sub-modality)' : 'At least one product item required (select type/sub-modality)', 'error');
       return;
     }
-    onSave(payload);
+    try {
+      onSave(payload);
+    } catch (err) {
+      showToast((lang === 'id' ? 'Gagal menyimpan: ' : 'Save failed: ') + (err?.message || String(err)), 'error');
+    }
   };
 
   const confirmSaveBoth = () => {
@@ -3353,8 +3362,8 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
         </div>
 
         <div style={{display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '24px'}}>
-          <button className="btn-ghost" onClick={onClose}>{t.cancel}</button>
-          <button className="btn-primary" onClick={handleFinalSave}>{t.save}</button>
+          <button type="button" className="btn-ghost" onClick={onClose}>{t.cancel}</button>
+          <button type="button" className="btn-primary" onClick={handleFinalSave}>{t.save}</button>
         </div>
       </div>
 

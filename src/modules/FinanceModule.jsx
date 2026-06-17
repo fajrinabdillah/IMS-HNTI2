@@ -249,7 +249,9 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
       const matchProduct = financeProductFilter === 'all' || [p.projectModalityLabel, p.modality, p.subModality, p.productBrand, p.brand, ...(p.projectLines || []).flatMap(l => [l.modality, l.subModality])].filter(Boolean).includes(financeProductFilter);
       const rowYear = String(p.issuedDate || p.poIssuedAt || p.lastUpdate || '').slice(0, 4);
       const matchYear = financeYear === 'all' || rowYear === financeYear;
-      const matchSearch = !q || [p.sphNo, p.customer, p.subModality, p.modality, p.salesOwner].some(v => String(v || '').toLowerCase().includes(q));
+      const matchSearch = !q || [p.sphNo, p.customer, p.subModality, p.modality, p.salesOwner, p.projectModalityLabel,
+        ...(p.projectLines || []).flatMap(l => [l.modality, l.subModality, l.productBrand, l.brand]),
+      ].some(v => String(v || '').toLowerCase().includes(q));
       return matchScheme && matchProduct && matchYear && matchSearch;
     });
     return rows.slice().sort((a, b) => {

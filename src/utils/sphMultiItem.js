@@ -36,9 +36,31 @@ function emptyLineItem() {
   };
 }
 
+/** Baris proyek — dari siblings DB atau field items[] legacy (1 record, banyak alat). */
+function resolveProjectLines(primary, siblings) {
+  const members = (siblings?.length ? siblings : [primary]).filter(Boolean);
+  if (members.length > 1) return members;
+  const rec = members[0];
+  if (rec && Array.isArray(rec.items) && rec.items.length > 1) {
+    return rec.items.map((it, idx) => ({
+      ...rec,
+      id: idx === 0 ? rec.id : null,
+      productId: it.productId || rec.productId || '',
+      modality: it.modality || rec.modality || '-',
+      subModality: it.subModality || rec.subModality || '-',
+      productBrand: it.brand || it.productBrand || rec.productBrand || '',
+      brand: it.brand || it.productBrand || rec.brand || '',
+      qty: Number(it.qty) || 1,
+      unitPrice: Number(it.unitPrice) || 0,
+      totalValue: Number(it.totalValue) || (Number(it.qty) || 1) * (Number(it.unitPrice) || 0),
+    }));
+  }
+  return members;
+}
+
 /** Muat state form edit dari satu baris + saudara proyek. */
 export function projectToFormState(primary, siblings, employees = {}) {
-  const lines = (siblings?.length ? siblings : [primary]).filter(Boolean);
+  const lines = resolveProjectLines(primary, siblings);
   const head = primary || lines[0] || {};
   const isPackage = head.pricingMode === 'package_primary'
     || (lines.length > 1 && lines.some(l => l.pricingMode === 'package_item'));
@@ -188,7 +210,7 @@ export function buildRecordsFromForm(form, { existingData = [], editingRecord = 
       }
     }
 
-    const id = (item.id && (oldById.has(item.id) || editingRecord))
+    const id = (item.id && oldById.has(item.id))
       ? item.id
       : (editingRecord && idx === 0 ? editingRecord.id : newLineId(idx));
     const preserved = oldById.get(id) || {};

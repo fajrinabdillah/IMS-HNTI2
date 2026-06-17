@@ -12,6 +12,7 @@ import { notify } from '../utils/notifications.js';
 import { resolveEmpName, resolveNamesInText } from '../utils/domain.js';
 import { DASHBOARD_GLASS, DashboardHero, GlassPanel } from '../components/FuturisticDashboardShell.jsx';
 import { shippingStatusLabel } from '../utils/sphProject.js';
+import { sphPackageGroupKey } from '../utils/sphPackage.js';
 import {
   technicalUnitKey,
   buildTechnicalUnitMap,
@@ -235,8 +236,10 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
       });
     });
 
+    const poIssuedKeys = new Set(data.filter(s => s.poStatus === 'issued').map(s => sphPackageGroupKey(s)));
+
     data
-      .filter(s => s.poStatus === 'issued' && isProductDelivered(s))
+      .filter(s => poIssuedKeys.has(sphPackageGroupKey(s)) && isProductDelivered(s))
       .filter(s => {
         if (filterYear !== 'all') {
           const dates = [s.issuedDate, s.poIssuedDate, s.poDate, s.clientReceivedAt?.split?.('T')[0], s.bastDate];
@@ -278,11 +281,14 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
     return !!s.bastDone || !!s.bastDate || s.installationStatus === 'installed' || bast?.status === 'signed';
   };
 
-  const deliveredUnits = useMemo(() => data
-    .filter(s => s.poStatus === 'issued' && isProductDelivered(s) && !isBastDoneForSph(s))
+  const deliveredUnits = useMemo(() => {
+    const poIssuedKeys = new Set(data.filter(s => s.poStatus === 'issued').map(s => sphPackageGroupKey(s)));
+    return data
+    .filter(s => poIssuedKeys.has(sphPackageGroupKey(s)) && isProductDelivered(s) && !isBastDoneForSph(s))
     .map(s => enrichDeliveredUnitFromSph(s))
     .filter(Boolean)
-    .sort((a, b) => a.customer.localeCompare(b.customer) || a.label.localeCompare(b.label)), [data, bastByUnit]);
+    .sort((a, b) => a.customer.localeCompare(b.customer) || a.label.localeCompare(b.label));
+  }, [data, bastByUnit]);
 
   // Izin BAPETEN per unit (customer + modality + subModality), bukan per RS saja.
   const getStepStatus = (p) => {

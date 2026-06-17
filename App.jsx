@@ -727,6 +727,31 @@ export default function App() {
         await storeSet(V45_LOCK_MARKER, 'true');
       }
 
+      // V46: pecah record SPH legacy (items[] embedded) → baris per alat + sinkron proyek.
+      const V46_SPLIT_MARKER = 'ims_hnti:v46_sph_split_embedded_items';
+      const v46Split = await storeGet(V46_SPLIT_MARKER);
+      if (!v46Split) {
+        const sphStored = await storeGet(STORAGE_KEY);
+        if (sphStored) {
+          try {
+            const parsed = JSON.parse(sphStored);
+            if (Array.isArray(parsed)) {
+              const productStoredEarly = await storeGet(PRODUCT_KEY);
+              const productListEarly = productStoredEarly ? JSON.parse(productStoredEarly) : PRODUCT_MASTER_SEED;
+              const normalized = normalizeSphDataset(parsed, productListEarly);
+              const nextJson = JSON.stringify(normalized);
+              if (nextJson !== sphStored) {
+                blockCloudApply(STORAGE_KEY, 180000);
+                await storeSet(STORAGE_KEY, nextJson);
+                markSphLocalWrite(normalized.length);
+                if (normalized.length >= 100) lockProductionSph(normalized.length);
+              }
+            }
+          } catch {}
+        }
+        await storeSet(V46_SPLIT_MARKER, 'true');
+      }
+
       const [d, l, s, r, rep, iss, reg, akl, imp, pgl, pi, pm, mfst, cdoc, inst, bast, train, emp, bt] = await Promise.all([
         storeGet(STORAGE_KEY), storeGet(LANG_KEY), storeGet(SESSION_KEY),
         storeGet(RATE_KEY), storeGet(REPORTS_KEY),
@@ -1314,6 +1339,10 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
         products,
         employees,
       });
+      if (!records.length) {
+        showToast(lang === 'id' ? 'Gagal menyimpan: tidak ada item produk valid' : 'Save failed: no valid product items', 'error');
+        return;
+      }
       const staged = records.map(rec => {
         const coherent = applySphStageStatusCoherence(syncSphRecordToProductMaster({ ...rec }, products));
         if (isEdit) {
@@ -1332,17 +1361,25 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
         return coherent;
       });
 
-      setSphData(prev => {
-        let next = prev.filter(s => !removedIds.includes(s.id));
-        if (replaceOldIds.length) {
-          next = next.map(s => replaceOldIds.includes(s.id)
-            ? { ...s, status: 'cancelled', stage: 'lost', _replacedBy: staged[0]?.id, _replacedAt: new Date().toISOString(), notes: (s.notes || '') + ` [Digantikan oleh ${clean.sphNo} pada ${new Date().toLocaleDateString('id-ID')}]` }
-            : s);
-        }
-        const ids = new Set(staged.map(r => r.id));
-        next = [...next.filter(s => !ids.has(s.id)), ...staged];
-        return next;
-      });
+      let nextRows = data.filter(s => !removedIds.includes(s.id));
+      if (replaceOldIds.length) {
+        nextRows = nextRows.map(s => replaceOldIds.includes(s.id)
+          ? { ...s, status: 'cancelled', stage: 'lost', _replacedBy: staged[0]?.id, _replacedAt: new Date().toISOString(), notes: (s.notes || '') + ` [Digantikan oleh ${clean.sphNo} pada ${new Date().toLocaleDateString('id-ID')}]` }
+          : s);
+      }
+      const ids = new Set(staged.map(r => r.id));
+      nextRows = [...nextRows.filter(s => !ids.has(s.id)), ...staged];
+      const normalized = normalizeSphDataset(nextRows, products);
+      setSphData(normalized);
+      if (shouldPersistSphData(normalized)) {
+        blockCloudApply(STORAGE_KEY, 180000);
+        markSphLocalWrite(normalized.length);
+        if (normalized.length >= 100) lockProductionSph(normalized.length);
+        storeSet(STORAGE_KEY, JSON.stringify(normalized));
+      } else {
+        showToast(lang === 'id' ? 'Penyimpanan diblokir proteksi data — hubungi admin' : 'Save blocked by data protection — contact admin', 'error');
+        return;
+      }
 
       if (isEdit) {
         logAction({ module: 'sph', action: 'update', entityId: staged[0]?.id, entityLabel: `${clean.sphNo} · ${clean.customer}`, note: `${staged.length} item alat · Total: ${staged.reduce((s, r) => s + (Number(r.totalValue) || 0), 0)}` });
@@ -1355,6 +1392,9 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
         }
         logAction({ module: 'sph', action: 'create', entityId: staged[0]?.id, entityLabel: `${clean.sphNo} · ${clean.customer}`, note: duplicateNote ? `${duplicateNote} · ${staged.length} item` : `${staged.length} item alat` });
       }
+      blockCloudApply(STORAGE_KEY, 180000);
+      flushPersist();
+      showToast(lang === 'id' ? `SPH disimpan (${staged.length} item alat)` : `SPH saved (${staged.length} equipment items)`, 'success');
       setModalOpen(false); setEditingSph(null);
       return;
     }

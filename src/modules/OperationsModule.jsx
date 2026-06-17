@@ -13,6 +13,7 @@ import { notify } from '../utils/notifications.js';
 import { showToast } from '../utils/toast.js';
 import { groupSphProjects, shippingStatusLabel } from '../utils/sphProject.js';
 import { sphPackageGroupKey } from '../utils/sphPackage.js';
+import { formatOpsSiteLabel, formatSiteWithPayer, isMultiSiteLine, sphSiteSearchText } from '../utils/sphSite.js';
 function CustomsNoteEditor({ value, isHold, onSave, t, lang }) {
   const [draft, setDraft] = useState(value || '');
   const [justSaved, setJustSaved] = useState(false);
@@ -177,7 +178,7 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
     return [...years].filter(Boolean).sort().reverse();
   }, [data, manifests]);
   const matchesOpsProject = (s) => {
-    const text = [s.sphNo, s.customer, s.modality, s.subModality, s.productBrand, s.brand, s.principal, s.shippingStatus, s.sphWorkflowStatus].filter(Boolean).join(' ').toLowerCase();
+    const text = [s.sphNo, sphSiteSearchText(s), s.modality, s.subModality, s.productBrand, s.brand, s.principal, s.shippingStatus, s.sphWorkflowStatus].filter(Boolean).join(' ').toLowerCase();
     const matchSearch = !opsSearchTerm || text.includes(opsSearchTerm);
     const matchYear = opsYear === 'all' || ['issuedDate', 'dpConfirmedAt', 'factoryProductionStartedAt', 'goodsSentClientAt', 'clientReceivedAt'].some(k => String(s?.[k] || '').startsWith(opsYear));
     return matchSearch && matchYear;
@@ -671,7 +672,7 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: group.isMultiItem ? '16px' : '0', flexWrap: 'wrap', gap: '10px', paddingBottom: group.isMultiItem ? '12px' : 0, borderBottom: group.isMultiItem ? '1px solid var(--ims-border)' : 'none'}}>
                 <div>
                   <div style={{display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
-                    <div style={{fontSize: '14px', fontWeight: 600}}>{group.customer}</div>
+                    <div style={{fontSize: '14px', fontWeight: 600}}>{group.isMultiSiteProject ? `${group.customer} · ${group.installSiteCount || group.lines.length} ${lang === 'id' ? 'lokasi RS' : 'sites'}` : group.customer}</div>
                     {group.isMultiItem && (
                       <span style={{padding: '2px 8px', fontSize: '9px', background: 'var(--ims-gold)25', color: 'var(--ims-gold)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', borderRadius: '3px'}}>
                         {lang === 'id' ? `${group.lineCount} ALAT` : `${group.lineCount} UNITS`}
@@ -707,7 +708,7 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
               {!group.isMultiItem && (
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px', flexWrap: 'wrap', gap: '10px'}}>
                 <div>
-                  <div style={{fontSize: '14px', fontWeight: 600}}>{p.customer}</div>
+                  <div style={{fontSize: '14px', fontWeight: 600}}>{formatSiteWithPayer(p, lang)}</div>
                   <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{p.subModality} · Qty {p.qty} · <span className="mono">{p.sphNo}</span></div>
                 </div>
                 <div className="mono" style={{fontSize: '14px', fontWeight: 500}}>{fmt(p.totalValue)}</div>
@@ -767,7 +768,7 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
               <div style={{display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: group.isMultiItem ? '12px' : 0, paddingBottom: group.isMultiItem ? '10px' : 0, borderBottom: group.isMultiItem ? '1px solid var(--ims-border)' : 'none'}}>
                 <div>
                   <div style={{display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
-                    <div style={{fontWeight: 700, fontSize: '14px'}}>{group.customer}</div>
+                    <div style={{fontWeight: 700, fontSize: '14px'}}>{group.isMultiSiteProject ? `${group.customer} · ${group.installSiteCount || group.lineCount} ${lang === 'id' ? 'lokasi RS' : 'sites'}` : group.customer}</div>
                     {group.isMultiItem && (
                       <span style={{padding: '2px 8px', fontSize: '9px', background: 'var(--ims-gold)25', color: 'var(--ims-gold)', fontWeight: 700}}>{group.lineCount} {lang === 'id' ? 'ALAT' : 'UNITS'}</span>
                     )}
@@ -783,14 +784,17 @@ function OperationsModule({ data, setData, manifests, setManifests, customsDocs,
             <div key={p.id} style={{paddingTop: group.isMultiItem && lineIdx > 0 ? '14px' : 0, marginTop: group.isMultiItem && lineIdx > 0 ? '14px' : 0, borderTop: group.isMultiItem && lineIdx > 0 ? '1px dashed var(--ims-border)' : 'none'}}>
               <div style={{display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '12px'}}>
                 <div>
-                  {group.isMultiItem ? (
+                  {group.isMultiItem || group.isMultiSiteProject ? (
                     <>
-                      <div style={{fontWeight: 600, fontSize: '13px'}}>{p.subModality || p.modality}</div>
-                      <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{p.productBrand || p.brand || '-'}</div>
+                      <div style={{fontWeight: 600, fontSize: '13px'}}>{isMultiSiteLine(p) ? p.installSiteName : (p.subModality || p.modality)}</div>
+                      <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '2px'}}>
+                        {isMultiSiteLine(p) ? `${p.subModality || p.modality}${p.installSiteRegion ? ` · ${p.installSiteRegion}` : ''}` : (p.productBrand || p.brand || '-')}
+                        {isMultiSiteLine(p) && <span> · {lang === 'id' ? 'via' : 'via'} {p.customer}</span>}
+                      </div>
                     </>
                   ) : (
                     <>
-                      <div style={{fontWeight: 700, fontSize: '14px'}}>{p.customer}</div>
+                      <div style={{fontWeight: 700, fontSize: '14px'}}>{formatOpsSiteLabel(p, lang)}</div>
                       <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{p.subModality} · <span className="mono">{p.sphNo}</span></div>
                     </>
                   )}

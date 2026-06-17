@@ -1,21 +1,25 @@
 /** Shared helpers for Technical Support (Instalasi + Maintenance). */
+import { getInstallSiteName, getPayerCustomer, matchesSphUnit } from './sphSite.js';
 
 function normUnitPart(v) {
   return String(v || '').trim().toLowerCase();
 }
 
-/** Kunci unik per unit terinstal — termasuk sphNo bila ada (proyek multi-alat). */
+/** Kunci unik per unit terinstal — lokasi RS + produk + nomor SPH. */
 function technicalUnitKey(r) {
-  const parts = [r?.customer, r?.modality, r?.subModality];
+  const site = getInstallSiteName(r);
+  const parts = [site, r?.modality, r?.subModality];
   if (r?.sphNo) parts.push(r.sphNo);
   return parts.map(normUnitPart).join('|');
 }
 
 /** Kunci lookup: spesifik sphNo dulu, lalu legacy tanpa sphNo (data lama). */
 function technicalUnitLookupKeys(r) {
-  const legacy = [r?.customer, r?.modality, r?.subModality].map(normUnitPart).join('|');
+  const site = getInstallSiteName(r);
+  const legacy = [site, r?.modality, r?.subModality].map(normUnitPart).join('|');
   const keys = [];
   if (r?.sphNo) keys.push(technicalUnitKey(r));
+  if (r?.id) keys.push([site, r.modality, r.subModality, r.sphNo, r.id].map(normUnitPart).join('|'));
   if (legacy) keys.push(legacy);
   return [...new Set(keys)];
 }
@@ -46,32 +50,38 @@ function unitsMatch(a, b) {
 
 function formatTechnicalUnitLabel(u) {
   const mod = [u?.subModality, u?.modality].filter(Boolean).join(' · ') || '-';
-  const base = `${u?.customer || '-'} — ${mod}`;
+  const site = getInstallSiteName(u);
+  const base = `${site} — ${mod}`;
   return u?.sphNo ? `${base} · ${u.sphNo}` : base;
 }
 
 function findSphLineForUnit(data, unit) {
   const list = data || [];
-  const matchCore = (s) => normUnitPart(s.customer) === normUnitPart(unit?.customer)
-    && normUnitPart(s.subModality || '') === normUnitPart(unit?.subModality || '')
-    && normUnitPart(s.modality || '') === normUnitPart(unit?.modality || '');
-  if (unit?.sphNo) {
-    const exact = list.find(s => matchCore(s) && normUnitPart(s.sphNo) === normUnitPart(unit.sphNo));
+  if (!unit) return null;
+  const lineId = unit.sphLineId || unit.sphId || null;
+  if (lineId) {
+    const byId = list.find(s => s.id === lineId);
+    if (byId) return byId;
+  }
+  if (unit.sphNo) {
+    const exact = list.find(s => matchesSphUnit(s, unit));
     if (exact) return exact;
   }
-  return list.find(matchCore)
+  return list.find(s => matchesSphUnit(s, unit))
     || list.find(s => normUnitPart(s.customer) === normUnitPart(unit?.customer)
-      && normUnitPart(s.subModality || '') === normUnitPart(unit?.subModality || ''))
+      && normUnitPart(s.subModality || '') === normUnitPart(unit?.subModality || '')
+      && normUnitPart(s.modality || '') === normUnitPart(unit?.modality || ''))
     || null;
 }
 
 function findBapetenRecordForUnit(regRecords, unit) {
   const issued = (regRecords || []).filter(r => r.stage === 'issued' || !!r.issuedDate);
-  const matchFull = (r) => normUnitPart(r.customer) === normUnitPart(unit?.customer)
+  const site = getInstallSiteName(unit);
+  const matchFull = (r) => normUnitPart(r.customer) === normUnitPart(site)
     && normUnitPart(r.subModality || r.product || '') === normUnitPart(unit?.subModality || '')
     && normUnitPart(r.modality || '') === normUnitPart(unit?.modality || '');
   return issued.find(matchFull)
-    || issued.find(r => normUnitPart(r.customer) === normUnitPart(unit?.customer)
+    || issued.find(r => normUnitPart(r.customer) === normUnitPart(site)
       && normUnitPart(r.modality || '') === normUnitPart(unit?.modality || '')
       && normUnitPart(r.subModality || r.product || '') === normUnitPart(unit?.subModality || ''))
     || null;
@@ -81,7 +91,11 @@ function enrichDeliveredUnitFromSph(sphLine) {
   if (!sphLine) return null;
   return {
     id: sphLine.id,
-    customer: sphLine.customer,
+    customer: getInstallSiteName(sphLine),
+    payerCustomer: getPayerCustomer(sphLine),
+    installSiteName: sphLine.installSiteName || '',
+    installSiteAddress: sphLine.installSiteAddress || '',
+    sphLineId: sphLine.id,
     modality: sphLine.modality,
     subModality: sphLine.subModality || '',
     sphNo: sphLine.sphNo,

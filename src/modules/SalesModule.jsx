@@ -17,6 +17,7 @@ import { parseFieldReportImport, parseSPHImport } from '../utils/csvImport.js';
 import { filterBillableRows, formatPackageItemsSummary, formatPackageModalityLabel, getPackageComponents, sphBillableValue, countUniqueSphNumbers, sphPackageGroupKey } from '../utils/sphPackage.js';
 import { groupSphProjects, shippingStatusLabel } from '../utils/sphProject.js';
 import { getProjectSiblings, projectToFormState } from '../utils/sphMultiItem.js';
+import { isMultiSiteLine, sphSiteSearchText } from '../utils/sphSite.js';
 import { showToast } from '../utils/toast.js';
 const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employees, setEmployees, session, lang, t, fmt, onRequestSPH, onRequestSPP, onWorkflowUpdate, onSaveDocument, generatedDocs = [], setGeneratedDocs, products = [], documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, activeTab, onTabChange }) {
   const [open, setOpen] = useState('request_sph');
@@ -555,9 +556,9 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
     e.target.value = '';
   };
   const downloadSPHTemplate = () => {
-    const header = ['SPH No', 'Pelanggan', 'Tipe', 'Jenis Proyek', 'Modality', 'Sub-Modality', 'Qty', 'Harga Satuan', 'Total Nilai', 'Stage', 'Status', 'Sales', 'Tanggal Terbit', 'Wilayah', 'Catatan'];
-    const example = ['SPH/2026/001', 'RS Contoh Sehat', 'hospital', 'private', 'CT Scan', 'CT 128 Slice', '1', '8200000000', '8200000000', 'sph_sent', 'active', 'hatim', '2026-03-15', 'Jateng', 'Contoh — hapus baris ini sebelum impor'];
-    const example2 = ['', '', 'hospital', 'private', 'X-Ray', 'Stationary Jumong', '1', '', '', 'sph_sent', 'active', '', '2026-03-15', 'Jateng', 'Baris lanjutan paket — No SPH/Pelanggan kosong (merge Excel)'];
+    const header = ['SPH No', 'Pelanggan', 'Tipe', 'Jenis Proyek', 'Modality', 'Sub-Modality', 'Lokasi RS', 'Alamat RS', 'Wilayah RS', 'Qty', 'Harga Satuan', 'Total Nilai', 'Stage', 'Status', 'Sales', 'Tanggal Terbit', 'Wilayah', 'Catatan'];
+    const example = ['SPH/2026/001', 'PT Mitra Inti Medika', 'partner', 'private', 'X-Ray', 'Portable', 'RS Annisa Cikarang', 'Jl. Raya Cikarang', 'Jabar', '1', '85000000', '85000000', 'po_issued', 'won', 'hatim', '2026-03-15', 'Jabar', 'Contoh rekanan — 1 unit per baris, 39 baris = 39 RS'];
+    const example2 = ['SPH/2026/001', '', 'partner', 'private', 'X-Ray', 'Portable', 'RS Pelita Husada', 'Jl. Pelita No. 1', 'Jakarta', '1', '85000000', '85000000', 'po_issued', 'won', '', '2026-03-15', 'Jakarta', 'Baris lanjutan — Pelanggan kosong (merge Excel), isi Lokasi RS'];
     downloadCSV('HNTI_Template_Import_SPH.csv', [header, example, example2]);
   };
 
@@ -581,6 +582,7 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
       const matchSearch = !search
         || s.sphNo.toLowerCase().includes(q)
         || s.customer.toLowerCase().includes(q)
+        || sphSiteSearchText(s).includes(q)
         || (s.subModality || '').toLowerCase().includes(q)
         || (s.modality || '').toLowerCase().includes(q);
       const matchYear = filterYear === 'all' || s.issuedDate?.startsWith(filterYear);
@@ -835,7 +837,12 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
                     </div>
                   </Td>
                   <Td>
-                    {lineIndex === 0 ? (
+                    {isMultiSiteLine(s) ? (
+                      <>
+                        <div style={{fontWeight: 500}}>{s.installSiteName}</div>
+                        <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{lang === 'id' ? 'via' : 'via'} {s.customer}</div>
+                      </>
+                    ) : lineIndex === 0 ? (
                       <>
                         <div style={{fontWeight: 500}}>{s.customer}</div>
                         <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{t[`type_${s.customerType}`]}</div>
@@ -2833,7 +2840,7 @@ function createEmptySphForm() {
     ksoYears: 5, ksoInvestorPct: 70,
     pricingMode: 'itemized',
     packageTotal: 0,
-    lineItems: [{ id: null, productId: '', modality: 'CT Scan', subModality: '', brand: '', qty: 1, unitPrice: 0, totalValue: 0 }],
+    lineItems: [{ id: null, productId: '', modality: 'CT Scan', subModality: '', brand: '', qty: 1, unitPrice: 0, totalValue: 0, installSiteName: '', installSiteAddress: '', installSiteRegion: '' }],
   };
 }
 function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, products, employees = {} }) {
@@ -2902,6 +2909,8 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
   const enrichSphProductLink = (raw) => raw;
 
   const lineItems = form.lineItems || [];
+  const isPartnerMultiSite = form.customerType === 'partner' || lineItems.some(it => String(it.installSiteName || '').trim());
+  const MAX_LINE_ITEMS = 100;
   const brandsForItem = (item) => [...new Set(activeProducts.filter(p => !item.modality || p.modality === item.modality).map(p => p.brand).filter(Boolean))].sort();
   const subModsForItem = (item) => activeProducts.filter(p => (!item.modality || p.modality === item.modality) && (!item.brand || p.brand === item.brand));
 
@@ -2945,8 +2954,8 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
   };
 
   const addLineItem = () => setForm(prev => {
-    if ((prev.lineItems || []).length >= 8) return prev;
-    const items = [...(prev.lineItems || []), { id: null, productId: '', modality: prev.modality || 'CT Scan', subModality: '', brand: '', qty: 1, unitPrice: 0, totalValue: 0 }];
+    if ((prev.lineItems || []).length >= MAX_LINE_ITEMS) return prev;
+    const items = [...(prev.lineItems || []), { id: null, productId: '', modality: prev.modality || 'CT Scan', subModality: '', brand: '', qty: 1, unitPrice: 0, totalValue: 0, installSiteName: '', installSiteAddress: '', installSiteRegion: '' }];
     return { ...prev, lineItems: items };
   });
 
@@ -3067,6 +3076,13 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
       showToast(lang === 'id' ? 'Minimal satu item produk wajib diisi (pilih tipe/sub-modality)' : 'At least one product item required (select type/sub-modality)', 'error');
       return;
     }
+    if (form.customerType === 'partner' && payload.lineItems.length > 1) {
+      const missingSite = payload.lineItems.filter(it => !String(it.installSiteName || '').trim());
+      if (missingSite.length) {
+        showToast(lang === 'id' ? `Proyek rekanan multi-lokasi: isi Lokasi RS untuk setiap item (${missingSite.length} belum diisi)` : `Partner multi-site: fill Install Site for each item (${missingSite.length} missing)`, 'error');
+        return;
+      }
+    }
     try {
       onSave(payload);
     } catch (err) {
@@ -3125,7 +3141,7 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
           {[
             ['sphNo', t.sph_number, 'text'],
             ['issuedDate', t.issued_date, 'date'],
-            ['customer', t.customer, 'text', true],
+            ['customer', form.customerType === 'partner' ? (lang === 'id' ? 'Penanggung Jawab Pembayaran (Rekanan)' : 'Payment Account (Partner)') : t.customer, 'text', true],
           ].map(([k, l, ty, full]) => (
             <div key={k} style={{gridColumn: full ? '1 / -1' : 'auto'}}>
               <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600, marginBottom: '6px'}}>{l}</label>
@@ -3168,12 +3184,17 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
               </div>
             </div>
             <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginBottom: '10px', lineHeight: 1.5}}>
-              {lang === 'id'
-                ? 'Satu nomor SPH bisa berisi beberapa alat. Pengiriman, instalasi, perizinan, dan pembayaran dapat berbeda per alat di modul Operasional, Dukungan Teknis, Regulatory, dan Finance.'
-                : 'One SPH number can include multiple devices. Shipping, installation, permits, and payments can differ per device in downstream modules.'}
+              {form.customerType === 'partner'
+                ? (lang === 'id'
+                  ? 'Model rekanan: satu penanggung jawab pembayaran, banyak lokasi RS. Isi Lokasi RS per item — pengiriman, instalasi, dan perizinan dapat berbeda per RS di modul Operasional, Dukungan Teknis, dan Regulatory. Finance tetap satu akun pembayaran.'
+                  : 'Partner model: one payment account, many hospital sites. Fill Install Site per item — shipping, installation, and permits can differ per site downstream. Finance stays one payment account.')
+                : (lang === 'id'
+                  ? 'Satu nomor SPH bisa berisi beberapa alat. Pengiriman, instalasi, perizinan, dan pembayaran dapat berbeda per alat di modul Operasional, Dukungan Teknis, Regulatory, dan Finance.'
+                  : 'One SPH number can include multiple devices. Shipping, installation, permits, and payments can differ per device in downstream modules.')}
             </div>
             {lineItems.map((item, idx) => (
-              <div key={idx} style={{display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '8px', marginBottom: '10px', padding: '10px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
+              <div key={idx} style={{marginBottom: '10px', padding: '10px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
+                <div style={{display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '8px', marginBottom: isPartnerMultiSite ? '8px' : 0}}>
                 <div style={{gridColumn: 'span 2'}}>
                   <label style={{display: 'block', fontSize: '9px', color: 'var(--ims-text-2)', marginBottom: '4px'}}>{t.modality}</label>
                   <select value={item.modality || ''} onChange={e => updateLineItem(idx, 'modality', e.target.value)}>
@@ -3207,8 +3228,28 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
                     <button type="button" onClick={() => removeLineItem(idx)} style={{background: 'transparent', border: 'none', color: '#c03030', cursor: 'pointer', padding: '4px'}} title={lang === 'id' ? 'Hapus item' : 'Remove item'}><Trash2 size={14} /></button>
                   )}
                 </div>
+                </div>
+                {isPartnerMultiSite && (
+                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', paddingTop: '8px', borderTop: '1px dashed var(--ims-border)'}}>
+                    <div>
+                      <label style={{display: 'block', fontSize: '9px', color: '#1a4d8a', fontWeight: 700, marginBottom: '4px'}}>{lang === 'id' ? 'Lokasi RS (Instalasi)' : 'Install Site (Hospital)'} *</label>
+                      <input value={item.installSiteName || ''} onChange={e => updateLineItem(idx, 'installSiteName', e.target.value)} placeholder={lang === 'id' ? 'Nama RS tujuan' : 'Hospital name'} />
+                    </div>
+                    <div>
+                      <label style={{display: 'block', fontSize: '9px', color: 'var(--ims-text-2)', marginBottom: '4px'}}>{lang === 'id' ? 'Alamat RS' : 'Site Address'}</label>
+                      <input value={item.installSiteAddress || ''} onChange={e => updateLineItem(idx, 'installSiteAddress', e.target.value)} placeholder={lang === 'id' ? 'Alamat pengiriman/instalasi' : 'Delivery/install address'} />
+                    </div>
+                    <div>
+                      <label style={{display: 'block', fontSize: '9px', color: 'var(--ims-text-2)', marginBottom: '4px'}}>{lang === 'id' ? 'Wilayah RS' : 'Site Region'}</label>
+                      <input value={item.installSiteRegion || ''} onChange={e => updateLineItem(idx, 'installSiteRegion', e.target.value)} placeholder={lang === 'id' ? 'Contoh: Jabar' : 'e.g. West Java'} />
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
+            {lineItems.length >= MAX_LINE_ITEMS && (
+              <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '4px'}}>{lang === 'id' ? `Maksimum ${MAX_LINE_ITEMS} item — gunakan Import CSV untuk data massal (39+ RS).` : `Maximum ${MAX_LINE_ITEMS} items — use CSV import for bulk (39+ sites).`}</div>
+            )}
           </div>
           <div style={{gridColumn: '1 / -1'}}>
             <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600, marginBottom: '6px'}}>{t.total_value}</label>

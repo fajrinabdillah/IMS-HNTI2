@@ -91,6 +91,9 @@ const SPH_IMPORT_ALIASES = {
   issuedDate: ['Issue Date', 'Tanggal Terbit', 'Tanggal', 'Date', 'Tgl Terbit'],
   region: ['Region', 'Wilayah', 'Area', 'Daerah'],
   notes: ['Notes', 'Catatan', 'Keterangan', 'Note'],
+  installSiteName: ['Lokasi RS', 'RS Instalasi', 'Nama RS', 'Install Site', 'Site Name', 'Lokasi Instalasi', 'End Customer'],
+  installSiteAddress: ['Alamat RS', 'Alamat Lokasi', 'Install Address', 'Site Address', 'Alamat Instalasi'],
+  installSiteRegion: ['Wilayah RS', 'Wilayah Lokasi', 'Site Region', 'Area RS'],
 };
 const _STATUS_ALIASES = { won: 'won', menang: 'won', lost: 'lost', kalah: 'lost', active: 'active', aktif: 'active', pending: 'active' };
 const _STAGE_VALID = ['sph_sent', 'presentation_scheduled', 'presentation_done', 'ecatalog', 'negotiation', 'tender', 'po_issued', 'inactive', 'lost'];
@@ -147,6 +150,9 @@ function parseSPHImport(text) {
       region: get('region') || carry.region || '-',
       issuedDate,
       notes: get('notes') || '',
+      installSiteName: get('installSiteName') || '',
+      installSiteAddress: get('installSiteAddress') || '',
+      installSiteRegion: get('installSiteRegion') || get('region') || carry.region || '',
     };
     records.push(rec);
     carry = {

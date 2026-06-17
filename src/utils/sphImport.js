@@ -7,15 +7,16 @@ function normPart(v) {
   return String(v ?? '').trim().toLowerCase();
 }
 
-/** Unique key per baris produk dalam satu SPH (No + pelanggan + modality + sub-modality). */
+/** Unique key per baris produk dalam satu SPH (No + pelanggan + modality + sub-modality + lokasi RS). */
 export function sphImportLineKey(rec) {
-  return [rec.sphNo, rec.customer, rec.modality, rec.subModality].map(normPart).join('\u0001');
+  return [rec.sphNo, rec.customer, rec.modality, rec.subModality, rec.installSiteName].map(normPart).join('\u0001');
 }
 
 const IMPORT_SCALAR_FIELDS = [
   'customer', 'customerType', 'projectType', 'modality', 'subModality',
   'qty', 'unitPrice', 'totalValue', 'stage', 'status', 'region',
   'issuedDate', 'notes', 'nextAction', 'importSalesLabel',
+  'installSiteName', 'installSiteAddress', 'installSiteRegion',
 ];
 
 function normalizeImportedProductFields(rec) {

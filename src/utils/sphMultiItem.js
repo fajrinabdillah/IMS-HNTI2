@@ -20,7 +20,7 @@ const SHARED_FORM_FIELDS = [
   'notes', 'nextAction', 'tenderSubStage',
   'customerSector', 'dealModel', 'paymentScheme', 'dpPercent', 'installmentMonths',
   'ksoYears', 'ksoInvestorPct',
-  'poStatus', 'dpPaid', 'finalPaid', 'shippingStatus', 'customsStatus',
+  'poStatus', 'dpPaid', 'finalPaid',
 ];
 
 function emptyLineItem() {
@@ -33,6 +33,9 @@ function emptyLineItem() {
     qty: 1,
     unitPrice: 0,
     totalValue: 0,
+    installSiteName: '',
+    installSiteAddress: '',
+    installSiteRegion: '',
   };
 }
 
@@ -74,6 +77,9 @@ export function projectToFormState(primary, siblings, employees = {}) {
     qty: Number(l.qty) || 1,
     unitPrice: Number(l.unitPrice) || 0,
     totalValue: Number(l.totalValue) || 0,
+    installSiteName: l.installSiteName || '',
+    installSiteAddress: l.installSiteAddress || '',
+    installSiteRegion: l.installSiteRegion || '',
   }));
 
   const shared = {};
@@ -152,6 +158,9 @@ export function expandEmbeddedSphLineItems(data) {
           qty,
           unitPrice,
           totalValue,
+          installSiteName: it.installSiteName || rec.installSiteName || '',
+          installSiteAddress: it.installSiteAddress || rec.installSiteAddress || '',
+          installSiteRegion: it.installSiteRegion || rec.installSiteRegion || '',
         };
         delete row.items;
         delete row.lineItems;
@@ -227,8 +236,11 @@ export function buildRecordsFromForm(form, { existingData = [], editingRecord = 
       qty,
       unitPrice,
       totalValue,
-      shippingStatus: preserved.shippingStatus ?? shared.shippingStatus ?? null,
-      customsStatus: preserved.customsStatus ?? shared.customsStatus ?? null,
+      installSiteName: item.installSiteName ?? preserved.installSiteName ?? '',
+      installSiteAddress: item.installSiteAddress ?? preserved.installSiteAddress ?? '',
+      installSiteRegion: item.installSiteRegion ?? preserved.installSiteRegion ?? '',
+      shippingStatus: preserved.shippingStatus ?? null,
+      customsStatus: preserved.customsStatus ?? null,
       installationStatus: preserved.installationStatus,
       stage: preserved.stage ?? shared.stage,
       status: preserved.status ?? shared.status,

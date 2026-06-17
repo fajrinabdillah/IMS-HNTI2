@@ -24,6 +24,7 @@ import {
   enrichDeliveredUnitFromSph,
   groupRecordsBySphProject,
 } from '../utils/technicalSupport.js';
+import { getInstallSiteName, isMultiSiteLine, sphSiteSearchText } from '../utils/sphSite.js';
 
 function ProjectGroupShell({ group, lang, children, itemBorderTop }) {
   if (!group?.isMultiItem) return children;
@@ -211,20 +212,32 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
 
   // Pipeline Instalasi: dari Data Instalasi + proyek SPH yang sudah terkirim ke RS.
   const installProjects = useMemo(() => {
-    const findSphForRecord = (r) => data.find(s => s.customer === r.customer && (s.subModality || '') === (r.subModality || '') && (r.sphNo ? s.sphNo === r.sphNo : true))
-      || data.find(s => s.customer === r.customer && (s.subModality || '') === (r.subModality || ''))
-      || data.find(s => s.customer === r.customer && (s.modality || '') === (r.modality || ''))
-      || data.find(s => s.customer === r.customer);
+    const findSphForRecord = (r) => findSphLineForUnit(data, {
+      customer: r.customer,
+      installSiteName: r.installSiteName,
+      modality: r.modality,
+      subModality: r.subModality,
+      sphNo: r.sphNo,
+      sphLineId: r.sphLineId,
+    });
 
     const projectMap = new Map();
 
     installRecordsFiltered.forEach(r => {
       const sph = findSphForRecord(r);
-      const key = unitKey(r);
+      const key = technicalUnitKey({
+        customer: getInstallSiteName(sph || r),
+        modality: r.modality || sph?.modality || '',
+        subModality: r.subModality || sph?.subModality || '',
+        sphNo: r.sphNo || sph?.sphNo || '',
+        id: sph?.id,
+      });
         projectMap.set(key, {
         ...(sph || {}),
         id: sph?.id || r.id,
-        customer: r.customer,
+        customer: getInstallSiteName(sph || r),
+        payerCustomer: sph?.customer || r.payerCustomer || '',
+        installSiteName: sph?.installSiteName || r.installSiteName || '',
         modality: r.modality || sph?.modality || '',
         subModality: r.subModality || sph?.subModality || '',
         product: sph?.product || r.subModality || r.modality || '',
@@ -245,16 +258,20 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
           const dates = [s.issuedDate, s.poIssuedDate, s.poDate, s.clientReceivedAt?.split?.('T')[0], s.bastDate];
           if (!dates.some(d => d && String(d).startsWith(filterYear))) return false;
         }
-        return matchesSearch(s.customer, s.sphNo, s.modality, s.subModality, s.product);
+        return matchesSearch(sphSiteSearchText(s), s.sphNo, s.modality, s.subModality, s.product);
       })
       .forEach(s => {
-        const key = technicalUnitKey({ customer: s.customer, modality: s.modality, subModality: s.subModality, sphNo: s.sphNo });
+        const unit = { customer: getInstallSiteName(s), installSiteName: s.installSiteName, modality: s.modality, subModality: s.subModality, sphNo: s.sphNo, id: s.id };
+        const key = technicalUnitKey(unit);
         if (projectMap.has(key)) return;
         projectMap.set(key, {
           ...s,
+          customer: getInstallSiteName(s),
+          payerCustomer: s.customer,
+          installSiteName: s.installSiteName || '',
           product: s.product || s.subModality || s.modality || '',
           installationStatus: s.installationStatus || 'pending',
-          _installRecord: getTechnicalUnitRecord(recordsByUnit, { customer: s.customer, modality: s.modality, subModality: s.subModality, sphNo: s.sphNo }) || null,
+          _installRecord: getTechnicalUnitRecord(recordsByUnit, unit) || null,
         });
       });
 
@@ -269,11 +286,16 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
   const installProjectGroups = useMemo(() => {
     const map = new Map();
     installProjects.forEach(p => {
-      const key = p.sphProjectKey || [p.sphNo, p.customer].filter(Boolean).join('\u0001') || p.id;
-      if (!map.has(key)) map.set(key, { key, customer: p.customer, sphNo: p.sphNo, projects: [] });
+      const key = p.sphProjectKey || [p.sphNo, p.payerCustomer || p.customer].filter(Boolean).join('\u0001') || p.id;
+      if (!map.has(key)) map.set(key, { key, customer: p.payerCustomer || p.customer, sphNo: p.sphNo, projects: [] });
       map.get(key).projects.push(p);
     });
-    return [...map.values()].map(g => ({ ...g, isMultiItem: g.projects.length > 1 }));
+    return [...map.values()].map(g => ({
+      ...g,
+      isMultiItem: g.projects.length > 1,
+      isMultiSiteProject: g.projects.some(p => isMultiSiteLine(p) || p.installSiteName),
+      installSiteCount: new Set(g.projects.map(p => getInstallSiteName(p).toLowerCase()).filter(Boolean)).size,
+    }));
   }, [installProjects]);
 
   const isBastDoneForSph = (s) => {
@@ -395,8 +417,8 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
                   {group.isMultiItem && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', paddingBottom: '10px', borderBottom: '1px solid var(--ims-border)', flexWrap: 'wrap', gap: '8px' }}>
                       <div>
-                        <div style={{ fontSize: '14px', fontWeight: 700 }}>{group.customer}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '2px' }}><span className="mono">{group.sphNo}</span> · {group.projects.length} {lang === 'id' ? 'alat' : 'units'}</div>
+                        <div style={{ fontSize: '14px', fontWeight: 700 }}>{group.isMultiSiteProject ? `${group.customer} · ${group.installSiteCount} ${lang === 'id' ? 'lokasi RS' : 'sites'}` : group.customer}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '2px' }}><span className="mono">{group.sphNo}</span> · {group.projects.length} {lang === 'id' ? (group.isMultiSiteProject ? 'unit' : 'alat') : 'units'}</div>
                       </div>
                       <span style={{ padding: '2px 8px', fontSize: '9px', background: 'var(--ims-gold)25', color: 'var(--ims-gold)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{lang === 'id' ? 'PROYEK MULTI-ALAT' : 'MULTI-UNIT PROJECT'}</span>
                     </div>
@@ -411,12 +433,16 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
                 <div>
                   {group.isMultiItem ? (
                     <>
-                      <div style={{fontSize: '13px', fontWeight: 600}}>{p.subModality || p.modality}</div>
-                      <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{p.productBrand || p.brand || p.product || '-'}</div>
+                      <div style={{fontSize: '13px', fontWeight: 600}}>{isMultiSiteLine(p) || p.installSiteName ? p.installSiteName || p.customer : (p.subModality || p.modality)}</div>
+                      <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '2px'}}>
+                        {isMultiSiteLine(p) || p.installSiteName
+                          ? `${p.subModality || p.modality}${p.payerCustomer ? ` · via ${p.payerCustomer}` : ''}`
+                          : (p.productBrand || p.brand || p.product || '-')}
+                      </div>
                     </>
                   ) : (
                     <>
-                      <div style={{fontSize: '14px', fontWeight: 600}}>{p.customer}</div>
+                      <div style={{fontSize: '14px', fontWeight: 600}}>{formatTechnicalUnitLabel(p)}</div>
                       <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{p.subModality} · <span className="mono">{p.sphNo}</span></div>
                     </>
                   )}
@@ -714,7 +740,9 @@ function InstallationDashboard({ installRecords = [], bastRecords = [], training
                     const ss = getStepStatus ? getStepStatus(p) : {};
                     const steps = ['installation_done', 'functionTest', 'exposureTest', 'complianceTest', 'trainingCert', 'bast'];
                     const done = steps.filter(id => ss[id]).length;
-                    const modLabel = [p.subModality, p.modality].filter(Boolean).join(' · ') || '-';
+                    const modLabel = isMultiSiteLine(p) || p.installSiteName
+                      ? `${p.installSiteName || p.customer} · ${[p.subModality, p.modality].filter(Boolean).join(' · ') || '-'}`
+                      : [p.subModality, p.modality].filter(Boolean).join(' · ') || '-';
                     return (
                       <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '8px 10px', background: 'var(--ims-bg-card)', fontSize: '11px', flexWrap: 'wrap' }}>
                         <span style={{ fontWeight: 600 }}>{modLabel}</span>

@@ -3,6 +3,7 @@
 
 import { applyPackagePricing, sphPackageGroupKey, sphBillableValue, isBillableSphRow } from './sphPackage.js';
 import { projectHasDpReceived } from './domain.js';
+import { countDistinctInstallSites, isMultiSiteProject } from './sphSite.js';
 
 export function sphProjectKey(rec) {
   return sphPackageGroupKey(rec);
@@ -154,6 +155,8 @@ export function groupSphProjects(lines, { poIssuedOnly = false } = {}) {
       financeTotal: getProjectFinanceTotal(g.lines),
       lineCount: g.lines.length,
       isMultiItem: g.lines.length > 1,
+      isMultiSiteProject: isMultiSiteProject(g.lines),
+      installSiteCount: countDistinctInstallSites(g.lines),
     };
   }).sort((a, b) => String(b.primary?.issuedDate || '').localeCompare(String(a.primary?.issuedDate || '')));
 }
@@ -170,9 +173,14 @@ export function toFinanceAccounts(data) {
       projectLines: g.lines,
       projectLineCount: g.lineCount,
       isMultiItemProject: g.isMultiItem,
+      isMultiSiteProject: g.isMultiSiteProject,
+      installSiteCount: g.installSiteCount,
       projectModalityLabel: g.isMultiItem && modalities.length > 1
         ? modalities.join(' + ')
         : (p.subModality || p.modality || ''),
+      projectSiteSummary: g.isMultiSiteProject
+        ? `${g.installSiteCount} ${g.installSiteCount === 1 ? 'lokasi' : 'lokasi RS'}`
+        : null,
     };
   });
 }
@@ -202,8 +210,9 @@ export function shippingStatusLabel(status, lang = 'id') {
 export function formatProjectEquipmentSummary(lines, lang = 'id') {
   return (lines || []).map(l => {
     const label = [l.subModality, l.modality].filter(Boolean).join(' · ') || '-';
+    const site = l.installSiteName ? ` @ ${l.installSiteName}` : '';
     const ship = shippingStatusLabel(l.shippingStatus, lang);
-    return `${label} (${ship})`;
+    return `${label}${site} (${ship})`;
   }).join(' · ');
 }
 

@@ -250,7 +250,7 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
       const rowYear = String(p.issuedDate || p.poIssuedAt || p.lastUpdate || '').slice(0, 4);
       const matchYear = financeYear === 'all' || rowYear === financeYear;
       const matchSearch = !q || [p.sphNo, p.customer, p.subModality, p.modality, p.salesOwner, p.projectModalityLabel,
-        ...(p.projectLines || []).flatMap(l => [l.modality, l.subModality, l.productBrand, l.brand]),
+        ...(p.projectLines || []).flatMap(l => [l.modality, l.subModality, l.productBrand, l.brand, l.installSiteName, l.installSiteAddress]),
       ].some(v => String(v || '').toLowerCase().includes(q));
       return matchScheme && matchProduct && matchYear && matchSearch;
     });
@@ -713,9 +713,11 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
                     <Td>
                       <div style={{fontWeight: 500}}>{p.customer}</div>
                       <div style={{fontSize: '10px', color: 'var(--ims-text-2)'}}>
-                        {p.isMultiItemProject
-                          ? `${p.projectModalityLabel || p.subModality} · ${p.projectLineCount} ${lang === 'id' ? 'alat' : 'units'}`
-                          : `${p.subModality} · ${t[`type_${p.customerType}`]}`}
+                        {p.isMultiSiteProject
+                          ? `${p.projectSiteSummary || `${p.installSiteCount} lokasi RS`} · ${t[`type_${p.customerType}`] || p.customerType}`
+                          : p.isMultiItemProject
+                            ? `${p.projectModalityLabel || p.subModality} · ${p.projectLineCount} ${lang === 'id' ? 'alat' : 'units'}`
+                            : `${p.subModality} · ${t[`type_${p.customerType}`]}`}
                       </div>
                     </Td>
                     <Td><span style={{display: 'inline-block', padding: '3px 8px', fontSize: '10px', background: schemeColor(sch) + '25', color: schemeColor(sch), fontWeight: 600, borderRadius: '3px'}}>{schemeLabel(sch)}</span></Td>
@@ -762,13 +764,13 @@ function FinanceModule({ data, setData, t, lang, canEdit, fmt, onWorkflowUpdate,
                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', padding: '12px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
                           <div>
                             <div style={{fontSize: '11px', color: 'var(--ims-text-2)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase'}}>{lang === 'id' ? 'Konfirmasi DP / Deposit' : 'DP / Deposit Confirmation'}</div>
-                            <div style={{fontSize: '12px', color: 'var(--ims-text-2)', marginTop: '4px'}}>{p.customer} · {p.sphNo} · DP {p.dpPercent || 0}%{p.isMultiItemProject ? ` · ${p.projectLineCount} ${lang === 'id' ? 'alat' : 'units'}` : ''}</div>
+                            <div style={{fontSize: '12px', color: 'var(--ims-text-2)', marginTop: '4px'}}>{p.customer} · {p.sphNo} · DP {p.dpPercent || 0}%{p.isMultiSiteProject ? ` · ${p.installSiteCount || p.projectLineCount} ${lang === 'id' ? 'lokasi RS' : 'sites'}` : p.isMultiItemProject ? ` · ${p.projectLineCount} ${lang === 'id' ? 'alat' : 'units'}` : ''}</div>
                           </div>
                           {p.isMultiItemProject && (p.projectLines || []).length > 0 && (
                             <div style={{width: '100%', marginTop: '10px', padding: '10px 12px', background: 'var(--ims-bg)', border: '1px solid var(--ims-border)', fontSize: '11px', color: 'var(--ims-text-2)'}}>
                               <div style={{fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '6px', color: 'var(--ims-text)'}}>{lang === 'id' ? 'Komposisi Proyek' : 'Project Items'}</div>
                               {(p.projectLines || []).map(line => (
-                                <div key={line.id} style={{marginTop: '4px'}}>• {[line.subModality, line.modality].filter(Boolean).join(' · ') || '-'}</div>
+                                <div key={line.id} style={{marginTop: '4px'}}>• {line.installSiteName ? `${line.installSiteName} — ` : ''}{[line.subModality, line.modality].filter(Boolean).join(' · ') || '-'}</div>
                               ))}
                             </div>
                           )}

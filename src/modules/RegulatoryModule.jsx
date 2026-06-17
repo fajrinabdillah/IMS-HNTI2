@@ -11,6 +11,7 @@ import { appendStageHistoryEntry, getRegStages, getStageMetrics, migrateRegRecor
 import { formatDuration, parseSafeDateMs, todayStart, currentYear } from '../utils/format.js';
 import { DASHBOARD_GLASS, DashboardHero, GlassPanel } from '../components/FuturisticDashboardShell.jsx';
 import { notify } from '../utils/notifications.js';
+import { matchesSphUnit } from '../utils/sphSite.js';
 function RegulatoryDashboardCharts({ recordGroups, filterSearch = '', filterYear = 'all', t, lang }) {
   const rows = Object.entries(recordGroups || {}).flatMap(([type, list]) => (Array.isArray(list) ? list : []).map(r => ({ ...migrateRegRecord(r, type), recordType: type }))).filter(Boolean);
   const q = String(filterSearch || '').trim().toLowerCase();
@@ -384,7 +385,8 @@ function UniformRegPipeline({ records, setRecords, recordType, t, lang, fmt = (v
       }
       if (recordType === 'bapeten' && final.stage === 'issued' && typeof setData === 'function') {
         const issuedMs = parseSafeDateMs(final.issuedDate);
-        setData(prevData => prevData.map(s => s.customer === final.customer ? {
+        const unit = { customer: final.customer, installSiteName: final.installSiteName, modality: final.modality, subModality: final.product, sphNo: final.sphNo, sphLineId: final.sphLineId };
+        setData(prevData => prevData.map(s => matchesSphUnit(s, unit) ? {
           ...s,
           sphWorkflowStatus: 'utilization_permit_done',
           utilizationPermitDoneAt: issuedMs !== null ? new Date(issuedMs).toISOString() : new Date().toISOString(),
@@ -439,7 +441,8 @@ function UniformRegPipeline({ records, setRecords, recordType, t, lang, fmt = (v
           updates.status = updates.status || 'active';
         }
         if (recordType === 'bapeten' && typeof setData === 'function') {
-          setData(prev => prev.map(s => s.customer === rec.customer ? {
+          const unit = { customer: rec.customer, installSiteName: rec.installSiteName, modality: rec.modality, subModality: rec.product, sphNo: rec.sphNo, sphLineId: rec.sphLineId };
+          setData(prev => prev.map(s => matchesSphUnit(s, unit) ? {
             ...s,
             sphWorkflowStatus: 'utilization_permit_done',
             utilizationPermitDoneAt: new Date().toISOString(),
@@ -638,7 +641,7 @@ function RegulatoryRecordModal({ record, recordType, onSave, onClose, t, lang, u
     if (type === 'import') {
       return { id: baseId, principal: '', principalCountry: '', product: '', stage: 'docs', stageIdx: 0,
         registerDate: today, preregistDate: today, docsDate: null, submitDate: null, evalDate: null, issuedDate: null,
-        importPermitNo: null, pic: 'Ananda Rifki Bayu Saputra', note: '', attachmentUrl: '' };
+        importPermitNo: null, pic: 'regulatory', note: '', attachmentUrl: '' };
     }
     if (type === 'akl') {
       return { id: baseId, principal: '', principalCountry: '', product: '', productClass: 'B',
@@ -647,18 +650,18 @@ function RegulatoryRecordModal({ record, recordType, onSave, onClose, t, lang, u
         preregistDate: today, docsDate: null, submitDate: null,
         pnbpDate: null, pnbpAmount: null, evalDate: null,
         fixDate: null, issuedDate: null, aklNo: null,
-        pic: 'Ananda Rifki Bayu Saputra', note: '', attachmentUrl: '' };
+        pic: 'regulatory', note: '', attachmentUrl: '' };
     }
     if (type === 'bapeten') {
       return { id: baseId, customer: '', modality: 'CT Scan', subModality: '',
         installDate: today, stage: 'docs', stageIdx: 0,
         docsComplete: false, submitDate: null, evalDate: null,
-        pnbpAmount: null, issuedDate: null, pic: 'Ananda Rifki Bayu Saputra', note: '', attachmentUrl: '' };
+        pnbpAmount: null, issuedDate: null, pic: 'regulatory', note: '', attachmentUrl: '' };
     }
     if (type === 'pengalihan') {
       return { id: baseId, customer: '', modality: 'CT Scan', subModality: '', destination: '',
         stage: 'docs', stageIdx: 0, docsDate: today, submitDate: null, evalDate: null, resubmitDate: null, pnbpDate: null, issuedDate: null,
-        permitNo: null, pic: 'Ananda Rifki Bayu Saputra', note: '',
+        permitNo: null, pic: 'regulatory', note: '',
         stageHistory: [{ from: null, to: 'docs', by: 'user', at: new Date().toISOString() }], _regV41: true };
     }
     if (type === 'pi') {

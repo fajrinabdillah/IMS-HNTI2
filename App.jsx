@@ -1370,7 +1370,7 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
       const ids = new Set(staged.map(r => r.id));
       nextRows = [...nextRows.filter(s => !ids.has(s.id)), ...staged];
       const normalized = normalizeSphDataset(nextRows, products);
-      setSphData(normalized);
+      setData(normalized);
       if (shouldPersistSphData(normalized)) {
         blockCloudApply(STORAGE_KEY, 180000);
         markSphLocalWrite(normalized.length);
@@ -1411,7 +1411,7 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
       } else if (oldSph?.stageHistory && !single.stageHistory) {
         single.stageHistory = oldSph.stageHistory;
       }
-      setSphData(prev => prev.map(s => s.id === single.id ? single : s));
+      setData(prev => prev.map(s => s.id === single.id ? single : s));
       logAction({ module: 'sph', action: 'update', entityId: single.id, entityLabel: `${single.sphNo} · ${single.customer}`, note: `Total: ${single.totalValue}` });
     } else {
       const newId = 'sph_' + Date.now();
@@ -1421,7 +1421,7 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
         stageHistory: [{ from: null, to: single.stage || 'sph_sent', by: byUser, at: new Date().toISOString() }],
       };
       if (replaceOldIds.length > 0) {
-        setSphData(prev => {
+        setData(prev => {
           const updated = prev.map(s => replaceOldIds.includes(s.id)
             ? { ...s, status: 'cancelled', stage: 'lost', _replacedBy: newId, _replacedAt: new Date().toISOString(), notes: (s.notes || '') + ` [Digantikan oleh ${single.sphNo} pada ${new Date().toLocaleDateString('id-ID')}]` }
             : s);
@@ -1435,7 +1435,7 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
         });
         logAction({ module: 'sph', action: 'create', entityId: newId, entityLabel: `${newSph.sphNo} · ${newSph.customer}`, note: `${duplicateNote || ''} · Menggantikan: ${replaceOldIds.join(', ')}` });
       } else {
-        setSphData(prev => [...prev, newSph]);
+        setData(prev => [...prev, newSph]);
         logAction({ module: 'sph', action: 'create', entityId: newId, entityLabel: `${newSph.sphNo} · ${newSph.customer}`, note: duplicateNote ? `${duplicateNote} · Total: ${newSph.totalValue}` : `Total: ${newSph.totalValue}` });
       }
     }
@@ -1575,7 +1575,7 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
     const merged = mergeSphImportRecords(data, records, employees);
     markSphLocalWrite(merged.data.length);
     lockProductionSph(merged.data.length);
-    setSphData(merged.data);
+    setData(merged.data);
     storeSet(STORAGE_KEY, JSON.stringify(merged.data));
     logAction({ module: 'sph', action: 'import', entityLabel: lang === 'id' ? `Impor CSV (${records.length} baris)` : `CSV import (${records.length} rows)`, note: `${merged.added} added, ${merged.updated} updated` });
     return { added: merged.added, updated: merged.updated, total: merged.total };
@@ -1585,7 +1585,7 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
   const confirmDeleteSph = () => {
     const sph = data.find(s => s.id === deleteSphId);
     const siblingIds = sph ? getProjectSiblings(data, sph).map(s => s.id) : [deleteSphId];
-    setSphData(prev => prev.filter(s => !siblingIds.includes(s.id)));
+    setData(prev => prev.filter(s => !siblingIds.includes(s.id)));
     if (sph) logAction({ module: 'sph', action: 'delete', entityId: deleteSphId, entityLabel: `${sph.sphNo} · ${sph.customer}`, note: siblingIds.length > 1 ? `Hapus proyek ${siblingIds.length} item` : 'Permanently deleted' });
     setDeleteSphId(null);
   };
@@ -1594,7 +1594,7 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
     const removed = data.filter(s => idSet.has(s.id));
     const allRemoveIds = new Set();
     removed.forEach(s => getProjectSiblings(data, s).forEach(x => allRemoveIds.add(x.id)));
-    setSphData(prev => prev.filter(s => !allRemoveIds.has(s.id)));
+    setData(prev => prev.filter(s => !allRemoveIds.has(s.id)));
     if (removed.length) {
       logAction({
         module: 'sph', action: 'delete', entityLabel: lang === 'id' ? `Hapus massal ${removed.length} SPH` : `Bulk delete ${removed.length} SPH`,

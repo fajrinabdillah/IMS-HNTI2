@@ -102,39 +102,64 @@ function parseSPHImport(text) {
     return { records: [], errors: ['Kolom wajib tidak ditemukan: butuh minimal "SPH No" dan "Customer/Pelanggan". Pastikan file memakai pemisah koma (,) atau titik koma (;) seperti template Excel Indonesia.'], total: rows.length - 1 };
   const cols = buildColMap(rows[headerIdx], SPH_IMPORT_ALIASES);
   const records = []; const errors = [];
+  /** Konteks baris sebelumnya — untuk sel merge Excel (paket multi-alat). */
+  let carry = { sphNo: '', customer: '', customerType: '', projectType: '', salesOwner: '', issuedDate: '', region: '', stage: '', status: '' };
   for (let r = headerIdx + 1; r < rows.length; r++) {
     const row = rows[r]; const get = (f) => cols[f] !== undefined ? String(row[cols[f]] ?? '').trim() : '';
-    const sphNo = get('sphNo'); const customer = get('customer');
-    if (!sphNo || !customer) { errors.push(`Baris ${r + 1}: dilewati (No SPH / Pelanggan kosong).`); continue; }
+    const sphNo = get('sphNo') || carry.sphNo;
+    const customer = get('customer') || carry.customer;
+    const modality = get('modality') || '-';
+    const subModality = get('subModality') || '-';
+    const hasProduct = modality !== '-' || subModality !== '-';
+    if (!sphNo || !customer) {
+      if (hasProduct && carry.sphNo && carry.customer) {
+        // baris lanjutan paket tanpa nomor/pelanggan (merge) — lanjutkan
+      } else {
+        errors.push(`Baris ${r + 1}: dilewati (No SPH / Pelanggan kosong — baris merge paket perlu mengikuti baris utama).`);
+        continue;
+      }
+    }
     const qty = _num(get('qty')) || 1;
     const unitPrice = _num(get('unitPrice'));
     let totalValue = _num(get('totalValue'));
     if (!totalValue) totalValue = qty * unitPrice;
-    const statusRaw = _normHdr(get('status'));
-    const status = _STATUS_ALIASES[statusRaw] || 'active';
-    const stageRaw = get('stage');
+    const statusRaw = _normHdr(get('status') || carry.status);
+    const status = _STATUS_ALIASES[statusRaw] || carry.status || 'active';
+    const stageRaw = get('stage') || carry.stage;
     let stage = normalizeSphStageId(stageRaw);
     if (!stage && stageRaw) stage = normalizeSphStageId(_normHdr(stageRaw).replace(/\s+/g, '_'));
     if (!stage) stage = defaultSphStageForStatus(status);
     if (!_STAGE_VALID.includes(stage)) stage = defaultSphStageForStatus(status);
-    const customerTypeRaw = _normHdr(get('customerType'));
-    const projectTypeRaw = _normHdr(get('projectType'));
-    const salesRaw = get('salesOwner');
+    const customerTypeRaw = _normHdr(get('customerType') || carry.customerType);
+    const projectTypeRaw = _normHdr(get('projectType') || carry.projectType);
+    const salesRaw = get('salesOwner') || carry.salesOwner;
+    const issuedDate = _normDate(get('issuedDate')) || carry.issuedDate || new Date().toISOString().split('T')[0];
     const rec = {
       sphNo, customer,
-      customerType: _CUSTOMER_TYPE_ALIASES[customerTypeRaw] || get('customerType') || 'hospital',
-      projectType: _PROJECT_TYPE_ALIASES[projectTypeRaw] || get('projectType') || 'private',
-      modality: get('modality') || '-',
-      subModality: get('subModality') || '-',
+      customerType: _CUSTOMER_TYPE_ALIASES[customerTypeRaw] || get('customerType') || carry.customerType || 'hospital',
+      projectType: _PROJECT_TYPE_ALIASES[projectTypeRaw] || get('projectType') || carry.projectType || 'private',
+      modality,
+      subModality,
       qty, unitPrice, totalValue,
       stage, status,
       salesOwner: salesRaw,
       importSalesLabel: salesRaw,
-      region: get('region') || '-',
-      issuedDate: _normDate(get('issuedDate')) || new Date().toISOString().split('T')[0],
+      region: get('region') || carry.region || '-',
+      issuedDate,
       notes: get('notes') || '',
     };
     records.push(rec);
+    carry = {
+      sphNo: rec.sphNo,
+      customer: rec.customer,
+      customerType: rec.customerType,
+      projectType: rec.projectType,
+      salesOwner: salesRaw,
+      issuedDate: rec.issuedDate,
+      region: rec.region,
+      stage: rec.stage,
+      status: rec.status,
+    };
   }
   return { records, errors, total: rows.length - headerIdx - 1 };
 }

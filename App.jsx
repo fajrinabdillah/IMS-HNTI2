@@ -18,11 +18,13 @@ import { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, STATIC_TECH_ORDER, reso
 import { _memStore, _hasArtifactStorage, _hasLocalStorage, _SUPA_URL, _SUPA_KEY, _supaEnabled, _supaFetch, _supaSession, _SUPA_SESS_LS, _authFetch, _supaSignIn, _refreshInFlight, _supaRefreshTok, _supaSignOut, _restoreSupaSession, _getSupaTok, _supaReq, _pushVapidPublicKey, _urlBase64ToUint8Array, pushSupported, registerServiceWorker, savePushSubscription, enablePushNotifications, refreshPushSubscription, getPushPermissionStatus, sendServerPushNotification, _rtSocket, _rtHeartbeat, _rtRetryCount, _rtRetryTimer, _rtStatus, _setRtStatus, _hashStr, _recentWrites, _markRecentWrite, _isRecentSelfEcho, blockCloudApply, isCloudApplyBlocked, markSphLocalWrite, shouldRejectStaleSphCloud, _rtJoinRef, _RT_TOPIC, _startRealtime, _scheduleRtRetry, _stopRealtime, _tokRefreshTimer, _startProactiveRefresh, _stopProactiveRefresh, storeGet, storeSet, storeDel, _persistPending, _persistTimer, debouncedStoreSet, flushPersist } from './src/utils/storage.js';
 import { stripRemovedEmployees, healCollection } from './src/utils/purgeLegacyEmployees.js';
 import { normalizeSphProjects } from './src/utils/sphProject.js';
+import { expandEmbeddedSphLineItems, buildRecordsFromForm, getProjectSiblings } from './src/utils/sphMultiItem.js';
 
 /** Pastikan setiap mutasi/load SPH melewati paket harga + kunci proyek multi-alat. */
 function normalizeSphDataset(rows, productList = []) {
   const list = Array.isArray(rows) ? rows : [];
-  const synced = syncSphDataToProductMaster(list, productList);
+  const expanded = expandEmbeddedSphLineItems(list);
+  const synced = syncSphDataToProductMaster(expanded, productList);
   const staged = normalizeSphStageRecords(synced);
   const grouped = normalizeSphProjects(staged);
   return normalizePoWon(grouped);
@@ -59,7 +61,7 @@ import { IncentiveModule } from './src/modules/IncentiveModule.jsx';
 import { InstallationModule, InstallRecordsList, BASTList, TrainingCertList, UnitPickerField, findInstallRecordForUnit, installLeadTechnicianName, activeEmployeeNamesByRole, InstallRecordModal, BASTModal, TrainingCertModal } from './src/modules/InstallationModule.jsx';
 import { healTechnicianName, mergeUnitsWithPmSchedule, migrateModuleAccess } from './src/utils/technicalSupport.js';
 import { mergeSphImportRecords, healSphSalesFromImportLabels } from './src/utils/sphImport.js';
-import { isLikelySeedSphDataset, setSphHighWaterMark, shouldPersistSphData, lockProductionSph, isProductionSphLocked } from './src/utils/sphGuard.js';
+import { isLikelySeedSphDataset, shouldPersistSphData, lockProductionSph, isProductionSphLocked } from './src/utils/sphGuard.js';
 import sphRestore2026 from './src/data/sphRestore2026.json';
 import { Dashboard } from './src/modules/Dashboard.jsx';
 import { RegulatoryDashboardCharts, RegulatoryModule, regStageLabel, RegDurationTimeline, UniformRegPipeline, RegulatoryRecordModal } from './src/modules/RegulatoryModule.jsx';
@@ -1294,56 +1296,107 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
 
   const handleSave = (sph) => {
     const isEdit = !!editingSph;
-    // Strip internal markers before saving
     const replaceOldIds = sph._replaceOldIds || [];
     const duplicateNote = sph._duplicateNote || null;
-    const clean = applySphStageStatusCoherence(syncSphRecordToProductMaster({ ...sph }, products));
+    const clean = { ...sph };
     delete clean._replaceOldIds;
     delete clean._duplicateNote;
+    delete clean._projectLineIds;
     clean.lastUpdate = new Date().toISOString().split('T')[0];
 
-    // Tahap 11 — Phase 1: stage history tracking foundation untuk KPI scorecard
     const byUser = session?.username || 'unknown';
-    if (isEdit) {
-      const oldSph = data.find(s => s.id === clean.id);
-      const oldStage = oldSph?.stage;
-      const newStage = clean.stage;
-      if (oldStage && newStage && oldStage !== newStage) {
-        const withHistory = appendStageHistoryEntry({ ...clean, stageHistory: oldSph?.stageHistory }, oldStage, newStage, byUser);
-        clean.stageHistory = withHistory.stageHistory;
-      } else if (oldSph?.stageHistory && !clean.stageHistory) {
-        // preserve existing history if not changed
-        clean.stageHistory = oldSph.stageHistory;
+    const hasMultiLines = Array.isArray(clean.lineItems) && clean.lineItems.length > 0;
+
+    if (hasMultiLines) {
+      const { records, removedIds } = buildRecordsFromForm(clean, {
+        existingData: data,
+        editingRecord: isEdit ? editingSph : null,
+        products,
+        employees,
+      });
+      const staged = records.map(rec => {
+        const coherent = applySphStageStatusCoherence(syncSphRecordToProductMaster({ ...rec }, products));
+        if (isEdit) {
+          const oldSph = data.find(s => s.id === coherent.id);
+          const oldStage = oldSph?.stage;
+          const newStage = coherent.stage;
+          if (oldStage && newStage && oldStage !== newStage) {
+            const withHistory = appendStageHistoryEntry({ ...coherent, stageHistory: oldSph?.stageHistory }, oldStage, newStage, byUser);
+            coherent.stageHistory = withHistory.stageHistory;
+          } else if (oldSph?.stageHistory && !coherent.stageHistory) {
+            coherent.stageHistory = oldSph.stageHistory;
+          }
+        } else if (!coherent.stageHistory) {
+          coherent.stageHistory = [{ from: null, to: coherent.stage || 'sph_sent', by: byUser, at: new Date().toISOString() }];
+        }
+        return coherent;
+      });
+
+      setSphData(prev => {
+        let next = prev.filter(s => !removedIds.includes(s.id));
+        if (replaceOldIds.length) {
+          next = next.map(s => replaceOldIds.includes(s.id)
+            ? { ...s, status: 'cancelled', stage: 'lost', _replacedBy: staged[0]?.id, _replacedAt: new Date().toISOString(), notes: (s.notes || '') + ` [Digantikan oleh ${clean.sphNo} pada ${new Date().toLocaleDateString('id-ID')}]` }
+            : s);
+        }
+        const ids = new Set(staged.map(r => r.id));
+        next = [...next.filter(s => !ids.has(s.id)), ...staged];
+        return next;
+      });
+
+      if (isEdit) {
+        logAction({ module: 'sph', action: 'update', entityId: staged[0]?.id, entityLabel: `${clean.sphNo} · ${clean.customer}`, note: `${staged.length} item alat · Total: ${staged.reduce((s, r) => s + (Number(r.totalValue) || 0), 0)}` });
+      } else {
+        if (replaceOldIds.length) {
+          replaceOldIds.forEach(oldId => {
+            const oldSph = data.find(s => s.id === oldId);
+            if (oldSph) logAction({ module: 'sph', action: 'update', entityId: oldId, entityLabel: `${oldSph.sphNo} · ${oldSph.customer}`, field: 'status', before: oldSph.status, after: 'cancelled', note: `Digantikan oleh SPH baru ${clean.sphNo}` });
+          });
+        }
+        logAction({ module: 'sph', action: 'create', entityId: staged[0]?.id, entityLabel: `${clean.sphNo} · ${clean.customer}`, note: duplicateNote ? `${duplicateNote} · ${staged.length} item` : `${staged.length} item alat` });
       }
-      setData(prev => prev.map(s => s.id === clean.id ? clean : s));
-      logAction({ module: 'sph', action: 'update', entityId: clean.id, entityLabel: `${clean.sphNo} · ${clean.customer}`, note: `Total: ${clean.totalValue}` });
+      setModalOpen(false); setEditingSph(null);
+      return;
+    }
+
+    // Satu baris — alur lama
+    const single = applySphStageStatusCoherence(syncSphRecordToProductMaster(clean, products));
+    if (isEdit) {
+      const oldSph = data.find(s => s.id === single.id);
+      const oldStage = oldSph?.stage;
+      const newStage = single.stage;
+      if (oldStage && newStage && oldStage !== newStage) {
+        const withHistory = appendStageHistoryEntry({ ...single, stageHistory: oldSph?.stageHistory }, oldStage, newStage, byUser);
+        single.stageHistory = withHistory.stageHistory;
+      } else if (oldSph?.stageHistory && !single.stageHistory) {
+        single.stageHistory = oldSph.stageHistory;
+      }
+      setSphData(prev => prev.map(s => s.id === single.id ? single : s));
+      logAction({ module: 'sph', action: 'update', entityId: single.id, entityLabel: `${single.sphNo} · ${single.customer}`, note: `Total: ${single.totalValue}` });
     } else {
       const newId = 'sph_' + Date.now();
       const newSph = {
-        ...clean,
+        ...single,
         id: newId,
-        // init stage history dengan entry pertama (stage initial)
-        stageHistory: [{ from: null, to: clean.stage || 'sph_sent', by: byUser, at: new Date().toISOString() }],
+        stageHistory: [{ from: null, to: single.stage || 'sph_sent', by: byUser, at: new Date().toISOString() }],
       };
-      // If replacing old SPHs, mark them as cancelled with link to new SPH
       if (replaceOldIds.length > 0) {
-        setData(prev => {
+        setSphData(prev => {
           const updated = prev.map(s => replaceOldIds.includes(s.id)
-            ? { ...s, status: 'cancelled', stage: 'lost', _replacedBy: newId, _replacedAt: new Date().toISOString(), notes: (s.notes || '') + ` [Digantikan oleh ${clean.sphNo} pada ${new Date().toLocaleDateString('id-ID')}]` }
+            ? { ...s, status: 'cancelled', stage: 'lost', _replacedBy: newId, _replacedAt: new Date().toISOString(), notes: (s.notes || '') + ` [Digantikan oleh ${single.sphNo} pada ${new Date().toLocaleDateString('id-ID')}]` }
             : s);
           return [...updated, newSph];
         });
-        // Log each replacement
         replaceOldIds.forEach(oldId => {
           const oldSph = data.find(s => s.id === oldId);
           if (oldSph) {
-            logAction({ module: 'sph', action: 'update', entityId: oldId, entityLabel: `${oldSph.sphNo} · ${oldSph.customer}`, field: 'status', before: oldSph.status, after: 'cancelled', note: `Digantikan oleh SPH baru ${clean.sphNo}` });
+            logAction({ module: 'sph', action: 'update', entityId: oldId, entityLabel: `${oldSph.sphNo} · ${oldSph.customer}`, field: 'status', before: oldSph.status, after: 'cancelled', note: `Digantikan oleh SPH baru ${single.sphNo}` });
           }
         });
-        logAction({ module: 'sph', action: 'create', entityId: newId, entityLabel: `${clean.sphNo} · ${clean.customer}`, note: `${duplicateNote || ''} · Menggantikan: ${replaceOldIds.join(', ')}` });
+        logAction({ module: 'sph', action: 'create', entityId: newId, entityLabel: `${newSph.sphNo} · ${newSph.customer}`, note: `${duplicateNote || ''} · Menggantikan: ${replaceOldIds.join(', ')}` });
       } else {
-        setData(prev => [...prev, newSph]);
-        logAction({ module: 'sph', action: 'create', entityId: newId, entityLabel: `${clean.sphNo} · ${clean.customer}`, note: duplicateNote ? `${duplicateNote} · Total: ${clean.totalValue}` : `Total: ${clean.totalValue}` });
+        setSphData(prev => [...prev, newSph]);
+        logAction({ module: 'sph', action: 'create', entityId: newId, entityLabel: `${newSph.sphNo} · ${newSph.customer}`, note: duplicateNote ? `${duplicateNote} · Total: ${newSph.totalValue}` : `Total: ${newSph.totalValue}` });
       }
     }
     setModalOpen(false); setEditingSph(null);
@@ -1482,7 +1535,7 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
     const merged = mergeSphImportRecords(data, records, employees);
     markSphLocalWrite(merged.data.length);
     lockProductionSph(merged.data.length);
-    setData(merged.data);
+    setSphData(merged.data);
     storeSet(STORAGE_KEY, JSON.stringify(merged.data));
     logAction({ module: 'sph', action: 'import', entityLabel: lang === 'id' ? `Impor CSV (${records.length} baris)` : `CSV import (${records.length} rows)`, note: `${merged.added} added, ${merged.updated} updated` });
     return { added: merged.added, updated: merged.updated, total: merged.total };
@@ -1491,14 +1544,17 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
   const handleDelete = (id) => setDeleteSphId(id);
   const confirmDeleteSph = () => {
     const sph = data.find(s => s.id === deleteSphId);
-    setData(prev => prev.filter(s => s.id !== deleteSphId));
-    if (sph) logAction({ module: 'sph', action: 'delete', entityId: deleteSphId, entityLabel: `${sph.sphNo} · ${sph.customer}`, note: `Permanently deleted` });
+    const siblingIds = sph ? getProjectSiblings(data, sph).map(s => s.id) : [deleteSphId];
+    setSphData(prev => prev.filter(s => !siblingIds.includes(s.id)));
+    if (sph) logAction({ module: 'sph', action: 'delete', entityId: deleteSphId, entityLabel: `${sph.sphNo} · ${sph.customer}`, note: siblingIds.length > 1 ? `Hapus proyek ${siblingIds.length} item` : 'Permanently deleted' });
     setDeleteSphId(null);
   };
   const handleBulkDeleteSph = (ids) => {
     const idSet = new Set(Array.isArray(ids) ? ids : []);
     const removed = data.filter(s => idSet.has(s.id));
-    setData(prev => prev.filter(s => !idSet.has(s.id)));
+    const allRemoveIds = new Set();
+    removed.forEach(s => getProjectSiblings(data, s).forEach(x => allRemoveIds.add(x.id)));
+    setSphData(prev => prev.filter(s => !allRemoveIds.has(s.id)));
     if (removed.length) {
       logAction({
         module: 'sph', action: 'delete', entityLabel: lang === 'id' ? `Hapus massal ${removed.length} SPH` : `Bulk delete ${removed.length} SPH`,

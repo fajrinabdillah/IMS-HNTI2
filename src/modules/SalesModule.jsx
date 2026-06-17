@@ -14,7 +14,9 @@ import { CHART_COLORS } from '../constants/theme.js';
 import { getProjectStageRows, SPH_WORKFLOW_LABELS, isAdminQueueRequest } from '../utils/sphStage.js';
 import { buildEditorTemplate, downloadCSV, downloadSPHWord, downloadSPPWord, printHtmlStringAsPdf, printSPHPdf, printSPPPdf } from '../utils/documents.js';
 import { parseFieldReportImport, parseSPHImport } from '../utils/csvImport.js';
-import { filterBillableRows, formatPackageItemsSummary, formatPackageModalityLabel, getPackageComponents, sphBillableValue, countUniqueSphNumbers } from '../utils/sphPackage.js';
+import { filterBillableRows, formatPackageItemsSummary, formatPackageModalityLabel, getPackageComponents, sphBillableValue, countUniqueSphNumbers, sphPackageGroupKey } from '../utils/sphPackage.js';
+import { groupSphProjects, shippingStatusLabel } from '../utils/sphProject.js';
+import { getProjectSiblings, projectToFormState } from '../utils/sphMultiItem.js';
 import { showToast } from '../utils/toast.js';
 const SPHWorkflowConsole = React.memo(function SPHWorkflowConsole({ data, employees, setEmployees, session, lang, t, fmt, onRequestSPH, onRequestSPP, onWorkflowUpdate, onSaveDocument, generatedDocs = [], setGeneratedDocs, products = [], documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, activeTab, onTabChange }) {
   const [open, setOpen] = useState('request_sph');
@@ -555,7 +557,8 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
   const downloadSPHTemplate = () => {
     const header = ['SPH No', 'Pelanggan', 'Tipe', 'Jenis Proyek', 'Modality', 'Sub-Modality', 'Qty', 'Harga Satuan', 'Total Nilai', 'Stage', 'Status', 'Sales', 'Tanggal Terbit', 'Wilayah', 'Catatan'];
     const example = ['SPH/2026/001', 'RS Contoh Sehat', 'hospital', 'private', 'CT Scan', 'CT 128 Slice', '1', '8200000000', '8200000000', 'sph_sent', 'active', 'hatim', '2026-03-15', 'Jateng', 'Contoh — hapus baris ini sebelum impor'];
-    downloadCSV('HNTI_Template_Import_SPH.csv', [header, example]);
+    const example2 = ['', '', 'hospital', 'private', 'X-Ray', 'Stationary Jumong', '1', '', '', 'sph_sent', 'active', '', '2026-03-15', 'Jateng', 'Baris lanjutan paket — No SPH/Pelanggan kosong (merge Excel)'];
+    downloadCSV('HNTI_Template_Import_SPH.csv', [header, example, example2]);
   };
 
   // PERFORMANCE: Build lookup Maps once (O(1) lookup vs O(n) .find() per row)
@@ -574,12 +577,22 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
 
   const filteredStats = useMemo(() => {
     const matched = data.filter(s => {
-      const matchSearch = !search || s.sphNo.toLowerCase().includes(search.toLowerCase()) || s.customer.toLowerCase().includes(search.toLowerCase()) || s.subModality.toLowerCase().includes(search.toLowerCase());
+      const q = search.toLowerCase();
+      const matchSearch = !search
+        || s.sphNo.toLowerCase().includes(q)
+        || s.customer.toLowerCase().includes(q)
+        || (s.subModality || '').toLowerCase().includes(q)
+        || (s.modality || '').toLowerCase().includes(q);
       const matchYear = filterYear === 'all' || s.issuedDate?.startsWith(filterYear);
       const matchProduct = filterProduct === 'all' || [s.modality, s.subModality, s.productBrand, s.brand].filter(Boolean).includes(filterProduct);
       return matchSearch && matchYear && matchProduct && (filterPType === 'all' || s.projectType === filterPType) && (filterStatus === 'all' || s.status === filterStatus);
     });
-    const filtered = [...matched].sort((a, b) => {
+    // Jika satu baris proyek cocok filter, tampilkan semua alat dalam proyek yang sama
+    const projectKeys = new Set(matched.map(s => sphPackageGroupKey(s)));
+    const projectScoped = projectKeys.size
+      ? data.filter(s => projectKeys.has(sphPackageGroupKey(s)))
+      : matched;
+    const filtered = [...projectScoped].sort((a, b) => {
       if (sortSPH === 'value_desc') return sphBillableValue(b) - sphBillableValue(a);
       if (sortSPH === 'value_asc') return sphBillableValue(a) - sphBillableValue(b);
       if (sortSPH === 'product') return String(a.subModality || a.modality || '').localeCompare(String(b.subModality || b.modality || ''));
@@ -591,14 +604,22 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
     const activeCount = listRows.filter(s => s.status === 'active').length;
     const wonCount = listRows.filter(s => s.status === 'won').length;
     const projectCount = countUniqueSphNumbers(listRows);
-    return { filtered: listRows, allFiltered: filtered, totalValue, activeCount, wonCount, projectCount };
+    const displayRows = groupSphProjects(filtered).flatMap(g => g.lines.map((line, idx) => ({
+      line,
+      group: g,
+      isPackageItem: line.pricingMode === 'package_item',
+      isMulti: g.isMultiItem,
+      lineIndex: idx,
+      lineCount: g.lines.length,
+    })));
+    return { filtered: listRows, allFiltered: filtered, displayRows, totalValue, activeCount, wonCount, projectCount };
   }, [data, search, filterPType, filterStatus, filterYear, filterProduct, sortSPH]);
-  const { filtered, allFiltered, totalValue, activeCount, wonCount, projectCount } = filteredStats;
+  const { filtered, allFiltered, displayRows, totalValue, activeCount, wonCount, projectCount } = filteredStats;
 
   // Reset pagination when filter changes
   useEffect(() => { setVisibleCount(pageSize); }, [search, filterPType, filterStatus, filterYear, filterProduct, sortSPH, pageSize]);
 
-  const visibleRows = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
+  const visibleRows = useMemo(() => displayRows.slice(0, visibleCount), [displayRows, visibleCount]);
   const filteredIds = useMemo(() => filtered.map(s => s.id), [filtered]);
   const allFilteredSelected = filteredIds.length > 0 && filteredIds.every(id => selectedSphIds.includes(id));
   const selectAllRef = useRef(null);
@@ -782,7 +803,7 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
             </tr>
           </thead>
           <tbody>
-            {visibleRows.map(s => {
+            {visibleRows.map(({ line: s, group: g, isPackageItem, isMulti, lineIndex, lineCount }) => {
               const stage = stageMap.get(s.stage);
               const statusBadge = {
                 active: { label: t.status_active, color: '#5b87b8' },
@@ -794,89 +815,88 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
               const pt = projectTypeMap.get(s.projectType);
               const sales = salesMap.get(s.salesOwner);
               const isSelected = selectedSphIds.includes(s.id);
-              const packageComponents = s.pricingMode === 'package_primary' ? getPackageComponents(data, s) : [];
-              const isPackage = s.pricingMode === 'package_primary' && packageComponents.length > 0;
-              const isExpanded = expandedPackages.has(s.id);
-              const rowNodes = [];
-              rowNodes.push(
-                <tr key={s.id} className="hover-row" onClick={(e) => { if (e.target.closest('input[type="checkbox"]') || e.target.closest('button')) return; setDetailSph(s); }} style={{borderTop: '1px solid var(--ims-border)', cursor: 'pointer', background: isSelected ? 'rgba(192,48,48,0.04)' : undefined}}>
+              const isSubRow = isMulti && lineIndex > 0;
+              const productLabel = [s.subModality, s.modality].filter(Boolean).join(' · ') || '-';
+              const rowValue = isPackageItem ? null : sphBillableValue(s);
+              return (
+                <tr key={s.id} className="hover-row" onClick={(e) => { if (e.target.closest('input[type="checkbox"]') || e.target.closest('button')) return; setDetailSph(g.primary); }} style={{borderTop: '1px solid var(--ims-border)', cursor: 'pointer', background: isSelected ? 'rgba(192,48,48,0.04)' : isSubRow || isPackageItem ? 'var(--ims-bg-card-2)' : undefined}}>
                   {canEdit && (
                     <Td onClick={e => e.stopPropagation()} style={{width: '36px', padding: '8px 10px'}}>
                       <input type="checkbox" checked={isSelected} onChange={() => toggleRowSelect(s.id)} onClick={e => e.stopPropagation()} style={{cursor: 'pointer', width: '14px', height: '14px'}} />
                     </Td>
                   )}
                   <Td>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
-                      {isPackage && (
-                        <button type="button" onClick={(e) => { e.stopPropagation(); togglePackageExpand(s.id); }} style={{background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ims-accent)', display: 'flex'}} title={lang === 'id' ? 'Tampilkan item paket' : 'Show package items'}>
-                          <ChevronDown size={14} style={{transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s'}} />
-                        </button>
-                      )}
+                    <div style={{display: 'flex', alignItems: 'center', gap: '6px', paddingLeft: isSubRow ? '14px' : 0}}>
+                      {isSubRow && <span style={{color: 'var(--ims-text-2)', fontSize: '11px'}}>↳</span>}
                       <span className="mono" style={{fontSize: '11px'}}>{s.sphNo}</span>
+                      {isMulti && lineIndex === 0 && (
+                        <span style={{fontSize: '9px', color: 'var(--ims-accent)', fontWeight: 700, background: 'rgba(26,77,138,0.1)', padding: '2px 5px'}}>{lineCount} {lang === 'id' ? 'alat' : 'items'}</span>
+                      )}
                     </div>
                   </Td>
                   <Td>
-                    <div style={{fontWeight: 500}}>{s.customer}</div>
-                    <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{t[`type_${s.customerType}`]}</div>
-                  </Td>
-                  <Td>{pt && <span style={{display: 'inline-block', padding: '3px 7px', fontSize: '10px', background: pt.color + '25', color: pt.color, fontWeight: 600}}>{t[`ptype_${s.projectType}`]}</span>}</Td>
-                  <Td>
-                    <div>{formatPackageModalityLabel(s, packageComponents, lang)}</div>
-                    {isPackage && !isExpanded && (
-                      <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '3px', lineHeight: 1.4}}>{formatPackageItemsSummary(s, packageComponents)}</div>
+                    {lineIndex === 0 ? (
+                      <>
+                        <div style={{fontWeight: 500}}>{s.customer}</div>
+                        <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{t[`type_${s.customerType}`]}</div>
+                      </>
+                    ) : (
+                      <span style={{fontSize: '10px', color: 'var(--ims-text-2)', fontStyle: 'italic'}}>{lang === 'id' ? '↳ item sama' : '↳ same offer'}</span>
                     )}
-                    {isPackage && (
-                      <span style={{display: 'inline-block', marginTop: '4px', padding: '2px 6px', fontSize: '9px', background: 'rgba(26,77,138,0.12)', color: '#1a4d8a', fontWeight: 700, letterSpacing: '0.04em'}}>PAKET</span>
+                  </Td>
+                  <Td>{lineIndex === 0 && pt && <span style={{display: 'inline-block', padding: '3px 7px', fontSize: '10px', background: pt.color + '25', color: pt.color, fontWeight: 600}}>{t[`ptype_${s.projectType}`]}</span>}</Td>
+                  <Td>
+                    <div>{productLabel}</div>
+                    {isPackageItem && (
+                      <span style={{display: 'inline-block', marginTop: '4px', padding: '2px 6px', fontSize: '9px', background: 'rgba(26,77,138,0.12)', color: '#1a4d8a', fontWeight: 700}}>PAKET</span>
+                    )}
+                    {s.pricingMode === 'package_primary' && lineCount > 1 && (
+                      <span style={{display: 'inline-block', marginTop: '4px', marginLeft: '4px', padding: '2px 6px', fontSize: '9px', background: 'rgba(26,77,138,0.12)', color: '#1a4d8a', fontWeight: 700}}>{lang === 'id' ? 'HARGA PAKET' : 'PACKAGE'}</span>
                     )}
                   </Td>
                   <Td align="right">{s.qty}</Td>
-                  <Td align="right"><span className="mono" style={{fontWeight: 500}}>{fmt(sphBillableValue(s))}</span></Td>
+                  <Td align="right">
+                    <span className="mono" style={{fontWeight: 500, color: isPackageItem ? 'var(--ims-text-2)' : undefined}}>
+                      {rowValue != null ? fmt(rowValue) : (lang === 'id' ? 'Termasuk paket' : 'Included')}
+                    </span>
+                  </Td>
                   <Td>
-                    <span style={{display: 'inline-block', padding: '3px 7px', fontSize: '10px', background: statusBadge.color + '25', color: statusBadge.color, fontWeight: 600}}>{statusBadge.label}</span>
-                    {stage && s.status === 'active' && (
-                      <div style={{fontSize: '9px', color: 'var(--ims-text-2)', marginTop: '3px'}}>{t[`stage_${s.stage}`] || s.stage}</div>
+                    {lineIndex === 0 && (
+                      <>
+                        <span style={{display: 'inline-block', padding: '3px 7px', fontSize: '10px', background: statusBadge.color + '25', color: statusBadge.color, fontWeight: 600}}>{statusBadge.label}</span>
+                        {stage && s.status === 'active' && (
+                          <div style={{fontSize: '9px', color: 'var(--ims-text-2)', marginTop: '3px'}}>{t[`stage_${s.stage}`] || s.stage}</div>
+                        )}
+                      </>
+                    )}
+                    {lineIndex > 0 && (
+                      <div style={{fontSize: '10px', color: 'var(--ims-text-2)'}}>{shippingStatusLabel(s.shippingStatus, lang)}</div>
                     )}
                   </Td>
-                  <Td>{sales ? sales.name : s.salesOwner}</Td>
+                  <Td>{lineIndex === 0 ? (sales ? sales.name : s.salesOwner) : ''}</Td>
                   <Td align="right">
-                    {canEdit && <>
-                      <button onClick={(e) => { e.stopPropagation(); onEdit(s); }} style={{background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px', color: 'var(--ims-text-2)'}} title={lang === 'id' ? 'Edit' : 'Edit'}><Edit2 size={13} /></button>
-                      <button onClick={(e) => { e.stopPropagation(); onDelete(s.id); }} style={{background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px', color: '#c03030'}} title={lang === 'id' ? 'Hapus' : 'Delete'}><Trash2 size={13} /></button>
+                    {canEdit && lineIndex === 0 && <>
+                      <button onClick={(e) => { e.stopPropagation(); onEdit(g.primary); }} style={{background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px', color: 'var(--ims-text-2)'}} title={lang === 'id' ? 'Edit proyek' : 'Edit project'}><Edit2 size={13} /></button>
+                      <button onClick={(e) => { e.stopPropagation(); onDelete(g.primary.id); }} style={{background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px', color: '#c03030'}} title={lang === 'id' ? 'Hapus proyek' : 'Delete project'}><Trash2 size={13} /></button>
                     </>}
                   </Td>
                 </tr>
               );
-              if (isPackage && isExpanded) {
-                packageComponents.forEach(comp => {
-                  rowNodes.push(
-                    <tr key={`${s.id}__${comp.id}`} style={{background: 'var(--ims-bg-card-2)', borderTop: '1px solid var(--ims-border)'}}>
-                      {canEdit && <Td />}
-                      <Td><span className="mono" style={{fontSize: '10px', color: 'var(--ims-text-2)', paddingLeft: '20px'}}>{s.sphNo}</span></Td>
-                      <Td colSpan={2} style={{fontSize: '11px', color: 'var(--ims-text-2)', fontStyle: 'italic'}}>{lang === 'id' ? '↳ Item paket' : '↳ Package item'}</Td>
-                      <Td style={{fontSize: '11px', color: 'var(--ims-text-2)'}}>{comp.subModality || comp.modality}</Td>
-                      <Td align="right" style={{fontSize: '11px', color: 'var(--ims-text-2)'}}>{comp.qty || 1}</Td>
-                      <Td align="right" style={{fontSize: '11px', color: 'var(--ims-text-2)'}}>{lang === 'id' ? 'Termasuk paket' : 'Included'}</Td>
-                      <Td colSpan={3} />
-                    </tr>
-                  );
-                });
-              }
-              return rowNodes;
-            }).flat()}
+            })}
           </tbody>
         </table>
-        {filtered.length === 0 && <div style={{padding: '50px', textAlign: 'center', color: 'var(--ims-text-2)'}}>{t.no_data}</div>}
-        {filtered.length > visibleCount && (
+        {displayRows.length === 0 && <div style={{padding: '50px', textAlign: 'center', color: 'var(--ims-text-2)'}}>{t.no_data}</div>}
+        {displayRows.length > visibleCount && (
           <div style={{padding: '20px', textAlign: 'center', borderTop: '1px solid var(--ims-border)', background: 'var(--ims-bg-card)'}}>
             <div style={{fontSize: '12px', color: 'var(--ims-text-2)', marginBottom: '10px'}}>
-              {lang === 'id' ? 'Menampilkan' : 'Showing'} <strong style={{color: 'var(--ims-text)'}}>{visibleCount}</strong> {lang === 'id' ? 'dari' : 'of'} <strong style={{color: 'var(--ims-text)'}}>{filtered.length}</strong> {lang === 'id' ? 'SPH' : 'SPH records'}
+              {lang === 'id' ? 'Menampilkan' : 'Showing'} <strong style={{color: 'var(--ims-text)'}}>{visibleCount}</strong> {lang === 'id' ? 'dari' : 'of'} <strong style={{color: 'var(--ims-text)'}}>{displayRows.length}</strong> {lang === 'id' ? 'baris alat' : 'equipment rows'}
             </div>
             <div style={{display: 'flex', gap: '8px', justifyContent: 'center'}}>
-              <button onClick={() => setVisibleCount(c => Math.min(c + 50, filtered.length))} className="btn-ghost" style={{fontSize: '11px'}}>
+              <button onClick={() => setVisibleCount(c => Math.min(c + 50, displayRows.length))} className="btn-ghost" style={{fontSize: '11px'}}>
                 {lang === 'id' ? 'Muat 50 Lagi' : 'Load 50 More'}
               </button>
-              <button onClick={() => setVisibleCount(filtered.length)} className="btn-ghost" style={{fontSize: '11px'}}>
-                {lang === 'id' ? 'Tampilkan Semua' : 'Show All'} ({filtered.length})
+              <button onClick={() => setVisibleCount(displayRows.length)} className="btn-ghost" style={{fontSize: '11px'}}>
+                {lang === 'id' ? 'Tampilkan Semua' : 'Show All'} ({displayRows.length})
               </button>
             </div>
           </div>
@@ -2811,6 +2831,9 @@ function createEmptySphForm() {
     customerSector: 'swasta', dealModel: 'cicilan',
     paymentScheme: 'dp_installment', dpPercent: 30, installmentMonths: 12,
     ksoYears: 5, ksoInvestorPct: 70,
+    pricingMode: 'itemized',
+    packageTotal: 0,
+    lineItems: [{ id: null, productId: '', modality: 'CT Scan', subModality: '', brand: '', qty: 1, unitPrice: 0, totalValue: 0 }],
   };
 }
 function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, products, employees = {} }) {
@@ -2818,15 +2841,12 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
 
   useEffect(() => {
     if (sph) {
-      setForm({
-        ...createEmptySphForm(),
-        ...sph,
-        salesOwner: resolveSalesOwnerId(sph.importSalesLabel || sph.salesOwner, employees) || sph.salesOwner || OFFICE_SALES_ID,
-      });
+      const siblings = getProjectSiblings(existingData, sph);
+      setForm(projectToFormState(sph, siblings, employees));
     } else {
       setForm(createEmptySphForm());
     }
-  }, [sph?.id, employees]);
+  }, [sph?.id, employees, existingData]);
 
   // Duplicate detection — detect SPH dengan customer+modality+subModality yang sama
   // Excludes self (kalau edit), excludes lost/cancelled, excludes status 'won' yang sudah closed
@@ -2874,23 +2894,73 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
     }
     return list;
   }, [activeProducts, form.modality, form.subModality, form.productBrand, form.brand, form.principal, form.origin]);
-  const enrichSphProductLink = (raw) => {
-    const prod = resolveProductRecord({
-      productId: raw.productId,
-      modality: raw.modality,
-      subModality: raw.subModality,
-      brand: raw.productBrand || raw.brand || raw.partner,
-    }, activeProducts);
-    return prod ? {
-      ...raw,
-      productId: prod.id,
-      productBrand: prod.brand,
-      principal: prod.principal,
-      origin: prod.origin,
-      partner: raw.partner || prod.brand,
-      items: [{ productId: prod.id, modality: prod.modality, brand: prod.brand, productBrand: prod.brand, subModality: prod.type, productName: prod.name, principal: prod.principal, origin: prod.origin, qty: raw.qty || 1, unitPrice: raw.unitPrice || 0, totalValue: raw.totalValue || ((raw.qty || 1) * (raw.unitPrice || 0)) }],
-    } : raw;
+  const enrichSphProductLink = (raw) => raw;
+
+  const lineItems = form.lineItems || [];
+  const brandsForItem = (item) => [...new Set(activeProducts.filter(p => !item.modality || p.modality === item.modality).map(p => p.brand).filter(Boolean))].sort();
+  const subModsForItem = (item) => activeProducts.filter(p => (!item.modality || p.modality === item.modality) && (!item.brand || p.brand === item.brand));
+
+  const recomputeTotals = (items, pricingMode, packageTotal) => {
+    if (pricingMode === 'package') {
+      return { totalValue: Number(packageTotal) || 0, lineItems: items };
+    }
+    const nextItems = items.map(it => ({
+      ...it,
+      totalValue: (Number(it.qty) || 0) * (Number(it.unitPrice) || 0),
+    }));
+    return { totalValue: nextItems.reduce((s, it) => s + (Number(it.totalValue) || 0), 0), lineItems: nextItems };
   };
+
+  const updateLineItem = (idx, key, value) => {
+    setForm(prev => {
+      const items = [...(prev.lineItems || [])];
+      let item = { ...(items[idx] || {}), [key]: value };
+      if (key === 'modality') item = { ...item, brand: '', productId: '', subModality: '' };
+      if (key === 'brand') item = { ...item, productId: '', subModality: '' };
+      if (key === 'subModality') {
+        const prod = resolveProductRecord({ modality: item.modality, subModality: value }, activeProducts);
+        if (prod) item = { ...item, productId: prod.id, brand: prod.brand, modality: prod.modality };
+      }
+      if (key === 'qty' || key === 'unitPrice') {
+        item.totalValue = (Number(item.qty) || 0) * (Number(item.unitPrice) || 0);
+      }
+      items[idx] = item;
+      const first = items[0] || {};
+      const totals = recomputeTotals(items, prev.pricingMode, prev.packageTotal);
+      return {
+        ...prev,
+        ...totals,
+        lineItems: totals.lineItems,
+        modality: first.modality || prev.modality,
+        subModality: first.subModality || prev.subModality,
+        qty: first.qty || prev.qty,
+        unitPrice: first.unitPrice || prev.unitPrice,
+      };
+    });
+  };
+
+  const addLineItem = () => setForm(prev => {
+    if ((prev.lineItems || []).length >= 8) return prev;
+    const items = [...(prev.lineItems || []), { id: null, productId: '', modality: prev.modality || 'CT Scan', subModality: '', brand: '', qty: 1, unitPrice: 0, totalValue: 0 }];
+    return { ...prev, lineItems: items };
+  });
+
+  const removeLineItem = (idx) => setForm(prev => {
+    const items = (prev.lineItems || []).filter((_, i) => i !== idx);
+    const safe = items.length ? items : [{ id: null, productId: '', modality: 'CT Scan', subModality: '', brand: '', qty: 1, unitPrice: 0, totalValue: 0 }];
+    const totals = recomputeTotals(safe, prev.pricingMode, prev.packageTotal);
+    return { ...prev, ...totals, lineItems: totals.lineItems };
+  });
+
+  const setPricingMode = (mode) => setForm(prev => {
+    const totals = recomputeTotals(prev.lineItems || [], mode, prev.packageTotal || prev.totalValue);
+    return { ...prev, pricingMode: mode, ...totals };
+  });
+
+  const setPackageTotal = (v) => setForm(prev => {
+    const packageTotal = Number(v) || 0;
+    return { ...prev, packageTotal, totalValue: packageTotal };
+  });
 
   const update = (k, v) => {
     setForm(prev => {
@@ -2981,24 +3051,29 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
   // Handle final save — interception logic for duplicates
   const handleFinalSave = () => {
     if (duplicates.length > 0 && !sph) {
-      // Only prompt for NEW SPH (not edits) when duplicates detected
       setDuplicatePrompt({ open: true });
       return;
     }
-    onSave(enrichSphProductLink(form));
+    const payload = {
+      ...form,
+      lineItems: (form.lineItems || []).filter(it => String(it.subModality || '').trim() || String(it.modality || '').trim()),
+    };
+    if (!payload.lineItems.length) {
+      showToast(lang === 'id' ? 'Minimal satu item produk wajib diisi' : 'At least one product item required', 'error');
+      return;
+    }
+    onSave(payload);
   };
 
-  // User chose "save both" — proceed
   const confirmSaveBoth = () => {
     setDuplicatePrompt(null);
-    onSave(enrichSphProductLink({ ...form, _duplicateNote: `Sengaja disimpan meski ada ${duplicates.length} SPH serupa untuk customer & produk yang sama. Kemungkinan: update harga / revisi pasca-negosiasi.` }));
+    onSave({ ...form, lineItems: form.lineItems, _duplicateNote: `Sengaja disimpan meski ada ${duplicates.length} SPH serupa untuk customer & produk yang sama. Kemungkinan: update harga / revisi pasca-negosiasi.` });
   };
 
-  // User chose "replace old" — mark old as cancelled and save new
   const confirmReplace = () => {
     const oldIds = duplicates.map(d => d.id);
     setDuplicatePrompt(null);
-    onSave(enrichSphProductLink({ ...form, _replaceOldIds: oldIds, _duplicateNote: `Menggantikan ${duplicates.length} SPH lama (${duplicates.map(d => d.sphNo).join(', ')}) — kemungkinan revisi harga atau penawaran terbaru.` }));
+    onSave({ ...form, lineItems: form.lineItems, _replaceOldIds: oldIds, _duplicateNote: `Menggantikan ${duplicates.length} SPH lama (${duplicates.map(d => d.sphNo).join(', ')}) — kemungkinan revisi harga atau penawaran terbaru.` });
   };
 
   return (
@@ -3068,40 +3143,71 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
               {salesOwnerOptions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
-          <div>
-            <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600, marginBottom: '6px'}}>{t.modality}</label>
-            <select value={form.modality} onChange={e => update('modality', e.target.value)}>
-              {(modalityOptions.length > 0 ? modalityOptions : Object.keys(MODALITY_COLORS)).map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
-            <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '4px', fontStyle: 'italic'}}>{lang === 'id' ? 'Dari Master Produk' : 'From Product Master'}</div>
-          </div>
-          <div style={{gridColumn: '1 / -1'}}>
-            <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600, marginBottom: '6px'}}>{lang === 'id' ? 'Tipe' : 'Type'}</label>
-            {subModalityOptions.length > 0 ? (
-              <>
-                <select value={form.subModality} onChange={e => update('subModality', e.target.value)}>
-                  <option value="">— {lang === 'id' ? 'Pilih dari Master Produk' : 'Select from Product Master'} —</option>
-                  {subModalityOptions.map((p, i) => (
-                    <option key={i} value={p.type}>{p.type} ({p.brand} · {p.origin})</option>
-                  ))}
-                </select>
-                <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '4px', fontStyle: 'italic'}}>{lang === 'id' ? `${subModalityOptions.length} produk tersedia untuk modalitas ${form.modality}` : `${subModalityOptions.length} products available for ${form.modality}`}</div>
-              </>
-            ) : (
-              <input value={form.subModality} onChange={e => update('subModality', e.target.value)} placeholder="e.g. CT 128 Slice" />
-            )}
-          </div>
-          <div>
-            <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600, marginBottom: '6px'}}>{t.quantity}</label>
-            <input type="number" value={form.qty} onChange={e => update('qty', parseInt(e.target.value) || 0)} />
-          </div>
-          <div>
-            <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600, marginBottom: '6px'}}>{lang === 'id' ? 'Harga Unit (Rp)' : 'Unit Price (Rp)'}</label>
-            <input type="number" value={form.unitPrice} onChange={e => update('unitPrice', parseFloat(e.target.value) || 0)} />
+          <div style={{gridColumn: '1 / -1', marginTop: '4px', padding: '14px 16px', background: 'rgba(26,77,138,0.04)', border: '1px solid var(--ims-border)', borderLeft: '3px solid #1a4d8a'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '12px'}}>
+              <div style={{fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#1a4d8a', fontWeight: 700}}>
+                {lang === 'id' ? 'Item Produk Penawaran' : 'Quotation Product Items'}
+              </div>
+              <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
+                <button type="button" onClick={() => setPricingMode('itemized')} style={{padding: '6px 10px', fontSize: '10px', fontWeight: 700, cursor: 'pointer', border: form.pricingMode === 'itemized' ? '2px solid #1a4d8a' : '1px solid var(--ims-border)', background: form.pricingMode === 'itemized' ? 'rgba(26,77,138,0.12)' : 'transparent', fontFamily: 'inherit'}}>
+                  {lang === 'id' ? 'Harga per Alat' : 'Price per Item'}
+                </button>
+                <button type="button" onClick={() => setPricingMode('package')} style={{padding: '6px 10px', fontSize: '10px', fontWeight: 700, cursor: 'pointer', border: form.pricingMode === 'package' ? '2px solid #1a4d8a' : '1px solid var(--ims-border)', background: form.pricingMode === 'package' ? 'rgba(26,77,138,0.12)' : 'transparent', fontFamily: 'inherit'}}>
+                  {lang === 'id' ? 'Harga Paket (satu harga)' : 'Package Price (single total)'}
+                </button>
+                <button type="button" onClick={addLineItem} className="btn-ghost" style={{fontSize: '10px', padding: '6px 10px'}}><Plus size={12} />{lang === 'id' ? 'Tambah Item' : 'Add Item'}</button>
+              </div>
+            </div>
+            <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginBottom: '10px', lineHeight: 1.5}}>
+              {lang === 'id'
+                ? 'Satu nomor SPH bisa berisi beberapa alat. Pengiriman, instalasi, perizinan, dan pembayaran dapat berbeda per alat di modul Operasional, Dukungan Teknis, Regulatory, dan Finance.'
+                : 'One SPH number can include multiple devices. Shipping, installation, permits, and payments can differ per device in downstream modules.'}
+            </div>
+            {lineItems.map((item, idx) => (
+              <div key={idx} style={{display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '8px', marginBottom: '10px', padding: '10px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)'}}>
+                <div style={{gridColumn: 'span 2'}}>
+                  <label style={{display: 'block', fontSize: '9px', color: 'var(--ims-text-2)', marginBottom: '4px'}}>{t.modality}</label>
+                  <select value={item.modality || ''} onChange={e => updateLineItem(idx, 'modality', e.target.value)}>
+                    {(modalityOptions.length ? modalityOptions : ['CT Scan']).map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+                <div style={{gridColumn: 'span 2'}}>
+                  <label style={{display: 'block', fontSize: '9px', color: 'var(--ims-text-2)', marginBottom: '4px'}}>{lang === 'id' ? 'Tipe / Sub-Modality' : 'Type'}</label>
+                  <select value={item.subModality || ''} onChange={e => updateLineItem(idx, 'subModality', e.target.value)}>
+                    <option value="">—</option>
+                    {subModsForItem(item).map(p => <option key={p.id} value={p.type}>{p.type} ({p.brand})</option>)}
+                    {item.subModality && !subModsForItem(item).some(p => p.type === item.subModality) && (
+                      <option value={item.subModality}>{item.subModality}</option>
+                    )}
+                  </select>
+                </div>
+                <div>
+                  <label style={{display: 'block', fontSize: '9px', color: 'var(--ims-text-2)', marginBottom: '4px'}}>{t.quantity}</label>
+                  <input type="number" min="1" value={item.qty || 1} onChange={e => updateLineItem(idx, 'qty', parseInt(e.target.value) || 1)} />
+                </div>
+                <div style={{display: 'flex', alignItems: 'flex-end', gap: '6px'}}>
+                  {form.pricingMode === 'itemized' ? (
+                    <div style={{flex: 1}}>
+                      <label style={{display: 'block', fontSize: '9px', color: 'var(--ims-text-2)', marginBottom: '4px'}}>{lang === 'id' ? 'Harga (Rp)' : 'Price'}</label>
+                      <input type="number" value={item.unitPrice || 0} onChange={e => updateLineItem(idx, 'unitPrice', parseFloat(e.target.value) || 0)} />
+                    </div>
+                  ) : (
+                    <div style={{flex: 1, fontSize: '10px', color: 'var(--ims-text-2)', paddingBottom: '8px'}}>{idx === 0 ? (lang === 'id' ? 'Harga paket di bawah' : 'Package price below') : (lang === 'id' ? 'Termasuk paket' : 'Included')}</div>
+                  )}
+                  {lineItems.length > 1 && (
+                    <button type="button" onClick={() => removeLineItem(idx)} style={{background: 'transparent', border: 'none', color: '#c03030', cursor: 'pointer', padding: '4px'}} title={lang === 'id' ? 'Hapus item' : 'Remove item'}><Trash2 size={14} /></button>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
           <div style={{gridColumn: '1 / -1'}}>
             <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600, marginBottom: '6px'}}>{t.total_value}</label>
-            <div style={{padding: '10px 14px', background: 'var(--ims-bg-card-2)', fontSize: '14px', fontWeight: 500}} className="mono">{fmtFull(form.totalValue)}</div>
+            {form.pricingMode === 'package' ? (
+              <input type="number" value={form.packageTotal || form.totalValue || 0} onChange={e => setPackageTotal(e.target.value)} />
+            ) : (
+              <div style={{padding: '10px 14px', background: 'var(--ims-bg-card-2)', fontSize: '14px', fontWeight: 500}} className="mono">{fmtFull(form.totalValue)}</div>
+            )}
           </div>
           <div>
             <label style={{display: 'block', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600, marginBottom: '6px'}}>{lang === 'id' ? 'Tahapan' : 'Stage'}</label>

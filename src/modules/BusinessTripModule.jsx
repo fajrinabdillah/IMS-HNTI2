@@ -16,6 +16,12 @@ function tripCanDelete(trip, session) {
   return (isOwner && trip.status === 'draft') || canManageAll;
 }
 
+function realizationCanDelete(realization, session) {
+  const isOwner = realization.travelerUsername === session.username;
+  const canManageAll = ['super_admin', 'gm', 'manager_ops', 'finance'].includes(session.role);
+  return canManageAll || (isOwner && realization.status === 'draft');
+}
+
 function BusinessTripModule({ businessTrips, setBusinessTrips, realizations, setRealizations, employees, t, lang, session, fmt }) {
   const [tab, setTab] = useState('cash_advance');
   const [modalOpen, setModalOpen] = useState(false);
@@ -37,6 +43,9 @@ function BusinessTripModule({ businessTrips, setBusinessTrips, realizations, set
   const [detailRealization, setDetailRealization] = useState(null);
   const [confirmRealizationAction, setConfirmRealizationAction] = useState(null); // {action, realization, note}
   const [deleteRealizationId, setDeleteRealizationId] = useState(null);
+  const [selectedRealizationIds, setSelectedRealizationIds] = useState([]);
+  const [bulkDeleteRealizationsOpen, setBulkDeleteRealizationsOpen] = useState(false);
+  const selectAllRealizationsRef = useRef(null);
   const [confirmSettleId, setConfirmSettleId] = useState(null);
 
   // ═══════════ Export / Import handlers ═══════════
@@ -426,6 +435,36 @@ function BusinessTripModule({ businessTrips, setBusinessTrips, realizations, set
     return 0;
   }, [realizations, session.role]);
 
+  const deletableVisibleRealizations = useMemo(() => visibleRealizations.filter(r => realizationCanDelete(r, session)), [visibleRealizations, session]);
+  const deletableRealizationIds = useMemo(() => deletableVisibleRealizations.map(r => r.id), [deletableVisibleRealizations]);
+  const allDeletableRealizationsSelected = deletableRealizationIds.length > 0 && deletableRealizationIds.every(id => selectedRealizationIds.includes(id));
+
+  useEffect(() => {
+    if (selectAllRealizationsRef.current) {
+      selectAllRealizationsRef.current.indeterminate = selectedRealizationIds.length > 0 && !allDeletableRealizationsSelected;
+    }
+  }, [selectedRealizationIds.length, allDeletableRealizationsSelected]);
+
+  useEffect(() => { setSelectedRealizationIds([]); }, [tab, filterView, btSearch, btYear]);
+
+  const unlinkRealizationsFromTrips = (ids) => {
+    const idSet = new Set(Array.isArray(ids) ? ids : [ids]);
+    setBusinessTrips(prev => prev.map(t => idSet.has(t.realizationId) ? { ...t, realizationId: null } : t));
+  };
+
+  const toggleRealizationSelect = (id) => {
+    setSelectedRealizationIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    setDetailRealization(null);
+  };
+
+  const toggleSelectAllRealizations = () => {
+    if (allDeletableRealizationsSelected) setSelectedRealizationIds(prev => prev.filter(id => !deletableRealizationIds.includes(id)));
+    else {
+      setSelectedRealizationIds(prev => [...new Set([...prev, ...deletableRealizationIds])]);
+      setDetailRealization(null);
+    }
+  };
+
   const handleSubmitRealization = (realization) => {
     // From draft → pending_finance
     const updated = {
@@ -523,8 +562,27 @@ function BusinessTripModule({ businessTrips, setBusinessTrips, realizations, set
   };
 
   const handleDeleteRealization = () => {
+    unlinkRealizationsFromTrips(deleteRealizationId);
     setRealizations(prev => prev.filter(x => x.id !== deleteRealizationId));
+    setSelectedRealizationIds(prev => prev.filter(id => id !== deleteRealizationId));
     setDeleteRealizationId(null);
+    showToast(lang === 'id' ? 'Realisasi dihapus' : 'Realization deleted', 'success');
+  };
+
+  const confirmBulkDeleteRealizations = () => {
+    const allowed = new Set(deletableRealizationIds);
+    const ids = selectedRealizationIds.filter(id => allowed.has(id));
+    if (!ids.length) {
+      setBulkDeleteRealizationsOpen(false);
+      return;
+    }
+    const idSet = new Set(ids);
+    unlinkRealizationsFromTrips(ids);
+    setRealizations(prev => prev.filter(r => !idSet.has(r.id)));
+    setSelectedRealizationIds([]);
+    setBulkDeleteRealizationsOpen(false);
+    setDetailRealization(null);
+    showToast(lang === 'id' ? `${ids.length} realisasi dihapus` : `${ids.length} realization(s) deleted`, 'success');
   };
 
   return (
@@ -672,6 +730,21 @@ function BusinessTripModule({ businessTrips, setBusinessTrips, realizations, set
             )}
           </div>
 
+          {deletableRealizationIds.length > 0 && (
+            <div style={{marginBottom: '12px', padding: '10px 14px', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap'}}>
+              <label style={{display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 600}}>
+                <input ref={selectAllRealizationsRef} type="checkbox" checked={allDeletableRealizationsSelected} onChange={toggleSelectAllRealizations} style={{width: '14px', height: '14px', cursor: 'pointer'}} />
+                {lang === 'id' ? `Pilih semua realisasi (${deletableRealizationIds.length} dapat dihapus)` : `Select all realizations (${deletableRealizationIds.length} deletable)`}
+              </label>
+              {selectedRealizationIds.length > 0 && (
+                <div style={{display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap'}}>
+                  <span style={{fontSize: '11px', color: 'var(--ims-text-2)'}}>{selectedRealizationIds.length} {lang === 'id' ? 'dipilih' : 'selected'}</span>
+                  <button onClick={() => setBulkDeleteRealizationsOpen(true)} style={{background: '#c03030', color: '#fff', border: 'none', padding: '6px 12px', fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px'}}><Trash2 size={12} />{lang === 'id' ? 'Hapus Terpilih' : 'Delete Selected'}</button>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Eligible trips banner (for current user only) */}
           {!canManageAll && eligibleTripsForRealization.length > 0 && (
             <div style={{padding: '12px 16px', background: 'var(--ims-gold-bg)', borderLeft: '3px solid var(--ims-accent)', marginBottom: '14px', fontSize: '12px'}}>
@@ -687,7 +760,25 @@ function BusinessTripModule({ businessTrips, setBusinessTrips, realizations, set
 
           {/* Realizations list */}
           <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
-            {visibleRealizations.map(r => <BusinessTripRealizationCard key={r.id} realization={r} t={t} lang={lang} session={session} fmt={fmt} onDetail={() => setDetailRealization(r)} onEdit={() => { setEditingRealization(r); setSelectedTripForRealization(businessTrips.find(bt => bt.id === r.businessTripId)); setRealizationFormOpen(true); }} onDelete={() => setDeleteRealizationId(r.id)} />)}
+            {visibleRealizations.map(r => {
+              const canDeleteRealization = realizationCanDelete(r, session);
+              return (
+                <BusinessTripRealizationCard
+                  key={r.id}
+                  realization={r}
+                  t={t}
+                  lang={lang}
+                  session={session}
+                  fmt={fmt}
+                  showCheckbox={canDeleteRealization}
+                  isSelected={selectedRealizationIds.includes(r.id)}
+                  onToggleSelect={() => toggleRealizationSelect(r.id)}
+                  onDetail={() => setDetailRealization(r)}
+                  onEdit={() => { setEditingRealization(r); setSelectedTripForRealization(businessTrips.find(bt => bt.id === r.businessTripId)); setRealizationFormOpen(true); }}
+                  onDelete={() => setDeleteRealizationId(r.id)}
+                />
+              );
+            })}
             {visibleRealizations.length === 0 && canManageAll && <div style={{padding: '40px', textAlign: 'center', background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', color: 'var(--ims-text-2)'}}>{t.btr_no_realization}</div>}
           </div>
         </div>
@@ -726,6 +817,17 @@ function BusinessTripModule({ businessTrips, setBusinessTrips, realizations, set
       <ConfirmDialog open={!!confirmRealizationAction && confirmRealizationAction.action === 'clarify'} title={lang === 'id' ? 'Minta Klarifikasi?' : 'Request Clarification?'} message={t.btr_confirm_clarify_realization || (lang === 'id' ? 'Yakin ingin meminta klarifikasi? Realisasi dikembalikan ke karyawan untuk direvisi.' : 'Request clarification? Will be returned to employee.')} confirmText={t.bt_action_clarify} onConfirm={() => handleClarifyRealization(confirmRealizationAction.realization, confirmRealizationAction.note)} onCancel={() => setConfirmRealizationAction(null)} lang={lang} />
       <ConfirmDialog open={!!confirmSettleId} title={lang === 'id' ? 'Konfirmasi Settlement?' : 'Confirm Settlement?'} message={t.btr_confirm_settle} confirmText={t.btr_settle_now} onConfirm={() => handleSettle(confirmSettleId)} onCancel={() => setConfirmSettleId(null)} lang={lang} />
       <ConfirmDialog open={!!deleteRealizationId} title={lang === 'id' ? 'Hapus Realisasi?' : 'Delete Realization?'} message={lang === 'id' ? 'Yakin ingin menghapus laporan realisasi ini?' : 'Delete this realization report?'} onConfirm={handleDeleteRealization} onCancel={() => setDeleteRealizationId(null)} danger lang={lang} />
+      <ConfirmDialog
+        open={bulkDeleteRealizationsOpen}
+        title={lang === 'id' ? 'Hapus Realisasi Terpilih?' : 'Delete Selected Realizations?'}
+        message={lang === 'id'
+          ? `Apakah Anda yakin ingin menghapus ${selectedRealizationIds.length} realisasi? Link realisasi pada pengajuan terkait juga akan dikosongkan.`
+          : `Are you sure you want to delete ${selectedRealizationIds.length} realization(s)? Related request links will be cleared.`}
+        onConfirm={confirmBulkDeleteRealizations}
+        onCancel={() => setBulkDeleteRealizationsOpen(false)}
+        danger
+        lang={lang}
+      />
     </div>
   );
 }
@@ -1115,7 +1217,7 @@ function BusinessTripDetail({ trip, session, t, lang, fmt, onClose, onAction }) 
     </div>
   );
 }
-const BusinessTripRealizationCard = React.memo(function BusinessTripRealizationCard({ realization, t, lang, session, fmt, onDetail, onEdit, onDelete }) {
+const BusinessTripRealizationCard = React.memo(function BusinessTripRealizationCard({ realization, t, lang, session, fmt, showCheckbox, isSelected, onToggleSelect, onDetail, onEdit, onDelete }) {
   const statusColors = {
     draft: '#94a3b8', pending_finance: 'var(--ims-gold)', pending_mops: 'var(--ims-gold)', pending_gm: 'var(--ims-gold)',
     approved: 'var(--ims-accent-2)', clarification: 'var(--ims-gold-dim)',
@@ -1124,14 +1226,20 @@ const BusinessTripRealizationCard = React.memo(function BusinessTripRealizationC
   const isOwner = realization.travelerUsername === session.username;
   const canManageAll = ['super_admin', 'gm', 'manager_ops', 'finance'].includes(session.role);
   const canEdit = (isOwner && ['draft', 'clarification'].includes(realization.status)) || canManageAll;
-  const canDelete = isOwner && realization.status === 'draft';
+  const canDelete = realizationCanDelete(realization, session);
 
   // Difference color
   const diffColor = realization.difference > 0 ? 'var(--ims-gold-dim)' : (realization.difference < 0 ? '#5b87b8' : 'var(--ims-accent-2)');
   const diffLabel = realization.difference > 0 ? t.btr_difference_return : (realization.difference < 0 ? t.btr_difference_reimburse : t.btr_difference_zero);
 
   return (
-    <div style={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', borderLeft: `3px solid ${statusColor}`, padding: '14px 18px', cursor: 'pointer'}} onClick={onDetail}>
+    <div style={{display: 'flex', gap: '10px', alignItems: 'stretch', background: isSelected ? 'rgba(192,48,48,0.04)' : 'transparent'}}>
+      {showCheckbox && (
+        <div style={{display: 'flex', alignItems: 'center', padding: '0 4px 0 8px'}} onClick={e => e.stopPropagation()}>
+          <input type="checkbox" checked={!!isSelected} onChange={onToggleSelect} onClick={e => e.stopPropagation()} style={{width: '15px', height: '15px', cursor: 'pointer'}} title={lang === 'id' ? 'Pilih untuk hapus' : 'Select to delete'} />
+        </div>
+      )}
+    <div style={{flex: 1, background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', borderLeft: `3px solid ${statusColor}`, padding: '14px 18px', cursor: 'pointer'}} onClick={onDetail}>
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '10px'}}>
         <div style={{flex: '1 1 320px'}}>
           <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap'}}>
@@ -1152,11 +1260,11 @@ const BusinessTripRealizationCard = React.memo(function BusinessTripRealizationC
           <div style={{fontSize: '9px', color: diffColor, fontStyle: 'italic'}}>{diffLabel}</div>
           <div style={{display: 'flex', gap: '4px', marginTop: '6px'}}>
             {canEdit && <button onClick={(e) => { e.stopPropagation(); onEdit(); }} style={{background: 'transparent', border: '1px solid var(--ims-border)', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: 'var(--ims-text)', fontFamily: 'inherit'}} title={t.crud_edit}><Edit2 size={11} /></button>}
-            {canEdit && <button onClick={(e) => { e.stopPropagation(); onDelete && onDelete(); }} style={{background: 'transparent', border: '1px solid var(--ims-border)', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: '#c03030', fontFamily: 'inherit'}} title={t.crud_delete || 'Hapus'}><Trash2 size={11} /></button>}
             {canDelete && <button onClick={(e) => { e.stopPropagation(); onDelete(); }} style={{background: 'transparent', border: '1px solid var(--ims-border)', padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: '#c03030', fontFamily: 'inherit'}} title={t.crud_delete}><Trash2 size={11} /></button>}
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 });
@@ -1581,14 +1689,18 @@ function BusinessTripDashboard({ businessTrips, realizations, employees, t, lang
   const years = useMemo(() => {
     const yrs = new Set();
     visibleTrips.forEach(t => { if (t.dateStart) yrs.add(t.dateStart.substring(0, 4)); });
+    realizations.forEach(r => {
+      const d = r.dateStart || r.actualEndDate || r.submittedAt || r.updatedAt;
+      if (d) yrs.add(String(d).substring(0, 4));
+    });
     return ['all', ...Array.from(yrs).sort()];
-  }, [visibleTrips]);
+  }, [visibleTrips, realizations]);
 
   // Travelers list
   const travelers = useMemo(() => {
-    const arr = [...new Set(visibleTrips.map(t => t.travelerUsername))];
+    const arr = [...new Set([...visibleTrips.map(t => t.travelerUsername), ...realizations.map(r => r.travelerUsername)].filter(Boolean))];
     return arr.map(un => ({ un, name: resolveEmpName(employees, un) }));
-  }, [visibleTrips, employees]);
+  }, [visibleTrips, realizations, employees]);
 
   // Apply filters
   const filtered = useMemo(() => {
@@ -1601,33 +1713,51 @@ function BusinessTripDashboard({ businessTrips, realizations, employees, t, lang
     });
   }, [visibleTrips, yearFilter, travelerFilter]);
 
+  const filteredRealizations = useMemo(() => {
+    const visibleReals = canManageAll ? realizations : realizations.filter(r => r.travelerUsername === session.username);
+    return visibleReals.filter(r => {
+      const dateRef = r.dateStart || r.actualEndDate || r.submittedAt || r.updatedAt || '';
+      if (yearFilter !== 'all' && !String(dateRef).startsWith(yearFilter)) return false;
+      if (travelerFilter !== 'all' && r.travelerUsername !== travelerFilter) return false;
+      return r.status !== 'deleted';
+    });
+  }, [realizations, canManageAll, session.username, yearFilter, travelerFilter]);
+
   // ============== KPIs ==============
   const stats = useMemo(() => {
     const total = filtered.reduce((s, t) => s + (t.totalAdvance || 0), 0);
     const totalOffice = filtered.reduce((s, t) => s + (t.officeBooked?.ticketPP || 0) + (t.officeBooked?.hotelTotal || 0), 0);
+    const totalRealized = filteredRealizations.reduce((s, r) => s + (r.totalActual || r.totalRealized || 0), 0);
     const grandTotal = total + totalOffice;
     const tripCount = filtered.length;
     const avgPerTrip = tripCount > 0 ? grandTotal / tripCount : 0;
-    return { total, totalOffice, grandTotal, tripCount, avgPerTrip };
-  }, [filtered]);
+    return { total, totalOffice, totalRealized, realizationCount: filteredRealizations.length, grandTotal, tripCount, avgPerTrip };
+  }, [filtered, filteredRealizations]);
 
   // ============== Monthly Trend (line chart) ==============
   const monthlyTrend = useMemo(() => {
     const monthMap = {};
     filtered.forEach(t => {
       const ym = t.dateStart.substring(0, 7);
-      if (!monthMap[ym]) monthMap[ym] = { month: ym, cashAdvance: 0, officeBooked: 0, total: 0, count: 0 };
+      if (!monthMap[ym]) monthMap[ym] = { month: ym, cashAdvance: 0, officeBooked: 0, realization: 0, total: 0, count: 0 };
       const office = (t.officeBooked?.ticketPP || 0) + (t.officeBooked?.hotelTotal || 0);
       monthMap[ym].cashAdvance += t.totalAdvance || 0;
       monthMap[ym].officeBooked += office;
       monthMap[ym].total += (t.totalAdvance || 0) + office;
       monthMap[ym].count++;
     });
+    filteredRealizations.forEach(r => {
+      const dateRef = r.dateStart || r.actualEndDate || r.submittedAt || r.updatedAt || '';
+      if (!dateRef) return;
+      const ym = String(dateRef).substring(0, 7);
+      if (!monthMap[ym]) monthMap[ym] = { month: ym, cashAdvance: 0, officeBooked: 0, realization: 0, total: 0, count: 0 };
+      monthMap[ym].realization += r.totalActual || r.totalRealized || 0;
+    });
     return Object.values(monthMap).sort((a, b) => a.month.localeCompare(b.month)).map(m => ({
       ...m,
       label: m.month.substring(5) + '/' + m.month.substring(2, 4),
     }));
-  }, [filtered]);
+  }, [filtered, filteredRealizations]);
 
   // ============== YoY Comparison (2025 vs 2026) ==============
   const yoyData = useMemo(() => {
@@ -1706,9 +1836,9 @@ function BusinessTripDashboard({ businessTrips, realizations, employees, t, lang
 
   // ============== Settlement summary ==============
   const settlementStats = useMemo(() => {
-    const visibleReals = canManageAll ? realizations : realizations.filter(r => r.travelerUsername === session.username);
-    const filtered = visibleReals.filter(r => {
-      if (yearFilter !== 'all' && !r.dateStart.startsWith(yearFilter)) return false;
+    const filtered = filteredRealizations.filter(r => {
+      const dateRef = r.dateStart || r.actualEndDate || r.submittedAt || r.updatedAt || '';
+      if (yearFilter !== 'all' && !String(dateRef).startsWith(yearFilter)) return false;
       if (travelerFilter !== 'all' && r.travelerUsername !== travelerFilter) return false;
       return r.status === 'approved';
     });
@@ -1721,7 +1851,7 @@ function BusinessTripDashboard({ businessTrips, realizations, employees, t, lang
       overadvanceCount: overadvance.length,
       underadvanceCount: underadvance.length,
     };
-  }, [realizations, canManageAll, session.username, yearFilter, travelerFilter]);
+  }, [filteredRealizations, yearFilter, travelerFilter]);
 
   // PERFORMANCE & LANG: Use parent fmt() prop which auto-converts to USD when lang='en'
   const fmtRp = fmt;
@@ -1768,6 +1898,11 @@ function BusinessTripDashboard({ businessTrips, realizations, employees, t, lang
           <div className="serif mono" style={{fontSize: '20px', fontWeight: 500, marginTop: '4px'}}>{fmtRpShort(stats.total)}</div>
           <div style={{fontSize: '9px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{lang === 'id' ? 'transfer ke karyawan' : 'transferred to employees'}</div>
         </div>
+        <div style={{padding: '16px 18px', background: 'var(--ims-bg-card)', borderLeft: stats.totalRealized > 0 ? '3px solid var(--ims-accent-2)' : 'none'}}>
+          <div style={{fontSize: '9px', letterSpacing: '0.2em', color: 'var(--ims-accent-2)', textTransform: 'uppercase'}}>{lang === 'id' ? 'Total Realisasi Aktual' : 'Actual Realization'}</div>
+          <div className="serif mono" style={{fontSize: '20px', fontWeight: 500, marginTop: '4px'}}>{fmtRpShort(stats.totalRealized)}</div>
+          <div style={{fontSize: '9px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{stats.realizationCount} {lang === 'id' ? 'laporan realisasi' : 'realization reports'}</div>
+        </div>
         <div style={{padding: '16px 18px', background: 'var(--ims-bg-card)'}}>
           <div style={{fontSize: '9px', letterSpacing: '0.2em', color: 'var(--ims-text-2)', textTransform: 'uppercase'}}>{lang === 'id' ? 'Tiket + Hotel' : 'Tickets + Hotels'}</div>
           <div className="serif mono" style={{fontSize: '20px', fontWeight: 500, marginTop: '4px'}}>{fmtRpShort(stats.totalOffice)}</div>
@@ -1794,6 +1929,7 @@ function BusinessTripDashboard({ businessTrips, realizations, employees, t, lang
               <Legend wrapperStyle={{fontSize: 11}} />
               <Bar dataKey="cashAdvance" name={lang === 'id' ? 'Uang Muka' : 'Cash Advance'} fill="#1a4d8a" stackId="a" />
               <Bar dataKey="officeBooked" name={lang === 'id' ? 'Tiket + Hotel' : 'Office-Booked'} fill="var(--ims-accent)" stackId="a" />
+              <Bar dataKey="realization" name={lang === 'id' ? 'Realisasi Aktual' : 'Actual Realization'} fill="var(--ims-accent-2)" />
               <Area type="monotone" dataKey="total" name={lang === 'id' ? 'Total' : 'Total'} fill="transparent" stroke="#c03030" strokeWidth={2} dot={{ r: 3, fill: '#c03030' }} />
             </ComposedChart>
           </ResponsiveContainer>

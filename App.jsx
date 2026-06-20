@@ -33,7 +33,7 @@ function normalizeSphDataset(rows, productList = []) {
 function sphDataEqual(a, b) {
   try { return JSON.stringify(a) === JSON.stringify(b); } catch { return false; }
 }
-import { generateHntiSph2026Seed, _RAW_ALL_SPH, ALL_SPH, buildSeedNotificationsFromSph, generateInstalledUnits, generateSeedManifestsFromSph, generateSeedCustomsDocsFromSph, SEED_MANIFESTS, SEED_CUSTOMS_DOCS, generateInstallDocs, INSTALL_DOCS, generateHistoricalBusinessTrips, _historical, HISTORICAL_BT, HISTORICAL_BTR, ALL_BUSINESS_TRIPS, ALL_BT_REALIZATIONS, generateRegulatoryRecords } from './src/data/seed.js';
+import { generateHntiSph2026Seed, _RAW_ALL_SPH, ALL_SPH, buildSeedNotificationsFromSph, generateInstalledUnits, generateSeedManifestsFromSph, generateSeedCustomsDocsFromSph, SEED_MANIFESTS, SEED_CUSTOMS_DOCS, generateInstallDocs, INSTALL_DOCS, ALL_BUSINESS_TRIPS, generateRegulatoryRecords } from './src/data/seed.js';
 import { TOAST_EVENT, showToast } from './src/utils/toast.js';
 import { mergeDocumentTemplates, downloadDataUrl, downloadUploadedTemplate, previewUploadedTemplate, getUploadedDocumentTemplate, openDocumentTemplateOrHtml, downloadDocumentTemplateOrDoc, downloadCSV, downloadHtmlDoc, openPrintableHtml, getUserSignature, getUserDisplayName, findUserByRole, printHtmlStringAsPdf, renderDocLines, renderDocFooter, renderSignatureBlock, wrapDocumentInLetterhead, buildTextLetterheadHtml, buildHntiLetterheadHtml, renderDualSignatureHtml, buildEditorTemplate, getTemplateHtmlBody, fillTemplatePlaceholders, buildEditorBody, buildSPHDocumentHtml, downloadSPHWord, printSPHPdf, buildSPPDocumentHtml, downloadSPPWord, printSPPPdf, buildInvoiceKwitansiHtml, buildPrincipalPoHtml, buildBAIDocumentHtml, printBAIPdf, buildBAUjiFungsiDocumentHtml, printBAUjiFungsiPdf, buildBATrainingDocumentHtml, downloadBATrainingDoc, printBATrainingPdf, buildBASTBarangDocumentHtml, downloadBASTBarangDoc, printBASTBarangPdf, buildKwitansiHtml } from './src/utils/documents.js';
 import { parseCSV, buildColMap, SPH_IMPORT_ALIASES, _STATUS_ALIASES, _STAGE_VALID, parseSPHImport, PAY_IMPORT_ALIASES, _PAYTYPE_ALIASES, parsePaymentImport } from './src/utils/csvImport.js';
@@ -352,7 +352,7 @@ export default function App() {
   const [piRecords, setPiRecords] = useState(SEED_PI_RECORDS);
   const [employees, setEmployees] = useState(() => stripRemovedEmployees(USERS));
   const [businessTrips, setBusinessTrips] = useState(ALL_BUSINESS_TRIPS);
-  const [realizations, setRealizations] = useState(ALL_BT_REALIZATIONS);
+  const [realizations, setRealizations] = useState([]);
   const [products, setProducts] = useState(PRODUCT_MASTER_SEED);
   const setSphData = useCallback((updater) => {
     setData(prev => {
@@ -750,6 +750,25 @@ export default function App() {
           } catch {}
         }
         await storeSet(V46_SPLIT_MARKER, 'true');
+      }
+
+      // V47: sesuai permintaan CEO, kosongkan seluruh history realisasi perjalanan dinas lama.
+      // Pengajuan cash advance tetap dipertahankan, hanya link realizationId yang dibersihkan.
+      const V47_CLEAR_BT_REALIZATIONS_MARKER = 'ims_hnti:v47_clear_bt_realizations';
+      const v47ClearBtRealizations = await storeGet(V47_CLEAR_BT_REALIZATIONS_MARKER);
+      if (!v47ClearBtRealizations) {
+        const btStoredForClear = await storeGet('ims_hnti:bt_v22');
+        if (btStoredForClear) {
+          try {
+            const parsedBt = JSON.parse(btStoredForClear);
+            if (Array.isArray(parsedBt)) {
+              const cleanedBt = parsedBt.map(trip => trip?.realizationId ? { ...trip, realizationId: null } : trip);
+              await storeSet('ims_hnti:bt_v22', JSON.stringify(cleanedBt));
+            }
+          } catch {}
+        }
+        await storeSet('ims_hnti:btr_v22', JSON.stringify([]));
+        await storeSet(V47_CLEAR_BT_REALIZATIONS_MARKER, 'true');
       }
 
       const [d, l, s, r, rep, iss, reg, akl, imp, pgl, pi, pm, mfst, cdoc, inst, bast, train, emp, bt] = await Promise.all([

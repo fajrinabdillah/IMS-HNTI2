@@ -3,6 +3,7 @@ import { Activity, MapPin, Pencil, Plus, Save, Search, Sparkles, Target, Trash2,
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Th, Td } from '../components/ui.jsx';
 import { buildInstallBase, installBaseStats, normalizeInstallBaseRecord } from '../utils/installBase.js';
+import indonesiaMapUrl from '../assets/indonesia-provinces-outline.svg';
 
 const FAMILY_COLORS = {
   'CT Scan': '#4cc9f0',
@@ -41,8 +42,8 @@ const INDONESIA_ISLANDS = [
 ];
 
 function projectPoint(lat, lng) {
-  const x = ((Number(lng) - 94) / (141 - 94)) * 100;
-  const y = ((6 - Number(lat)) / (6 - (-11))) * 100;
+  const x = ((Number(lng) - 94.2744) / (142.8539 - 94.2744)) * 100;
+  const y = ((9.1521 - Number(lat)) / (9.1521 - (-13.5460))) * 100;
   return {
     x: Math.max(3, Math.min(97, x)),
     y: Math.max(6, Math.min(94, y)),
@@ -137,8 +138,8 @@ function InstallBaseMap({ records = [], stats, selectedProvince = 'all', lang = 
       <div style={{position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', gap: '16px', alignItems: 'flex-start'}}>
         <div>
           <div style={{fontSize: '10px', letterSpacing: '0.24em', textTransform: 'uppercase', color: 'var(--ims-gold)', fontWeight: 800}}>HNTI Installed Base Command Center</div>
-          <div className="serif" style={{fontSize: '34px', marginTop: '6px', color: '#fff', fontWeight: 500}}>203+ Units Across Indonesia</div>
-          <div style={{fontSize: '12px', color: 'rgba(255,255,255,0.66)', marginTop: '4px'}}>{lang === 'id' ? 'Baseline PDF + unit dari operasional yang sudah tiba di RS' : 'PDF baseline + operations units arrived at hospital'}</div>
+          <div className="serif" style={{fontSize: '34px', marginTop: '6px', color: '#fff', fontWeight: 500}}>203 Units Across Indonesia</div>
+          <div style={{fontSize: '12px', color: 'rgba(255,255,255,0.66)', marginTop: '4px'}}>{lang === 'id' ? 'Baseline PDF 203 unit; data operasional tampil sebagai live sync terpisah' : '203-unit PDF baseline; operations data appears as separate live sync'}</div>
         </div>
         <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, minmax(88px, 1fr))', gap: '8px', minWidth: '310px'}}>
           {[
@@ -154,37 +155,21 @@ function InstallBaseMap({ records = [], stats, selectedProvince = 'all', lang = 
         </div>
       </div>
 
-      <div style={{position: 'relative', zIndex: 1, height: '330px', marginTop: '18px'}}>
-        <svg viewBox="0 0 1000 360" preserveAspectRatio="none" style={{position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.96}}>
-          <defs>
-            <linearGradient id="ib-island" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="rgba(76,201,240,0.34)" />
-              <stop offset="100%" stopColor="rgba(214,179,106,0.18)" />
-            </linearGradient>
-            <filter id="ib-map-glow" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-            </filter>
-          </defs>
-          <g filter="url(#ib-map-glow)">
-            {INDONESIA_ISLANDS.map(island => (
-              <polygon
-                key={island.name}
-                points={island.points.map(([lng, lat]) => svgPoint(lat, lng)).join(' ')}
-                fill="url(#ib-island)"
-                stroke="rgba(255,255,255,0.34)"
-                strokeWidth="1.2"
-              />
-            ))}
-          </g>
-          <g fill="rgba(214,179,106,0.28)" stroke="rgba(255,255,255,0.32)" strokeWidth="0.8">
-            {[[115.2, -8.4], [116.4, -8.6], [118.4, -8.6], [120.0, -8.7], [122.0, -8.8], [127.4, 0.7], [128.2, -3.1], [129.8, -3.5]].map(([lng, lat], i) => {
-              const p = projectPoint(lat, lng);
-              return <circle key={i} cx={p.x * 10} cy={p.y * 3.6} r={i < 5 ? 4.5 : 5.5} />;
-            })}
-          </g>
-          <path d="M0,305 C180,290 278,330 430,312 C600,292 740,330 1000,300" fill="none" stroke="rgba(214,179,106,0.16)" strokeDasharray="8 8" />
-        </svg>
+      <div style={{position: 'relative', zIndex: 1, height: '330px', marginTop: '18px', overflow: 'hidden'}}>
+        <img
+          src={indonesiaMapUrl}
+          alt="Peta Indonesia"
+          style={{
+            position: 'absolute',
+            inset: '8px 10px',
+            width: 'calc(100% - 20px)',
+            height: 'calc(100% - 16px)',
+            objectFit: 'contain',
+            opacity: 0.58,
+            filter: 'invert(1) sepia(1) saturate(2.2) hue-rotate(150deg) drop-shadow(0 0 16px rgba(76,201,240,0.45)) drop-shadow(0 0 30px rgba(214,179,106,0.20))',
+          }}
+        />
+        <div style={{position: 'absolute', left: 0, right: 0, bottom: '36px', borderTop: '1px dashed rgba(214,179,106,0.18)'}} />
         {points.map((p, idx) => {
           const size = Math.min(22, 7 + Math.sqrt(p.qty || 1) * 3);
           return (

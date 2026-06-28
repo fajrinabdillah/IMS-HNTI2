@@ -203,7 +203,7 @@ function buildInstallBase(data = [], bastRecords = [], installRecords = [], manu
 function installBaseStats(records = []) {
   const baselineTotal = INSTALL_BASE_PROVINCE_SUMMARY.reduce((s, p) => s + p.qty, 0);
   const liveExtra = records.filter(r => r.source !== 'pdf_import').reduce((s, r) => s + (Number(r.quantity) || 1), 0);
-  const totalUnits = baselineTotal + liveExtra;
+  const totalUnits = baselineTotal;
   const byProvince = new Map(INSTALL_BASE_PROVINCE_SUMMARY.map(p => [p.province, { province: p.province, qty: p.qty, lat: PROVINCE_COORDS[p.province]?.lat, lng: PROVINCE_COORDS[p.province]?.lng }]));
   records.forEach(r => {
     if (!r.province) return;

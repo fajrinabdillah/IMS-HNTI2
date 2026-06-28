@@ -185,6 +185,30 @@ function absorbBaselineDuplicates(records = [], baselineSlots = new Map()) {
   return kept;
 }
 
+function dedupeByCrossSource(records = []) {
+  const map = new Map();
+  records.forEach(record => {
+    if (isCorporatePayerRecord(record)) return;
+    const normalized = record.productFamily
+      ? record
+      : normalizeInstallBaseRecord(record, record.source || 'manual');
+    if (isCorporatePayerRecord(normalized)) return;
+    const key = crossSourceKey(normalized);
+    const existing = map.get(key);
+    if (!existing) {
+      map.set(key, normalized);
+      return;
+    }
+    map.set(key, {
+      ...existing,
+      ...normalized,
+      quantity: Math.max(Number(existing.quantity) || 1, Number(normalized.quantity) || 1),
+      source: existing.source === normalized.source ? existing.source : `${existing.source}+${normalized.source}`,
+    });
+  });
+  return [...map.values()];
+}
+
 function normalizeInstallBaseRecord(record, source = 'manual') {
   const hospitalName = canonicalHospitalName(record.hospitalName || record.installSiteName || record.customer || '-');
   const province = inferProvince({ ...record, hospitalName }) || normalizeProvince(record.province || '');
@@ -295,13 +319,13 @@ function buildInstallBase(data = [], bastRecords = [], installRecords = [], manu
     const key = crossSourceKey(record);
     baselineSlots.set(key, (baselineSlots.get(key) || 0) + (Number(record.quantity) || 1));
   });
-  const live = absorbBaselineDuplicates(dedupeInstallBase([
+  const live = absorbBaselineDuplicates(dedupeByCrossSource(dedupeInstallBase([
     ...fromOperationalRows(data),
     ...fromBastRecords(bastRecords),
     ...fromBastRecords(installRecords),
-  ]), baselineSlots);
+  ])), baselineSlots);
   const manual = absorbBaselineDuplicates(
-    (manualRecords || []).map(r => normalizeInstallBaseRecord(r, 'manual')),
+    dedupeByCrossSource((manualRecords || []).map(r => normalizeInstallBaseRecord(r, 'manual'))),
     baselineSlots,
   );
   return dedupeInstallBase([...baseline, ...live, ...manual]);

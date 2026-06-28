@@ -52,6 +52,17 @@ function norm(v) {
   return String(v || '').trim().toLowerCase();
 }
 
+function isCorporatePayerName(value = '') {
+  const text = norm(value).replace(/\./g, '').replace(/\s+/g, ' ');
+  return text === 'pt mitra inti medika';
+}
+
+function isCorporatePayerRecord(record = {}) {
+  const siteName = String(record.hospitalName || record.installSiteName || '').trim();
+  if (siteName) return isCorporatePayerName(siteName);
+  return [record.customer, record.payerCustomer].some(isCorporatePayerName);
+}
+
 function hash01(input) {
   let h = 2166136261;
   for (const ch of String(input || '')) {
@@ -154,6 +165,7 @@ function isArrivedAtHospital(row = {}) {
 function fromOperationalRows(data = []) {
   return (data || []).filter(row => {
     if (!isArrivedAtHospital(row)) return false;
+    if (isCorporatePayerRecord(row)) return false;
     const site = String(row.installSiteName || '').trim();
     const customer = String(row.customer || '').trim();
     // Rekanan/payer korporat bukan titik instalasi RS; plot hanya jika ada installSiteName.
@@ -179,6 +191,7 @@ function fromOperationalRows(data = []) {
 function fromBastRecords(bastRecords = []) {
   return (bastRecords || [])
     .filter(r => ['signed', 'completed', 'final'].includes(r.status) || r.signedAt || r.bastDate)
+    .filter(r => !isCorporatePayerRecord(r))
     .filter(r => !/^pt\.?\s+/i.test(String(r.customer || r.installSiteName || '').trim()))
     .map(r => normalizeInstallBaseRecord({
       id: `ib_bast_${r.id}`,
@@ -199,7 +212,9 @@ function fromBastRecords(bastRecords = []) {
 function dedupeInstallBase(records = []) {
   const map = new Map();
   records.forEach(record => {
+    if (isCorporatePayerRecord(record)) return;
     const normalized = normalizeInstallBaseRecord(record, record.source || 'manual');
+    if (isCorporatePayerRecord(normalized)) return;
     const key = unitKey(normalized);
     const existing = map.get(key);
     if (!existing) {

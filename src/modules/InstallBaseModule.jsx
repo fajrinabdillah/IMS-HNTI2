@@ -17,6 +17,14 @@ const FAMILY_COLORS = {
   Other: '#94a3b8',
 };
 const RADIAN = Math.PI / 180;
+const MAP_POINT_OVERRIDES = {
+  'rsi nashrul ummah': { lat: -7.1166, lng: 112.4162 },
+  'rs nashrul ummah lamongan': { lat: -7.1166, lng: 112.4162 },
+  // Visual alignment for the very narrow Gorontalo peninsula on the SVG map.
+  'rsud otanaha': { lat: 0.18, lng: 123.02 },
+  'rsud dr. irwan bokings': { lat: 0.10, lng: 122.58 },
+  'rsud dr irwan bokings': { lat: 0.10, lng: 122.58 },
+};
 
 const EMPTY_MANUAL_RECORD = {
   hospitalName: '',
@@ -60,6 +68,10 @@ function renderPieLabel({ cx, cy, midAngle, outerRadius, name, percent }) {
   );
 }
 
+function mapCoordsFor(record = {}) {
+  return MAP_POINT_OVERRIDES[String(record.hospitalName || '').trim().toLowerCase()] || record;
+}
+
 function projectPoint(lat, lng) {
   const x = ((Number(lng) - 94.2744) / (142.8539 - 94.2744)) * 100;
   const y = ((9.1521 - Number(lat)) / (9.1521 - (-13.5460))) * 100;
@@ -85,11 +97,14 @@ function InstallBaseMap({ records = [], stats, selectedProvince = 'all', lang = 
       g.qty += Number(r.quantity) || 1;
       g.families.add(r.productFamily || 'Other');
     });
-    return [...grouped.values()].map(p => ({
-      ...p,
-      ...projectPoint(p.lat, p.lng),
-      color: FAMILY_COLORS[[...p.families][0]] || FAMILY_COLORS.Other,
-    }));
+    return [...grouped.values()].map(p => {
+      const mapCoords = mapCoordsFor(p);
+      return {
+        ...p,
+        ...projectPoint(mapCoords.lat, mapCoords.lng),
+        color: FAMILY_COLORS[[...p.families][0]] || FAMILY_COLORS.Other,
+      };
+    });
   }, [records, selectedProvince]);
 
   return (
@@ -396,7 +411,7 @@ function InstallBaseModule({ data = [], bastRecords = [], installRecords = [], m
               <CartesianGrid strokeDasharray="3 3" stroke="var(--ims-border)" horizontal={false} />
               <XAxis type="number" stroke="var(--ims-text-2)" style={{fontSize: 10}} />
               <YAxis type="category" dataKey="province" width={96} stroke="var(--ims-text-2)" style={{fontSize: 10}} />
-              <Tooltip contentStyle={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', fontSize: 11}} />
+              <Tooltip contentStyle={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', fontSize: 11, color: '#fff'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#fff'}} />
               <Bar dataKey="qty" fill="#1a4d8a" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -416,7 +431,7 @@ function InstallBaseModule({ data = [], bastRecords = [], installRecords = [], m
               >
                 {stats.byProductFamily.map((entry, i) => <Cell key={entry.name} fill={FAMILY_COLORS[entry.name] || Object.values(FAMILY_COLORS)[i % 8]} />)}
               </Pie>
-              <Tooltip contentStyle={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', fontSize: 11}} />
+              <Tooltip contentStyle={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', fontSize: 11, color: '#fff'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#fff'}} />
             </PieChart>
           </ResponsiveContainer>
           <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px 10px', marginTop: '8px'}}>

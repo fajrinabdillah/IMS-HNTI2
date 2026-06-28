@@ -22,6 +22,8 @@ const PROVINCE_COORDS = {
 
 const KNOWN_SITE_COORDS = {
   'rsia andini': { lat: 0.5115, lng: 101.4246 },
+  'rsi nashrul ummah': { lat: -7.1166, lng: 112.4162 },
+  'rs nashrul ummah lamongan': { lat: -7.1166, lng: 112.4162 },
   'rsud otanaha': { lat: 0.5460, lng: 123.0332 },
   'rsud dr. irwan bokings': { lat: 0.5815, lng: 122.5578 },
   'rsud dr irwan bokings': { lat: 0.5815, lng: 122.5578 },
@@ -80,14 +82,14 @@ function inferProvince(record = {}) {
 }
 
 function coordinatesFor(record = {}) {
+  const known = KNOWN_SITE_COORDS[norm(record.hospitalName || record.installSiteName || record.customer)];
+  if (known) return { ...known, precision: 'known-site' };
   if (Number.isFinite(Number(record.lat)) && Number.isFinite(Number(record.lng))) {
     return { lat: Number(record.lat), lng: Number(record.lng), precision: 'exact' };
   }
   if (Number.isFinite(Number(record.latitude)) && Number.isFinite(Number(record.longitude))) {
     return { lat: Number(record.latitude), lng: Number(record.longitude), precision: 'exact' };
   }
-  const known = KNOWN_SITE_COORDS[norm(record.hospitalName || record.installSiteName || record.customer)];
-  if (known) return { ...known, precision: 'known-site' };
   const province = inferProvince(record);
   const base = PROVINCE_COORDS[province] || { lat: -2.5, lng: 118 };
   const key = [record.hospitalName, record.customer, record.product, record.type, record.sphNo].filter(Boolean).join('|');
@@ -101,6 +103,7 @@ function productFamily(product = '', type = '') {
   const text = `${product} ${type}`.toLowerCase();
   if (text.includes('ct') || text.includes('anatom') || text.includes('dominus')) return 'CT Scan';
   if (text.includes('c-arm') || text.includes('garion')) return 'C-Arm';
+  if (text.includes('retro comfort')) return 'FPD';
   if (text.includes('fpd') || text.includes('venu')) return 'FPD';
   if (text.includes('mobile')) return 'Mobile X-Ray';
   if (text.includes('portable') || text.includes('remex')) return 'Portable X-Ray';
@@ -155,6 +158,7 @@ function fromOperationalRows(data = []) {
     const customer = String(row.customer || '').trim();
     // Rekanan/payer korporat bukan titik instalasi RS; plot hanya jika ada installSiteName.
     if (!site && /^pt\.?\s+/i.test(customer)) return false;
+    if (/^pt\.?\s+/i.test(site)) return false;
     return true;
   }).map(row => normalizeInstallBaseRecord({
     id: `ib_ops_${row.id}`,
@@ -175,6 +179,7 @@ function fromOperationalRows(data = []) {
 function fromBastRecords(bastRecords = []) {
   return (bastRecords || [])
     .filter(r => ['signed', 'completed', 'final'].includes(r.status) || r.signedAt || r.bastDate)
+    .filter(r => !/^pt\.?\s+/i.test(String(r.customer || r.installSiteName || '').trim()))
     .map(r => normalizeInstallBaseRecord({
       id: `ib_bast_${r.id}`,
       hospitalName: r.customer,

@@ -21,7 +21,8 @@ const RADIAN = Math.PI / 180;
 
 // Visual lat/lng tuned to align with the Indonesia SVG map asset (not raw geodesic coords).
 const MAP_POINT_OVERRIDES = {
-  'rsi nashrul ummah lamongan': { lat: -7.1224, lng: 112.3946 },
+  // Calibrated to Jawa Timur landmass on the SVG (~39.5%, 75%) — raw Lamongan coords land in the sea on this map.
+  'rsi nashrul ummah lamongan': { lat: -7.82, lng: 113.46 },
   'rsud pratama adonara': { lat: -8.3242, lng: 123.1645 },
   'rsud otanaha': { lat: 0.18, lng: 123.02 },
   'rsud dr. irwan bokings': { lat: 0.10, lng: 122.58 },
@@ -68,6 +69,7 @@ function renderPieLabel({ cx, cy, midAngle, outerRadius, name, percent }) {
 function mapCoordsFor(record = {}) {
   const key = String(record.hospitalName || '').trim().toLowerCase();
   if (MAP_POINT_OVERRIDES[key]) return MAP_POINT_OVERRIDES[key];
+  if (key.includes('nashrul')) return MAP_POINT_OVERRIDES['rsi nashrul ummah lamongan'];
   if (record.province === 'Bali') return BALI_VISUAL_DEFAULT;
   return { lat: record.lat, lng: record.lng };
 }
@@ -93,11 +95,13 @@ function InstallBaseMap({ records = [], stats, selectedProvince = 'all', lang = 
       g.qty += Number(r.quantity) || 1;
       g.families.add(r.productFamily || 'Other');
     });
-    return [...grouped.values()].map(p => ({
-      ...p,
-      ...projectPoint(p.mapLat, p.mapLng),
-      color: FAMILY_COLORS[[...p.families][0]] || FAMILY_COLORS.Other,
-    }));
+    return [...grouped.values()]
+      .sort((a, b) => (Number(a.qty) || 1) - (Number(b.qty) || 1))
+      .map(p => ({
+        ...p,
+        ...projectPoint(p.mapLat, p.mapLng),
+        color: FAMILY_COLORS[[...p.families][0]] || FAMILY_COLORS.Other,
+      }));
   }, [records, selectedProvince]);
 
   return (
@@ -218,9 +222,10 @@ function InstallBaseMap({ records = [], stats, selectedProvince = 'all', lang = 
           <img src={indonesiaMapUrl} alt={L(lang, 'Peta Indonesia', 'Indonesia Map')} className="ib-map-img" />
           <div style={{position: 'absolute', left: 0, right: 0, bottom: '36px', borderTop: '1px dashed rgba(214,179,106,0.18)'}} />
           {points.map((p, idx) => {
-            const size = Math.min(22, 7 + Math.sqrt(p.qty || 1) * 3);
+            const size = Math.min(24, 8 + Math.sqrt(p.qty || 1) * 3.5);
+            const isFeatured = (p.qty || 0) >= 3 || /nashrul/i.test(p.hospitalName || '');
             return (
-              <div key={`${p.hospitalName}-${idx}`} className="ib-dot" style={{left: `${p.x}%`, top: `${p.y}%`, width: size, height: size, color: p.color, background: p.color}}>
+              <div key={`${p.hospitalName}-${idx}`} className="ib-dot" style={{left: `${p.x}%`, top: `${p.y}%`, width: size, height: size, color: p.color, background: p.color, zIndex: 20 + idx, boxShadow: isFeatured ? '0 0 0 3px rgba(255,255,255,0.35), 0 0 22px currentColor, 0 0 44px currentColor' : undefined}}>
                 <div className="ib-tip">
                   <strong>{p.hospitalName}</strong><br />
                   {p.province} · {p.qty} {L(lang, 'unit', 'units')}<br />

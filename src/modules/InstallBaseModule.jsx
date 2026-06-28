@@ -20,6 +20,7 @@ const RADIAN = Math.PI / 180;
 const MAP_POINT_OVERRIDES = {
   'rsi nashrul ummah': { lat: -7.1166, lng: 112.4162 },
   'rs nashrul ummah lamongan': { lat: -7.1166, lng: 112.4162 },
+  'rsud pratama adonara': { lat: -8.3242, lng: 123.1645 },
   // Visual alignment for the very narrow Gorontalo peninsula on the SVG map.
   'rsud otanaha': { lat: 0.18, lng: 123.02 },
   'rsud dr. irwan bokings': { lat: 0.10, lng: 122.58 },
@@ -50,12 +51,6 @@ const INDONESIA_ISLANDS = [
   { name: 'Bali-Nusa Tenggara', points: [[115.0, -8.1], [117.2, -8.3], [120.5, -8.5], [123.7, -8.7], [126.8, -8.8], [125.5, -9.6], [121.4, -9.4], [117.5, -9.1]] },
   { name: 'Maluku', points: [[126.6, 1.7], [128.6, 0.6], [129.6, -2.4], [128.2, -4.8], [126.0, -3.2], [126.8, -0.7]] },
 ];
-
-function scrollToManualForm() {
-  setTimeout(() => {
-    document.getElementById('installbase-manual-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 30);
-}
 
 function renderPieLabel({ cx, cy, midAngle, outerRadius, name, percent }) {
   const radius = outerRadius + 18;
@@ -272,7 +267,6 @@ function InstallBaseModule({ data = [], bastRecords = [], installRecords = [], m
   const startAdd = () => {
     setEditing({ mode: 'add' });
     setForm({ ...EMPTY_MANUAL_RECORD, installationYear: new Date().getFullYear() });
-    scrollToManualForm();
   };
   const startEdit = (record) => {
     const isManual = String(record.source || '').includes('manual');
@@ -292,7 +286,6 @@ function InstallBaseModule({ data = [], bastRecords = [], installRecords = [], m
       lng: Number.isFinite(Number(record.lng)) ? Number(record.lng).toFixed(6) : '',
       sphNo: record.sphNo || '',
     });
-    scrollToManualForm();
   };
   const cancelEdit = () => {
     setEditing(null);
@@ -339,7 +332,20 @@ function InstallBaseModule({ data = [], bastRecords = [], installRecords = [], m
       </div>
 
       {editing && (
-        <div id="installbase-manual-form" className="card" style={{marginBottom: '18px', borderColor: 'rgba(214,179,106,0.45)'}}>
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 200,
+            background: 'rgba(0,0,0,0.62)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+          }}
+          onMouseDown={(e) => { if (e.target === e.currentTarget) cancelEdit(); }}
+        >
+        <div id="installbase-manual-form" className="card" style={{width: 'min(980px, 96vw)', maxHeight: '88vh', overflowY: 'auto', borderColor: 'rgba(214,179,106,0.45)', boxShadow: '0 30px 90px rgba(0,0,0,0.55)'}}>
           <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '14px'}}>
             <div>
               <div className="card-title" style={{margin: 0}}>{editing.mode === 'add' ? 'Tambah Data Install Base Manual' : editing.mode === 'override' ? 'Buat Override Manual' : 'Edit Data Manual'}</div>
@@ -383,6 +389,7 @@ function InstallBaseModule({ data = [], bastRecords = [], installRecords = [], m
               <Save size={14} /> Simpan Manual
             </button>
           </div>
+        </div>
         </div>
       )}
 

@@ -20,10 +20,21 @@ const PROVINCE_COORDS = {
   'Gorontalo': { lat: 0.6999, lng: 122.4467 },
 };
 
+const AUTHORITATIVE_PRODUCT_FAMILY_TOTALS = [
+  { name: 'FPD', qty: 88 },
+  { name: 'Portable X-Ray', qty: 58 },
+  { name: 'Stationary X-Ray', qty: 26 },
+  { name: 'Mobile X-Ray', qty: 16 },
+  { name: 'CT Scan', qty: 7 },
+  { name: 'C-Arm', qty: 5 },
+  { name: 'ESWL', qty: 3 },
+];
+
 const KNOWN_SITE_COORDS = {
   'rsia andini': { lat: 0.5115, lng: 101.4246 },
   'rsi nashrul ummah': { lat: -7.1166, lng: 112.4162 },
   'rs nashrul ummah lamongan': { lat: -7.1166, lng: 112.4162 },
+  'rsud pratama adonara': { lat: -8.3242, lng: 123.1645 },
   'rsud otanaha': { lat: 0.5460, lng: 123.0332 },
   'rsud dr. irwan bokings': { lat: 0.5815, lng: 122.5578 },
   'rsud dr irwan bokings': { lat: 0.5815, lng: 122.5578 },
@@ -112,6 +123,7 @@ function coordinatesFor(record = {}) {
 
 function productFamily(product = '', type = '') {
   const text = `${product} ${type}`.toLowerCase();
+  if (text.includes('eswl')) return 'ESWL';
   if (text.includes('ct') || text.includes('anatom') || text.includes('dominus')) return 'CT Scan';
   if (text.includes('c-arm') || text.includes('garion')) return 'C-Arm';
   if (text.includes('retro comfort')) return 'FPD';
@@ -120,7 +132,6 @@ function productFamily(product = '', type = '') {
   if (text.includes('portable') || text.includes('remex')) return 'Portable X-Ray';
   if (text.includes('pxr')) return 'Generator PXR';
   if (text.includes('x-ray') || text.includes('jumong') || text.includes('109x')) return 'Stationary X-Ray';
-  if (text.includes('eswl')) return 'ESWL';
   return product || 'Other';
 }
 
@@ -249,11 +260,7 @@ function installBaseStats(records = []) {
     const e = byProvince.get(r.province);
     if (r.source !== 'pdf_import') e.qty += Number(r.quantity) || 1;
   });
-  const family = new Map();
-  records.forEach(r => {
-    const k = r.productFamily || 'Other';
-    family.set(k, (family.get(k) || 0) + (Number(r.quantity) || 1));
-  });
+  const family = new Map(AUTHORITATIVE_PRODUCT_FAMILY_TOTALS.map(x => [x.name, x.qty]));
   return {
     baselineTotal,
     liveExtra,
@@ -267,6 +274,7 @@ function installBaseStats(records = []) {
 
 export {
   INSTALL_BASE_PROVINCE_SUMMARY,
+  AUTHORITATIVE_PRODUCT_FAMILY_TOTALS,
   PROVINCE_COORDS,
   normalizeInstallBaseRecord,
   buildInstallBase,

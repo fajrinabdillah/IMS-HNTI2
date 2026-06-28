@@ -9,7 +9,7 @@ import { currentYear } from '../utils/format.js';
 import { groupSphProjects, sumGroupedProjectValue, sumWeightedGroupedPipeline } from '../utils/sphProject.js';
 import { isBillableSphRow } from '../utils/sphPackage.js';
 import { InstallBaseDashboardCard } from './InstallBaseModule.jsx';
-function Dashboard({ data, reports, products, t, lang, session, fmt, employees = {}, bastRecords = [], installRecords = [] }) {
+function Dashboard({ data, reports, products, t, lang, session, fmt, employees = {}, bastRecords = [], installRecords = [], manualInstallBaseRecords = [] }) {
   // PERFORMANCE FIX: All filters/maps wrapped in useMemo to avoid recomputing on every render
   // (was causing scroll lag with 613 SPH records)
   const stats = useMemo(() => {
@@ -104,7 +104,7 @@ function Dashboard({ data, reports, products, t, lang, session, fmt, employees =
         <KPICard label={t.win_rate} value={`${winRate.toFixed(0)}%`} sublabel={`${wonData.length}/${wonData.length + lostData.length} closed`} trend={5.1} info={t.win_rate_sub} />
       </div>
 
-      <InstallBaseDashboardCard data={data} bastRecords={bastRecords} installRecords={installRecords} lang={lang} />
+      <InstallBaseDashboardCard data={data} bastRecords={bastRecords} installRecords={installRecords} manualRecords={manualInstallBaseRecords} lang={lang} />
 
       <div className="card" style={{marginBottom: '20px'}}>
         <div className="card-title">{t.monthly_pipeline}</div>

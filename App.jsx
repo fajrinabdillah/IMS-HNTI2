@@ -67,6 +67,8 @@ import { Dashboard } from './src/modules/Dashboard.jsx';
 import { RegulatoryDashboardCharts, RegulatoryModule, regStageLabel, RegDurationTimeline, UniformRegPipeline, RegulatoryRecordModal } from './src/modules/RegulatoryModule.jsx';
 import { InstallBaseModule } from './src/modules/InstallBaseModule.jsx';
 
+const INSTALL_BASE_MANUAL_KEY = 'ims_hnti:installbase_manual_v1';
+
 // ============== i18n ==============
 
 // ============== 5 Sales Team — synced with user spec ==============
@@ -355,6 +357,7 @@ export default function App() {
   const [businessTrips, setBusinessTrips] = useState(ALL_BUSINESS_TRIPS);
   const [realizations, setRealizations] = useState([]);
   const [products, setProducts] = useState(PRODUCT_MASTER_SEED);
+  const [manualInstallBaseRecords, setManualInstallBaseRecords] = useState([]);
   const setSphData = useCallback((updater) => {
     setData(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
@@ -834,6 +837,8 @@ export default function App() {
       if (docTplStored) try { setDocumentTemplates(mergeDocumentTemplates(JSON.parse(docTplStored))); } catch {}
       const genDocsStored = await storeGet(GENERATED_DOCS_KEY);
       if (genDocsStored) try { const a = JSON.parse(genDocsStored); if (Array.isArray(a)) setGeneratedDocs(a); } catch {}
+      const manualInstallBaseStored = await storeGet(INSTALL_BASE_MANUAL_KEY);
+      if (manualInstallBaseStored) try { const a = JSON.parse(manualInstallBaseStored); if (Array.isArray(a)) setManualInstallBaseRecords(a); } catch {}
       // Generate reg records on first load from current data
       if (reg) {
         try { setRegRecords(JSON.parse(reg)); } catch {}
@@ -882,7 +887,7 @@ export default function App() {
   const resyncFromCloud = useCallback(async () => {
     if (typeof window === 'undefined') return;
     try {
-      const [d, rep, iss, reg, akl, imp, pgl, pi, pm, mfst, cdoc, inst, bast, train, emp, bt, btr, audit, prod, ann, ut, rs, ma, r, notif, psAct, psFiles, docTpl, genDocs] = await Promise.all([
+      const [d, rep, iss, reg, akl, imp, pgl, pi, pm, mfst, cdoc, inst, bast, train, emp, bt, btr, audit, prod, ann, ut, rs, ma, r, notif, psAct, psFiles, docTpl, genDocs, ibManual] = await Promise.all([
         storeGet(STORAGE_KEY), storeGet(REPORTS_KEY),
         storeGet('ims_hnti:issues_v30'), storeGet('ims_hnti:reg_v30'), storeGet('ims_hnti:akl_v22'),
         storeGet('ims_hnti:imp_v22'), storeGet('ims_hnti:pgl_v22'), storeGet('ims_hnti:pi_v22'),
@@ -892,7 +897,7 @@ export default function App() {
         storeGet(AUDIT_LOG_KEY), storeGet(PRODUCT_KEY), storeGet(ANNOTATIONS_KEY),
         storeGet('ims_hnti:unittech_v1'), storeGet('ims_hnti:reports_seen_v1'),
         storeGet('ims_hnti:access_v1'), storeGet(RATE_KEY),
-        storeGet(NOTIF_KEY), storeGet(PRODUCT_SUPPORT_ACTIVITIES_KEY), storeGet(PRODUCT_SUPPORT_FILES_KEY), storeGet(DOCUMENT_TEMPLATE_KEY), storeGet(GENERATED_DOCS_KEY)
+        storeGet(NOTIF_KEY), storeGet(PRODUCT_SUPPORT_ACTIVITIES_KEY), storeGet(PRODUCT_SUPPORT_FILES_KEY), storeGet(DOCUMENT_TEMPLATE_KEY), storeGet(GENERATED_DOCS_KEY), storeGet(INSTALL_BASE_MANUAL_KEY)
       ]);
       const safe = (v, setter) => { if (v) try { setter(JSON.parse(v)); } catch {} };
       if (d && !isCloudApplyBlocked(STORAGE_KEY)) {
@@ -921,6 +926,7 @@ export default function App() {
         });
       } catch {}
       if (genDocs) try { const a = JSON.parse(genDocs); if (Array.isArray(a)) setGeneratedDocs(a); } catch {}
+      if (ibManual) try { const a = JSON.parse(ibManual); if (Array.isArray(a)) setManualInstallBaseRecords(a); } catch {}
       if (r) setExchangeRate(parseFloat(r) || DEFAULT_USD_IDR);
     } catch (e) {
       try { console.warn('[IMS resync] failed', e); } catch {}
@@ -1003,6 +1009,7 @@ export default function App() {
         case PRODUCT_SUPPORT_ACTIVITIES_KEY: setProductSupportActivities(Array.isArray(v) ? v : []); break;
         case PRODUCT_SUPPORT_FILES_KEY: setProductSupportFiles(Array.isArray(v) ? v : []); break;
         case GENERATED_DOCS_KEY: { if (Array.isArray(v)) setGeneratedDocs(v); break; }
+        case INSTALL_BASE_MANUAL_KEY: { if (Array.isArray(v)) setManualInstallBaseRecords(v); break; }
         case DOCUMENT_TEMPLATE_KEY: {
           if (typeof v !== 'object') return; // string terpotong → abaikan
           setDocumentTemplates(prev => {
@@ -1103,6 +1110,7 @@ export default function App() {
   useEffect(() => { if (!loading) debouncedStoreSet(PRODUCT_SUPPORT_FILES_KEY, JSON.stringify(productSupportFiles)); }, [productSupportFiles, loading]);
   useEffect(() => { if (!loading) debouncedStoreSet(DOCUMENT_TEMPLATE_KEY, JSON.stringify(documentTemplates)); }, [documentTemplates, loading]);
   useEffect(() => { if (!loading) debouncedStoreSet(GENERATED_DOCS_KEY, JSON.stringify(generatedDocs)); }, [generatedDocs, loading]);
+  useEffect(() => { if (!loading) debouncedStoreSet(INSTALL_BASE_MANUAL_KEY, JSON.stringify(manualInstallBaseRecords)); }, [manualInstallBaseRecords, loading]);
   useEffect(() => { if (!loading) debouncedStoreSet(ANNOTATIONS_KEY, JSON.stringify(annotations)); }, [annotations, loading]);
   useEffect(() => { if (!loading) debouncedStoreSet('ims_hnti:unittech_v1', JSON.stringify(unitTechMap)); }, [unitTechMap, loading]);
   useEffect(() => { if (!loading) debouncedStoreSet('ims_hnti:reports_seen_v1', JSON.stringify(reportsSeen)); }, [reportsSeen, loading]);
@@ -1150,7 +1158,7 @@ export default function App() {
     });
   };
   if (!session) return <><LoginScreen t={t} lang={lang} setLang={setLang} theme={theme} onLogin={handleLogin} employees={employees} /><ToastContainer /></>;
-  return <><AuthApp session={session} setSession={setSession} lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} t={t} data={data} setData={setSphData} reports={reports} setReports={setReports} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} regRecords={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} employees={employees} setEmployees={setEmployees} businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} installedUnits={installedUnits} baseInstalledUnits={baseInstalledUnits} fmt={fmt} fmtFull={fmtFull} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} lastSync={lastSync} onRefresh={handleRefresh} auditLog={auditLog} setAuditLog={setAuditLog} logAction={logAction} products={products} setProducts={setProducts} productSupportActivities={productSupportActivities} setProductSupportActivities={setProductSupportActivities} productSupportFiles={productSupportFiles} setProductSupportFiles={setProductSupportFiles} documentTemplates={documentTemplates} setDocumentTemplates={setDocumentTemplates} generatedDocs={generatedDocs} setGeneratedDocs={setGeneratedDocs} annotations={annotations} setAnnotations={setAnnotations} liveTechnicians={liveTechnicians} unitTechMap={unitTechMap} setUnitTechMap={setUnitTechMap} reportsSeen={reportsSeen} setReportsSeen={setReportsSeen} moduleAccess={moduleAccess} setModuleAccess={setModuleAccess} syncStatus={syncStatus} notifications={notifications} setNotifications={setNotifications} /><ToastContainer /></>;
+  return <><AuthApp session={session} setSession={setSession} lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} t={t} data={data} setData={setSphData} reports={reports} setReports={setReports} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} regRecords={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} employees={employees} setEmployees={setEmployees} businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} installedUnits={installedUnits} baseInstalledUnits={baseInstalledUnits} fmt={fmt} fmtFull={fmtFull} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} lastSync={lastSync} onRefresh={handleRefresh} auditLog={auditLog} setAuditLog={setAuditLog} logAction={logAction} products={products} setProducts={setProducts} productSupportActivities={productSupportActivities} setProductSupportActivities={setProductSupportActivities} productSupportFiles={productSupportFiles} setProductSupportFiles={setProductSupportFiles} documentTemplates={documentTemplates} setDocumentTemplates={setDocumentTemplates} generatedDocs={generatedDocs} setGeneratedDocs={setGeneratedDocs} annotations={annotations} setAnnotations={setAnnotations} liveTechnicians={liveTechnicians} unitTechMap={unitTechMap} setUnitTechMap={setUnitTechMap} reportsSeen={reportsSeen} setReportsSeen={setReportsSeen} moduleAccess={moduleAccess} setModuleAccess={setModuleAccess} syncStatus={syncStatus} notifications={notifications} setNotifications={setNotifications} manualInstallBaseRecords={manualInstallBaseRecords} setManualInstallBaseRecords={setManualInstallBaseRecords} /><ToastContainer /></>;
 }
 
 function LoginScreen({ t, lang, setLang, theme = 've', onLogin, employees }) {
@@ -1244,7 +1252,7 @@ function LoginScreen({ t, lang, setLang, theme = 've', onLogin, employees }) {
   );
 }
 
-function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t, data, setData, reports, setReports, issues, setIssues, pmSchedule, setPmSchedule, manifests, setManifests, customsDocs, setCustomsDocs, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, regRecords, setRegRecords, aklRecords, setAklRecords, importRecords, setImportRecords, pengalihanRecords, setPengalihanRecords, piRecords, setPiRecords, employees, setEmployees, businessTrips, setBusinessTrips, realizations, setRealizations, installedUnits, baseInstalledUnits, fmt, fmtFull, exchangeRate, setExchangeRate, lastSync, onRefresh, auditLog, setAuditLog, logAction, products, setProducts, productSupportActivities = [], setProductSupportActivities, productSupportFiles = [], setProductSupportFiles, documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, setDocumentTemplates, generatedDocs = [], setGeneratedDocs, annotations, setAnnotations, liveTechnicians, unitTechMap, setUnitTechMap, reportsSeen = {}, setReportsSeen, moduleAccess = {}, setModuleAccess, syncStatus = 'offline', notifications = [], setNotifications }) {
+function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t, data, setData, reports, setReports, issues, setIssues, pmSchedule, setPmSchedule, manifests, setManifests, customsDocs, setCustomsDocs, installRecords, setInstallRecords, bastRecords, setBastRecords, trainingRecords, setTrainingRecords, regRecords, setRegRecords, aklRecords, setAklRecords, importRecords, setImportRecords, pengalihanRecords, setPengalihanRecords, piRecords, setPiRecords, employees, setEmployees, businessTrips, setBusinessTrips, realizations, setRealizations, installedUnits, baseInstalledUnits, fmt, fmtFull, exchangeRate, setExchangeRate, lastSync, onRefresh, auditLog, setAuditLog, logAction, products, setProducts, productSupportActivities = [], setProductSupportActivities, productSupportFiles = [], setProductSupportFiles, documentTemplates = DEFAULT_DOCUMENT_TEMPLATES, setDocumentTemplates, generatedDocs = [], setGeneratedDocs, annotations, setAnnotations, liveTechnicians, unitTechMap, setUnitTechMap, reportsSeen = {}, setReportsSeen, moduleAccess = {}, setModuleAccess, syncStatus = 'offline', notifications = [], setNotifications, manualInstallBaseRecords = [], setManualInstallBaseRecords }) {
   const [view, setView] = useState(session.role === 'sales' ? 'sales_report' : session.role === 'regulatory' ? 'regulatory' : 'dashboard');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSph, setEditingSph] = useState(null);
@@ -1632,8 +1640,8 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
       <Header session={session} setSession={setSession} lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} view={view} setView={setView} allowedNav={allowedNav} t={t} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} businessTrips={businessTrips} realizations={realizations} reports={reports} reportsSeen={reportsSeen} onChangePassword={() => setChangePwOpen(true)} syncStatus={syncStatus} notifications={notifications} setNotifications={setNotifications} />
 
       <main className="main-content fade-in" style={{maxWidth: '1440px', margin: '0 auto', padding: '32px 48px 60px'}}>
-        {view === 'dashboard' && <Dashboard data={filteredData} reports={reports} products={products} t={t} lang={lang} session={session} fmt={fmt} employees={employees} bastRecords={bastRecords} installRecords={installRecords} />}
-        {view === 'install_base' && canRead('install_base') && <InstallBaseModule data={data} bastRecords={bastRecords} installRecords={installRecords} t={t} lang={lang} fmt={fmt} />}
+        {view === 'dashboard' && <Dashboard data={filteredData} reports={reports} products={products} t={t} lang={lang} session={session} fmt={fmt} employees={employees} bastRecords={bastRecords} installRecords={installRecords} manualInstallBaseRecords={manualInstallBaseRecords} />}
+        {view === 'install_base' && canRead('install_base') && <InstallBaseModule data={data} bastRecords={bastRecords} installRecords={installRecords} manualRecords={manualInstallBaseRecords} setManualRecords={setManualInstallBaseRecords} t={t} lang={lang} fmt={fmt} canEdit={canEdit('install_base')} />}
         {view === 'sph' && canRead('sph') && <SPHManagement data={filteredData} employees={employees} setEmployees={setEmployees} products={products} documentTemplates={documentTemplates} session={session} t={t} lang={lang} canEdit={canEdit('sph')} fmt={fmt} onAdd={() => { setEditingSph(null); setModalOpen(true); }} onEdit={(s) => { setEditingSph(s); setModalOpen(true); }} onDelete={handleDelete} onBulkDelete={handleBulkDeleteSph} onImport={handleImportSPH} onRequestSPH={handleRequestSPH} onRequestSPP={handleRequestSPP} onWorkflowUpdate={handleWorkflowUpdate} onSaveDocument={handleSaveDocument} generatedDocs={generatedDocs} setGeneratedDocs={setGeneratedDocs} />}
         {view === 'pipeline' && canRead('pipeline') && <PipelineBoard data={filteredData} allData={data} setData={setData} employees={employees} session={session} logAction={logAction} t={t} lang={lang} canEdit={canEdit('pipeline')} fmt={fmt} onEdit={(s) => { setEditingSph(s); setModalOpen(true); }} reports={reports} />}
         {view === 'sales' && canRead('sales') && <SalesModule data={data} reports={reports} t={t} lang={lang} fmt={fmt} employees={employees} />}

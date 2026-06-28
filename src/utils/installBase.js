@@ -193,10 +193,11 @@ function dedupeInstallBase(records = []) {
   return [...map.values()];
 }
 
-function buildInstallBase(data = [], bastRecords = [], installRecords = []) {
+function buildInstallBase(data = [], bastRecords = [], installRecords = [], manualRecords = []) {
   const baseline = INSTALL_BASE_SEED_RECORDS.map(r => normalizeInstallBaseRecord(r, 'pdf_import'));
   const live = [...fromOperationalRows(data), ...fromBastRecords(bastRecords), ...fromBastRecords(installRecords)];
-  return dedupeInstallBase([...baseline, ...live]);
+  const manual = (manualRecords || []).map(r => normalizeInstallBaseRecord(r, 'manual'));
+  return dedupeInstallBase([...baseline, ...live, ...manual]);
 }
 
 function installBaseStats(records = []) {
@@ -208,7 +209,7 @@ function installBaseStats(records = []) {
     if (!r.province) return;
     if (!byProvince.has(r.province)) byProvince.set(r.province, { province: r.province, qty: 0, lat: r.lat, lng: r.lng });
     const e = byProvince.get(r.province);
-    if (!INSTALL_BASE_PROVINCE_SUMMARY.some(p => p.province === r.province)) e.qty += Number(r.quantity) || 1;
+    if (r.source !== 'pdf_import') e.qty += Number(r.quantity) || 1;
   });
   const family = new Map();
   records.forEach(r => {
@@ -218,7 +219,7 @@ function installBaseStats(records = []) {
   return {
     baselineTotal,
     liveExtra,
-    totalUnits: totalUnits + Math.max(0, liveExtra - records.filter(r => r.source !== 'pdf_import').length),
+    totalUnits,
     provinceCount: byProvince.size,
     hospitalCount: new Set(records.map(r => norm(r.hospitalName)).filter(Boolean)).size,
     byProvince: [...byProvince.values()].sort((a, b) => b.qty - a.qty),

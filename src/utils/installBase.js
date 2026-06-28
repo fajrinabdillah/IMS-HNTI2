@@ -33,8 +33,14 @@ const AUTHORITATIVE_PRODUCT_FAMILY_TOTALS = [
 const KNOWN_SITE_COORDS = {
   'rsia andini': { lat: 0.5115, lng: 101.4246 },
   'rsi nashrul ummah': { lat: -7.1166, lng: 112.4162 },
+  'rsi nashrul ummah lamongan': { lat: -7.1166, lng: 112.4162 },
   'rs nashrul ummah lamongan': { lat: -7.1166, lng: 112.4162 },
   'rsud pratama adonara': { lat: -8.3242, lng: 123.1645 },
+  'rs pratama kubu': { lat: -8.2530, lng: 115.5570 },
+  'rs shanti graha': { lat: -8.1917, lng: 114.9499 },
+  'dr yanti health center - bali': { lat: -8.7210, lng: 115.1766 },
+  'rsu bangli': { lat: -8.4542, lng: 115.3549 },
+  'rsu bunda jembrana': { lat: -8.3614, lng: 114.6256 },
   'rsud otanaha': { lat: 0.5460, lng: 123.0332 },
   'rsud dr. irwan bokings': { lat: 0.5815, lng: 122.5578 },
   'rsud dr irwan bokings': { lat: 0.5815, lng: 122.5578 },
@@ -74,6 +80,14 @@ function isCorporatePayerRecord(record = {}) {
   return [record.customer, record.payerCustomer].some(isCorporatePayerName);
 }
 
+function canonicalHospitalName(value = '') {
+  const raw = String(value || '').trim();
+  const text = norm(raw);
+  if (text.includes('nashrul ummah')) return 'RSI Nashrul Ummah Lamongan';
+  if (text.includes('pratama adonara')) return 'RSUD Pratama Adonara';
+  return raw;
+}
+
 function hash01(input) {
   let h = 2166136261;
   for (const ch of String(input || '')) {
@@ -104,7 +118,7 @@ function inferProvince(record = {}) {
 }
 
 function coordinatesFor(record = {}) {
-  const known = KNOWN_SITE_COORDS[norm(record.hospitalName || record.installSiteName || record.customer)];
+  const known = KNOWN_SITE_COORDS[norm(canonicalHospitalName(record.hospitalName || record.installSiteName || record.customer))];
   if (known) return { ...known, precision: 'known-site' };
   if (Number.isFinite(Number(record.lat)) && Number.isFinite(Number(record.lng))) {
     return { lat: Number(record.lat), lng: Number(record.lng), precision: 'exact' };
@@ -144,9 +158,10 @@ function normalizeInstallBaseRecord(record, source = 'manual') {
   const coords = coordinatesFor({ ...record, province });
   const product = record.product || record.modality || record.subModality || 'Unknown';
   const type = record.type || record.subModality || record.productBrand || record.brand || '';
+  const hospitalName = canonicalHospitalName(record.hospitalName || record.installSiteName || record.customer || '-');
   return {
     id: record.id || `ib_${source}_${Math.random().toString(36).slice(2, 9)}`,
-    hospitalName: record.hospitalName || record.installSiteName || record.customer || '-',
+    hospitalName,
     address: record.address || record.installSiteAddress || record.customerAddress || '',
     province,
     city: record.city || record.destinationCity || '',

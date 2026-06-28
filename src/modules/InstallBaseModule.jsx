@@ -19,6 +19,7 @@ const FAMILY_COLORS = {
 const RADIAN = Math.PI / 180;
 const MAP_POINT_OVERRIDES = {
   'rsi nashrul ummah': { lat: -7.1166, lng: 112.4162 },
+  'rsi nashrul ummah lamongan': { lat: -7.1166, lng: 112.4162 },
   'rs nashrul ummah lamongan': { lat: -7.1166, lng: 112.4162 },
   'rsud pratama adonara': { lat: -8.3242, lng: 123.1645 },
   // Visual alignment for the very narrow Gorontalo peninsula on the SVG map.
@@ -64,7 +65,17 @@ function renderPieLabel({ cx, cy, midAngle, outerRadius, name, percent }) {
 }
 
 function mapCoordsFor(record = {}) {
-  return MAP_POINT_OVERRIDES[String(record.hospitalName || '').trim().toLowerCase()] || record;
+  const override = MAP_POINT_OVERRIDES[String(record.hospitalName || '').trim().toLowerCase()];
+  if (override) return override;
+  if (record.province === 'Bali') {
+    return {
+      lat: Math.min(-8.15, Math.max(-8.75, Number(record.lat) || -8.4095)),
+      // The source SVG renders Bali very close to east Java; nudge visual markers eastward
+      // while preserving the true coordinates in the tooltip/table.
+      lng: Math.min(115.62, Math.max(115.08, (Number(record.lng) || 115.1889) + 0.18)),
+    };
+  }
+  return record;
 }
 
 function projectPoint(lat, lng) {
@@ -86,7 +97,8 @@ function InstallBaseMap({ records = [], stats, selectedProvince = 'all', lang = 
     const grouped = new Map();
     records.forEach(r => {
       if (selectedProvince !== 'all' && r.province !== selectedProvince) return;
-      const key = `${r.hospitalName}|${r.lat?.toFixed?.(3)}|${r.lng?.toFixed?.(3)}`;
+      const mapCoords = mapCoordsFor(r);
+      const key = `${r.hospitalName}|${Number(mapCoords.lat).toFixed(3)}|${Number(mapCoords.lng).toFixed(3)}`;
       if (!grouped.has(key)) grouped.set(key, { ...r, qty: 0, families: new Set() });
       const g = grouped.get(key);
       g.qty += Number(r.quantity) || 1;

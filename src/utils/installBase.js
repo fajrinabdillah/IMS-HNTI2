@@ -20,6 +20,13 @@ const PROVINCE_COORDS = {
   'Gorontalo': { lat: 0.6999, lng: 122.4467 },
 };
 
+const KNOWN_SITE_COORDS = {
+  'rsia andini': { lat: 0.5115, lng: 101.4246 },
+  'rsud otanaha': { lat: 0.5460, lng: 123.0332 },
+  'rsud dr. irwan bokings': { lat: 0.5815, lng: 122.5578 },
+  'rsud dr irwan bokings': { lat: 0.5815, lng: 122.5578 },
+};
+
 const PROVINCE_ALIASES = {
   'jabar': 'Jawa Barat',
   'jawa barat': 'Jawa Barat',
@@ -79,11 +86,14 @@ function coordinatesFor(record = {}) {
   if (Number.isFinite(Number(record.latitude)) && Number.isFinite(Number(record.longitude))) {
     return { lat: Number(record.latitude), lng: Number(record.longitude), precision: 'exact' };
   }
+  const known = KNOWN_SITE_COORDS[norm(record.hospitalName || record.installSiteName || record.customer)];
+  if (known) return { ...known, precision: 'known-site' };
   const province = inferProvince(record);
   const base = PROVINCE_COORDS[province] || { lat: -2.5, lng: 118 };
   const key = [record.hospitalName, record.customer, record.product, record.type, record.sphNo].filter(Boolean).join('|');
-  const latJitter = (hash01(key + 'lat') - 0.5) * 0.9;
-  const lngJitter = (hash01(key + 'lng') - 0.5) * 1.4;
+  const jitterScale = province === 'Gorontalo' ? 0.18 : 1;
+  const latJitter = (hash01(key + 'lat') - 0.5) * 0.9 * jitterScale;
+  const lngJitter = (hash01(key + 'lng') - 0.5) * 1.4 * jitterScale;
   return { lat: base.lat + latJitter, lng: base.lng + lngJitter, precision: province ? 'province-estimated' : 'estimated' };
 }
 
@@ -94,7 +104,8 @@ function productFamily(product = '', type = '') {
   if (text.includes('fpd') || text.includes('venu')) return 'FPD';
   if (text.includes('mobile')) return 'Mobile X-Ray';
   if (text.includes('portable') || text.includes('remex')) return 'Portable X-Ray';
-  if (text.includes('x-ray') || text.includes('jumong') || text.includes('109x')) return 'X-Ray';
+  if (text.includes('pxr')) return 'Generator PXR';
+  if (text.includes('x-ray') || text.includes('jumong') || text.includes('109x')) return 'Stationary X-Ray';
   if (text.includes('eswl')) return 'ESWL';
   return product || 'Other';
 }
@@ -138,7 +149,14 @@ function isArrivedAtHospital(row = {}) {
 }
 
 function fromOperationalRows(data = []) {
-  return (data || []).filter(isArrivedAtHospital).map(row => normalizeInstallBaseRecord({
+  return (data || []).filter(row => {
+    if (!isArrivedAtHospital(row)) return false;
+    const site = String(row.installSiteName || '').trim();
+    const customer = String(row.customer || '').trim();
+    // Rekanan/payer korporat bukan titik instalasi RS; plot hanya jika ada installSiteName.
+    if (!site && /^pt\.?\s+/i.test(customer)) return false;
+    return true;
+  }).map(row => normalizeInstallBaseRecord({
     id: `ib_ops_${row.id}`,
     hospitalName: row.installSiteName || row.customer,
     address: row.installSiteAddress || row.customerAddress,

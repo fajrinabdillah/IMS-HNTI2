@@ -7,14 +7,16 @@ import indonesiaMapUrl from '../assets/indonesia-provinces-outline.svg';
 
 const FAMILY_COLORS = {
   'CT Scan': '#4cc9f0',
-  'X-Ray': '#d6b36a',
+  'Stationary X-Ray': '#d6b36a',
   'Mobile X-Ray': '#7dd3fc',
   'Portable X-Ray': '#a78bfa',
   'C-Arm': '#fb7185',
   'FPD': '#34d399',
+  'Generator PXR': '#f59e0b',
   'ESWL': '#f59e0b',
   Other: '#94a3b8',
 };
+const RADIAN = Math.PI / 180;
 
 const EMPTY_MANUAL_RECORD = {
   hospitalName: '',
@@ -40,6 +42,23 @@ const INDONESIA_ISLANDS = [
   { name: 'Bali-Nusa Tenggara', points: [[115.0, -8.1], [117.2, -8.3], [120.5, -8.5], [123.7, -8.7], [126.8, -8.8], [125.5, -9.6], [121.4, -9.4], [117.5, -9.1]] },
   { name: 'Maluku', points: [[126.6, 1.7], [128.6, 0.6], [129.6, -2.4], [128.2, -4.8], [126.0, -3.2], [126.8, -0.7]] },
 ];
+
+function scrollToManualForm() {
+  setTimeout(() => {
+    document.getElementById('installbase-manual-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 30);
+}
+
+function renderPieLabel({ cx, cy, midAngle, outerRadius, name, percent }) {
+  const radius = outerRadius + 18;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  return (
+    <text x={x} y={y} fill="#fff" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" style={{fontSize: 10, fontWeight: 600}}>
+      {`${name} ${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+}
 
 function projectPoint(lat, lng) {
   const x = ((Number(lng) - 94.2744) / (142.8539 - 94.2744)) * 100;
@@ -238,6 +257,7 @@ function InstallBaseModule({ data = [], bastRecords = [], installRecords = [], m
   const startAdd = () => {
     setEditing({ mode: 'add' });
     setForm({ ...EMPTY_MANUAL_RECORD, installationYear: new Date().getFullYear() });
+    scrollToManualForm();
   };
   const startEdit = (record) => {
     const isManual = String(record.source || '').includes('manual');
@@ -257,6 +277,7 @@ function InstallBaseModule({ data = [], bastRecords = [], installRecords = [], m
       lng: Number.isFinite(Number(record.lng)) ? Number(record.lng).toFixed(6) : '',
       sphNo: record.sphNo || '',
     });
+    scrollToManualForm();
   };
   const cancelEdit = () => {
     setEditing(null);
@@ -303,7 +324,7 @@ function InstallBaseModule({ data = [], bastRecords = [], installRecords = [], m
       </div>
 
       {editing && (
-        <div className="card" style={{marginBottom: '18px', borderColor: 'rgba(214,179,106,0.45)'}}>
+        <div id="installbase-manual-form" className="card" style={{marginBottom: '18px', borderColor: 'rgba(214,179,106,0.45)'}}>
           <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '14px'}}>
             <div>
               <div className="card-title" style={{margin: 0}}>{editing.mode === 'add' ? 'Tambah Data Install Base Manual' : editing.mode === 'override' ? 'Buat Override Manual' : 'Edit Data Manual'}</div>
@@ -382,14 +403,34 @@ function InstallBaseModule({ data = [], bastRecords = [], installRecords = [], m
         </div>
         <div className="card">
           <div className="card-title">Product Family Mix</div>
-          <ResponsiveContainer width="100%" height={260}>
+          <ResponsiveContainer width="100%" height={210}>
             <PieChart>
-              <Pie data={stats.byProductFamily} dataKey="qty" nameKey="name" cx="50%" cy="50%" outerRadius={88} label={({ name }) => name} style={{fontSize: 10}}>
+              <Pie
+                data={stats.byProductFamily}
+                dataKey="qty"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={78}
+                label={renderPieLabel}
+              >
                 {stats.byProductFamily.map((entry, i) => <Cell key={entry.name} fill={FAMILY_COLORS[entry.name] || Object.values(FAMILY_COLORS)[i % 8]} />)}
               </Pie>
               <Tooltip contentStyle={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', fontSize: 11}} />
             </PieChart>
           </ResponsiveContainer>
+          <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px 10px', marginTop: '8px'}}>
+            {stats.byProductFamily.map((entry, i) => {
+              const color = FAMILY_COLORS[entry.name] || Object.values(FAMILY_COLORS)[i % 8];
+              return (
+                <div key={entry.name} style={{display: 'flex', alignItems: 'center', gap: 7, color: '#fff', fontSize: '10px'}}>
+                  <span style={{width: 9, height: 9, borderRadius: 99, background: color, boxShadow: `0 0 10px ${color}`}} />
+                  <span style={{flex: 1}}>{entry.name}</span>
+                  <strong>{entry.qty}</strong>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -425,11 +466,11 @@ function InstallBaseModule({ data = [], bastRecords = [], installRecords = [], m
                   <Td>
                     {canEdit ? (
                       <div style={{display: 'flex', gap: '6px', flexWrap: 'wrap'}}>
-                        <button onClick={() => startEdit(r)} title={String(r.source || '').includes('manual') ? 'Edit data manual' : 'Buat override manual'} style={{border: '1px solid var(--ims-border)', background: 'transparent', padding: '6px 8px', cursor: 'pointer', fontSize: '10px', display: 'flex', alignItems: 'center', gap: 4}}>
+                        <button onClick={() => startEdit(r)} title={String(r.source || '').includes('manual') ? 'Edit data manual' : 'Buat override manual'} style={{border: '1px solid rgba(255,255,255,0.35)', color: '#fff', background: 'rgba(255,255,255,0.06)', padding: '6px 8px', cursor: 'pointer', fontSize: '10px', display: 'flex', alignItems: 'center', gap: 4}}>
                           <Pencil size={12} /> Edit
                         </button>
                         {String(r.source || '').includes('manual') && (
-                          <button onClick={() => deleteManual(r)} title="Hapus data manual" style={{border: '1px solid rgba(192,48,48,0.35)', color: '#c03030', background: 'transparent', padding: '6px 8px', cursor: 'pointer', fontSize: '10px', display: 'flex', alignItems: 'center', gap: 4}}>
+                          <button onClick={() => deleteManual(r)} title="Hapus data manual" style={{border: '1px solid rgba(255,140,140,0.45)', color: '#fff', background: 'rgba(192,48,48,0.18)', padding: '6px 8px', cursor: 'pointer', fontSize: '10px', display: 'flex', alignItems: 'center', gap: 4}}>
                             <Trash2 size={12} /> Hapus
                           </button>
                         )}

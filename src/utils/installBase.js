@@ -34,7 +34,9 @@ const KNOWN_SITE_COORDS = {
   'rsia andini': { lat: 0.5115, lng: 101.4246 },
   'rsi nashrul ummah': { lat: -7.1166, lng: 112.4162 },
   'rsi nashrul ummah lamongan': { lat: -7.1166, lng: 112.4162 },
+  'rs nashrul ummah': { lat: -7.1166, lng: 112.4162 },
   'rs nashrul ummah lamongan': { lat: -7.1166, lng: 112.4162 },
+  'rs nashrul': { lat: -7.1166, lng: 112.4162 },
   'rsud pratama adonara': { lat: -8.3242, lng: 123.1645 },
   'rs pratama kubu': { lat: -8.2530, lng: 115.5570 },
   'rs shanti graha': { lat: -8.1917, lng: 114.9499 },
@@ -83,9 +85,13 @@ function isCorporatePayerRecord(record = {}) {
 function canonicalHospitalName(value = '') {
   const raw = String(value || '').trim();
   const text = norm(raw);
-  if (text.includes('nashrul ummah')) return 'RSI Nashrul Ummah Lamongan';
+  if (text.includes('nashrul')) return 'RSI Nashrul Ummah Lamongan';
   if (text.includes('pratama adonara')) return 'RSUD Pratama Adonara';
   return raw;
+}
+
+function mapLocationKey(record = {}) {
+  return `${norm(canonicalHospitalName(record.hospitalName))}|${record.province || ''}`;
 }
 
 function hash01(input) {
@@ -106,6 +112,8 @@ function normalizeProvince(value = '') {
 }
 
 function inferProvince(record = {}) {
+  const hospital = norm(record.hospitalName || record.installSiteName || record.customer);
+  if (hospital.includes('nashrul')) return 'Jawa Timur';
   const fields = [record.province, record.installSiteRegion, record.region, record.address, record.customerAddress, record.installSiteAddress].filter(Boolean);
   for (const field of fields) {
     const text = norm(field);
@@ -113,12 +121,14 @@ function inferProvince(record = {}) {
     if (PROVINCE_COORDS[direct]) return direct;
     const hit = Object.keys(PROVINCE_COORDS).find(p => text.includes(norm(p)));
     if (hit) return hit;
+    if (text.includes('lamongan')) return 'Jawa Timur';
   }
   return '';
 }
 
 function coordinatesFor(record = {}) {
-  const known = KNOWN_SITE_COORDS[norm(canonicalHospitalName(record.hospitalName || record.installSiteName || record.customer))];
+  const canonical = canonicalHospitalName(record.hospitalName || record.installSiteName || record.customer);
+  const known = KNOWN_SITE_COORDS[norm(canonical)];
   if (known) return { ...known, precision: 'known-site' };
   if (Number.isFinite(Number(record.lat)) && Number.isFinite(Number(record.lng))) {
     return { lat: Number(record.lat), lng: Number(record.lng), precision: 'exact' };
@@ -154,17 +164,17 @@ function unitKey(record = {}) {
 }
 
 function normalizeInstallBaseRecord(record, source = 'manual') {
-  const province = inferProvince(record) || normalizeProvince(record.province || '');
-  const coords = coordinatesFor({ ...record, province });
+  const hospitalName = canonicalHospitalName(record.hospitalName || record.installSiteName || record.customer || '-');
+  const province = inferProvince({ ...record, hospitalName }) || normalizeProvince(record.province || '');
+  const coords = coordinatesFor({ ...record, hospitalName, province });
   const product = record.product || record.modality || record.subModality || 'Unknown';
   const type = record.type || record.subModality || record.productBrand || record.brand || '';
-  const hospitalName = canonicalHospitalName(record.hospitalName || record.installSiteName || record.customer || '-');
   return {
     id: record.id || `ib_${source}_${Math.random().toString(36).slice(2, 9)}`,
     hospitalName,
     address: record.address || record.installSiteAddress || record.customerAddress || '',
     province,
-    city: record.city || record.destinationCity || '',
+    city: record.city || record.destinationCity || (hospitalName.includes('Nashrul') ? 'Lamongan' : ''),
     product,
     type,
     productFamily: productFamily(product, type),
@@ -194,7 +204,6 @@ function fromOperationalRows(data = []) {
     if (isCorporatePayerRecord(row)) return false;
     const site = String(row.installSiteName || '').trim();
     const customer = String(row.customer || '').trim();
-    // Rekanan/payer korporat bukan titik instalasi RS; plot hanya jika ada installSiteName.
     if (!site && /^pt\.?\s+/i.test(customer)) return false;
     if (/^pt\.?\s+/i.test(site)) return false;
     return true;
@@ -291,6 +300,8 @@ export {
   INSTALL_BASE_PROVINCE_SUMMARY,
   AUTHORITATIVE_PRODUCT_FAMILY_TOTALS,
   PROVINCE_COORDS,
+  canonicalHospitalName,
+  mapLocationKey,
   normalizeInstallBaseRecord,
   buildInstallBase,
   installBaseStats,

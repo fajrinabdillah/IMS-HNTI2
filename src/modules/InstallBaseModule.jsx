@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Activity, MapPin, Pencil, Plus, Save, Search, Sparkles, Target, Trash2, X, Zap } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Th, Td } from '../components/ui.jsx';
-import { buildInstallBase, installBaseStats, normalizeInstallBaseRecord } from '../utils/installBase.js';
+import { buildInstallBase, installBaseStats, mapLocationKey, normalizeInstallBaseRecord } from '../utils/installBase.js';
 import indonesiaMapUrl from '../assets/indonesia-provinces-outline.svg';
 
 const FAMILY_COLORS = {
@@ -16,17 +16,24 @@ const FAMILY_COLORS = {
   'ESWL': '#f59e0b',
   Other: '#94a3b8',
 };
+
 const RADIAN = Math.PI / 180;
+
+// Visual lat/lng tuned to align with the Indonesia SVG map asset (not raw geodesic coords).
 const MAP_POINT_OVERRIDES = {
-  'rsi nashrul ummah': { lat: -7.1166, lng: 112.4162 },
-  'rsi nashrul ummah lamongan': { lat: -7.1166, lng: 112.4162 },
-  'rs nashrul ummah lamongan': { lat: -7.1166, lng: 112.4162 },
+  'rsi nashrul ummah lamongan': { lat: -7.1224, lng: 112.3946 },
   'rsud pratama adonara': { lat: -8.3242, lng: 123.1645 },
-  // Visual alignment for the very narrow Gorontalo peninsula on the SVG map.
   'rsud otanaha': { lat: 0.18, lng: 123.02 },
   'rsud dr. irwan bokings': { lat: 0.10, lng: 122.58 },
   'rsud dr irwan bokings': { lat: 0.10, lng: 122.58 },
+  'rsu bangli': { lat: -9.7327, lng: 116.0380 },
+  'dr yanti health center - bali': { lat: -10.0732, lng: 116.1352 },
+  'rs pratama kubu': { lat: -9.8689, lng: 116.7181 },
+  'rs shanti graha': { lat: -9.4149, lng: 115.6494 },
+  'rsu bunda jembrana': { lat: -9.5738, lng: 115.2607 },
 };
+
+const BALI_VISUAL_DEFAULT = { lat: -9.73, lng: 116.04 };
 
 const EMPTY_MANUAL_RECORD = {
   hospitalName: '',
@@ -43,15 +50,9 @@ const EMPTY_MANUAL_RECORD = {
   sphNo: '',
 };
 
-const INDONESIA_ISLANDS = [
-  { name: 'Sumatra', points: [[95.2, 5.8], [97.2, 4.9], [100.4, 1.9], [103.7, -1.4], [106.1, -5.8], [104.4, -6.1], [101.4, -3.3], [98.1, -0.1], [94.8, 3.0]] },
-  { name: 'Jawa', points: [[105.0, -5.7], [108.0, -6.2], [111.8, -6.8], [114.8, -7.5], [113.7, -8.4], [109.8, -7.9], [106.1, -7.1]] },
-  { name: 'Kalimantan', points: [[108.1, 3.8], [113.8, 4.1], [118.4, 1.3], [118.0, -2.7], [114.0, -4.4], [109.1, -2.1], [107.6, 1.0]] },
-  { name: 'Sulawesi', points: [[119.0, 1.8], [124.6, 1.2], [123.0, -0.8], [125.4, -3.3], [123.0, -5.6], [120.6, -3.5], [118.2, -4.6], [119.8, -1.7], [117.8, -0.2]] },
-  { name: 'Papua', points: [[130.5, -1.0], [136.0, -0.3], [141.0, -2.8], [140.2, -7.4], [134.2, -8.7], [130.0, -5.5]] },
-  { name: 'Bali-Nusa Tenggara', points: [[115.0, -8.1], [117.2, -8.3], [120.5, -8.5], [123.7, -8.7], [126.8, -8.8], [125.5, -9.6], [121.4, -9.4], [117.5, -9.1]] },
-  { name: 'Maluku', points: [[126.6, 1.7], [128.6, 0.6], [129.6, -2.4], [128.2, -4.8], [126.0, -3.2], [126.8, -0.7]] },
-];
+function L(lang, id, en) {
+  return lang === 'id' ? id : en;
+}
 
 function renderPieLabel({ cx, cy, midAngle, outerRadius, name, percent }) {
   const radius = outerRadius + 18;
@@ -65,17 +66,10 @@ function renderPieLabel({ cx, cy, midAngle, outerRadius, name, percent }) {
 }
 
 function mapCoordsFor(record = {}) {
-  const override = MAP_POINT_OVERRIDES[String(record.hospitalName || '').trim().toLowerCase()];
-  if (override) return override;
-  if (record.province === 'Bali') {
-    return {
-      lat: Math.min(-8.15, Math.max(-8.75, Number(record.lat) || -8.4095)),
-      // The source SVG renders Bali very close to east Java; nudge visual markers eastward
-      // while preserving the true coordinates in the tooltip/table.
-      lng: Math.min(115.62, Math.max(115.08, (Number(record.lng) || 115.1889) + 0.18)),
-    };
-  }
-  return record;
+  const key = String(record.hospitalName || '').trim().toLowerCase();
+  if (MAP_POINT_OVERRIDES[key]) return MAP_POINT_OVERRIDES[key];
+  if (record.province === 'Bali') return BALI_VISUAL_DEFAULT;
+  return { lat: record.lat, lng: record.lng };
 }
 
 function projectPoint(lat, lng) {
@@ -87,31 +81,23 @@ function projectPoint(lat, lng) {
   };
 }
 
-function svgPoint(lat, lng) {
-  const p = projectPoint(lat, lng);
-  return `${(p.x * 10).toFixed(1)},${(p.y * 3.6).toFixed(1)}`;
-}
-
 function InstallBaseMap({ records = [], stats, selectedProvince = 'all', lang = 'id' }) {
   const points = useMemo(() => {
     const grouped = new Map();
     records.forEach(r => {
       if (selectedProvince !== 'all' && r.province !== selectedProvince) return;
       const mapCoords = mapCoordsFor(r);
-      const key = `${r.hospitalName}|${Number(mapCoords.lat).toFixed(3)}|${Number(mapCoords.lng).toFixed(3)}`;
-      if (!grouped.has(key)) grouped.set(key, { ...r, qty: 0, families: new Set() });
+      const key = mapLocationKey(r);
+      if (!grouped.has(key)) grouped.set(key, { ...r, qty: 0, families: new Set(), mapLat: mapCoords.lat, mapLng: mapCoords.lng });
       const g = grouped.get(key);
       g.qty += Number(r.quantity) || 1;
       g.families.add(r.productFamily || 'Other');
     });
-    return [...grouped.values()].map(p => {
-      const mapCoords = mapCoordsFor(p);
-      return {
-        ...p,
-        ...projectPoint(mapCoords.lat, mapCoords.lng),
-        color: FAMILY_COLORS[[...p.families][0]] || FAMILY_COLORS.Other,
-      };
-    });
+    return [...grouped.values()].map(p => ({
+      ...p,
+      ...projectPoint(p.mapLat, p.mapLng),
+      color: FAMILY_COLORS[[...p.families][0]] || FAMILY_COLORS.Other,
+    }));
   }, [records, selectedProvince]);
 
   return (
@@ -203,15 +189,21 @@ function InstallBaseMap({ records = [], stats, selectedProvince = 'all', lang = 
       `}</style>
       <div style={{position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', gap: '16px', alignItems: 'flex-start'}}>
         <div>
-          <div style={{fontSize: '10px', letterSpacing: '0.24em', textTransform: 'uppercase', color: 'var(--ims-gold)', fontWeight: 800}}>HNTI Installed Base Command Center</div>
-          <div className="serif" style={{fontSize: '34px', marginTop: '6px', color: '#fff', fontWeight: 500}}>203 Units Across Indonesia</div>
-          <div style={{fontSize: '12px', color: 'rgba(255,255,255,0.66)', marginTop: '4px'}}>{lang === 'id' ? 'Baseline PDF 203 unit; data operasional tampil sebagai live sync terpisah' : '203-unit PDF baseline; operations data appears as separate live sync'}</div>
+          <div style={{fontSize: '10px', letterSpacing: '0.24em', textTransform: 'uppercase', color: 'var(--ims-gold)', fontWeight: 800}}>
+            {L(lang, 'Pusat Komando Install Base HNTI', 'HNTI Installed Base Command Center')}
+          </div>
+          <div className="serif" style={{fontSize: '34px', marginTop: '6px', color: '#fff', fontWeight: 500}}>
+            {L(lang, '203 Unit di Seluruh Indonesia', '203 Units Across Indonesia')}
+          </div>
+          <div style={{fontSize: '12px', color: 'rgba(255,255,255,0.66)', marginTop: '4px'}}>
+            {L(lang, 'Baseline PDF 203 unit; data operasional tampil sebagai live sync terpisah', '203-unit PDF baseline; operations data appears as separate live sync')}
+          </div>
         </div>
         <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, minmax(88px, 1fr))', gap: '8px', minWidth: '310px'}}>
           {[
-            ['TOTAL UNIT', stats.totalUnits],
-            ['PROVINSI', stats.provinceCount],
-            ['RS/LOKASI', stats.hospitalCount],
+            [L(lang, 'TOTAL UNIT', 'TOTAL UNITS'), stats.totalUnits],
+            [L(lang, 'PROVINSI', 'PROVINCES'), stats.provinceCount],
+            [L(lang, 'RS/LOKASI', 'HOSPITALS'), stats.hospitalCount],
           ].map(([label, value]) => (
             <div key={label} style={{padding: '10px 12px', background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.12)'}}>
               <div style={{fontSize: '9px', color: 'rgba(255,255,255,0.55)', letterSpacing: '0.16em'}}>{label}</div>
@@ -223,7 +215,7 @@ function InstallBaseMap({ records = [], stats, selectedProvince = 'all', lang = 
 
       <div className="ib-map-stage">
         <div className="ib-map-canvas">
-          <img src={indonesiaMapUrl} alt="Peta Indonesia" className="ib-map-img" />
+          <img src={indonesiaMapUrl} alt={L(lang, 'Peta Indonesia', 'Indonesia Map')} className="ib-map-img" />
           <div style={{position: 'absolute', left: 0, right: 0, bottom: '36px', borderTop: '1px dashed rgba(214,179,106,0.18)'}} />
           {points.map((p, idx) => {
             const size = Math.min(22, 7 + Math.sqrt(p.qty || 1) * 3);
@@ -231,7 +223,7 @@ function InstallBaseMap({ records = [], stats, selectedProvince = 'all', lang = 
               <div key={`${p.hospitalName}-${idx}`} className="ib-dot" style={{left: `${p.x}%`, top: `${p.y}%`, width: size, height: size, color: p.color, background: p.color}}>
                 <div className="ib-tip">
                   <strong>{p.hospitalName}</strong><br />
-                  {p.province} · {p.qty} unit<br />
+                  {p.province} · {p.qty} {L(lang, 'unit', 'units')}<br />
                   {[...p.families].join(', ')}
                   <div style={{fontSize: '10px', color: 'rgba(255,255,255,0.62)', marginTop: 4}}>
                     {Number(p.lat).toFixed(4)}, {Number(p.lng).toFixed(4)}
@@ -323,7 +315,7 @@ function InstallBaseModule({ data = [], bastRecords = [], installRecords = [], m
   };
   const deleteManual = (record) => {
     if (!setManualRecords || !String(record.source || '').includes('manual')) return;
-    const ok = window.confirm(lang === 'id' ? `Hapus data manual ${record.hospitalName}?` : `Delete manual record ${record.hospitalName}?`);
+    const ok = window.confirm(L(lang, `Hapus data manual ${record.hospitalName}?`, `Delete manual record ${record.hospitalName}?`));
     if (!ok) return;
     setManualRecords(prev => (prev || []).filter(r => r.id !== record.id));
   };
@@ -331,16 +323,22 @@ function InstallBaseModule({ data = [], bastRecords = [], installRecords = [], m
   return (
     <div>
       <div style={{marginBottom: '22px'}}>
-        <div style={{fontSize: '11px', letterSpacing: '0.3em', color: 'var(--ims-text-2)', textTransform: 'uppercase', marginBottom: '6px'}}>Install Base</div>
+        <div style={{fontSize: '11px', letterSpacing: '0.3em', color: 'var(--ims-text-2)', textTransform: 'uppercase', marginBottom: '6px'}}>
+          {L(lang, 'Install Base', 'Install Base')}
+        </div>
         <div style={{display: 'flex', justifyContent: 'space-between', gap: '14px', alignItems: 'flex-start', flexWrap: 'wrap'}}>
-          <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>HNTI Install Base</h1>
+          <h1 className="serif hero-title" style={{fontSize: '36px', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1}}>
+            {L(lang, 'Install Base HNTI', 'HNTI Install Base')}
+          </h1>
           {canEdit && (
             <button className="btn-primary" onClick={startAdd} style={{padding: '10px 14px', fontSize: '11px'}}>
-              <Plus size={14} /> Tambah Manual
+              <Plus size={14} /> {L(lang, 'Tambah Manual', 'Add Manual')}
             </button>
           )}
         </div>
-        <div style={{fontSize: '13px', color: 'var(--ims-text-2)', marginTop: '6px'}}>Peta populasi alat HNTI, baseline 203 unit dan sinkronisasi otomatis dari operasional/BAST.</div>
+        <div style={{fontSize: '13px', color: 'var(--ims-text-2)', marginTop: '6px'}}>
+          {L(lang, 'Peta populasi alat HNTI, baseline 203 unit dan sinkronisasi otomatis dari operasional/BAST.', 'HNTI equipment footprint map with 203-unit PDF baseline and automatic sync from operations/BAST.')}
+        </div>
       </div>
 
       {editing && (
@@ -357,51 +355,61 @@ function InstallBaseModule({ data = [], bastRecords = [], installRecords = [], m
           }}
           onMouseDown={(e) => { if (e.target === e.currentTarget) cancelEdit(); }}
         >
-        <div id="installbase-manual-form" className="card" style={{width: 'min(980px, 96vw)', maxHeight: '88vh', overflowY: 'auto', borderColor: 'rgba(214,179,106,0.45)', boxShadow: '0 30px 90px rgba(0,0,0,0.55)'}}>
-          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '14px'}}>
-            <div>
-              <div className="card-title" style={{margin: 0}}>{editing.mode === 'add' ? 'Tambah Data Install Base Manual' : editing.mode === 'override' ? 'Buat Override Manual' : 'Edit Data Manual'}</div>
-              <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: 3}}>Isi koordinat latitude/longitude jika ingin titik RS lebih presisi.</div>
+          <div id="installbase-manual-form" className="card" style={{width: 'min(980px, 96vw)', maxHeight: '88vh', overflowY: 'auto', borderColor: 'rgba(214,179,106,0.45)', boxShadow: '0 30px 90px rgba(0,0,0,0.55)'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '14px'}}>
+              <div>
+                <div className="card-title" style={{margin: 0}}>
+                  {editing.mode === 'add'
+                    ? L(lang, 'Tambah Data Install Base Manual', 'Add Manual Install Base Record')
+                    : editing.mode === 'override'
+                      ? L(lang, 'Buat Override Manual', 'Create Manual Override')
+                      : L(lang, 'Edit Data Manual', 'Edit Manual Record')}
+                </div>
+                <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: 3}}>
+                  {L(lang, 'Isi koordinat latitude/longitude jika ingin titik RS lebih presisi.', 'Enter latitude/longitude for more precise map placement.')}
+                </div>
+              </div>
+              <button onClick={cancelEdit} style={{border: '1px solid var(--ims-border)', background: 'transparent', padding: '8px 10px', cursor: 'pointer'}}><X size={14} /></button>
             </div>
-            <button onClick={cancelEdit} style={{border: '1px solid var(--ims-border)', background: 'transparent', padding: '8px 10px', cursor: 'pointer'}}><X size={14} /></button>
-          </div>
-          <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px'}}>
-            {[
-              ['hospitalName', 'Nama RS/Lokasi *'],
-              ['province', 'Provinsi'],
-              ['city', 'Kota/Kabupaten'],
-              ['product', 'Produk'],
-              ['type', 'Tipe'],
-              ['quantity', 'Jumlah Unit', 'number'],
-              ['installationYear', 'Tahun Instalasi', 'number'],
-              ['installationDate', 'Tanggal Instalasi', 'date'],
-              ['lat', 'Latitude', 'number'],
-              ['lng', 'Longitude', 'number'],
-              ['sphNo', 'No. SPH'],
-            ].map(([key, label, type = 'text']) => (
-              <label key={key} style={{fontSize: '10px', letterSpacing: '0.12em', color: 'var(--ims-text-2)', textTransform: 'uppercase', fontWeight: 700}}>
-                {label}
-                <input
-                  type={type}
-                  step={key === 'lat' || key === 'lng' ? '0.000001' : undefined}
-                  value={form[key] ?? ''}
-                  onChange={e => setForm(prev => ({ ...prev, [key]: e.target.value }))}
-                  style={{marginTop: 6}}
-                />
+            <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px'}}>
+              {[
+                ['hospitalName', L(lang, 'Nama RS/Lokasi *', 'Hospital/Site Name *')],
+                ['province', L(lang, 'Provinsi', 'Province')],
+                ['city', L(lang, 'Kota/Kabupaten', 'City/Regency')],
+                ['product', L(lang, 'Produk', 'Product')],
+                ['type', L(lang, 'Tipe', 'Type')],
+                ['quantity', L(lang, 'Jumlah Unit', 'Quantity'), 'number'],
+                ['installationYear', L(lang, 'Tahun Instalasi', 'Installation Year'), 'number'],
+                ['installationDate', L(lang, 'Tanggal Instalasi', 'Installation Date'), 'date'],
+                ['lat', L(lang, 'Latitude', 'Latitude'), 'number'],
+                ['lng', L(lang, 'Longitude', 'Longitude'), 'number'],
+                ['sphNo', L(lang, 'No. SPH', 'SPH No.')],
+              ].map(([key, label, type = 'text']) => (
+                <label key={key} style={{fontSize: '10px', letterSpacing: '0.12em', color: 'var(--ims-text-2)', textTransform: 'uppercase', fontWeight: 700}}>
+                  {label}
+                  <input
+                    type={type}
+                    step={key === 'lat' || key === 'lng' ? '0.000001' : undefined}
+                    value={form[key] ?? ''}
+                    onChange={e => setForm(prev => ({ ...prev, [key]: e.target.value }))}
+                    style={{marginTop: 6}}
+                  />
+                </label>
+              ))}
+              <label style={{gridColumn: 'span 4', fontSize: '10px', letterSpacing: '0.12em', color: 'var(--ims-text-2)', textTransform: 'uppercase', fontWeight: 700}}>
+                {L(lang, 'Alamat', 'Address')}
+                <input value={form.address || ''} onChange={e => setForm(prev => ({ ...prev, address: e.target.value }))} style={{marginTop: 6}} />
               </label>
-            ))}
-            <label style={{gridColumn: 'span 4', fontSize: '10px', letterSpacing: '0.12em', color: 'var(--ims-text-2)', textTransform: 'uppercase', fontWeight: 700}}>
-              Alamat
-              <input value={form.address || ''} onChange={e => setForm(prev => ({ ...prev, address: e.target.value }))} style={{marginTop: 6}} />
-            </label>
+            </div>
+            <div style={{display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '14px'}}>
+              <button onClick={cancelEdit} style={{padding: '9px 12px', border: '1px solid var(--ims-border)', background: 'transparent', cursor: 'pointer'}}>
+                {L(lang, 'Batal', 'Cancel')}
+              </button>
+              <button className="btn-primary" onClick={saveManual} disabled={!form.hospitalName.trim()} style={{padding: '9px 12px', opacity: form.hospitalName.trim() ? 1 : 0.55}}>
+                <Save size={14} /> {L(lang, 'Simpan Manual', 'Save Manual')}
+              </button>
+            </div>
           </div>
-          <div style={{display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '14px'}}>
-            <button onClick={cancelEdit} style={{padding: '9px 12px', border: '1px solid var(--ims-border)', background: 'transparent', cursor: 'pointer'}}>Batal</button>
-            <button className="btn-primary" onClick={saveManual} disabled={!form.hospitalName.trim()} style={{padding: '9px 12px', opacity: form.hospitalName.trim() ? 1 : 0.55}}>
-              <Save size={14} /> Simpan Manual
-            </button>
-          </div>
-        </div>
         </div>
       )}
 
@@ -409,10 +417,10 @@ function InstallBaseModule({ data = [], bastRecords = [], installRecords = [], m
 
       <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: 'var(--ims-border)', border: '1px solid var(--ims-border)', margin: '20px 0'}}>
         {[
-          [Target, 'Total Unit', stats.totalUnits, 'Baseline PDF + live sync'],
-          [MapPin, 'Provinsi', stats.provinceCount, 'Coverage nasional'],
-          [Activity, 'RS/Lokasi', stats.hospitalCount, 'Lokasi teridentifikasi'],
-          [Zap, 'Live Sync', stats.liveExtra, 'Tiba di RS / BAST'],
+          [Target, L(lang, 'Total Unit', 'Total Units'), stats.totalUnits, L(lang, 'Baseline PDF + live sync', 'PDF baseline + live sync')],
+          [MapPin, L(lang, 'Provinsi', 'Provinces'), stats.provinceCount, L(lang, 'Coverage nasional', 'National coverage')],
+          [Activity, L(lang, 'RS/Lokasi', 'Hospitals/Sites'), stats.hospitalCount, L(lang, 'Lokasi teridentifikasi', 'Identified locations')],
+          [Zap, L(lang, 'Live Sync', 'Live Sync'), stats.liveExtra, L(lang, 'Tiba di RS / BAST', 'Arrived at hospital / BAST')],
         ].map(([Icon, label, value, sub]) => (
           <div key={label} style={{padding: '16px 18px', background: 'var(--ims-bg-card)'}}>
             <div style={{display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', letterSpacing: '0.16em', color: 'var(--ims-text-2)', textTransform: 'uppercase'}}><Icon size={14} />{label}</div>
@@ -424,7 +432,7 @@ function InstallBaseModule({ data = [], bastRecords = [], installRecords = [], m
 
       <div style={{display: 'grid', gridTemplateColumns: '1.25fr 0.75fr', gap: '18px', marginBottom: '20px'}}>
         <div className="card">
-          <div className="card-title">Top Provinsi Install Base</div>
+          <div className="card-title">{L(lang, 'Top Provinsi Install Base', 'Top Install Base Provinces')}</div>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={stats.byProvince.slice(0, 10)} layout="vertical" margin={{left: 96}}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--ims-border)" horizontal={false} />
@@ -436,7 +444,7 @@ function InstallBaseModule({ data = [], bastRecords = [], installRecords = [], m
           </ResponsiveContainer>
         </div>
         <div className="card">
-          <div className="card-title">Product Family Mix</div>
+          <div className="card-title">{L(lang, 'Product Family Mix', 'Product Family Mix')}</div>
           <ResponsiveContainer width="100%" height={210}>
             <PieChart>
               <Pie
@@ -470,23 +478,34 @@ function InstallBaseModule({ data = [], bastRecords = [], installRecords = [], m
 
       <div className="card">
         <div style={{display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '14px'}}>
-          <div className="card-title" style={{margin: 0}}>Detail Install Base</div>
+          <div className="card-title" style={{margin: 0}}>{L(lang, 'Detail Install Base', 'Install Base Details')}</div>
           <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
             <select value={province} onChange={e => setProvince(e.target.value)} style={{width: 170}}>
-              {provinces.map(p => <option key={p} value={p}>{p === 'all' ? 'Semua Provinsi' : p}</option>)}
+              {provinces.map(p => <option key={p} value={p}>{p === 'all' ? L(lang, 'Semua Provinsi', 'All Provinces') : p}</option>)}
             </select>
             <select value={family} onChange={e => setFamily(e.target.value)} style={{width: 170}}>
-              {families.map(f => <option key={f} value={f}>{f === 'all' ? 'Semua Produk' : f}</option>)}
+              {families.map(f => <option key={f} value={f}>{f === 'all' ? L(lang, 'Semua Produk', 'All Products') : f}</option>)}
             </select>
             <div style={{position: 'relative'}}>
               <Search size={14} style={{position: 'absolute', left: 10, top: 9, color: 'var(--ims-text-2)'}} />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari RS, produk, SPH..." style={{paddingLeft: 32, width: 230}} />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder={L(lang, 'Cari RS, produk, SPH...', 'Search hospital, product, SPH...')} style={{paddingLeft: 32, width: 230}} />
             </div>
           </div>
         </div>
         <div style={{overflowX: 'auto'}}>
           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
-            <thead><tr><Th>RS/Lokasi</Th><Th>Provinsi</Th><Th>Produk</Th><Th align="right">Unit</Th><Th>Tahun</Th><Th>Sumber</Th><Th>Koordinat</Th><Th>Aksi</Th></tr></thead>
+            <thead>
+              <tr>
+                <Th>{L(lang, 'RS/Lokasi', 'Hospital/Site')}</Th>
+                <Th>{L(lang, 'Provinsi', 'Province')}</Th>
+                <Th>{L(lang, 'Produk', 'Product')}</Th>
+                <Th align="right">{L(lang, 'Unit', 'Units')}</Th>
+                <Th>{L(lang, 'Tahun', 'Year')}</Th>
+                <Th>{L(lang, 'Sumber', 'Source')}</Th>
+                <Th>{L(lang, 'Koordinat', 'Coordinates')}</Th>
+                <Th>{L(lang, 'Aksi', 'Actions')}</Th>
+              </tr>
+            </thead>
             <tbody>
               {filtered.slice(0, 240).map(r => (
                 <tr key={r.id} style={{borderTop: '1px solid var(--ims-border)'}}>
@@ -500,16 +519,16 @@ function InstallBaseModule({ data = [], bastRecords = [], installRecords = [], m
                   <Td>
                     {canEdit ? (
                       <div style={{display: 'flex', gap: '6px', flexWrap: 'wrap'}}>
-                        <button onClick={() => startEdit(r)} title={String(r.source || '').includes('manual') ? 'Edit data manual' : 'Buat override manual'} style={{border: '1px solid rgba(255,255,255,0.35)', color: '#fff', background: 'rgba(255,255,255,0.06)', padding: '6px 8px', cursor: 'pointer', fontSize: '10px', display: 'flex', alignItems: 'center', gap: 4}}>
-                          <Pencil size={12} /> Edit
+                        <button onClick={() => startEdit(r)} title={String(r.source || '').includes('manual') ? L(lang, 'Edit data manual', 'Edit manual record') : L(lang, 'Buat override manual', 'Create manual override')} style={{border: '1px solid rgba(255,255,255,0.35)', color: '#fff', background: 'rgba(255,255,255,0.06)', padding: '6px 8px', cursor: 'pointer', fontSize: '10px', display: 'flex', alignItems: 'center', gap: 4}}>
+                          <Pencil size={12} /> {L(lang, 'Edit', 'Edit')}
                         </button>
                         {String(r.source || '').includes('manual') && (
-                          <button onClick={() => deleteManual(r)} title="Hapus data manual" style={{border: '1px solid rgba(255,140,140,0.45)', color: '#fff', background: 'rgba(192,48,48,0.18)', padding: '6px 8px', cursor: 'pointer', fontSize: '10px', display: 'flex', alignItems: 'center', gap: 4}}>
-                            <Trash2 size={12} /> Hapus
+                          <button onClick={() => deleteManual(r)} title={L(lang, 'Hapus data manual', 'Delete manual record')} style={{border: '1px solid rgba(255,140,140,0.45)', color: '#fff', background: 'rgba(192,48,48,0.18)', padding: '6px 8px', cursor: 'pointer', fontSize: '10px', display: 'flex', alignItems: 'center', gap: 4}}>
+                            <Trash2 size={12} /> {L(lang, 'Hapus', 'Delete')}
                           </button>
                         )}
                       </div>
-                    ) : <span style={{fontSize: '10px', color: 'var(--ims-text-2)'}}>Read-only</span>}
+                    ) : <span style={{fontSize: '10px', color: 'var(--ims-text-2)'}}>{L(lang, 'Read-only', 'Read-only')}</span>}
                   </Td>
                 </tr>
               ))}
@@ -517,7 +536,8 @@ function InstallBaseModule({ data = [], bastRecords = [], installRecords = [], m
           </table>
         </div>
         <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '10px'}}>
-          <Sparkles size={12} style={{verticalAlign: 'middle', marginRight: 4}} /> Baseline PDF menampilkan total 203 unit. Detail live bertambah otomatis dari operasional dengan status tiba di RS dan BAST final.
+          <Sparkles size={12} style={{verticalAlign: 'middle', marginRight: 4}} />
+          {L(lang, 'Baseline PDF menampilkan total 203 unit. Detail live bertambah otomatis dari operasional dengan status tiba di RS dan BAST final.', 'PDF baseline shows 203 units total. Live records are added automatically from operations with arrived-at-hospital status and final BAST.')}
         </div>
       </div>
     </div>

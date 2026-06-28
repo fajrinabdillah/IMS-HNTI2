@@ -163,6 +163,28 @@ function unitKey(record = {}) {
   return [record.hospitalName || record.customer, record.product, record.type, record.sphNo].map(norm).join('|');
 }
 
+function crossSourceKey(record = {}) {
+  const hospital = norm(canonicalHospitalName(record.hospitalName || record.customer));
+  const family = norm(record.productFamily || productFamily(record.product, record.type));
+  return `${hospital}|${family}`;
+}
+
+function absorbBaselineDuplicates(records = [], baselineSlots = new Map()) {
+  const kept = [];
+  records.forEach(record => {
+    let qty = Number(record.quantity) || 1;
+    const key = crossSourceKey(record);
+    const slots = baselineSlots.get(key) || 0;
+    if (slots > 0) {
+      const consumed = Math.min(slots, qty);
+      baselineSlots.set(key, slots - consumed);
+      qty -= consumed;
+    }
+    if (qty > 0) kept.push({ ...record, quantity: qty });
+  });
+  return kept;
+}
+
 function normalizeInstallBaseRecord(record, source = 'manual') {
   const hospitalName = canonicalHospitalName(record.hospitalName || record.installSiteName || record.customer || '-');
   const province = inferProvince({ ...record, hospitalName }) || normalizeProvince(record.province || '');
@@ -267,9 +289,21 @@ function dedupeInstallBase(records = []) {
 }
 
 function buildInstallBase(data = [], bastRecords = [], installRecords = [], manualRecords = []) {
-  const baseline = INSTALL_BASE_SEED_RECORDS.map(r => normalizeInstallBaseRecord(r, 'pdf_import'));
-  const live = [...fromOperationalRows(data), ...fromBastRecords(bastRecords), ...fromBastRecords(installRecords)];
-  const manual = (manualRecords || []).map(r => normalizeInstallBaseRecord(r, 'manual'));
+  const baseline = dedupeInstallBase(INSTALL_BASE_SEED_RECORDS.map(r => normalizeInstallBaseRecord(r, 'pdf_import')));
+  const baselineSlots = new Map();
+  baseline.forEach(record => {
+    const key = crossSourceKey(record);
+    baselineSlots.set(key, (baselineSlots.get(key) || 0) + (Number(record.quantity) || 1));
+  });
+  const live = absorbBaselineDuplicates(dedupeInstallBase([
+    ...fromOperationalRows(data),
+    ...fromBastRecords(bastRecords),
+    ...fromBastRecords(installRecords),
+  ]), baselineSlots);
+  const manual = absorbBaselineDuplicates(
+    (manualRecords || []).map(r => normalizeInstallBaseRecord(r, 'manual')),
+    baselineSlots,
+  );
   return dedupeInstallBase([...baseline, ...live, ...manual]);
 }
 

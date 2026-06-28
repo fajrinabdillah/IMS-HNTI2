@@ -65,6 +65,7 @@ import { isLikelySeedSphDataset, shouldPersistSphData, lockProductionSph, isProd
 import sphRestore2026 from './src/data/sphRestore2026.json';
 import { Dashboard } from './src/modules/Dashboard.jsx';
 import { RegulatoryDashboardCharts, RegulatoryModule, regStageLabel, RegDurationTimeline, UniformRegPipeline, RegulatoryRecordModal } from './src/modules/RegulatoryModule.jsx';
+import { InstallBaseModule } from './src/modules/InstallBaseModule.jsx';
 
 // ============== i18n ==============
 
@@ -1631,7 +1632,8 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
       <Header session={session} setSession={setSession} lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} view={view} setView={setView} allowedNav={allowedNav} t={t} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} businessTrips={businessTrips} realizations={realizations} reports={reports} reportsSeen={reportsSeen} onChangePassword={() => setChangePwOpen(true)} syncStatus={syncStatus} notifications={notifications} setNotifications={setNotifications} />
 
       <main className="main-content fade-in" style={{maxWidth: '1440px', margin: '0 auto', padding: '32px 48px 60px'}}>
-        {view === 'dashboard' && <Dashboard data={filteredData} reports={reports} products={products} t={t} lang={lang} session={session} fmt={fmt} employees={employees} />}
+        {view === 'dashboard' && <Dashboard data={filteredData} reports={reports} products={products} t={t} lang={lang} session={session} fmt={fmt} employees={employees} bastRecords={bastRecords} installRecords={installRecords} />}
+        {view === 'install_base' && canRead('install_base') && <InstallBaseModule data={data} bastRecords={bastRecords} installRecords={installRecords} t={t} lang={lang} fmt={fmt} />}
         {view === 'sph' && canRead('sph') && <SPHManagement data={filteredData} employees={employees} setEmployees={setEmployees} products={products} documentTemplates={documentTemplates} session={session} t={t} lang={lang} canEdit={canEdit('sph')} fmt={fmt} onAdd={() => { setEditingSph(null); setModalOpen(true); }} onEdit={(s) => { setEditingSph(s); setModalOpen(true); }} onDelete={handleDelete} onBulkDelete={handleBulkDeleteSph} onImport={handleImportSPH} onRequestSPH={handleRequestSPH} onRequestSPP={handleRequestSPP} onWorkflowUpdate={handleWorkflowUpdate} onSaveDocument={handleSaveDocument} generatedDocs={generatedDocs} setGeneratedDocs={setGeneratedDocs} />}
         {view === 'pipeline' && canRead('pipeline') && <PipelineBoard data={filteredData} allData={data} setData={setData} employees={employees} session={session} logAction={logAction} t={t} lang={lang} canEdit={canEdit('pipeline')} fmt={fmt} onEdit={(s) => { setEditingSph(s); setModalOpen(true); }} reports={reports} />}
         {view === 'sales' && canRead('sales') && <SalesModule data={data} reports={reports} t={t} lang={lang} fmt={fmt} employees={employees} />}

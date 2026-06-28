@@ -116,6 +116,31 @@ function InstallBaseMap({ records = [], stats, selectedProvince = 'all', lang = 
           50% { filter: brightness(1.35); opacity: 1; }
         }
         .ib-dot:hover .ib-tip { opacity: 1; transform: translate(-50%, -118%) scale(1); }
+        .ib-map-stage {
+          position: relative;
+          z-index: 1;
+          height: 330px;
+          margin-top: 18px;
+          overflow: visible;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+        .ib-map-canvas {
+          position: relative;
+          height: 100%;
+          aspect-ratio: 1600 / 620;
+          max-width: 100%;
+        }
+        .ib-map-img {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: fill;
+          opacity: 0.62;
+          filter: invert(1) sepia(1) saturate(2.2) hue-rotate(150deg) drop-shadow(0 0 16px rgba(76,201,240,0.45)) drop-shadow(0 0 30px rgba(214,179,106,0.20));
+        }
         .ib-tip {
           position: absolute;
           left: 50%;
@@ -155,33 +180,26 @@ function InstallBaseMap({ records = [], stats, selectedProvince = 'all', lang = 
         </div>
       </div>
 
-      <div style={{position: 'relative', zIndex: 1, height: '330px', marginTop: '18px', overflow: 'hidden'}}>
-        <img
-          src={indonesiaMapUrl}
-          alt="Peta Indonesia"
-          style={{
-            position: 'absolute',
-            inset: '8px 10px',
-            width: 'calc(100% - 20px)',
-            height: 'calc(100% - 16px)',
-            objectFit: 'contain',
-            opacity: 0.58,
-            filter: 'invert(1) sepia(1) saturate(2.2) hue-rotate(150deg) drop-shadow(0 0 16px rgba(76,201,240,0.45)) drop-shadow(0 0 30px rgba(214,179,106,0.20))',
-          }}
-        />
-        <div style={{position: 'absolute', left: 0, right: 0, bottom: '36px', borderTop: '1px dashed rgba(214,179,106,0.18)'}} />
-        {points.map((p, idx) => {
-          const size = Math.min(22, 7 + Math.sqrt(p.qty || 1) * 3);
-          return (
-            <div key={`${p.hospitalName}-${idx}`} className="ib-dot" style={{left: `${p.x}%`, top: `${p.y}%`, width: size, height: size, color: p.color, background: p.color}}>
-              <div className="ib-tip">
-                <strong>{p.hospitalName}</strong><br />
-                {p.province} · {p.qty} unit<br />
-                {[...p.families].join(', ')}
+      <div className="ib-map-stage">
+        <div className="ib-map-canvas">
+          <img src={indonesiaMapUrl} alt="Peta Indonesia" className="ib-map-img" />
+          <div style={{position: 'absolute', left: 0, right: 0, bottom: '36px', borderTop: '1px dashed rgba(214,179,106,0.18)'}} />
+          {points.map((p, idx) => {
+            const size = Math.min(22, 7 + Math.sqrt(p.qty || 1) * 3);
+            return (
+              <div key={`${p.hospitalName}-${idx}`} className="ib-dot" style={{left: `${p.x}%`, top: `${p.y}%`, width: size, height: size, color: p.color, background: p.color}}>
+                <div className="ib-tip">
+                  <strong>{p.hospitalName}</strong><br />
+                  {p.province} · {p.qty} unit<br />
+                  {[...p.families].join(', ')}
+                  <div style={{fontSize: '10px', color: 'rgba(255,255,255,0.62)', marginTop: 4}}>
+                    {Number(p.lat).toFixed(4)}, {Number(p.lng).toFixed(4)}
+                  </div>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

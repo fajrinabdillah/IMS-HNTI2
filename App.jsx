@@ -21,6 +21,7 @@ import { stripRemovedEmployees, healCollection } from './src/utils/purgeLegacyEm
 import { normalizeSphProjects } from './src/utils/sphProject.js';
 import { expandEmbeddedSphLineItems, buildRecordsFromForm, getProjectSiblings } from './src/utils/sphMultiItem.js';
 import { sanitizeFieldReport } from './src/utils/csvImport.js';
+import { healFieldReportRecord } from './src/utils/fieldReport.js';
 
 /** Pastikan setiap mutasi/load SPH melewati paket harga + kunci proyek multi-alat. */
 function normalizeSphDataset(rows, productList = []) {
@@ -817,6 +818,19 @@ export default function App() {
         const cleaned = reports.map(sanitizeFieldReport);
         await storeSet(REPORTS_KEY, JSON.stringify(cleaned));
         await storeSet(V51_STRIP_FIELD_VALUES_MARKER, 'true');
+      }
+
+      // V52: ganti metrik closing → prospek RS (hangat/panas/proposal) & normalisasi data legacy
+      const V52_FIELD_PROSPECTS_MARKER = 'ims_hnti:v52_field_report_prospects';
+      const v52FieldProspects = await storeGet(V52_FIELD_PROSPECTS_MARKER);
+      if (!v52FieldProspects) {
+        const repStored = await storeGet(REPORTS_KEY);
+        let reports = [];
+        try { reports = repStored ? JSON.parse(repStored) : []; } catch {}
+        if (!Array.isArray(reports) || !reports.length) reports = [...SEED_FIELD_REPORTS];
+        const cleaned = reports.map(r => healFieldReportRecord(sanitizeFieldReport(r)));
+        await storeSet(REPORTS_KEY, JSON.stringify(cleaned));
+        await storeSet(V52_FIELD_PROSPECTS_MARKER, 'true');
       }
 
       const [d, l, s, r, rep, iss, reg, akl, imp, pgl, pi, pm, mfst, cdoc, inst, bast, train, emp, bt] = await Promise.all([

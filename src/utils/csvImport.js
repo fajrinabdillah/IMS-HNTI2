@@ -200,6 +200,8 @@ const FIELD_REPORT_IMPORT_ALIASES = {
   contact: ['Contact', 'Kontak'],
   visitNote: ['Visit Note', 'Catatan Kunjungan', 'Note', 'Catatan'],
 };
+import { countProspectVisits } from './fieldReport.js';
+
 function sanitizeFieldReport(report) {
   const visits = (report.visits || []).map(v => {
     const clean = { ...v };
@@ -290,10 +292,10 @@ function parseFieldReportImport(text, salesTeam = []) {
     const ft = _num(get('fatigue')); if (ft) rec.fatigue = ft;
   }
   const records = [...grouped.values()].map(r => {
-    const hotWarm = r.visits.filter(v => ['hot', 'warm', 'proposal', 'win'].includes(v.pipeline)).length;
+    const prospectN = countProspectVisits(r.visits);
     return sanitizeFieldReport({
       ...r,
-      pipeN: r.pipeN || hotWarm,
+      pipeN: r.pipeN || prospectN,
     });
   });
   return { records, errors, total: rows.length - headerIdx - 1 };

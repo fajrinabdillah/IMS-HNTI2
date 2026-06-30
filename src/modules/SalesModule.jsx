@@ -2332,10 +2332,9 @@ function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRea
   } = stats;
 
   const quickLinks = [
-    { id: 'history', label: t.sr_history, count: reports.length, icon: Clock, color: glass.accent },
-    ...(canCreate ? [{ id: 'new', label: t.sr_new, count: '＋', icon: ClipboardList, color: '#10b981' }] : []),
-    { id: 'visits', label: t.sr_visits_count, count: totalVisits, icon: MapPin, color: '#6366f1' },
-    { id: 'deals', label: lang === 'id' ? 'Closing' : 'Closing', count: totalDeals, icon: Target, color: '#10b981' },
+    { id: 'history', label: t.sr_history, count: reports.length, icon: Clock, color: glass.accent, labelColor: '#fff', countColor: '#fff' },
+    { id: 'visits', label: t.sr_visits_count, count: totalVisits, icon: MapPin, color: '#6366f1', labelColor: '#fff', countColor: '#fff' },
+    { id: 'deals', label: lang === 'id' ? 'Closing' : 'Closing', count: totalDeals, icon: Target, color: '#10b981', labelColor: '#fff', countColor: '#fff' },
   ];
 
   return (
@@ -2695,6 +2694,25 @@ function SRHistory({ reports, t, lang, canDelete = false, onEdit, onDelete, onBu
     if (session?.role === 'sales') return session.salesId === report.salesId;
     return true;
   };
+  const canEditReport = (report) => {
+    if (session?.role === 'sales') return session.salesId === report.salesId;
+    return canDelete;
+  };
+
+  const visitTypeLabels = {
+    first: lang === 'id' ? 'Pertama' : 'First',
+    followup: 'Follow-up',
+    demo: 'Demo',
+    nego: lang === 'id' ? 'Negosiasi' : 'Negotiation',
+    closed: lang === 'id' ? 'Closing' : 'Closing',
+  };
+  const pipelineLabels = {
+    cold: lang === 'id' ? 'Dingin' : 'Cold',
+    warm: lang === 'id' ? 'Hangat' : 'Warm',
+    hot: lang === 'id' ? 'Panas' : 'Hot',
+    proposal: 'Proposal',
+    win: lang === 'id' ? 'Deal' : 'Deal',
+  };
 
   const sortedReports = useMemo(() => {
     const arr = [...reports];
@@ -2737,6 +2755,9 @@ function SRHistory({ reports, t, lang, canDelete = false, onEdit, onDelete, onBu
 
   return (
     <div>
+      <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginBottom: '10px'}}>
+        {lang === 'id' ? 'Klik baris laporan untuk melihat detail kunjungan per RS. Tombol Edit tersedia untuk sales pemilik laporan dan admin/GM.' : 'Click a report row to view visit details. Edit is available to the owning sales person and admin/GM.'}
+      </div>
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '10px'}}>
         {canDelete && deletableIds.length > 0 && (
           <div style={{display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap'}}>
@@ -2777,6 +2798,7 @@ function SRHistory({ reports, t, lang, canDelete = false, onEdit, onDelete, onBu
         const sales = salesTeam.find(s => s.id === r.salesId);
         const isOpen = expanded === r.id;
         const canManage = canDeleteReport(r);
+        const canEditThis = canEditReport(r);
         const isChecked = selectedIds.includes(r.id);
         const rsPreview = (r.visits || []).slice(0, 3).map(v => v.name).filter(Boolean).join(', ');
         const rsMore = (r.visits?.length || 0) > 3 ? ` +${r.visits.length - 3}` : '';
@@ -2803,13 +2825,15 @@ function SRHistory({ reports, t, lang, canDelete = false, onEdit, onDelete, onBu
                 </div>
                 <ChevronDown size={16} style={{transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', color: 'var(--ims-text-2)'}} />
               </div>
-              {canManage && session?.role === 'sales' && (
+              {canEditThis && (
                 <div style={{display: 'flex', gap: '4px'}}>
-                  <button onClick={(e) => { e.stopPropagation(); onEdit(r); }} style={{background: 'transparent', border: '1px solid var(--ims-border)', padding: '5px 10px', fontSize: '10px', cursor: 'pointer', color: 'var(--ims-text)', fontFamily: 'inherit'}} title={t.sr_edit_report}><Edit2 size={11} /></button>
-                  <button onClick={(e) => { e.stopPropagation(); onDelete(r.id); }} style={{background: 'transparent', border: '1px solid var(--ims-border)', padding: '5px 10px', fontSize: '10px', cursor: 'pointer', color: '#c03030', fontFamily: 'inherit'}} title={t.sr_delete_report}><Trash2 size={11} /></button>
+                  <button onClick={(e) => { e.stopPropagation(); onEdit(r); }} style={{background: 'transparent', border: '1px solid var(--ims-accent)', padding: '5px 10px', fontSize: '10px', cursor: 'pointer', color: 'var(--ims-text)', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px'}} title={t.sr_edit_report}><Edit2 size={11} />{lang === 'id' ? 'Edit' : 'Edit'}</button>
+                  {canManage && (
+                    <button onClick={(e) => { e.stopPropagation(); onDelete(r.id); }} style={{background: 'transparent', border: '1px solid var(--ims-border)', padding: '5px 10px', fontSize: '10px', cursor: 'pointer', color: '#c03030', fontFamily: 'inherit'}} title={t.sr_delete_report}><Trash2 size={11} /></button>
+                  )}
                 </div>
               )}
-              {canManage && session?.role !== 'sales' && (
+              {!canEditThis && canManage && (
                 <div style={{display: 'flex', gap: '4px'}}>
                   <button onClick={(e) => { e.stopPropagation(); onDelete(r.id); }} style={{background: 'transparent', border: '1px solid var(--ims-border)', padding: '5px 10px', fontSize: '10px', cursor: 'pointer', color: '#c03030', fontFamily: 'inherit'}} title={t.sr_delete_report}><Trash2 size={11} /></button>
                 </div>
@@ -2827,14 +2851,44 @@ function SRHistory({ reports, t, lang, canDelete = false, onEdit, onDelete, onBu
                 )}
                 {r.visits?.length > 0 && (
                   <div style={{marginTop: '12px'}}>
-                    <div style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', marginBottom: '8px', fontWeight: 600}}>{lang === 'id' ? 'RS Dikunjungi' : 'Hospitals Visited'} ({r.visits.length})</div>
-                    <div style={{display: 'flex', flexWrap: 'wrap', gap: '5px'}}>
-                      {r.visits.map((v, i) => (
-                        <span key={i} style={{padding: '3px 9px', fontSize: '10px', background: 'var(--ims-bg-card-2)', color: 'var(--ims-text)'}}>
-                          {v.name}{v.estimatedValue ? ` · ${v.estimatedValue}${lang === 'id' ? 'jt' : 'M'}` : ''}
-                        </span>
-                      ))}
+                    <div style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#fff', marginBottom: '8px', fontWeight: 600}}>{lang === 'id' ? 'Detail Kunjungan RS' : 'Hospital Visit Details'} ({r.visits.length})</div>
+                    <div style={{overflowX: 'auto'}}>
+                      <table style={{width: '100%', fontSize: '11px', borderCollapse: 'collapse', minWidth: '720px'}}>
+                        <thead>
+                          <tr style={{background: 'var(--ims-bg-card-2)'}}>
+                            <th style={{padding: '8px', textAlign: 'left', color: '#fff', fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase'}}>#</th>
+                            <th style={{padding: '8px', textAlign: 'left', color: '#fff', fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase'}}>{lang === 'id' ? 'RS' : 'Hospital'}</th>
+                            <th style={{padding: '8px', textAlign: 'left', color: '#fff', fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase'}}>{lang === 'id' ? 'Kota' : 'City'}</th>
+                            <th style={{padding: '8px', textAlign: 'left', color: '#fff', fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase'}}>{lang === 'id' ? 'Produk' : 'Product'}</th>
+                            <th style={{padding: '8px', textAlign: 'left', color: '#fff', fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase'}}>{lang === 'id' ? 'Kunjungan' : 'Visit'}</th>
+                            <th style={{padding: '8px', textAlign: 'left', color: '#fff', fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase'}}>Pipeline</th>
+                            <th style={{padding: '8px', textAlign: 'left', color: '#fff', fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase'}}>{lang === 'id' ? 'Kontak' : 'Contact'}</th>
+                            <th style={{padding: '8px', textAlign: 'right', color: '#fff', fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase'}}>{lang === 'id' ? 'Estimasi (jt)' : 'Est. (M)'}</th>
+                            <th style={{padding: '8px', textAlign: 'left', color: '#fff', fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase'}}>{lang === 'id' ? 'Catatan' : 'Note'}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {r.visits.map((v, i) => (
+                            <tr key={i} style={{borderTop: '1px solid var(--ims-border)'}}>
+                              <td style={{padding: '8px', color: 'var(--ims-text-2)'}}>{i + 1}</td>
+                              <td style={{padding: '8px', fontWeight: 600}}>{v.name}</td>
+                              <td style={{padding: '8px'}}>{v.city || '—'}</td>
+                              <td style={{padding: '8px'}}>{v.product || '—'}</td>
+                              <td style={{padding: '8px'}}>{visitTypeLabels[v.visit] || v.visit || '—'}</td>
+                              <td style={{padding: '8px'}}>{pipelineLabels[v.pipeline] || v.pipeline || '—'}</td>
+                              <td style={{padding: '8px'}}>{v.contact || '—'}</td>
+                              <td style={{padding: '8px', textAlign: 'right'}} className="mono">{v.estimatedValue ? v.estimatedValue : '—'}</td>
+                              <td style={{padding: '8px', color: 'var(--ims-text-2)', maxWidth: '220px'}}>{v.note || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
+                  </div>
+                )}
+                {canEditThis && (
+                  <div style={{marginTop: '14px'}}>
+                    <button onClick={() => onEdit(r)} className="btn-ghost" style={{fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '6px'}}><Edit2 size={12} />{lang === 'id' ? 'Edit Laporan Ini' : 'Edit This Report'}</button>
                   </div>
                 )}
               </div>

@@ -133,7 +133,7 @@ export function QuickNavGrid({ links, onNavigate, glass }) {
         return (
           <button key={link.id} type="button" onClick={() => onNavigate?.(link.id)} style={{...g, background: g.background, border: g.border, boxShadow: g.boxShadow, padding: '14px 16px', cursor: onNavigate ? 'pointer' : 'default', fontFamily: 'inherit', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '12px'}}>
             <div style={{width: '36px', height: '36px', borderRadius: '8px', background: (link.color || g.accent) + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', color: link.color || g.accent}}><Icon size={18} /></div>
-            <div><div style={{fontSize: '12px', fontWeight: 600}}>{link.label}</div><div style={{fontSize: '20px', fontWeight: 700, color: link.color || g.accent}}>{link.count ?? '—'}</div></div>
+            <div><div style={{fontSize: '12px', fontWeight: 600, color: link.labelColor || 'var(--ims-text)'}}>{link.label}</div><div style={{fontSize: '20px', fontWeight: 700, color: link.countColor || link.labelColor || 'var(--ims-text)'}}>{link.count ?? '—'}</div></div>
           </button>
         );
       })}

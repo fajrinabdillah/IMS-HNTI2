@@ -1,40 +1,41 @@
 // Extracted from App.jsx during modular refactor.
 const DEFAULT_USD_IDR = 18000;
 const SALES_TEAM = [
-  { id: 'hatim', territory: 'Jateng A + Selatan + DIY', territoryEn: 'Central Java A + South + DIY', accent: '#d4780a' },
-  { id: 'dwi', territory: 'Jabodetabek + Jabar', territoryEn: 'Jabodetabek + West Java', accent: '#c03030' },
-  { id: 'tri', territory: 'Jatim 1', territoryEn: 'East Java 1', accent: '#12855a' },
-  { id: 'bagus', territory: 'Jatim 2', territoryEn: 'East Java 2', accent: '#7b3fb5' },
-  { id: 'icha', territory: 'Jabodetabek + Jabar (bawah Dwi)', territoryEn: 'Jabodetabek + West Java (under Dwi)', accent: '#d4a8c8', supervisedBy: 'dwi' },
+  { id: 'hatim', territory: 'Jateng Utara & Pantura', territoryEn: 'Central Java North & Pantura', accent: '#d4780a', basis: 'Semarang' },
+  { id: 'astrika', territory: 'Jateng Selatan & DIY', territoryEn: 'Central Java South & Yogyakarta', accent: '#e08a2e', basis: 'Yogyakarta', startsAt: '2026-08-01' },
+  { id: 'dwi', territory: 'Jabodetabek + Banten + Jabar', territoryEn: 'Jabodetabek + Banten + West Java', accent: '#c03030', basis: 'Jakarta' },
+  { id: 'tri', territory: 'Jatim Selatan & Timur', territoryEn: 'East Java South & East', accent: '#12855a', basis: 'Sidoarjo' },
+  { id: 'bagus', territory: 'Jatim Utara & Barat', territoryEn: 'East Java North & West', accent: '#7b3fb5', basis: 'Surabaya' },
+  { id: 'icha', territory: 'Jabodetabek & Banten (under Dwi)', territoryEn: 'Jabodetabek & Banten (under Dwi)', accent: '#d4a8c8', supervisedBy: 'dwi' },
   { id: 'office', territory: 'Nasional', territoryEn: 'Nationwide', accent: 'var(--ims-accent)', isOffice: true },
 ];
 const TERRITORY_MAP = {
-  // === Hatim — Jateng A (Semarang, sekitar, Pati, Tegal, Brebes, Cirebon coastal) ===
+  // === Hatim — Jateng Utara & Pantura (Brebes–Rembang, spur Salatiga) ===
   'semarang': 'hatim', 'kendal': 'hatim', 'demak': 'hatim', 'jepara': 'hatim', 'kudus': 'hatim',
-  'pati': 'hatim', 'rembang': 'hatim', 'blora': 'hatim', 'grobogan': 'hatim', 'bojonegoro': 'hatim',
-  'tegal': 'hatim', 'brebes': 'hatim', 'pemalang': 'hatim', 'pekalongan': 'hatim',
-  'tuban': 'hatim',
-  // === Hatim — Jateng (Semarang, selatan, DIY) ===
-  'solo': 'hatim', 'surakarta': 'hatim', 'sukoharjo': 'hatim', 'karanganyar': 'hatim',
-  'sragen': 'hatim', 'wonogiri': 'hatim', 'klaten': 'hatim', 'boyolali': 'hatim',
-  'magelang': 'hatim', 'salatiga': 'hatim', 'temanggung': 'hatim', 'wonosobo': 'hatim',
-  'banjarnegara': 'hatim', 'purbalingga': 'hatim', 'banyumas': 'hatim', 'purwokerto': 'hatim',
-  'cilacap': 'hatim', 'kebumen': 'hatim', 'purworejo': 'hatim',
-  'yogyakarta': 'hatim', 'sleman': 'hatim', 'bantul': 'hatim', 'kulon progo': 'hatim', 'gunung kidul': 'hatim',
-  // === Dwi — Jabodetabek + Jabar (mayoritas), Icha membantu di bawahnya ===
+  'pati': 'hatim', 'rembang': 'hatim', 'salatiga': 'hatim', 'ungaran': 'hatim', 'ambarawa': 'hatim',
+  'batang': 'hatim', 'pekalongan': 'hatim', 'pemalang': 'hatim', 'tegal': 'hatim', 'brebes': 'hatim',
+  'weleri': 'hatim', 'blora': 'hatim', 'grobogan': 'hatim',
+  // === Astrika — Jateng Selatan & DIY (Boyolali ke selatan + Barlingmascakep) ===
+  'yogyakarta': 'astrika', 'sleman': 'astrika', 'bantul': 'astrika', 'kulon progo': 'astrika', 'gunungkidul': 'astrika', 'gunung kidul': 'astrika',
+  'klaten': 'astrika', 'boyolali': 'astrika', 'solo': 'astrika', 'surakarta': 'astrika', 'sukoharjo': 'astrika',
+  'karanganyar': 'astrika', 'sragen': 'astrika', 'wonogiri': 'astrika',
+  'magelang': 'astrika', 'purworejo': 'astrika', 'temanggung': 'astrika', 'wonosobo': 'astrika',
+  'kebumen': 'astrika', 'banjarnegara': 'astrika', 'purbalingga': 'astrika', 'banyumas': 'astrika', 'purwokerto': 'astrika', 'cilacap': 'astrika',
+  // === Dwi & Ika — Jabodetabek + Banten + Jabar (sampai tim Jabar Bandung aktif) ===
   'jakarta': 'dwi', 'bekasi': 'dwi', 'tangerang': 'dwi', 'depok': 'dwi', 'bogor': 'dwi',
+  'serang': 'dwi', 'cilegon': 'dwi', 'pandeglang': 'dwi', 'lebak': 'dwi',
   'bandung': 'dwi', 'cimahi': 'dwi', 'sumedang': 'dwi', 'karawang': 'dwi', 'purwakarta': 'dwi',
   'subang': 'dwi', 'majalengka': 'dwi', 'cirebon': 'dwi', 'kuningan': 'dwi',
   'indramayu': 'dwi', 'sukabumi': 'dwi', 'cianjur': 'dwi', 'garut': 'dwi', 'tasikmalaya': 'dwi',
-  'ciamis': 'dwi', 'banjar': 'dwi',
-  // === Tri — Jatim 1 (Sisi barat/selatan Jatim termasuk Malang, Kediri, dll) ===
+  'ciamis': 'dwi', 'banjar': 'dwi', 'pangandaran': 'dwi',
+  // === Tri — Jatim Selatan & Timur (Malang–Banyuwangi, Tapal Kuda) ===
   'malang': 'tri', 'batu': 'tri', 'kediri': 'tri', 'tulungagung': 'tri', 'trenggalek': 'tri',
-  'blitar': 'tri', 'jombang': 'tri', 'nganjuk': 'tri', 'madiun': 'tri', 'magetan': 'tri',
-  'ngawi': 'tri', 'ponorogo': 'tri', 'pacitan': 'tri', 'mojokerto': 'tri',
-  // === Bagus — Jatim 2 (Surabaya & sekitar termasuk Madura, Banyuwangi, Pasuruan) ===
-  'surabaya': 'bagus', 'gresik': 'bagus', 'lamongan': 'bagus', 'sidoarjo': 'bagus',
-  'pasuruan': 'bagus', 'probolinggo': 'bagus', 'lumajang': 'bagus', 'jember': 'bagus',
-  'bondowoso': 'bagus', 'situbondo': 'bagus', 'banyuwangi': 'bagus',
+  'blitar': 'tri', 'nganjuk': 'tri', 'madiun': 'tri', 'magetan': 'tri', 'ngawi': 'tri',
+  'ponorogo': 'tri', 'pacitan': 'tri', 'lumajang': 'tri', 'jember': 'tri',
+  'bondowoso': 'tri', 'situbondo': 'tri', 'banyuwangi': 'tri', 'probolinggo': 'tri',
+  // === Bagus — Jatim Utara & Barat (Surabaya, Madura, Pantura Jatim barat) ===
+  'surabaya': 'bagus', 'gresik': 'bagus', 'sidoarjo': 'bagus', 'lamongan': 'bagus',
+  'pasuruan': 'bagus', 'mojokerto': 'bagus', 'jombang': 'bagus', 'tuban': 'bagus', 'bojonegoro': 'bagus',
   'bangkalan': 'bagus', 'sampang': 'bagus', 'pamekasan': 'bagus', 'sumenep': 'bagus',
   // === Bali → Office (luar 5 area, di-handle kantor pusat) ===
   'bali': 'office', 'denpasar': 'office', 'badung': 'office',
@@ -73,6 +74,7 @@ const USERS = {
   'tri': { password: 'hnti2026', role: 'sales', name: 'Tri Sutjahjono', initial: 'TS', salesId: 'tri', position: 'Manager', allowancePerDay: 175000, active: true },
   'bagus': { password: 'hnti2026', role: 'sales', name: 'Bagus Iswahyudi', initial: 'BI', salesId: 'bagus', position: 'Manager', allowancePerDay: 175000, active: true },
   'icha': { password: 'hnti2026', role: 'sales', name: 'Ika Apriani', initial: 'IA', salesId: 'icha', position: 'Staff', allowancePerDay: 130000, active: true },
+  'astrika': { password: 'hnti2026', role: 'sales', name: 'Astrika', initial: 'AS', salesId: 'astrika', position: 'Staff', allowancePerDay: 130000, active: false, joinDate: '2026-08-01' },
   'sule': { password: 'hnti2026', role: 'security', name: 'Sulaiman', initial: 'SU', position: 'Security', allowancePerDay: 100000, active: true },
   'ami': { password: 'hnti2026', role: 'office_support', name: 'Supatmi', initial: 'SU', position: 'Office Boy/Girl', allowancePerDay: 100000, active: true },
   'office': { password: 'hnti2026', role: 'sales', name: 'HNT Indonesia (Office)', initial: 'HO', salesId: 'office', isOffice: true, position: '-', allowancePerDay: 0, active: true },

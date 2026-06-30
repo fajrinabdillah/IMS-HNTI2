@@ -1962,7 +1962,7 @@ function buildFieldReportExportRows(reports, employees = {}) {
 function buildFieldReportTemplateRow(lang, employees = {}) {
   const sampleSales = getActiveSalesTeam(employees).find(s => !s.isOffice) || { id: OFFICE_SALES_ID, name: 'Office' };
   return [
-    'rpt_example_001', sampleSales.id, sampleSales.name, '2026-05-16', 'Minggu 1', 4, 3, 'Solo + Sukoharjo',
+    'rpt_example_001', sampleSales.id, sampleSales.name, '2026-05-16', 'Minggu 1', 4, 3, 'Jateng Utara & Pantura',
     2, 8500, 'RS Indriati Solo Baru',
     lang === 'id' ? 'Closing RS Indriati' : 'Closed RS Indriati',
     lang === 'id' ? 'Macet di jalan' : 'Traffic delay',

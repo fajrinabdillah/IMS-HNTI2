@@ -21,11 +21,12 @@ HEADER = [
 ]
 
 SALES = {
-    "hatim": ("hatim", "Ahmad Hatim Ashshidiq", "Jateng A + Selatan + DIY"),
-    "dwi": ("dwi", "Dwi Wahyudianto", "Jabodetabek + Jabar"),
-    "tri": ("tri", "Tri Sutjahjono", "Jatim 1"),
-    "bagus": ("bagus", "Bagus Iswahyudi", "Jatim 2"),
-    "icha": ("icha", "Ika Apriani", "Jabar under Dwi"),
+    "hatim": ("hatim", "Ahmad Hatim Ashshidiq", "Jateng Utara & Pantura"),
+    "dwi": ("dwi", "Dwi Wahyudianto", "Jabodetabek + Banten + Jabar"),
+    "tri": ("tri", "Tri Sutjahjono", "Jatim Selatan & Timur"),
+    "bagus": ("bagus", "Bagus Iswahyudi", "Jatim Utara & Barat"),
+    "icha": ("icha", "Ika Apriani", "Jabodetabek & Banten"),
+    "astrika": ("astrika", "Astrika", "Jateng Selatan & DIY"),
 }
 
 PRODUCT_KEYWORDS = [
@@ -234,7 +235,7 @@ def parse_hatim_table(path: Path, is_plan: bool) -> list[list]:
         "week": week_label(end),
         "days": 5,
         "nights": 3,
-        "area": "Jateng A + Selatan + DIY",
+        "area": "Jateng Utara & Pantura",
         "win": "" if is_plan else "Follow up penawaran C-Arm & CT trade-in RS Banyumanik 2",
         "block": "" if is_plan else "Vendor harus terdaftar formularium Hermina pusat",
         "next": "Visit RS Charlie Demak, Sultan Agung, Pantiwilasa" if is_plan else "Penawaran X-Ray RS Banyumanik 1, follow up C-Arm",
@@ -314,7 +315,7 @@ def parse_tri_report(path: Path) -> list[list]:
         "week": "Minggu 4",
         "days": 5,
         "nights": 3,
-        "area": "Jatim 1 (Surabaya-Sidoarjo)",
+        "area": "Jatim Selatan & Timur (Surabaya-Sidoarjo)",
         "win": "Mapping kebutuhan RSAL & RS Mitra Waru",
         "block": "Pimpinan RSAL dinas luar, belum bisa dihubungi",
         "next": "Follow up program anggaran RSAL",
@@ -370,7 +371,7 @@ def parse_tri_plan(path: Path) -> list[list]:
         "week": "Minggu 1",
         "days": 3,
         "nights": 2,
-        "area": "Jatim 1",
+        "area": "Jatim Selatan & Timur",
         "next": "Visit RS Panti Waluya, Suyudi Lamongan, RSUD Haryoto Lumajang",
     }
     out_rows = []
@@ -411,7 +412,7 @@ def parse_ika_plan(path: Path) -> list[list]:
         "week": "Minggu 1",
         "days": 4,
         "nights": 2,
-        "area": "Jabodetabek & Jawa Barat",
+        "area": "Jabodetabek & Banten",
         "next": "Kunjungan RS Jabodetabek W1 Juli",
     }
     out_rows = []
@@ -506,7 +507,7 @@ def parse_dwi_plan(path: Path) -> list[list]:
         "week": "Minggu 1",
         "days": 5,
         "nights": 2,
-        "area": "Jabodetabek + Jabar",
+        "area": "Jabodetabek + Banten + Jabar",
         "next": "Meeting RS Bhakti Kartini, visit Bogor & Tangerang",
     }
     dates = [norm_date(c) for c in rows[12][0:5]] if len(rows) > 12 else []
@@ -550,7 +551,7 @@ def parse_bagus_sheet(ws, sheet_name: str) -> list[list]:
         "week": "Minggu 1",
         "days": 5,
         "nights": 3,
-        "area": "Jatim 2",
+        "area": "Jatim Utara & Barat",
         "next": "Follow up pipeline Jatim 2 pasca IHEX",
     }
     out_rows = []
@@ -666,7 +667,7 @@ def parse_bagus(path: Path) -> list[list]:
 
 def build_template_rows() -> list[list]:
     example = [
-        "rpt_example_001", "hatim", "Ahmad Hatim Ashshidiq", "2026-06-26", "Minggu 4", 5, 3, "Jateng A + Selatan + DIY",
+        "rpt_example_001", "hatim", "Ahmad Hatim Ashshidiq", "2026-06-26", "Minggu 4", 5, 3, "Jateng Utara & Pantura",
         3, 18500, "RS Banyumanik 2",
         "Follow up penawaran C-Arm & CT trade-in",
         "Vendor harus terdaftar formularium Hermina pusat",
@@ -675,7 +676,7 @@ def build_template_rows() -> list[list]:
         "RS Banyumanik 2", "Semarang", "followup", "C-Arm", "hot", "Pak Fadil", "Butuh C-Arm dan trade-in CT Scan 64 slice", 4500,
     ]
     plan_row = [
-        "rpt_example_002", "icha", "Ika Apriani", "2026-06-29", "Minggu 1", 4, 2, "Jabodetabek & Jawa Barat",
+        "rpt_example_002", "icha", "Ika Apriani", "2026-06-29", "Minggu 1", 4, 2, "Jabodetabek & Banten",
         2, 12000, "Royal Taruma Hospital",
         "", "", "Kunjungan W1 Juli Jabodetabek",
         2,
@@ -692,7 +693,8 @@ def write_xlsx_template(path: Path):
     guide.append([])
     guide.append(["Kolom wajib per baris kunjungan RS:"])
     guide.append(["Report ID", "Sama untuk semua baris dalam 1 laporan mingguan"])
-    guide.append(["Sales ID", "hatim | dwi | tri | bagus | icha | office"])
+    guide.append(["Sales ID", "hatim | astrika | dwi | icha | tri | bagus | office"])
+    guide.append(["Wilayah (ref. peta HNTI)", "Hatim=Jateng Utara/Pantura · Astrika=Jateng Selatan+DIY (Agustus) · Tri=Jatim Sel/Tim · Bagus=Jatim Ut/Bar · Dwi/Ika=Jabodetabek"])
     guide.append(["Date", "Format YYYY-MM-DD"])
     guide.append(["Visit Type", "first | followup | demo | nego | closed"])
     guide.append(["Pipeline Temp", "cold | warm | hot | proposal | win"])
@@ -706,10 +708,12 @@ def write_xlsx_template(path: Path):
         tpl.append(row)
 
     ref = wb.create_sheet("REFERENSI_SALES")
-    ref.append(["Sales ID", "Nama", "Wilayah"])
-    for key in ("hatim", "dwi", "tri", "bagus", "icha"):
+    ref.append(["Sales ID", "Nama", "Wilayah", "Basis", "Catatan"])
+    for key in ("hatim", "astrika", "dwi", "icha", "tri", "bagus"):
         sid, name, area = SALES[key]
-        ref.append([sid, name, area])
+        basis = {"hatim": "Semarang", "astrika": "Yogyakarta", "dwi": "Jakarta", "icha": "Jakarta", "tri": "Sidoarjo", "bagus": "Surabaya"}.get(key, "")
+        note = "Aktif Agustus 2026" if key == "astrika" else ("Under Dwi" if key == "icha" else "")
+        ref.append([sid, name, area, basis, note])
 
     wb.save(path)
 

@@ -74,7 +74,7 @@ const USERS = {
   'tri': { password: 'hnti2026', role: 'sales', name: 'Tri Sutjahjono', initial: 'TS', salesId: 'tri', position: 'Manager', allowancePerDay: 175000, active: true },
   'bagus': { password: 'hnti2026', role: 'sales', name: 'Bagus Iswahyudi', initial: 'BI', salesId: 'bagus', position: 'Manager', allowancePerDay: 175000, active: true },
   'icha': { password: 'hnti2026', role: 'sales', name: 'Ika Apriani', initial: 'IA', salesId: 'icha', position: 'Staff', allowancePerDay: 130000, active: true },
-  'astrika': { password: 'hnti2026', role: 'sales', name: 'Astrika', initial: 'AS', salesId: 'astrika', position: 'Staff', allowancePerDay: 130000, active: false, joinDate: '2026-08-01' },
+  'astrika': { password: 'hnti2026', role: 'sales', name: 'Astrika Sari', initial: 'AS', salesId: 'astrika', position: 'Staff', allowancePerDay: 130000, active: false, joinDate: '2026-08-01' },
   'sule': { password: 'hnti2026', role: 'security', name: 'Sulaiman', initial: 'SU', position: 'Security', allowancePerDay: 100000, active: true },
   'ami': { password: 'hnti2026', role: 'office_support', name: 'Supatmi', initial: 'SU', position: 'Office Boy/Girl', allowancePerDay: 100000, active: true },
   'office': { password: 'hnti2026', role: 'sales', name: 'HNT Indonesia (Office)', initial: 'HO', salesId: 'office', isOffice: true, position: '-', allowancePerDay: 0, active: true },

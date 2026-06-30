@@ -14,7 +14,7 @@ const salesTeam = [
   { id: 'tri', name: 'Tri Sutjahjono' },
   { id: 'bagus', name: 'Bagus Iswahyudi' },
   { id: 'icha', name: 'Ika Apriani' },
-  { id: 'astrika', name: 'Astrika' },
+  { id: 'astrika', name: 'Astrika Sari' },
 ];
 
 const text = fs.readFileSync(csvPath, 'utf8');

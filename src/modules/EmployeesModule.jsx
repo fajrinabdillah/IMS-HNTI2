@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { Edit2, Lock, Trash2, Upload, UserCheck, UserPlus, UserX, Users, X } from 'lucide-react';
 import { ConfirmDialog, Field, Td, Th } from '../components/ui.jsx';
 import { NAV_BY_ROLE, OFFICE_SALES_ID, POSITION_ALLOWANCE } from '../constants/org.js';
-import { employeeSalesId, resolveEmpName } from '../utils/domain.js';
+import { employeeSalesId, resolveEmpName, todayISO } from '../utils/domain.js';
 import { initialOf } from '../utils/format.js';
 import { showToast } from '../utils/toast.js';
 function ModuleAccessPanel({ employees, moduleAccess, setModuleAccess, t, lang, empView, setEmpView, logAction }) {
@@ -53,7 +53,7 @@ function ModuleAccessPanel({ employees, moduleAccess, setModuleAccess, t, lang, 
           <div key={emp.username} style={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', padding: '16px 18px', marginBottom: '14px', opacity: inactive ? 0.6 : 1}}>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px'}}>
               <div>
-                <div style={{fontSize: '14px', fontWeight: 600}}>{emp.name}{inactive && <span style={{fontSize: '10px', color: 'var(--ims-accent)', marginLeft: '8px'}}>({lang === 'id' ? 'nonaktif' : 'inactive'})</span>}</div>
+                <div style={{fontSize: '14px', fontWeight: 600}}>{emp.name}{inactive && <span style={{fontSize: '10px', color: 'var(--ims-accent)', marginLeft: '8px'}}>({lang === 'id' ? 'nonaktif' : 'inactive'}{emp.joinDate && emp.active === false ? ` · ${lang === 'id' ? 'mulai' : 'from'} ${emp.joinDate}` : ''})</span>}</div>
                 <div style={{fontSize: '11px', color: 'var(--ims-text-2)', marginTop: '2px'}}>{emp.position || emp.role} · <span className="mono">@{emp.username}</span> · {set.size} {lang === 'id' ? 'modul' : 'modules'} · {hasOverride ? (lang === 'id' ? 'kustom' : 'custom') : (lang === 'id' ? 'default peran' : 'role default')}</div>
               </div>
               <button onClick={() => resetDefault(emp.username)} disabled={!hasOverride} style={{background: 'transparent', border: '1px solid var(--ims-border)', padding: '6px 12px', fontSize: '11px', fontFamily: 'inherit', cursor: hasOverride ? 'pointer' : 'default', color: hasOverride ? 'var(--ims-accent)' : '#c4bca8', borderRadius: '4px'}}>{lang === 'id' ? 'Reset ke Default' : 'Reset to Default'}</button>
@@ -150,11 +150,16 @@ function EmployeesModule({ employees, setEmployees, setData, setReports, setBusi
     const previous = employees[originalUsername];
     const previousSalesId = previous?.role === 'sales' ? employeeSalesId(originalUsername, previous) : null;
     const nextSalesId = emp.role === 'sales' ? employeeSalesId(emp.username, emp) : null;
+    const normalizeEmp = (raw) => {
+      const cleanEmp = { ...raw };
+      delete cleanEmp._renameFrom;
+      if (cleanEmp.joinDate && todayISO() < cleanEmp.joinDate) cleanEmp.active = false;
+      return cleanEmp;
+    };
     // If username was renamed, remove old key and add new
     if (emp._renameFrom && emp._renameFrom !== emp.username) {
       const renameFrom = emp._renameFrom;
-      const cleanEmp = { ...emp };
-      delete cleanEmp._renameFrom;
+      const cleanEmp = normalizeEmp(emp);
       setEmployees(prev => {
         const next = { ...prev };
         const prevAliases = (prev[renameFrom] && prev[renameFrom]._prevUsernames) || [];
@@ -164,8 +169,7 @@ function EmployeesModule({ employees, setEmployees, setData, setReports, setBusi
         return next;
       });
     } else {
-      const cleanEmp = { ...emp };
-      delete cleanEmp._renameFrom;
+      const cleanEmp = normalizeEmp(emp);
       setEmployees(prev => ({ ...prev, [emp.username]: cleanEmp }));
     }
     if (previousSalesId && previousSalesId !== nextSalesId) {
@@ -374,7 +378,7 @@ function EmployeeModal({ emp, employees, onSave, onClose, t, lang }) {
   const [form, setForm] = useState(emp || {
     username: '', name: '', initial: '',
     position: 'Staff', role: 'sales', allowancePerDay: 130000,
-    password: 'hnti2026', active: true, salesId: '',
+    password: 'hnti2026', active: true, salesId: '', joinDate: '',
   });
   const [error, setError] = useState('');
   const update = (k, v) => { setError(''); setForm(prev => ({ ...prev, [k]: v })); };
@@ -467,6 +471,12 @@ function EmployeeModal({ emp, employees, onSave, onClose, t, lang }) {
               <input value={form.salesId || ''} onChange={e => update('salesId', e.target.value.toLowerCase())} placeholder="otomatis = username" />
             </Field>
           )}
+          <Field label={lang === 'id' ? 'Tanggal Mulai Aktif' : 'Activation Date'}>
+            <input type="date" value={form.joinDate || ''} onChange={e => update('joinDate', e.target.value)} />
+            <div style={{fontSize: '10px', color: 'var(--ims-text-2)', marginTop: '4px', fontStyle: 'italic'}}>
+              {lang === 'id' ? 'Opsional — nonaktifkan akun & isi tanggal ini untuk aktivasi otomatis (mis. rekrut baru).' : 'Optional — keep inactive until this date for auto-activation.'}
+            </div>
+          </Field>
           <Field label={lang === 'id' ? 'Tanda Tangan (PNG, untuk dokumen)' : 'Signature (PNG, for documents)'} full>
             <div style={{display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap'}}>
               {form.signatureUrl ? (

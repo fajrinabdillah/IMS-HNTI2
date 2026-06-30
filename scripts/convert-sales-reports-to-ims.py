@@ -26,7 +26,7 @@ SALES = {
     "tri": ("tri", "Tri Sutjahjono", "Jatim Selatan & Timur"),
     "bagus": ("bagus", "Bagus Iswahyudi", "Jatim Utara & Barat"),
     "icha": ("icha", "Ika Apriani", "Jabodetabek & Banten"),
-    "astrika": ("astrika", "Astrika", "Jateng Selatan & DIY"),
+    "astrika": ("astrika", "Astrika Sari", "Jateng Selatan & DIY"),
 }
 
 PRODUCT_KEYWORDS = [

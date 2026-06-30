@@ -803,4 +803,56 @@ function getProductPrincipalOptions(products = []) {
     .map(([principal, origin]) => ({ principal, origin }));
 }
 
-export { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, TECHNICIAN_USERNAMES, STATIC_TECH_ORDER, resolveEmpName, resolveNamesInText, SALES_META_BY_ID, employeeSalesId, getActiveSalesTeam, activeSalesIdSet, resolveSalesOwnerId, normalizeSalesOwnedRows, isLiveEmployeeUsername, normalizeEmployeeOwnedRows, detectPaymentScheme, resolveCustomerSector, resolveDealModel, _addMonthsISO, computeInvoiceSchedule, resolveProductId, normalizeProduct, getRegStages, sanitizeRegStageHistory, migrateRegRecord, normalizeImportPipelineStatus, importPipelineLabel, projectHasDpReceived, manifestMatchesProject, appendStageHistoryEntry, getStageMetrics, normalizeSphStageId, defaultSphStageForStatus, applySphStageStatusCoherence, normalizeSphStageRecords, normalizePoWon, resolveOpsCost, calcIncentive, getIncentiveStatus, getNetMargin, calcNetProfit, getProductFileUrl, normalizeProductLookupText, getFactoryProductionDays, addDaysIso, getFactoryProductionInfo, resolveProductRecord, syncSphItemToProductMaster, syncSphRecordToProductMaster, syncSphDataToProductMaster, effectiveScheme, generatePaymentSchedule, getPaymentSummary, getProductPrincipalOptions };
+function todayISO() {
+  return new Date().toISOString().split('T')[0];
+}
+function isAstrikaEmployee(emp, username = '') {
+  if (!emp) return false;
+  const sid = String(emp.salesId || username || '').toLowerCase();
+  return sid === 'astrika' || /\bastrika\b/i.test(String(emp.name || ''));
+}
+function formatJoinDateLabel(joinDate, lang = 'id') {
+  if (!joinDate) return joinDate;
+  const [y, m, d] = joinDate.split('-').map(Number);
+  const monthsId = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const monthsEn = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const months = lang === 'id' ? monthsId : monthsEn;
+  return `${d} ${months[m - 1]} ${y}`;
+}
+/** Set joinDate defaults & auto-activate employees when joinDate is reached. */
+function healEmployeeJoinSchedules(employees = {}) {
+  const today = todayISO();
+  let changed = false;
+  const next = { ...employees };
+  for (const [username, emp] of Object.entries(next)) {
+    if (!emp) continue;
+    let user = { ...emp };
+    let userChanged = false;
+    if (isAstrikaEmployee(user, username)) {
+      if (user.salesId !== 'astrika') { user.salesId = 'astrika'; userChanged = true; }
+      if (!user.joinDate) { user.joinDate = '2026-08-01'; userChanged = true; }
+      if (user.role !== 'sales' && !user.isOffice) { user.role = 'sales'; userChanged = true; }
+    }
+    if (user.active === false && user.joinDate && today >= user.joinDate) {
+      user.active = true;
+      userChanged = true;
+    }
+    if (userChanged) {
+      next[username] = user;
+      changed = true;
+    }
+  }
+  return { employees: next, changed };
+}
+function resolveLoginEmployee(employees, username, fallbackDb = USERS) {
+  const u = String(username || '').toLowerCase().trim();
+  const raw = employees?.[u] || fallbackDb[u];
+  if (!raw) return { user: null, username: u, persist: false };
+  const today = todayISO();
+  if (raw.active === false && raw.joinDate && today >= raw.joinDate) {
+    return { user: { ...raw, active: true }, username: u, persist: true };
+  }
+  return { user: raw, username: u, persist: false };
+}
+
+export { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, TECHNICIAN_USERNAMES, STATIC_TECH_ORDER, resolveEmpName, resolveNamesInText, SALES_META_BY_ID, employeeSalesId, getActiveSalesTeam, activeSalesIdSet, resolveSalesOwnerId, normalizeSalesOwnedRows, isLiveEmployeeUsername, normalizeEmployeeOwnedRows, detectPaymentScheme, resolveCustomerSector, resolveDealModel, _addMonthsISO, computeInvoiceSchedule, resolveProductId, normalizeProduct, getRegStages, sanitizeRegStageHistory, migrateRegRecord, normalizeImportPipelineStatus, importPipelineLabel, projectHasDpReceived, manifestMatchesProject, appendStageHistoryEntry, getStageMetrics, normalizeSphStageId, defaultSphStageForStatus, applySphStageStatusCoherence, normalizeSphStageRecords, normalizePoWon, resolveOpsCost, calcIncentive, getIncentiveStatus, getNetMargin, calcNetProfit, getProductFileUrl, normalizeProductLookupText, getFactoryProductionDays, addDaysIso, getFactoryProductionInfo, resolveProductRecord, syncSphItemToProductMaster, syncSphRecordToProductMaster, syncSphDataToProductMaster, effectiveScheme, generatePaymentSchedule, getPaymentSummary, getProductPrincipalOptions, todayISO, isAstrikaEmployee, formatJoinDateLabel, healEmployeeJoinSchedules, resolveLoginEmployee };

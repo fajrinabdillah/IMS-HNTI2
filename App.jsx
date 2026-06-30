@@ -15,7 +15,7 @@ import { IMS_THEMES, CHART_COLORS } from './src/constants/theme.js';
 import { SEED_FIELD_REPORTS, SEED_ISSUES, SEED_AKL_RECORDS, SEED_IMPORT_RECORDS, SEED_PENGALIHAN_RECORDS, SEED_PI_RECORDS, SEED_INSTALL_RECORDS, SEED_BAST_RECORDS, SEED_TRAINING_RECORDS, SEED_BUSINESS_TRIPS, SEED_BT_REALIZATIONS } from './src/constants/seedData.js';
 import { FIELD_REPORTS_JUN_JUL_2026 } from './src/data/fieldReportsJunJul2026.js';
 import { initialOf, formatCurrency, formatCurrencyFull, formatDateTime, parseSafeDateMs, dateOnlyFromValue, addDateOnlyDays, normalizeExternalUrl, formatDuration, inferMimeFromName, formatFileSize, escapeHtml, safeDocFilename, _normHdr, _num, _normDate } from './src/utils/format.js';
-import { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, STATIC_TECH_ORDER, resolveEmpName, resolveNamesInText, SALES_META_BY_ID, employeeSalesId, getActiveSalesTeam, activeSalesIdSet, normalizeSalesOwnedRows, isLiveEmployeeUsername, normalizeEmployeeOwnedRows, detectPaymentScheme, resolveCustomerSector, resolveDealModel, _addMonthsISO, computeInvoiceSchedule, resolveProductId, normalizeProduct, getRegStages, sanitizeRegStageHistory, migrateRegRecord, normalizeImportPipelineStatus, importPipelineLabel, projectHasDpReceived, manifestMatchesProject, appendStageHistoryEntry, getStageMetrics, applySphStageStatusCoherence, normalizeSphStageRecords, normalizePoWon, calcIncentive, getIncentiveStatus, getNetMargin, calcNetProfit, getProductFileUrl, normalizeProductLookupText, getFactoryProductionDays, addDaysIso, getFactoryProductionInfo, resolveProductRecord, syncSphRecordToProductMaster, syncSphDataToProductMaster, effectiveScheme, generatePaymentSchedule, getPaymentSummary } from './src/utils/domain.js';
+import { detectSalesOwnerFromCustomer, TECHNICIAN_NAMES, STATIC_TECH_ORDER, resolveEmpName, resolveNamesInText, SALES_META_BY_ID, employeeSalesId, getActiveSalesTeam, activeSalesIdSet, normalizeSalesOwnedRows, isLiveEmployeeUsername, normalizeEmployeeOwnedRows, detectPaymentScheme, resolveCustomerSector, resolveDealModel, _addMonthsISO, computeInvoiceSchedule, resolveProductId, normalizeProduct, getRegStages, sanitizeRegStageHistory, migrateRegRecord, normalizeImportPipelineStatus, importPipelineLabel, projectHasDpReceived, manifestMatchesProject, appendStageHistoryEntry, getStageMetrics, applySphStageStatusCoherence, normalizeSphStageRecords, normalizePoWon, calcIncentive, getIncentiveStatus, getNetMargin, calcNetProfit, getProductFileUrl, normalizeProductLookupText, getFactoryProductionDays, addDaysIso, getFactoryProductionInfo, resolveProductRecord, syncSphRecordToProductMaster, syncSphDataToProductMaster, effectiveScheme, generatePaymentSchedule, getPaymentSummary, healEmployeeJoinSchedules, resolveLoginEmployee, formatJoinDateLabel, todayISO, isAstrikaEmployee } from './src/utils/domain.js';
 import { _memStore, _hasArtifactStorage, _hasLocalStorage, _SUPA_URL, _SUPA_KEY, _supaEnabled, _supaFetch, _supaSession, _SUPA_SESS_LS, _authFetch, _supaSignIn, _refreshInFlight, _supaRefreshTok, _supaSignOut, _restoreSupaSession, _getSupaTok, _supaReq, _pushVapidPublicKey, _urlBase64ToUint8Array, pushSupported, registerServiceWorker, savePushSubscription, enablePushNotifications, refreshPushSubscription, getPushPermissionStatus, sendServerPushNotification, _rtSocket, _rtHeartbeat, _rtRetryCount, _rtRetryTimer, _rtStatus, _setRtStatus, _hashStr, _recentWrites, _markRecentWrite, _isRecentSelfEcho, blockCloudApply, isCloudApplyBlocked, markSphLocalWrite, shouldRejectStaleSphCloud, _rtJoinRef, _RT_TOPIC, _startRealtime, _scheduleRtRetry, _stopRealtime, _tokRefreshTimer, _startProactiveRefresh, _stopProactiveRefresh, storeGet, storeSet, storeDel, _persistPending, _persistTimer, debouncedStoreSet, flushPersist } from './src/utils/storage.js';
 import { stripRemovedEmployees, healCollection } from './src/utils/purgeLegacyEmployees.js';
 import { normalizeSphProjects } from './src/utils/sphProject.js';
@@ -798,8 +798,10 @@ export default function App() {
         const empStored = await storeGet('ims_hnti:emp_v22');
         let emp = {};
         try { emp = empStored ? stripRemovedEmployees(JSON.parse(empStored)) : { ...USERS }; } catch { emp = { ...USERS }; }
-        if (USERS.astrika && !emp.astrika) emp.astrika = { ...USERS.astrika };
-        await storeSet('ims_hnti:emp_v22', JSON.stringify(emp));
+        const hasAstrikaProfile = Object.entries(emp).some(([u, e]) => isAstrikaEmployee(e, u));
+        if (USERS.astrika && !emp.astrika && !hasAstrikaProfile) emp.astrika = { ...USERS.astrika };
+        const { employees: healedEmp, changed } = healEmployeeJoinSchedules(emp);
+        if (changed) await storeSet('ims_hnti:emp_v22', JSON.stringify(healedEmp));
         await storeSet(V49_TERRITORY_MARKER, 'true');
       }
 
@@ -839,7 +841,12 @@ export default function App() {
       if (inst) try { setInstallRecords(JSON.parse(inst)); } catch {}
       if (bast) try { setBastRecords(JSON.parse(bast)); } catch {}
       if (train) try { setTrainingRecords(JSON.parse(train)); } catch {}
-      if (emp) try { setEmployees(stripRemovedEmployees(JSON.parse(emp))); } catch {}
+      if (emp) try {
+        const parsed = stripRemovedEmployees(JSON.parse(emp));
+        const { employees: healedEmp, changed } = healEmployeeJoinSchedules(parsed);
+        if (changed) await storeSet('ims_hnti:emp_v22', JSON.stringify(healedEmp));
+        setEmployees(healedEmp);
+      } catch {}
       if (bt) try { setBusinessTrips(JSON.parse(bt)); } catch {}
       const btrStored = await storeGet('ims_hnti:btr_v22');
       if (btrStored) try { setRealizations(JSON.parse(btrStored)); } catch {}
@@ -1185,11 +1192,11 @@ export default function App() {
       module: 'auth', action: 'login', timestamp: new Date().toISOString(), entityLabel: 'User session',
     });
   };
-  if (!session) return <><LoginScreen t={t} lang={lang} setLang={setLang} theme={theme} onLogin={handleLogin} employees={employees} /><ToastContainer /></>;
+  if (!session) return <><LoginScreen t={t} lang={lang} setLang={setLang} theme={theme} onLogin={handleLogin} employees={employees} setEmployees={setEmployees} /><ToastContainer /></>;
   return <><AuthApp session={session} setSession={setSession} lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} t={t} data={data} setData={setSphData} reports={reports} setReports={setReports} issues={issues} setIssues={setIssues} pmSchedule={pmSchedule} setPmSchedule={setPmSchedule} manifests={manifests} setManifests={setManifests} customsDocs={customsDocs} setCustomsDocs={setCustomsDocs} installRecords={installRecords} setInstallRecords={setInstallRecords} bastRecords={bastRecords} setBastRecords={setBastRecords} trainingRecords={trainingRecords} setTrainingRecords={setTrainingRecords} regRecords={regRecords} setRegRecords={setRegRecords} aklRecords={aklRecords} setAklRecords={setAklRecords} importRecords={importRecords} setImportRecords={setImportRecords} pengalihanRecords={pengalihanRecords} setPengalihanRecords={setPengalihanRecords} piRecords={piRecords} setPiRecords={setPiRecords} employees={employees} setEmployees={setEmployees} businessTrips={businessTrips} setBusinessTrips={setBusinessTrips} realizations={realizations} setRealizations={setRealizations} installedUnits={installedUnits} baseInstalledUnits={baseInstalledUnits} fmt={fmt} fmtFull={fmtFull} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} lastSync={lastSync} onRefresh={handleRefresh} auditLog={auditLog} setAuditLog={setAuditLog} logAction={logAction} products={products} setProducts={setProducts} productSupportActivities={productSupportActivities} setProductSupportActivities={setProductSupportActivities} productSupportFiles={productSupportFiles} setProductSupportFiles={setProductSupportFiles} documentTemplates={documentTemplates} setDocumentTemplates={setDocumentTemplates} generatedDocs={generatedDocs} setGeneratedDocs={setGeneratedDocs} manualInstallBaseRecords={manualInstallBaseRecords} setManualInstallBaseRecords={setManualInstallBaseRecords} annotations={annotations} setAnnotations={setAnnotations} liveTechnicians={liveTechnicians} unitTechMap={unitTechMap} setUnitTechMap={setUnitTechMap} reportsSeen={reportsSeen} setReportsSeen={setReportsSeen} moduleAccess={moduleAccess} setModuleAccess={setModuleAccess} syncStatus={syncStatus} notifications={notifications} setNotifications={setNotifications} /><ToastContainer /></>;
 }
 
-function LoginScreen({ t, lang, setLang, theme = 've', onLogin, employees }) {
+function LoginScreen({ t, lang, setLang, theme = 've', onLogin, employees, setEmployees }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
@@ -1199,10 +1206,19 @@ function LoginScreen({ t, lang, setLang, theme = 've', onLogin, employees }) {
 
   const handleLogin = async () => {
     const u = username.toLowerCase().trim();
-    const userDb = employees || USERS;
-    const user = userDb[u];
-    if (!user) { setError(t.login_error); return; }
+    const { user: resolvedUser, username: loginUser, persist } = resolveLoginEmployee(employees, u, USERS);
+    if (!resolvedUser) { setError(t.login_error); return; }
+    let user = resolvedUser;
+    if (persist && setEmployees) {
+      setEmployees(prev => ({ ...prev, [loginUser]: user }));
+    }
     if (user.active === false) {
+      if (user.joinDate && todayISO() < user.joinDate) {
+        setError(lang === 'id'
+          ? `Akun aktif mulai ${formatJoinDateLabel(user.joinDate, 'id')}. Hubungi admin jika perlu akses lebih awal.`
+          : `Account activates on ${formatJoinDateLabel(user.joinDate, 'en')}. Contact admin for early access.`);
+        return;
+      }
       setError(lang === 'id' ? 'Akun Anda telah dinon-aktifkan. Hubungi admin.' : 'Your account has been deactivated. Contact admin.');
       return;
     }
@@ -1224,7 +1240,7 @@ function LoginScreen({ t, lang, setLang, theme = 've', onLogin, employees }) {
     } else {
       if (user.password !== password) { setError(t.login_error); return; }
     }
-    onLogin({ username: u, role: user.role, name: user.name, initial: user.initial, salesId: user.salesId, position: user.position, allowancePerDay: user.allowancePerDay });
+    onLogin({ username: loginUser, role: user.role, name: user.name, initial: user.initial, salesId: user.salesId, position: user.position, allowancePerDay: user.allowancePerDay });
     setError('');
   };
 

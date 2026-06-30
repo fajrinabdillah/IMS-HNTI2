@@ -187,7 +187,7 @@ const FIELD_REPORT_IMPORT_ALIASES = {
   nights: ['Nights', 'Malam Menginap'],
   area: ['Focus Area', 'Area Fokus', 'Area'],
   pipeN: ['Pipeline RS Count', 'Jumlah RS Pipeline', 'Pipe Count', 'PipeN'],
-  pipeVal: ['Pipeline Value', 'Estimasi Nilai', 'Pipe Value', 'PipeVal'],
+  pipeVal: ['Pipeline Value (Rp juta)', 'Pipeline Value', 'Estimasi Nilai (Rp juta)', 'Estimasi Nilai', 'Pipe Value', 'PipeVal'],
   closest: ['Closest RS', 'RS Paling Dekat Closing', 'Closest'],
   win: ['Win', 'Win / Pencapaian', 'Pencapaian'],
   block: ['Blocker', 'Hambatan Terbesar', 'Hambatan'],
@@ -200,6 +200,7 @@ const FIELD_REPORT_IMPORT_ALIASES = {
   pipeline: ['Pipeline Temp', 'Pipeline', 'Suhu Pipeline'],
   contact: ['Contact', 'Kontak'],
   visitNote: ['Visit Note', 'Catatan Kunjungan', 'Note', 'Catatan'],
+  estimatedValue: ['Project Value Est (Rp juta)', 'Estimasi Nilai Proyek (Rp juta)', 'Estimasi Nilai Proyek', 'Project Value', 'Nilai Proyek'],
 };
 const _VISIT_TYPE_ALIASES = {
   first: 'first', pertam: 'first', followup: 'followup', demo: 'demo',
@@ -269,6 +270,7 @@ function parseFieldReportImport(text, salesTeam = []) {
         pipeline: get('pipeline') || 'cold',
         contact: get('contact') || '',
         note: get('visitNote') || '',
+        estimatedValue: _num(get('estimatedValue')) || 0,
       });
     }
     if (get('week')) rec.week = get('week');
@@ -283,10 +285,16 @@ function parseFieldReportImport(text, salesTeam = []) {
     const pv = _num(get('pipeVal')); if (pv) rec.pipeVal = pv;
     const ft = _num(get('fatigue')); if (ft) rec.fatigue = ft;
   }
-  const records = [...grouped.values()].map(r => ({
-    ...r,
-    visits: r.visits.length ? r.visits : [{ name: '', city: '', visit: 'first', product: '', pipeline: 'cold', contact: '', note: '' }],
-  }));
+  const records = [...grouped.values()].map(r => {
+    const visitSum = r.visits.reduce((s, v) => s + (Number(v.estimatedValue) || 0), 0);
+    const hotWarm = r.visits.filter(v => ['hot', 'warm', 'proposal', 'win'].includes(v.pipeline)).length;
+    return {
+      ...r,
+      pipeVal: r.pipeVal || visitSum,
+      pipeN: r.pipeN || hotWarm,
+      visits: r.visits.length ? r.visits : [{ name: '', city: '', visit: 'first', product: '', pipeline: 'cold', contact: '', note: '', estimatedValue: 0 }],
+    };
+  });
   return { records, errors, total: rows.length - headerIdx - 1 };
 }
 function parsePaymentImport(text) {

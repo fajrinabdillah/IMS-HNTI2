@@ -15,9 +15,8 @@ OUT_DIR = DESKTOP
 
 HEADER = [
     "Report ID", "Sales ID", "Sales Name", "Date", "Week", "Field Days", "Nights", "Focus Area",
-    "Pipeline RS Count", "Pipeline Value (Rp juta)", "Closest RS", "Win", "Blocker", "Next Priority", "Fatigue",
+    "Pipeline RS Count", "Closest RS", "Win", "Blocker", "Next Priority", "Fatigue",
     "Hospital", "City", "Visit Type", "Product", "Pipeline Temp", "Contact", "Visit Note",
-    "Estimasi Nilai Proyek (Rp juta)",
 ]
 
 SALES = {
@@ -161,7 +160,6 @@ def make_row(report_meta, visit, report_id):
         report_meta.get("nights", 3),
         report_meta.get("area", ""),
         "",  # pipeN filled later
-        "",  # pipeVal filled later
         report_meta.get("closest", ""),
         report_meta.get("win", ""),
         report_meta.get("block", ""),
@@ -174,22 +172,19 @@ def make_row(report_meta, visit, report_id):
         visit.get("pipeline", "warm"),
         visit.get("contact", ""),
         visit.get("note", ""),
-        visit.get("estimatedValue", 0),
     ]
 
 
 def finalize_rows(rows: list[list]) -> list[list]:
-    """Fill pipeN/pipeVal per report id."""
+    """Fill pipeN per report id."""
     by_rid: dict[str, list[list]] = {}
     for row in rows:
         by_rid.setdefault(row[0], []).append(row)
     out = []
     for rid, grp in by_rid.items():
-        hot_warm = sum(1 for r in grp if r[19] in ("hot", "warm", "proposal", "win"))
-        total_val = sum(int(r[22] or 0) for r in grp)
+        hot_warm = sum(1 for r in grp if r[18] in ("hot", "warm", "proposal", "win"))
         for r in grp:
             r[8] = hot_warm
-            r[9] = total_val
             out.append(r)
     return out
 

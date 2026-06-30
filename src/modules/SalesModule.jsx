@@ -13,7 +13,7 @@ import { formatDateTime, formatDuration, normalizeExternalUrl, todayStart, curre
 import { CHART_COLORS } from '../constants/theme.js';
 import { getProjectStageRows, SPH_WORKFLOW_LABELS, isAdminQueueRequest } from '../utils/sphStage.js';
 import { buildEditorTemplate, downloadCSV, downloadSPHWord, downloadSPPWord, printHtmlStringAsPdf, printSPHPdf, printSPPPdf } from '../utils/documents.js';
-import { parseFieldReportImport, parseSPHImport } from '../utils/csvImport.js';
+import { parseFieldReportImport, parseSPHImport, sanitizeFieldReport } from '../utils/csvImport.js';
 import { filterBillableRows, formatPackageItemsSummary, formatPackageModalityLabel, getPackageComponents, sphBillableValue, countUniqueSphNumbers, sphPackageGroupKey } from '../utils/sphPackage.js';
 import { groupSphProjects, shippingStatusLabel } from '../utils/sphProject.js';
 import { getProjectSiblings, projectToFormState } from '../utils/sphMultiItem.js';
@@ -1935,25 +1935,21 @@ function canCreateFieldReport(session) {
   return ['super_admin', 'gm', 'admin', 'manager_ops'].includes(session.role)
     || session.username === 'ceo';
 }
-function sumVisitEstimatedValue(visits = []) {
-  return (visits || []).reduce((s, v) => s + (Number(v.estimatedValue) || 0), 0);
-}
-
 function buildFieldReportExportRows(reports, employees = {}) {
   const header = [
     'Report ID', 'Sales ID', 'Sales Name', 'Date', 'Week', 'Field Days', 'Nights', 'Focus Area',
-    'Pipeline RS Count', 'Pipeline Value (Rp juta)', 'Closest RS', 'Win', 'Blocker', 'Next Priority', 'Fatigue',
-    'Hospital', 'City', 'Visit Type', 'Product', 'Pipeline Temp', 'Contact', 'Visit Note', 'Estimasi Nilai Proyek (Rp juta)',
+    'Pipeline RS Count', 'Closest RS', 'Win', 'Blocker', 'Next Priority', 'Fatigue',
+    'Hospital', 'City', 'Visit Type', 'Product', 'Pipeline Temp', 'Contact', 'Visit Note',
   ];
   const rows = [header];
   reports.forEach(r => {
     const salesName = resolveEmpName(employees, r.salesId);
-    const visits = (r.visits || []).length ? r.visits : [{ name: '', city: '', visit: '', product: '', pipeline: '', contact: '', note: '', estimatedValue: '' }];
+    const visits = (r.visits || []).length ? r.visits : [{ name: '', city: '', visit: '', product: '', pipeline: '', contact: '', note: '' }];
     visits.forEach(v => {
       rows.push([
         r.id, r.salesId, salesName, r.date || '', r.week || '', r.days ?? '', r.nights ?? '', r.area || '',
-        r.pipeN ?? '', r.pipeVal ?? '', r.closest || '', r.win || '', r.block || '', r.next || '', r.fatigue ?? '',
-        v.name || '', v.city || '', v.visit || '', v.product || '', v.pipeline || '', v.contact || '', v.note || '', v.estimatedValue ?? '',
+        r.pipeN ?? '', r.closest || '', r.win || '', r.block || '', r.next || '', r.fatigue ?? '',
+        v.name || '', v.city || '', v.visit || '', v.product || '', v.pipeline || '', v.contact || '', v.note || '',
       ]);
     });
   });
@@ -1963,12 +1959,12 @@ function buildFieldReportTemplateRow(lang, employees = {}) {
   const sampleSales = getActiveSalesTeam(employees).find(s => !s.isOffice) || { id: OFFICE_SALES_ID, name: 'Office' };
   return [
     'rpt_example_001', sampleSales.id, sampleSales.name, '2026-05-16', 'Minggu 1', 4, 3, 'Jateng Utara & Pantura',
-    2, 8500, 'RS Indriati Solo Baru',
+    2, 'RS Indriati Solo Baru',
     lang === 'id' ? 'Closing RS Indriati' : 'Closed RS Indriati',
     lang === 'id' ? 'Macet di jalan' : 'Traffic delay',
     lang === 'id' ? 'Follow up RS PKU' : 'Follow up RS PKU',
     2,
-    'RS PKU Muhammadiyah Solo', 'Solo', 'followup', 'CT Scan', 'warm', 'dr. Hendra', lang === 'id' ? 'Minta proposal detail' : 'Needs detailed proposal', 4500,
+    'RS PKU Muhammadiyah Solo', 'Solo', 'followup', 'CT Scan', 'warm', 'dr. Hendra', lang === 'id' ? 'Minta proposal detail' : 'Needs detailed proposal',
   ];
 }
 
@@ -1985,7 +1981,7 @@ function reportMatchesSearch(report, term, salesTeam = []) {
     report.win,
     report.block,
     report.next,
-    ...(report.visits || []).flatMap(v => [v.name, v.city, v.product, v.contact, v.note, v.visit, v.pipeline, v.estimatedValue]),
+    ...(report.visits || []).flatMap(v => [v.name, v.city, v.product, v.contact, v.note, v.visit, v.pipeline]),
   ];
   return parts.some(p => String(p || '').toLowerCase().includes(q));
 }
@@ -2217,7 +2213,7 @@ function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRea
     const totalDays = reports.reduce((s, r) => s + (r.days || 0), 0);
     const totalDeals = reports.reduce((s, r) => s + (r.visits?.filter(v => v.visit === 'closed' || v.pipeline === 'win').length || 0), 0);
     const reportsToday = reports.filter(r => r.date === todayStr).length;
-    const pipeValue = reports.reduce((s, r) => s + (Number(r.pipeVal) || sumVisitEstimatedValue(r.visits)), 0);
+    const totalPipeRs = reports.reduce((s, r) => s + (Number(r.pipeN) || 0), 0);
     const openIssues = (issues || []).filter(i => i.status !== 'resolved').length;
     const resolvedIssues = (issues || []).filter(i => i.status === 'resolved').length;
     const issueTotal = openIssues + resolvedIssues;
@@ -2265,10 +2261,10 @@ function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRea
 
     const bySales = {};
     reports.forEach(r => {
-      if (!bySales[r.salesId]) bySales[r.salesId] = { count: 0, reports: 0, pipeline: 0 };
+      if (!bySales[r.salesId]) bySales[r.salesId] = { count: 0, reports: 0, pipeN: 0 };
       bySales[r.salesId].count += r.visits?.length || 0;
       bySales[r.salesId].reports += 1;
-      bySales[r.salesId].pipeline += Number(r.pipeVal) || sumVisitEstimatedValue(r.visits);
+      bySales[r.salesId].pipeN += Number(r.pipeN) || 0;
     });
 
     const hospitalMap = {};
@@ -2309,7 +2305,7 @@ function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRea
 
     return {
       totalVisits, totalDays, totalDeals, reportsToday, openIssues, resolutionPct, visitTrend,
-      categoryData, bySales, visitTypePie, topHospitals, monthlyReports, radarData, pipeValue, avgVisitsPerReport,
+      categoryData, bySales, visitTypePie, topHospitals, monthlyReports, radarData, totalPipeRs, avgVisitsPerReport,
     };
   }, [reports, issues, installRecords, lang, todayStr]);
 
@@ -2328,7 +2324,7 @@ function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRea
 
   const {
     totalVisits, totalDays, totalDeals, reportsToday, openIssues, resolutionPct, visitTrend,
-    categoryData, bySales, visitTypePie, topHospitals, monthlyReports, radarData, pipeValue, avgVisitsPerReport,
+    categoryData, bySales, visitTypePie, topHospitals, monthlyReports, radarData, totalPipeRs, avgVisitsPerReport,
   } = stats;
 
   const quickLinks = [
@@ -2369,7 +2365,7 @@ function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRea
         { label: t.sr_total_reports, value: reports.length, sub: `${reportsToday} ${lang === 'id' ? 'hari ini' : 'today'}`, color: glass.accent },
         { label: t.sr_visits_count, value: totalVisits, sub: `${avgVisitsPerReport} ${lang === 'id' ? 'avg/laporan' : 'avg/report'}`, color: '#6366f1' },
         { label: t.sr_field_days_total, value: totalDays, sub: `${totalDeals} closing`, color: '#10b981' },
-        { label: lang === 'id' ? 'Estimasi Pipeline' : 'Pipeline Est.', value: pipeValue ? `${pipeValue} ${lang === 'id' ? 'jt' : 'M'}` : '—', sub: lang === 'id' ? 'dari laporan mingguan' : 'from weekly reports', color: '#a855f7' },
+        { label: lang === 'id' ? 'RS Pipeline' : 'Pipeline RS', value: totalPipeRs || '—', sub: lang === 'id' ? 'jumlah RS hangat/panas' : 'hot/warm RS count', color: '#a855f7' },
         { label: lang === 'id' ? 'Issue Lapangan' : 'Field Issues', value: openIssues, sub: `${resolutionPct}% ${lang === 'id' ? 'terselesaikan' : 'resolved'}`, color: openIssues ? '#c03030' : '#10b981' },
       ]} />
 
@@ -2478,7 +2474,7 @@ function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRea
                 return (
                   <div key={id} style={{marginBottom: '12px'}}>
                     <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px'}}>
-                      <span style={{fontWeight: 500}}>{sales.name} <span style={{color: 'var(--ims-text-2)', fontSize: '11px'}}>· {st.reports} {lang === 'id' ? 'laporan' : 'reports'}{st.pipeline ? ` · ${st.pipeline} ${lang === 'id' ? 'jt' : 'M'}` : ''}</span></span>
+                      <span style={{fontWeight: 500}}>{sales.name} <span style={{color: 'var(--ims-text-2)', fontSize: '11px'}}>· {st.reports} {lang === 'id' ? 'laporan' : 'reports'}{st.pipeN ? ` · ${st.pipeN} RS pipeline` : ''}</span></span>
                       <span className="mono" style={{color: glass.accent, fontSize: '11px', fontWeight: 600}}>{st.count}</span>
                     </div>
                     <div style={{height: '6px', background: 'var(--ims-bg-card-2)', overflow: 'hidden', borderRadius: '3px'}}>
@@ -2512,14 +2508,14 @@ function SRForm({ reports, setReports, t, lang, session, editingReport, onSaved,
   const effectiveSalesId = isEdit ? (editingReport.salesId || formSalesId) : (isSalesUser ? session.salesId : formSalesId);
   const _base = useMemo(() => salesTeam.find(s => s.id === effectiveSalesId), [salesTeam, effectiveSalesId]);
   const sales = _base ? { ..._base, name: resolveEmpName(employees, effectiveSalesId) } : _base;
-  const [form, setForm] = useState(editingReport || {
+  const [form, setForm] = useState(() => editingReport ? sanitizeFieldReport(editingReport) : {
     date: '2026-05-16', week: 'Minggu 1', days: 0, nights: 0, area: '',
-    visits: [{ name: '', city: '', visit: 'first', product: '', pipeline: 'cold', contact: '', note: '', estimatedValue: '' }],
+    visits: [{ name: '', city: '', visit: 'first', product: '', pipeline: 'cold', contact: '', note: '' }],
     pipeN: 0, pipeVal: 0, closest: '',
     block: '', win: '', next: '', fatigue: 0,
   });
 
-  const addVisit = () => setForm(f => ({ ...f, visits: [...f.visits, { name: '', city: '', visit: 'first', product: '', pipeline: 'cold', contact: '', note: '', estimatedValue: '' }] }));
+  const addVisit = () => setForm(f => ({ ...f, visits: [...f.visits, { name: '', city: '', visit: 'first', product: '', pipeline: 'cold', contact: '', note: '' }] }));
   const removeVisit = (i) => setForm(f => ({ ...f, visits: f.visits.filter((_, j) => j !== i) }));
   const updateVisit = (i, k, v) => setForm(f => ({ ...f, visits: f.visits.map((vt, j) => j === i ? { ...vt, [k]: v } : vt) }));
 
@@ -2528,21 +2524,23 @@ function SRForm({ reports, setReports, t, lang, session, editingReport, onSaved,
       showToast(lang === 'id' ? 'Pilih sales terlebih dahulu' : 'Select a sales person first', 'error');
       return;
     }
-    const validVisits = form.visits.filter(v => v.name.trim());
-    const visitValueSum = sumVisitEstimatedValue(validVisits);
+    const validVisits = form.visits.filter(v => v.name.trim()).map(v => {
+      const clean = { ...v };
+      delete clean.estimatedValue;
+      return clean;
+    });
     const hotWarmCount = validVisits.filter(v => ['hot', 'warm', 'proposal', 'win'].includes(v.pipeline)).length;
-    const report = {
+    const report = sanitizeFieldReport({
       id: isEdit ? form.id : 'rpt_' + Date.now(),
       salesId: isEdit ? form.salesId : effectiveSalesId,
       date: form.date, week: form.week, days: parseInt(form.days) || 0, nights: parseInt(form.nights) || 0,
       area: form.area, visits: validVisits,
       pipeN: parseInt(form.pipeN) || hotWarmCount,
-      pipeVal: parseInt(form.pipeVal) || visitValueSum,
       closest: form.closest,
       block: form.block, win: form.win, next: form.next, fatigue: form.fatigue,
       createdAt: isEdit ? form.createdAt : new Date().toISOString(),
       updatedAt: isEdit ? new Date().toISOString() : undefined,
-    };
+    });
     if (isEdit) {
       setReports(prev => prev.map(r => r.id === report.id ? report : r));
       showToast(t.sr_updated_success, 'success');
@@ -2598,7 +2596,7 @@ function SRForm({ reports, setReports, t, lang, session, editingReport, onSaved,
                 <th style={{padding: '8px', textAlign: 'left', fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ims-text-2)'}}>{lang === 'id' ? 'Kunjungan' : 'Visit'}</th>
                 <th style={{padding: '8px', textAlign: 'left', fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ims-text-2)'}}>{lang === 'id' ? 'Produk' : 'Product'}</th>
                 <th style={{padding: '8px', textAlign: 'left', fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ims-text-2)'}}>{lang === 'id' ? 'Pipeline' : 'Pipeline'}</th>
-                <th style={{padding: '8px', textAlign: 'left', fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ims-text-2)'}}>{t.sr_project_value}</th>
+                <th style={{padding: '8px', textAlign: 'left', fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ims-text-2)'}}>{lang === 'id' ? 'Kontak' : 'Contact'}</th>
                 <th style={{padding: '8px', textAlign: 'left', fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ims-text-2)'}}>{lang === 'id' ? 'Catatan' : 'Note'}</th>
                 <th></th>
               </tr>
@@ -2636,7 +2634,6 @@ function SRForm({ reports, setReports, t, lang, session, editingReport, onSaved,
                     </select>
                   </td>
                   <td style={{padding: '4px'}}><input value={v.contact} onChange={e => updateVisit(i, 'contact', e.target.value)} placeholder={lang === 'id' ? 'Nama' : 'Name'} style={{fontSize: '11px', padding: '5px 7px'}} /></td>
-                  <td style={{padding: '4px'}}><input type="number" min="0" value={v.estimatedValue ?? ''} onChange={e => updateVisit(i, 'estimatedValue', e.target.value)} placeholder="0" style={{fontSize: '11px', padding: '5px 7px', width: '72px'}} title={lang === 'id' ? 'Estimasi nilai proyek dalam Rp juta' : 'Project value estimate in Rp million'} /></td>
                   <td style={{padding: '4px'}}><input value={v.note || ''} onChange={e => updateVisit(i, 'note', e.target.value)} placeholder={lang === 'id' ? 'Catatan kunjungan' : 'Visit note'} style={{fontSize: '11px', padding: '5px 7px', minWidth: '120px'}} /></td>
                   <td><button onClick={() => removeVisit(i)} style={{background: 'transparent', border: 'none', cursor: 'pointer', color: '#8b3a3a', padding: '4px'}}><X size={14} /></button></td>
                 </tr>
@@ -2650,10 +2647,8 @@ function SRForm({ reports, setReports, t, lang, session, editingReport, onSaved,
       <div className="card">
         <div className="card-title">03 · {t.sr_pipe_summary}</div>
         <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px'}}>
-          <div><label style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600, marginBottom: '6px', display: 'block'}}>{t.sr_pipe_count}</label><input type="number" min="0" value={form.pipeN} onChange={e => setForm(f => ({...f, pipeN: e.target.value}))} /></div>
-          <div><label style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600, marginBottom: '6px', display: 'block'}}>{t.sr_pipe_val}</label><input type="number" min="0" value={form.pipeVal} onChange={e => setForm(f => ({...f, pipeVal: e.target.value}))} placeholder={sumVisitEstimatedValue(form.visits) || '0'} /></div>
-          <div style={{gridColumn: '1 / -1', fontSize: '10px', color: 'var(--ims-text-2)'}}>{lang === 'id' ? `Total estimasi per RS: ${sumVisitEstimatedValue(form.visits)} jt — kosongkan di atas untuk pakai total otomatis` : `Per-visit total: ${sumVisitEstimatedValue(form.visits)} M — leave blank above to auto-sum`}</div>
-          <div style={{gridColumn: '1 / -1'}}><label style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600, marginBottom: '6px', display: 'block'}}>{t.sr_closest}</label><input value={form.closest} onChange={e => setForm(f => ({...f, closest: e.target.value}))} placeholder={lang === 'id' ? 'Nama RS' : 'Hospital name'} /></div>
+          <div><label style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600, marginBottom: '6px', display: 'block'}}>{t.sr_pipe_count}</label><input type="number" min="0" value={form.pipeN} onChange={e => setForm(f => ({...f, pipeN: e.target.value}))} placeholder={lang === 'id' ? 'Kosongkan untuk hitung otomatis dari suhu pipeline' : 'Leave blank to auto-count from pipeline temp'} /></div>
+          <div><label style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ims-text-2)', fontWeight: 600, marginBottom: '6px', display: 'block'}}>{t.sr_closest}</label><input value={form.closest} onChange={e => setForm(f => ({...f, closest: e.target.value}))} placeholder={lang === 'id' ? 'Nama RS' : 'Hospital name'} /></div>
         </div>
       </div>
 
@@ -2846,9 +2841,7 @@ function SRHistory({ reports, t, lang, canDelete = false, onEdit, onDelete, onBu
                 {r.next && <p style={{marginBottom: '6px', color: 'var(--ims-text-2)', fontStyle: 'italic'}}><strong>{t.sr_next}:</strong> {r.next}</p>}
                 {r.area && <p style={{marginBottom: '6px'}}><strong>{t.sr_focus_area}:</strong> {r.area}</p>}
                 {r.closest && <p style={{marginBottom: '6px'}}><strong>{t.sr_closest}:</strong> {r.closest}</p>}
-                {(r.pipeVal || sumVisitEstimatedValue(r.visits)) > 0 && (
-                  <p style={{marginBottom: '6px'}}><strong>{t.sr_pipe_val}:</strong> {Number(r.pipeVal) || sumVisitEstimatedValue(r.visits)} {lang === 'id' ? 'jt' : 'M'}</p>
-                )}
+                {r.pipeN > 0 && <p style={{marginBottom: '6px'}}><strong>{t.sr_pipe_count}:</strong> {r.pipeN} RS</p>}
                 {r.visits?.length > 0 && (
                   <div style={{marginTop: '12px'}}>
                     <div style={{fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#fff', marginBottom: '8px', fontWeight: 600}}>{lang === 'id' ? 'Detail Kunjungan RS' : 'Hospital Visit Details'} ({r.visits.length})</div>
@@ -2863,7 +2856,6 @@ function SRHistory({ reports, t, lang, canDelete = false, onEdit, onDelete, onBu
                             <th style={{padding: '8px', textAlign: 'left', color: '#fff', fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase'}}>{lang === 'id' ? 'Kunjungan' : 'Visit'}</th>
                             <th style={{padding: '8px', textAlign: 'left', color: '#fff', fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase'}}>Pipeline</th>
                             <th style={{padding: '8px', textAlign: 'left', color: '#fff', fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase'}}>{lang === 'id' ? 'Kontak' : 'Contact'}</th>
-                            <th style={{padding: '8px', textAlign: 'right', color: '#fff', fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase'}}>{lang === 'id' ? 'Estimasi (jt)' : 'Est. (M)'}</th>
                             <th style={{padding: '8px', textAlign: 'left', color: '#fff', fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase'}}>{lang === 'id' ? 'Catatan' : 'Note'}</th>
                           </tr>
                         </thead>
@@ -2877,7 +2869,6 @@ function SRHistory({ reports, t, lang, canDelete = false, onEdit, onDelete, onBu
                               <td style={{padding: '8px'}}>{visitTypeLabels[v.visit] || v.visit || '—'}</td>
                               <td style={{padding: '8px'}}>{pipelineLabels[v.pipeline] || v.pipeline || '—'}</td>
                               <td style={{padding: '8px'}}>{v.contact || '—'}</td>
-                              <td style={{padding: '8px', textAlign: 'right'}} className="mono">{v.estimatedValue ? v.estimatedValue : '—'}</td>
                               <td style={{padding: '8px', color: 'var(--ims-text-2)', maxWidth: '220px'}}>{v.note || '—'}</td>
                             </tr>
                           ))}

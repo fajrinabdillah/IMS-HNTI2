@@ -10,7 +10,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
     nights: 3,
     area: "Jateng Utara & Pantura",
     pipeN: 5,
-    pipeVal: 8280,
+    pipeVal: 0,
     closest: "",
     win: "Follow up penawaran C-Arm & CT trade-in RS Banyumanik 2",
     block: "Vendor harus terdaftar formularium Hermina pusat",
@@ -24,8 +24,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "CT Scan",
         pipeline: "proposal",
         contact: "Pak Fadil",
-        note: "Bertemu pak fadil, dan bu evi radiografer.\nAda penawaran c arm dan kebutuhan trade in unit ct scan. Rs banyumanik 2 minta penawaran.",
-        estimatedValue: 7650
+        note: "Bertemu pak fadil, dan bu evi radiografer.\nAda penawaran c arm dan kebutuhan trade in unit ct scan. Rs banyumanik 2 minta penawaran."
       },
       {
         name: "RS HERMINA BANYUMANIK",
@@ -34,8 +33,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "hot",
         contact: "Mas Daris",
-        note: "tidak ada kebutuhan, vendor harus terdaftar formularium kerjasama dengan hermina pusat",
-        estimatedValue: 0
+        note: "tidak ada kebutuhan, vendor harus terdaftar formularium kerjasama dengan hermina pusat"
       },
       {
         name: "RS BANYUMANIK 1",
@@ -44,8 +42,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "X-Ray",
         pipeline: "hot",
         contact: "pak mahfud dan mba sinta radiografer",
-        note: "butuh  pembaruan xray karena alat sudah lama",
-        estimatedValue: 630
+        note: "butuh  pembaruan xray karena alat sudah lama"
       },
       {
         name: "RS NASIONAL DIPONEGORO",
@@ -54,8 +51,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "hot",
         contact: "bu herlin radiografer",
-        note: "tidak ada kebutuhan, alat radiologi sudah terpenuhi semua",
-        estimatedValue: 0
+        note: "tidak ada kebutuhan, alat radiologi sudah terpenuhi semua"
       },
       {
         name: "RS charlie hospital demak.",
@@ -64,11 +60,10 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rs charlie hospital demak.",
-        estimatedValue: 0
+        note: "Rs charlie hospital demak."
       }
     ],
-    createdAt: "2026-06-30T12:38:27.250Z"
+    createdAt: "2026-06-30T13:05:02.038Z"
   },
   {
     id: "rpt_hatim_20260622_plan",
@@ -79,7 +74,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
     nights: 3,
     area: "Jateng Utara & Pantura",
     pipeN: 19,
-    pipeVal: 57000,
+    pipeVal: 0,
     closest: "",
     win: "",
     block: "",
@@ -93,8 +88,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 3000
+        note: "Rencana kunjungan"
       },
       {
         name: "RS PANTIWILASA CITARUM",
@@ -103,8 +97,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 3000
+        note: "Rencana kunjungan"
       },
       {
         name: "RS PANTIWILASA DR CIPTO",
@@ -113,8 +106,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 3000
+        note: "Rencana kunjungan"
       },
       {
         name: "RS COLUMBIA ASIA SEMARANG",
@@ -123,8 +115,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 3000
+        note: "Rencana kunjungan"
       },
       {
         name: "RS SAMSOE HIDAYAT",
@@ -133,8 +124,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 3000
+        note: "Rencana kunjungan"
       },
       {
         name: "RS KELUARGA SEHAT SEMARANG",
@@ -143,8 +133,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 3000
+        note: "Rencana kunjungan"
       },
       {
         name: "RS WILLIAMBOOTH",
@@ -153,8 +142,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 3000
+        note: "Rencana kunjungan"
       },
       {
         name: "RS MARDI RAHAYU KUDUS",
@@ -163,8 +151,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 3000
+        note: "Rencana kunjungan"
       },
       {
         name: "RSIA MIRIAM KUDUS",
@@ -173,8 +160,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 3000
+        note: "Rencana kunjungan"
       },
       {
         name: "RS GRAHA HUSADA JEPARA",
@@ -183,8 +169,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 3000
+        note: "Rencana kunjungan"
       },
       {
         name: "RS ASHAVIN JEPARA",
@@ -193,8 +178,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 3000
+        note: "Rencana kunjungan"
       },
       {
         name: "RS BANYUMANIK 2",
@@ -203,8 +187,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 3000
+        note: "Rencana kunjungan"
       },
       {
         name: "RS WILIAMBOOTH",
@@ -213,8 +196,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 3000
+        note: "Rencana kunjungan"
       },
       {
         name: "RSIA GUNUNG SAWO",
@@ -223,8 +205,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 3000
+        note: "Rencana kunjungan"
       },
       {
         name: "RS BAKTI WIRA TAMTAMA",
@@ -233,8 +214,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 3000
+        note: "Rencana kunjungan"
       },
       {
         name: "RS ROEMANI",
@@ -243,8 +223,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 3000
+        note: "Rencana kunjungan"
       },
       {
         name: "RS ELISABETH",
@@ -253,8 +232,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 3000
+        note: "Rencana kunjungan"
       },
       {
         name: "RS PRIMAYA",
@@ -263,8 +241,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 3000
+        note: "Rencana kunjungan"
       },
       {
         name: "RSIA BUNDA SEMARANG",
@@ -273,11 +250,10 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 3000
+        note: "Rencana kunjungan"
       }
     ],
-    createdAt: "2026-06-30T12:38:27.250Z"
+    createdAt: "2026-06-30T13:05:02.041Z"
   },
   {
     id: "rpt_tri_20260626_report",
@@ -288,7 +264,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
     nights: 3,
     area: "Jatim Selatan & Timur (Surabaya-Sidoarjo)",
     pipeN: 8,
-    pipeVal: 32400,
+    pipeVal: 0,
     closest: "",
     win: "Mapping kebutuhan RSAL & RS Mitra Waru",
     block: "Pimpinan RSAL dinas luar, belum bisa dihubungi",
@@ -302,8 +278,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "hot",
         contact: "",
-        note: "RSAL Visit ke bagian Radiologi untuk mencari informasi kebutuhan alat Radiologi di RSAL --> informasi ada kebutuhan",
-        estimatedValue: 0
+        note: "RSAL Visit ke bagian Radiologi untuk mencari informasi kebutuhan alat Radiologi di RSAL --> informasi ada kebutuhan"
       },
       {
         name: "RS Mitra Waru",
@@ -312,8 +287,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "hot",
         contact: "",
-        note: "RS Mitra Waru visit ke bagian Radiolkogi dan belum ada kebutuhan alat modality yang akan dibeli dalam waktu dekat",
-        estimatedValue: 0
+        note: "RS Mitra Waru visit ke bagian Radiolkogi dan belum ada kebutuhan alat modality yang akan dibeli dalam waktu dekat"
       },
       {
         name: "rsamamu",
@@ -322,8 +296,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Klinik bersamamu --> rencana kedepan akan nambah modality Mobil X Ray , sementara alat X Ray masih belum operational",
-        estimatedValue: 0
+        note: "Klinik bersamamu --> rencana kedepan akan nambah modality Mobil X Ray , sementara alat X Ray masih belum operational"
       },
       {
         name: "RSUD Pare Kediri",
@@ -332,8 +305,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "MRI",
         pipeline: "warm",
         contact: "",
-        note: "RSUD Pare Kediri visit ke bagian Penunjang dokter Budi untuk menawarkan MRI dikarenakan sudah lengkap alat Radiologi",
-        estimatedValue: 9000
+        note: "RSUD Pare Kediri visit ke bagian Penunjang dokter Budi untuk menawarkan MRI dikarenakan sudah lengkap alat Radiologi"
       },
       {
         name: "RSUD Iskak",
@@ -342,8 +314,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "CT Scan",
         pipeline: "warm",
         contact: "",
-        note: "RSUD Iskak --> follow up pengadaan CT Scan ke bagian pengadaan dan diminta untuk hub by phone dikarenakan masih",
-        estimatedValue: 4500
+        note: "RSUD Iskak --> follow up pengadaan CT Scan ke bagian pengadaan dan diminta untuk hub by phone dikarenakan masih"
       },
       {
         name: "RSU Putra Waspada",
@@ -352,8 +323,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "CT Scan",
         pipeline: "hot",
         contact: "",
-        note: "RSU Putra Waspada visit ke bagian management dan rencana akan ada kebutuhan CT Scan 64 --> masih menunggu konfirmasi",
-        estimatedValue: 6300
+        note: "RSU Putra Waspada visit ke bagian management dan rencana akan ada kebutuhan CT Scan 64 --> masih menunggu konfirmasi"
       },
       {
         name: "RS Muhammadyah Bandung Tulungagung",
@@ -362,8 +332,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "hot",
         contact: "",
-        note: "RS Muhammadyah Bandung Tulungagung --> visit ke bagian Radiologi dan belum ada kebutuhan alat",
-        estimatedValue: 0
+        note: "RS Muhammadyah Bandung Tulungagung --> visit ke bagian Radiologi dan belum ada kebutuhan alat"
       },
       {
         name: "RSUD Trenggalek",
@@ -372,11 +341,10 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "MRI",
         pipeline: "hot",
         contact: "",
-        note: "RSUD Trenggalek --> visit ke bagian penunjang bapak Mujiono follow up kebutuhan KSO MRI info beliau masih akan dibicarakan",
-        estimatedValue: 12600
+        note: "RSUD Trenggalek --> visit ke bagian penunjang bapak Mujiono follow up kebutuhan KSO MRI info beliau masih akan dibicarakan"
       }
     ],
-    createdAt: "2026-06-30T12:38:27.250Z"
+    createdAt: "2026-06-30T13:05:02.041Z"
   },
   {
     id: "rpt_tri_20260703_plan",
@@ -387,7 +355,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
     nights: 2,
     area: "Jatim Selatan & Timur",
     pipeN: 9,
-    pipeVal: 45000,
+    pipeVal: 0,
     closest: "",
     win: "",
     block: "",
@@ -401,8 +369,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan mingguan",
-        estimatedValue: 5000
+        note: "Rencana kunjungan mingguan"
       },
       {
         name: "RS Suyudi Lamongan",
@@ -411,8 +378,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan mingguan",
-        estimatedValue: 5000
+        note: "Rencana kunjungan mingguan"
       },
       {
         name: "RSUD Haryoto Lumajang",
@@ -421,8 +387,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan mingguan",
-        estimatedValue: 5000
+        note: "Rencana kunjungan mingguan"
       },
       {
         name: "RSIA Puri Bunda",
@@ -431,8 +396,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan mingguan",
-        estimatedValue: 5000
+        note: "Rencana kunjungan mingguan"
       },
       {
         name: "RSUD Ki ageng Berondong",
@@ -441,8 +405,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan mingguan",
-        estimatedValue: 5000
+        note: "Rencana kunjungan mingguan"
       },
       {
         name: "RS Wijaya Kusuma",
@@ -451,8 +414,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan mingguan",
-        estimatedValue: 5000
+        note: "Rencana kunjungan mingguan"
       },
       {
         name: "RST Soepraoen",
@@ -461,8 +423,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan mingguan",
-        estimatedValue: 5000
+        note: "Rencana kunjungan mingguan"
       },
       {
         name: "RSUD Ibnu Sina",
@@ -471,8 +432,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan mingguan",
-        estimatedValue: 5000
+        note: "Rencana kunjungan mingguan"
       },
       {
         name: "RS Bhayangkara",
@@ -481,11 +441,10 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan mingguan",
-        estimatedValue: 5000
+        note: "Rencana kunjungan mingguan"
       }
     ],
-    createdAt: "2026-06-30T12:38:27.250Z"
+    createdAt: "2026-06-30T13:05:02.041Z"
   },
   {
     id: "rpt_icha_20260703_plan",
@@ -496,7 +455,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
     nights: 2,
     area: "Jabodetabek & Banten",
     pipeN: 12,
-    pipeVal: 72000,
+    pipeVal: 0,
     closest: "",
     win: "",
     block: "",
@@ -510,8 +469,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 6000
+        note: "Rencana kunjungan"
       },
       {
         name: "Royal Taruma Hospital",
@@ -520,8 +478,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 6000
+        note: "Rencana kunjungan"
       },
       {
         name: "RS Sumber Waras",
@@ -530,8 +487,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 6000
+        note: "Rencana kunjungan"
       },
       {
         name: "RS Husada",
@@ -540,8 +496,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 6000
+        note: "Rencana kunjungan"
       },
       {
         name: "Primaya Hospital Tangerang",
@@ -550,8 +505,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 6000
+        note: "Rencana kunjungan"
       },
       {
         name: "Tiara Tangerang Hospital",
@@ -560,8 +514,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 6000
+        note: "Rencana kunjungan"
       },
       {
         name: "Mulya Hospital",
@@ -570,8 +523,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 6000
+        note: "Rencana kunjungan"
       },
       {
         name: "RS Buah Hati Ciputat",
@@ -580,8 +532,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 6000
+        note: "Rencana kunjungan"
       },
       {
         name: "RS Permata Pamulang",
@@ -590,8 +541,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 6000
+        note: "Rencana kunjungan"
       },
       {
         name: "RS Bhineka Bakti Husada",
@@ -600,8 +550,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 6000
+        note: "Rencana kunjungan"
       },
       {
         name: "RS Aria Sentra Media",
@@ -610,8 +559,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 6000
+        note: "Rencana kunjungan"
       },
       {
         name: "RS Sekaras",
@@ -620,11 +568,10 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan",
-        estimatedValue: 6000
+        note: "Rencana kunjungan"
       }
     ],
-    createdAt: "2026-06-30T12:38:27.250Z"
+    createdAt: "2026-06-30T13:05:02.041Z"
   },
   {
     id: "rpt_dwi_20260623_jateng",
@@ -635,7 +582,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
     nights: 0,
     area: "Jawa Tengah (joint visit)",
     pipeN: 19,
-    pipeVal: 38300,
+    pipeVal: 0,
     closest: "",
     win: "Joint visit Jateng dengan Hatim",
     block: "",
@@ -649,8 +596,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "PIC",
-        note: "KETERANGAN",
-        estimatedValue: 0
+        note: "KETERANGAN"
       },
       {
         name: "RS Banyumanik",
@@ -659,8 +605,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "proposal",
         contact: "Pak Fadil",
-        note: "Keputusan ada di management & user, silahkan memberikan penawaran, akan dihubungi untuk presentasi dan beauty contest",
-        estimatedValue: 0
+        note: "Keputusan ada di management & user, silahkan memberikan penawaran, akan dihubungi untuk presentasi dan beauty contest"
       },
       {
         name: "RS Elisabeth",
@@ -669,8 +614,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "proposal",
         contact: "Mbak Elisabeth",
-        note: "Kebutuhan FDP, memberikan penawaran",
-        estimatedValue: 0
+        note: "Kebutuhan FDP, memberikan penawaran"
       },
       {
         name: "RS William Both",
@@ -679,8 +623,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "X-Ray",
         pipeline: "warm",
         contact: "Mas Andika",
-        note: "Memberikan info Mobile X-Ray rusak, Stationary sudah tua, selanjutkan mengatur pertemuan dengan Ibu Susi (Kepala Pengadaan)",
-        estimatedValue: 300
+        note: "Memberikan info Mobile X-Ray rusak, Stationary sudah tua, selanjutkan mengatur pertemuan dengan Ibu Susi (Kepala Pengadaan)"
       },
       {
         name: "RS Pelita Anugrah",
@@ -689,8 +632,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "C-Arm",
         pipeline: "hot",
         contact: "Dr Elkana",
-        note: "Kebutuhan c-Arm namun budget terbatas (500jt), namun pasien kurang ramai.",
-        estimatedValue: 500
+        note: "Kebutuhan c-Arm namun budget terbatas (500jt), namun pasien kurang ramai."
       },
       {
         name: "RS Ken Saras",
@@ -699,8 +641,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "-",
-        note: "TIDAK SEMPAT",
-        estimatedValue: 0
+        note: "TIDAK SEMPAT"
       },
       {
         name: "Rs Tunas Harapan",
@@ -709,8 +650,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "-",
-        note: "Riwayat pembayaran jelek dan pasien sepi",
-        estimatedValue: 0
+        note: "Riwayat pembayaran jelek dan pasien sepi"
       },
       {
         name: "RS Attin aBawen",
@@ -719,8 +659,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "CT Scan",
         pipeline: "proposal",
         contact: "DR Faris",
-        note: "Bertemu dengan DR Faris Direktur butuh CT Scan 64, C-Arm belum ada dan buatkan surat penawaran",
-        estimatedValue: 7650
+        note: "Bertemu dengan DR Faris Direktur butuh CT Scan 64, C-Arm belum ada dan buatkan surat penawaran"
       },
       {
         name: "RS Puri Asih",
@@ -729,8 +668,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "Bu Ati",
-        note: "Silahkan bertemu langsung dengan Dokter Zaki (Owner)",
-        estimatedValue: 0
+        note: "Silahkan bertemu langsung dengan Dokter Zaki (Owner)"
       },
       {
         name: "RS Charlie Hospital",
@@ -739,8 +677,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "X-Ray",
         pipeline: "win",
         contact: "Mba Bella",
-        note: "Kebutuhan Portable X-Ray, membuat surat penawaran dan atur schedule untuk bertemu Direktur (minggu depan)",
-        estimatedValue: 600
+        note: "Kebutuhan Portable X-Ray, membuat surat penawaran dan atur schedule untuk bertemu Direktur (minggu depan)"
       },
       {
         name: "RS Banyu Bening Boyolali",
@@ -749,8 +686,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "CT Scan",
         pipeline: "proposal",
         contact: "Mba Herlina",
-        note: "Membuat Surat Penawaran CT Scan 64",
-        estimatedValue: 7650
+        note: "Membuat Surat Penawaran CT Scan 64"
       },
       {
         name: "RS Cakra Husada - Klaten",
@@ -759,8 +695,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "proposal",
         contact: "Mas Atta",
-        note: "Diminta membuat surat penawaran ke Mba Putri",
-        estimatedValue: 0
+        note: "Diminta membuat surat penawaran ke Mba Putri"
       },
       {
         name: "RS Hidayah Boyolali",
@@ -769,8 +704,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "CT Scan",
         pipeline: "proposal",
         contact: "Mba Rena",
-        note: "Kebutuhan Stationer X-Ray. CT Scan siemen, FDP masih CD, Diminta membuat surat penawaran karna kepala pengadaan sedang keluar.",
-        estimatedValue: 7650
+        note: "Kebutuhan Stationer X-Ray. CT Scan siemen, FDP masih CD, Diminta membuat surat penawaran karna kepala pengadaan sedang keluar."
       },
       {
         name: "RS Muhammadiyah Kendal",
@@ -779,8 +713,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Tidak Jadi",
-        estimatedValue: 0
+        note: "Tidak Jadi"
       },
       {
         name: "RS Muhammadiyah Batang",
@@ -789,8 +722,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Tidak Jadi",
-        estimatedValue: 0
+        note: "Tidak Jadi"
       },
       {
         name: "RS Purbowangi Kebumen",
@@ -799,8 +731,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Tidak Jadi",
-        estimatedValue: 0
+        note: "Tidak Jadi"
       },
       {
         name: "RSUD Yogyakarta",
@@ -809,8 +740,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "CT Scan",
         pipeline: "hot",
         contact: "Ibu Umi",
-        note: "Bertemu dengan petugas Radiografer kebutuhan CT Scan sudah yang sudah usang",
-        estimatedValue: 6300
+        note: "Bertemu dengan petugas Radiografer kebutuhan CT Scan sudah yang sudah usang"
       },
       {
         name: "RS Charitas Klepu - Sleman",
@@ -819,8 +749,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "Mba Pesmi",
-        note: "Dilanjutkan ke Suster Olga dan Dokter tata (Management)",
-        estimatedValue: 0
+        note: "Dilanjutkan ke Suster Olga dan Dokter tata (Management)"
       },
       {
         name: "RS Charitas Klepu - Sleman",
@@ -829,11 +758,10 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "CT Scan",
         pipeline: "proposal",
         contact: "DR Tata",
-        note: "Kebutuhan CT Scan 64 Non Cardiac dan pembangunan ruang CT Scan, meminta surat penawaran untuk CT Scan dan ruangan, meminta presentasi akhir Juli",
-        estimatedValue: 7650
+        note: "Kebutuhan CT Scan 64 Non Cardiac dan pembangunan ruang CT Scan, meminta surat penawaran untuk CT Scan dan ruangan, meminta presentasi akhir Juli"
       }
     ],
-    createdAt: "2026-06-30T12:38:27.250Z"
+    createdAt: "2026-06-30T13:05:02.041Z"
   },
   {
     id: "rpt_dwi_20260703_plan",
@@ -844,7 +772,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
     nights: 2,
     area: "Jabodetabek + Banten + Jabar",
     pipeN: 6,
-    pipeVal: 48000,
+    pipeVal: 0,
     closest: "",
     win: "",
     block: "",
@@ -858,8 +786,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana minggu 29 Jun - 3 Jul",
-        estimatedValue: 8000
+        note: "Rencana minggu 29 Jun - 3 Jul"
       },
       {
         name: "RS Sentosa Bogor",
@@ -868,8 +795,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana minggu 29 Jun - 3 Jul",
-        estimatedValue: 8000
+        note: "Rencana minggu 29 Jun - 3 Jul"
       },
       {
         name: "RS  Adhiyaksa",
@@ -878,8 +804,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana minggu 29 Jun - 3 Jul",
-        estimatedValue: 8000
+        note: "Rencana minggu 29 Jun - 3 Jul"
       },
       {
         name: "Mulya Hospital",
@@ -888,8 +813,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana minggu 29 Jun - 3 Jul",
-        estimatedValue: 8000
+        note: "Rencana minggu 29 Jun - 3 Jul"
       },
       {
         name: "RS Dompet Dhuafa",
@@ -898,8 +822,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana minggu 29 Jun - 3 Jul",
-        estimatedValue: 8000
+        note: "Rencana minggu 29 Jun - 3 Jul"
       },
       {
         name: "RS Setya Mitra",
@@ -908,11 +831,10 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana minggu 29 Jun - 3 Jul",
-        estimatedValue: 8000
+        note: "Rencana minggu 29 Jun - 3 Jul"
       }
     ],
-    createdAt: "2026-06-30T12:38:27.250Z"
+    createdAt: "2026-06-30T13:05:02.041Z"
   },
   {
     id: "rpt_bagus_20260703_plan",
@@ -923,7 +845,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
     nights: 3,
     area: "Jatim Utara & Barat",
     pipeN: 17,
-    pipeVal: 119000,
+    pipeVal: 0,
     closest: "",
     win: "",
     block: "",
@@ -937,8 +859,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan Jatim 2",
-        estimatedValue: 7000
+        note: "Rencana kunjungan Jatim 2"
       },
       {
         name: "RS Darmo",
@@ -947,8 +868,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan Jatim 2",
-        estimatedValue: 7000
+        note: "Rencana kunjungan Jatim 2"
       },
       {
         name: "RS Pura Raharja",
@@ -957,8 +877,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan Jatim 2",
-        estimatedValue: 7000
+        note: "Rencana kunjungan Jatim 2"
       },
       {
         name: "RS Onkologi",
@@ -967,8 +886,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan Jatim 2",
-        estimatedValue: 7000
+        note: "Rencana kunjungan Jatim 2"
       },
       {
         name: "RS Al-Azis",
@@ -977,8 +895,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan Jatim 2",
-        estimatedValue: 7000
+        note: "Rencana kunjungan Jatim 2"
       },
       {
         name: "RSIA Aisah Nganjuk",
@@ -987,8 +904,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan Jatim 2",
-        estimatedValue: 7000
+        note: "Rencana kunjungan Jatim 2"
       },
       {
         name: "RS Dian Husada Mojokerto",
@@ -997,8 +913,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan Jatim 2",
-        estimatedValue: 7000
+        note: "Rencana kunjungan Jatim 2"
       },
       {
         name: "RS William Booth",
@@ -1007,8 +922,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan Jatim 2",
-        estimatedValue: 7000
+        note: "Rencana kunjungan Jatim 2"
       },
       {
         name: "RS Bhakti Rahayu",
@@ -1017,8 +931,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan Jatim 2",
-        estimatedValue: 7000
+        note: "Rencana kunjungan Jatim 2"
       },
       {
         name: "RSI Jombang",
@@ -1027,8 +940,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan Jatim 2",
-        estimatedValue: 7000
+        note: "Rencana kunjungan Jatim 2"
       },
       {
         name: "RSI Muhamadiyah Kertosono",
@@ -1037,8 +949,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan Jatim 2",
-        estimatedValue: 7000
+        note: "Rencana kunjungan Jatim 2"
       },
       {
         name: "RS Gatoel Mojokerto",
@@ -1047,8 +958,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan Jatim 2",
-        estimatedValue: 7000
+        note: "Rencana kunjungan Jatim 2"
       },
       {
         name: "RS Muhamadiyah Jombang",
@@ -1057,8 +967,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan Jatim 2",
-        estimatedValue: 7000
+        note: "Rencana kunjungan Jatim 2"
       },
       {
         name: "Klinik Nafira Kertosono",
@@ -1067,8 +976,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan Jatim 2",
-        estimatedValue: 7000
+        note: "Rencana kunjungan Jatim 2"
       },
       {
         name: "RS Mojowarno",
@@ -1077,8 +985,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan Jatim 2",
-        estimatedValue: 7000
+        note: "Rencana kunjungan Jatim 2"
       },
       {
         name: "RS Muslimat Jombang",
@@ -1087,8 +994,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan Jatim 2",
-        estimatedValue: 7000
+        note: "Rencana kunjungan Jatim 2"
       },
       {
         name: "Klinik Galuh Husada Nganjuk",
@@ -1097,11 +1003,10 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "",
         pipeline: "warm",
         contact: "",
-        note: "Rencana kunjungan Jatim 2",
-        estimatedValue: 7000
+        note: "Rencana kunjungan Jatim 2"
       }
     ],
-    createdAt: "2026-06-30T12:38:27.250Z"
+    createdAt: "2026-06-30T13:05:02.041Z"
   },
   {
     id: "rpt_bagus_20260626_pipeline",
@@ -1112,7 +1017,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
     nights: 3,
     area: "Jatim Utara & Barat",
     pipeN: 13,
-    pipeVal: 76500,
+    pipeVal: 0,
     closest: "",
     win: "Pipeline Jatim 2 aktif pasca IHEX",
     block: "",
@@ -1126,8 +1031,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "Mammo",
         pipeline: "proposal",
         contact: "",
-        note: "Mammography. Investigasi Spec dan Alur Pengadaan. Request SPH (Beli)",
-        estimatedValue: 1700
+        note: "Mammography. Investigasi Spec dan Alur Pengadaan. Request SPH (Beli)"
       },
       {
         name: "RS Wiyung Sejahtera Surabaya",
@@ -1136,8 +1040,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "CT Scan",
         pipeline: "proposal",
         contact: "",
-        note: "CT Scan 64/128. Investigasi kebutuhan/info utk KSO. Request SPH (Beli/KSO)",
-        estimatedValue: 7650
+        note: "CT Scan 64/128. Investigasi kebutuhan/info utk KSO. Request SPH (Beli/KSO)"
       },
       {
         name: "RS BDH Surabaya",
@@ -1146,8 +1049,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "X-Ray",
         pipeline: "proposal",
         contact: "",
-        note: "Mobile X-Ray (DR). Konfirmasi User untuk Spec. Request SPH (Beli) - ekat",
-        estimatedValue: 510
+        note: "Mobile X-Ray (DR). Konfirmasi User untuk Spec. Request SPH (Beli) - ekat"
       },
       {
         name: "RS Siloam Surabaya",
@@ -1156,8 +1058,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "X-Ray",
         pipeline: "proposal",
         contact: "",
-        note: "Portable X-Ray (DR). Konfirmasi User untuk Spec. Request SPH (Beli)",
-        estimatedValue: 510
+        note: "Portable X-Ray (DR). Konfirmasi User untuk Spec. Request SPH (Beli)"
       },
       {
         name: "RS Islam Ahmad Yani Surabaya",
@@ -1166,8 +1067,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "MRI",
         pipeline: "proposal",
         contact: "",
-        note: "MRI 1,5 T. Konfirmasi User untuk tahapan pengadaan. Request SPH (Beli/KSO)",
-        estimatedValue: 15300
+        note: "MRI 1,5 T. Konfirmasi User untuk tahapan pengadaan. Request SPH (Beli/KSO)"
       },
       {
         name: "RS Lavalete Malang",
@@ -1176,8 +1076,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "MRI",
         pipeline: "proposal",
         contact: "",
-        note: "MRI 1,5 T. Sudah SPH. Visit dengan Rekanan",
-        estimatedValue: 15300
+        note: "MRI 1,5 T. Sudah SPH. Visit dengan Rekanan"
       },
       {
         name: "RSUD dr Soetomo Surabaya",
@@ -1186,8 +1085,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "C-Arm",
         pipeline: "proposal",
         contact: "",
-        note: "C-Arm. Konfirmasi User untuk Spec. Request SPH (Beli) - ekat",
-        estimatedValue: 3400
+        note: "C-Arm. Konfirmasi User untuk Spec. Request SPH (Beli) - ekat"
       },
       {
         name: "RSIA PKU Muhammadiyah Probolinggo",
@@ -1196,8 +1094,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "X-Ray",
         pipeline: "proposal",
         contact: "",
-        note: "Ceiling X-Ray. Konfirmasi User untuk Spec. Request SPH (Beli/KSO)",
-        estimatedValue: 765
+        note: "Ceiling X-Ray. Konfirmasi User untuk Spec. Request SPH (Beli/KSO)"
       },
       {
         name: "RSUD Dolopo Madiun",
@@ -1206,8 +1103,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "CT Scan",
         pipeline: "proposal",
         contact: "",
-        note: "CT Scan 64/128. Investigasi kebutuhan/info utk KSO. Request SPH (Beli/KSO)",
-        estimatedValue: 7650
+        note: "CT Scan 64/128. Investigasi kebutuhan/info utk KSO. Request SPH (Beli/KSO)"
       },
       {
         name: "RS Sufinna Azis Medan",
@@ -1216,8 +1112,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "CT Scan",
         pipeline: "proposal",
         contact: "",
-        note: "CT Scan 64 (Non Cardiac/Cardiac). Sudah SPH dan Surat Permohonan Presentasi. Follow Up to setup Jadwal Presentasi",
-        estimatedValue: 7650
+        note: "CT Scan 64 (Non Cardiac/Cardiac). Sudah SPH dan Surat Permohonan Presentasi. Follow Up to setup Jadwal Presentasi"
       },
       {
         name: "RS Nur Hidayah Bantul",
@@ -1226,8 +1121,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "CT Scan",
         pipeline: "proposal",
         contact: "",
-        note: "CT Scan 64 (Non Cardiac/Cardiac). Sudah SPH dan Surat Permohonan Presentasi. Follow Up to setup Jadwal Presentasi",
-        estimatedValue: 7650
+        note: "CT Scan 64 (Non Cardiac/Cardiac). Sudah SPH dan Surat Permohonan Presentasi. Follow Up to setup Jadwal Presentasi"
       },
       {
         name: "RSIA Annisa Pekanbaru",
@@ -1236,8 +1130,7 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "X-Ray",
         pipeline: "proposal",
         contact: "",
-        note: "Stationery X-Ray. Sudah SPH dan Surat Permohonan Presentasi. Follow Up to setup Jadwal Presentasi",
-        estimatedValue: 765
+        note: "Stationery X-Ray. Sudah SPH dan Surat Permohonan Presentasi. Follow Up to setup Jadwal Presentasi"
       },
       {
         name: "RS PKU Muhamadiyah Temanggung",
@@ -1246,11 +1139,10 @@ const FIELD_REPORTS_JUN_JUL_2026 = [
         product: "CT Scan",
         pipeline: "proposal",
         contact: "",
-        note: "CT Scan 64/128. Sudah SPH dan Surat Permohonan Presentasi. Follow Up to setup Jadwal Presentasi",
-        estimatedValue: 7650
+        note: "CT Scan 64/128. Sudah SPH dan Surat Permohonan Presentasi. Follow Up to setup Jadwal Presentasi"
       }
     ],
-    createdAt: "2026-06-30T12:38:27.250Z"
+    createdAt: "2026-06-30T13:05:02.041Z"
   }
 ];
 

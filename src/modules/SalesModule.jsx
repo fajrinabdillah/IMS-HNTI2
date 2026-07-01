@@ -2280,7 +2280,7 @@ function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRea
       { name: lang === 'id' ? 'RS Prospek' : 'Prospect RS', value: totalProspects, fill: '#10b981' },
       { name: lang === 'id' ? 'Tanpa kebutuhan produk' : 'No product need', value: nonProspectVisits, fill: '#94a3b8' },
       { name: lang === 'id' ? 'Issue Lapangan' : 'Field Issues', value: openIssues, fill: '#c03030' },
-    ].filter(x => x.value > 0);
+    ];
 
     const bySales = {};
     reports.forEach(r => {

@@ -833,6 +833,19 @@ export default function App() {
         await storeSet(V52_FIELD_PROSPECTS_MARKER, 'true');
       }
 
+      // V53: prospek wajib punya produk teridentifikasi + suhu hangat/panas/proposal (bukan semua kunjungan)
+      const V53_PROSPECT_PRODUCT_MARKER = 'ims_hnti:v53_prospect_requires_product';
+      const v53ProspectProduct = await storeGet(V53_PROSPECT_PRODUCT_MARKER);
+      if (!v53ProspectProduct) {
+        const repStored = await storeGet(REPORTS_KEY);
+        let reports = [];
+        try { reports = repStored ? JSON.parse(repStored) : []; } catch {}
+        if (!Array.isArray(reports) || !reports.length) reports = [...SEED_FIELD_REPORTS];
+        const cleaned = reports.map(r => healFieldReportRecord(sanitizeFieldReport(r)));
+        await storeSet(REPORTS_KEY, JSON.stringify(cleaned));
+        await storeSet(V53_PROSPECT_PRODUCT_MARKER, 'true');
+      }
+
       const [d, l, s, r, rep, iss, reg, akl, imp, pgl, pi, pm, mfst, cdoc, inst, bast, train, emp, bt] = await Promise.all([
         storeGet(STORAGE_KEY), storeGet(LANG_KEY), storeGet(SESSION_KEY),
         storeGet(RATE_KEY), storeGet(REPORTS_KEY),

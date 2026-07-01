@@ -2173,7 +2173,6 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
           onMarkRead={markReportsRead}
           reportsSeen={reportsSeen}
           issues={issues}
-          installRecords={installRecords}
           fmt={fmt}
           onNavigateTab={(id) => {
             if (id === 'new' && canCreate) setTab('new');
@@ -2203,7 +2202,7 @@ function SalesReport({ reports, setReports, t, lang, session, fmt, employees = {
     </div>
   );
 }
-function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRead, reportsSeen = {}, issues = [], installRecords = [], fmt = (n) => n, onNavigateTab, canCreate = false }) {
+function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRead, reportsSeen = {}, issues = [], fmt = (n) => n, onNavigateTab, canCreate = false }) {
   const salesTeam = useMemo(() => getActiveSalesTeam(employees), [employees]);
   const glass = DASHBOARD_GLASS.fieldReport;
   const todayStr = new Date().toISOString().split('T')[0];
@@ -2277,13 +2276,11 @@ function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRea
       .map(([k, value]) => ({ name: visitTypeLabels[k] || k, value, fill: { first: '#f59e0b', followup: '#5b87b8', demo: '#6366f1', nego: '#a855f7' }[k] }))
       .filter(x => x.value > 0);
 
-    const installCount = (installRecords || []).filter(r => r.status !== 'completed').length;
     const categoryData = [
       { name: lang === 'id' ? 'RS Prospek' : 'Prospect RS', value: totalProspects, fill: '#10b981' },
       { name: lang === 'id' ? 'Tanpa kebutuhan produk' : 'No product need', value: nonProspectVisits, fill: '#94a3b8' },
-      { name: lang === 'id' ? 'Instalasi Aktif' : 'Active Installs', value: installCount, fill: '#6366f1' },
-      { name: lang === 'id' ? 'Issue Open' : 'Open Issues', value: openIssues, fill: '#c03030' },
-    ];
+      { name: lang === 'id' ? 'Issue Lapangan' : 'Field Issues', value: openIssues, fill: '#c03030' },
+    ].filter(x => x.value > 0);
 
     const bySales = {};
     reports.forEach(r => {
@@ -2338,7 +2335,7 @@ function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRea
       totalVisits, totalDays, totalProspects, prospectPct, reportsToday, openIssues, resolutionPct, visitTrend,
       categoryData, bySales, visitTypePie, pipelinePie, prospectMixPie, topHospitals, monthlyReports, radarData, avgVisitsPerReport,
     };
-  }, [reports, issues, installRecords, lang, todayStr]);
+  }, [reports, issues, lang, todayStr]);
 
   const isManager = ['super_admin', 'gm', 'manager_ops'].includes(session.role);
   const recentReports = useMemo(() => {
@@ -2469,7 +2466,7 @@ function SRDashboard({ reports, t, lang, employees = {}, session = {}, onMarkRea
           </ResponsiveContainer>
         </GlassPanel>
         <GlassPanel glass={glass}>
-          <div className="card-title" style={{display: 'flex', alignItems: 'center', gap: '8px'}}><MapPin size={15} color={glass.accent} /> {lang === 'id' ? 'Mix Aktivitas Lapangan' : 'Field Activity Mix'}</div>
+          <div className="card-title" style={{display: 'flex', alignItems: 'center', gap: '8px'}}><MapPin size={15} color={glass.accent} /> {lang === 'id' ? 'Komposisi Kunjungan RS' : 'RS Visit Composition'}</div>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={categoryData} margin={{top: 8, right: 16, left: 0, bottom: 40}}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(245,158,11,0.1)" vertical={false} />

@@ -15,6 +15,7 @@ import { shippingStatusLabel } from '../utils/sphProject.js';
 import { sphPackageGroupKey } from '../utils/sphPackage.js';
 import {
   technicalUnitKey,
+  installProjectLookupKey,
   buildTechnicalUnitMap,
   getTechnicalUnitRecord,
   unitsMatch,
@@ -225,7 +226,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
 
     installRecordsFiltered.forEach(r => {
       const sph = findSphForRecord(r);
-      const key = technicalUnitKey({
+      const key = installProjectLookupKey({
         customer: getInstallSiteName(sph || r),
         modality: r.modality || sph?.modality || '',
         subModality: r.subModality || sph?.subModality || '',
@@ -262,8 +263,15 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
       })
       .forEach(s => {
         const unit = { customer: getInstallSiteName(s), installSiteName: s.installSiteName, modality: s.modality, subModality: s.subModality, sphNo: s.sphNo, id: s.id };
-        const key = technicalUnitKey(unit);
-        if (projectMap.has(key)) return;
+        const key = installProjectLookupKey(unit);
+        const linkedRec = getTechnicalUnitRecord(recordsByUnit, unit);
+        if (projectMap.has(key)) {
+          const existing = projectMap.get(key);
+          if (!existing._installRecord && linkedRec) {
+            projectMap.set(key, { ...existing, _installRecord: linkedRec, installationStatus: linkedRec.status === 'completed' ? 'record_completed' : 'record_in_progress' });
+          }
+          return;
+        }
         projectMap.set(key, {
           ...s,
           customer: getInstallSiteName(s),
@@ -271,7 +279,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
           installSiteName: s.installSiteName || '',
           product: s.product || s.subModality || s.modality || '',
           installationStatus: s.installationStatus || 'pending',
-          _installRecord: getTechnicalUnitRecord(recordsByUnit, unit) || null,
+          _installRecord: linkedRec || null,
         });
       });
 
@@ -318,16 +326,21 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
     const bast = getTechnicalUnitRecord(bastByUnit, rec || p);
     const training = getTechnicalUnitRecord(trainingByUnit, rec || p);
     const bapetenRec = findBapetenRecordForUnit(regRecords, p);
-    const installationComplete = !!(rec && rec.status === 'completed');
+    const bastSigned = !!(bast && (bast.status === 'signed' || !!bast.signedDate));
+    const installationComplete = !!(rec && (
+      rec.status === 'completed'
+      || (rec.installEnd && rec.calibrationDone)
+      || bastSigned
+    ));
     const functionComplete = installationComplete || !!(rec && rec.calibrationDone);
     return {
       installation_done: installationComplete,
       functionTest: functionComplete,
-      exposureTest: !!(rec && rec.exposureTest),
-      complianceTest: !!(rec && rec.complianceTest),
+      exposureTest: !!((rec && rec.exposureTest) || p.exposureTest),
+      complianceTest: !!((rec && rec.complianceTest) || p.complianceTest),
       trainingCert: !!(training && training.status === 'completed'),
       bapetenPermit: !!bapetenRec,
-      bast: !!(bast && (bast.status === 'signed' || !!bast.signedDate)),
+      bast: bastSigned,
       _rec: rec, _bast: bast, _training: training, _bapeten: bapetenRec,
     };
   };
@@ -397,6 +410,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
           installProjects={installProjects}
           installProjectGroups={installProjectGroups}
           getStepStatus={getStepStatus}
+          getInstallStepsForProduct={getInstallStepsForProduct}
           kpis={kpis}
           t={t} lang={lang} fmt={fmt} employees={employees}
         />
@@ -426,7 +440,8 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
                   {visibleProjects.map((p, lineIdx) => {
             const ss = getStepStatus(p);
             const rec = ss._rec;
-            const recCompleted = rec?.status === 'completed';
+            const visibleSteps = getInstallStepsForProduct(`${p.modality || ''} ${p.product || ''} ${p.subModality || ''}`);
+            const recCompleted = visibleSteps.every(step => !!ss[step.id]);
             return (
             <div key={p.id} style={{padding: group.isMultiItem ? (lineIdx > 0 ? '14px 0 0' : '0') : '18px', background: group.isMultiItem ? 'transparent' : 'var(--ims-bg-card)', border: group.isMultiItem ? 'none' : '1px solid var(--ims-border)', borderTop: group.isMultiItem && lineIdx > 0 ? '1px dashed var(--ims-border)' : undefined, marginTop: group.isMultiItem && lineIdx > 0 ? '14px' : undefined}}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px', flexWrap: 'wrap', gap: '10px'}}>
@@ -631,7 +646,7 @@ function InstallationModule({ data, setData, installRecords, setInstallRecords, 
   );
 }
 
-function InstallationDashboard({ installRecords = [], bastRecords = [], trainingRecords = [], installProjects = [], installProjectGroups = [], getStepStatus, kpis = {}, t, lang, fmt = (n) => n, employees = {} }) {
+function InstallationDashboard({ installRecords = [], bastRecords = [], trainingRecords = [], installProjects = [], installProjectGroups = [], getStepStatus, getInstallStepsForProduct, kpis = {}, t, lang, fmt = (n) => n, employees = {} }) {
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
   const dash = useMemo(() => {
     const total = installRecords.length;
@@ -738,7 +753,9 @@ function InstallationDashboard({ installRecords = [], bastRecords = [], training
                 <div style={{ display: 'grid', gap: '8px' }}>
                   {group.projects.map(p => {
                     const ss = getStepStatus ? getStepStatus(p) : {};
-                    const steps = ['installation_done', 'functionTest', 'exposureTest', 'complianceTest', 'trainingCert', 'bast'];
+                    const steps = getInstallStepsForProduct
+                      ? getInstallStepsForProduct(`${p.modality || ''} ${p.product || ''} ${p.subModality || ''}`).map(s => s.id)
+                      : ['installation_done', 'functionTest', 'exposureTest', 'complianceTest', 'trainingCert', 'bast'];
                     const done = steps.filter(id => ss[id]).length;
                     const modLabel = isMultiSiteLine(p) || p.installSiteName
                       ? `${p.installSiteName || p.customer} · ${[p.subModality, p.modality].filter(Boolean).join(' · ') || '-'}`

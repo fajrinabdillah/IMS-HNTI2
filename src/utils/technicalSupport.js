@@ -13,11 +13,26 @@ function technicalUnitKey(r) {
   return parts.map(normUnitPart).join('|');
 }
 
+/** Kunci lookup per baris SPH — nama RS boleh beda (rekanan vs lokasi instalasi). */
+function sphUnitCompositeKey(r) {
+  if (!r?.sphNo || !r?.modality) return '';
+  return ['sph', r.sphNo, r.modality, r.subModality || ''].map(normUnitPart).join('|');
+}
+
+/** Kunci pipeline instalasi — prioritaskan composite SPH bila ada. */
+function installProjectLookupKey(r) {
+  const composite = sphUnitCompositeKey(r);
+  if (composite) return composite;
+  return technicalUnitKey(r);
+}
+
 /** Kunci lookup: spesifik sphNo dulu, lalu legacy tanpa sphNo (data lama). */
 function technicalUnitLookupKeys(r) {
   const site = getInstallSiteName(r);
   const legacy = [site, r?.modality, r?.subModality].map(normUnitPart).join('|');
   const keys = [];
+  const composite = sphUnitCompositeKey(r);
+  if (composite) keys.push(composite);
   if (r?.sphNo) keys.push(technicalUnitKey(r));
   if (r?.id) keys.push([site, r.modality, r.subModality, r.sphNo, r.id].map(normUnitPart).join('|'));
   if (legacy) keys.push(legacy);
@@ -204,9 +219,43 @@ function migrateModuleAccess(access = {}) {
   return next;
 }
 
+/** Normalisasi record teknisi agar cocok dengan baris SPH & status pipeline konsisten. */
+function healTechnicalSupportRecord(rec, sphData = [], bastRecords = [], trainingRecords = []) {
+  if (!rec) return rec;
+  const sph = findSphLineForUnit(sphData, rec);
+  let next = { ...rec };
+  if (sph) {
+    const site = getInstallSiteName(sph);
+    if (site && normUnitPart(next.customer) !== normUnitPart(site)) next = { ...next, customer: site };
+    if (!next.sphLineId && sph.id) next = { ...next, sphLineId: sph.id };
+    if (!next.sphNo && sph.sphNo) next = { ...next, sphNo: sph.sphNo };
+    if (!next.modality && sph.modality) next = { ...next, modality: sph.modality };
+    if (!next.subModality && sph.subModality) next = { ...next, subModality: sph.subModality };
+  }
+  const bastMap = buildTechnicalUnitMap(bastRecords);
+  const trainMap = buildTechnicalUnitMap(trainingRecords);
+  const bast = getTechnicalUnitRecord(bastMap, next);
+  const train = getTechnicalUnitRecord(trainMap, next);
+  const bastDone = !!(bast && (bast.status === 'signed' || bast.signedDate));
+  const trainDone = !!(train && train.status === 'completed');
+  const norm = `${next.modality || ''} ${next.subModality || ''}`.toLowerCase();
+  const skipRadiation = ['flat panel detector', 'mri', 'eswl'].some(p => norm.includes(p));
+  const radiationDone = skipRadiation || (!!next.exposureTest && !!next.complianceTest);
+  if (next.status !== 'completed' && next.calibrationDone && bastDone && trainDone && radiationDone) {
+    next = { ...next, status: 'completed' };
+  }
+  return next;
+}
+
+function healTechnicalSupportCollection(records, sphData, bastRecords, trainingRecords) {
+  return (records || []).map(r => healTechnicalSupportRecord(r, sphData, bastRecords, trainingRecords));
+}
+
 export {
   normUnitPart,
   technicalUnitKey,
+  sphUnitCompositeKey,
+  installProjectLookupKey,
   technicalUnitLookupKeys,
   buildTechnicalUnitMap,
   getTechnicalUnitRecord,
@@ -224,4 +273,6 @@ export {
   mergeUnitsWithPmSchedule,
   migrateModuleAccess,
   pmDoneCycleKeys,
+  healTechnicalSupportRecord,
+  healTechnicalSupportCollection,
 };

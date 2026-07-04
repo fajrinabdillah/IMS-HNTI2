@@ -62,7 +62,7 @@ import { MaintenanceModule, MaintenanceIssueModal, PMScheduleModal } from './src
 import { TechnicalSupportModule } from './src/modules/TechnicalSupportModule.jsx';
 import { IncentiveModule } from './src/modules/IncentiveModule.jsx';
 import { InstallationModule, InstallRecordsList, BASTList, TrainingCertList, UnitPickerField, findInstallRecordForUnit, installLeadTechnicianName, activeEmployeeNamesByRole, InstallRecordModal, BASTModal, TrainingCertModal } from './src/modules/InstallationModule.jsx';
-import { healTechnicianName, mergeUnitsWithPmSchedule, migrateModuleAccess } from './src/utils/technicalSupport.js';
+import { healTechnicianName, mergeUnitsWithPmSchedule, migrateModuleAccess, healTechnicalSupportCollection } from './src/utils/technicalSupport.js';
 import { mergeSphImportRecords, healSphSalesFromImportLabels } from './src/utils/sphImport.js';
 import { isLikelySeedSphDataset, shouldPersistSphData, lockProductionSph, isProductionSphLocked } from './src/utils/sphGuard.js';
 import sphRestore2026 from './src/data/sphRestore2026.json';
@@ -844,6 +844,45 @@ export default function App() {
         const cleaned = reports.map(r => healFieldReportRecord(sanitizeFieldReport(r)));
         await storeSet(REPORTS_KEY, JSON.stringify(cleaned));
         await storeSet(V53_PROSPECT_PRODUCT_MARKER, 'true');
+      }
+
+      // V54: sinkronkan record dukungan teknis — normalisasi nama RS dari SPH & status pipeline
+      const V54_TECH_SUPPORT_MARKER = 'ims_hnti:v54_technical_support_sync';
+      const v54TechSupport = await storeGet(V54_TECH_SUPPORT_MARKER);
+      if (!v54TechSupport) {
+        const sphStored = await storeGet(STORAGE_KEY);
+        let sphData = [];
+        try { sphData = sphStored ? JSON.parse(sphStored) : []; } catch {}
+        if (!Array.isArray(sphData) || !sphData.length) sphData = [];
+
+        const loadArr = async (key) => {
+          const raw = await storeGet(key);
+          try { return raw ? JSON.parse(raw) : []; } catch { return []; }
+        };
+        let inst = await loadArr('ims_hnti:inst_v30');
+        let bast = await loadArr('ims_hnti:bast_v30');
+        let train = await loadArr('ims_hnti:train_v30');
+
+        if (Array.isArray(inst) && inst.length) {
+          inst = healTechnicalSupportCollection(inst, sphData, bast, train);
+          await storeSet('ims_hnti:inst_v30', JSON.stringify(inst));
+        }
+        if (Array.isArray(bast) && bast.length) {
+          bast = healTechnicalSupportCollection(bast, sphData, bast, train);
+          await storeSet('ims_hnti:bast_v30', JSON.stringify(bast));
+        }
+        if (Array.isArray(train) && train.length) {
+          train = healTechnicalSupportCollection(train, sphData, bast, train);
+          await storeSet('ims_hnti:train_v30', JSON.stringify(train));
+        }
+        // Second pass: promote install status now that bast/training names are aligned
+        if (Array.isArray(inst) && inst.length) {
+          const healedInst = healTechnicalSupportCollection(inst, sphData, bast, train);
+          if (JSON.stringify(healedInst) !== JSON.stringify(inst)) {
+            await storeSet('ims_hnti:inst_v30', JSON.stringify(healedInst));
+          }
+        }
+        await storeSet(V54_TECH_SUPPORT_MARKER, 'true');
       }
 
       const [d, l, s, r, rep, iss, reg, akl, imp, pgl, pi, pm, mfst, cdoc, inst, bast, train, emp, bt] = await Promise.all([

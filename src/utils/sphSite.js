@@ -60,12 +60,16 @@ export function matchesSphUnit(sphLine, unit) {
   const lineId = unit.sphLineId || unit.sphId || (unit.id && String(unit.id).startsWith('sph_') ? unit.id : null);
   if (lineId && sphLine.id === lineId) return true;
 
-  const unitSite = String(unit.installSiteName || unit.customer || '').trim();
-  const lineSite = getInstallSiteName(sphLine);
-  const siteOk = normPart(lineSite) === normPart(unitSite);
   const modOk = normPart(sphLine.modality) === normPart(unit.modality);
   const subOk = normPart(sphLine.subModality || '') === normPart(unit.subModality || unit.product || '');
   const sphOk = !unit.sphNo || normPart(sphLine.sphNo) === normPart(unit.sphNo);
+
+  // Nomor SPH + produk sudah unik per unit — abaikan variasi nama RS (rekanan vs lokasi).
+  if (unit.sphNo && sphOk && modOk && subOk) return true;
+
+  const unitSite = String(unit.installSiteName || unit.customer || '').trim();
+  const lineSite = getInstallSiteName(sphLine);
+  const siteOk = normPart(lineSite) === normPart(unitSite);
   const payerOk = !unit.payerCustomer
     || normPart(getPayerCustomer(sphLine)) === normPart(unit.payerCustomer);
 

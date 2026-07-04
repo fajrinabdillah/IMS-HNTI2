@@ -10,6 +10,8 @@ import {
   technicalUnitKey,
   buildTechnicalUnitMap,
   getTechnicalUnitRecord,
+  sphUnitCompositeKey,
+  installProjectLookupKey,
   findBapetenRecordForUnit,
   findSphLineForUnit,
   groupRecordsBySphProject,
@@ -57,6 +59,28 @@ const bastMap = buildTechnicalUnitMap([
 ]);
 const lookup = getTechnicalUnitRecord(bastMap, { customer: 'RS Nashrul', modality: 'C-Arm', subModality: '5kW', sphNo: 'SPH/001' });
 assert(lookup?.status === 'signed', 'getTechnicalUnitRecord finds exact unit');
+
+console.log('\n=== sphNo composite key (RS name mismatch) ===');
+const nashrulRec = {
+  customer: 'RS Nashrul Ummah',
+  modality: 'Mobile C-Arm',
+  subModality: 'Garion',
+  sphNo: '010/HNTI-SPH/I/2026',
+  status: 'completed',
+  calibrationDone: true,
+  exposureTest: true,
+  complianceTest: true,
+};
+const nashrulPipeline = {
+  customer: 'RSI Nashrul Ummah Lamongan',
+  modality: 'Mobile C-Arm',
+  subModality: 'Garion',
+  sphNo: '010/HNTI-SPH/I/2026',
+};
+const nashrulMap = buildTechnicalUnitMap([nashrulRec]);
+const nashrulLinked = getTechnicalUnitRecord(nashrulMap, nashrulPipeline);
+assert(!!nashrulLinked, 'composite sphNo key links Nashrul record to SPH pipeline unit');
+assert(installProjectLookupKey(nashrulRec) === installProjectLookupKey(nashrulPipeline), 'install project keys match despite customer label');
 
 console.log('\n=== BAPETEN per unit (not per customer) ===');
 const nashrulData = [
@@ -118,7 +142,8 @@ assert(instSrc.includes('findBapetenRecordForUnit'), 'BAPETEN lookup is per-unit
 assert(!instSrc.includes('bapetenIssuedByCustomer'), 'removed customer-only BAPETEN map');
 assert(instSrc.includes('buildTechnicalUnitMap'), 'uses buildTechnicalUnitMap for cross-tab sync');
 assert(instSrc.includes('groupRecordsBySphProject'), 'list tabs use project grouping');
-assert(instSrc.includes('installProjectGroups'), 'dashboard receives multi-alat groups');
+assert(instSrc.includes('installProjectLookupKey'), 'pipeline dedupes by sphNo composite key');
+assert(instSrc.includes('visibleSteps.every(step => !!ss[step.id])'), 'progress badge follows all pipeline steps');
 assert(instSrc.includes("type: 'billing_due'"), 'BAST signed notifies Finance');
 const installSaveBlock = instSrc.match(/function InstallRecordsList[\s\S]*?^function BASTList/m)?.[0] || '';
 assert(!installSaveBlock.includes("type: 'billing_due'"), 'InstallRecordsList does not wrongly notify Finance on save');

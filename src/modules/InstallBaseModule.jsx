@@ -120,7 +120,8 @@ function InstallBaseMap({ records = [], stats, selectedProvince = 'all', lang = 
           inset: 0;
           width: 100%;
           height: 100%;
-          object-fit: fill;
+          object-fit: contain;
+          object-position: center;
           opacity: 0.62;
           filter: invert(1) sepia(1) saturate(2.2) hue-rotate(150deg) drop-shadow(0 0 16px rgba(76,201,240,0.45)) drop-shadow(0 0 30px rgba(214,179,106,0.20));
           pointer-events: none;

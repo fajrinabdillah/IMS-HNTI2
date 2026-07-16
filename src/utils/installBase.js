@@ -20,46 +20,46 @@ const PROVINCE_COORDS = {
   'Gorontalo': { lat: 0.6999, lng: 122.4467 },
 };
 
-// Centroids extracted from indonesia-provinces-outline.svg (viewBox 1600×620).
+// Anchor points from each province path's initial moveto in indonesia-provinces-outline.svg (viewBox 1600×620).
 const PROVINCE_SVG_POSITIONS = {
-  Aceh: { x: 0.73, y: 2.72 },
-  Bali: { x: 21.32, y: 40.06 },
-  Banten: { x: 11.66, y: 33.49 },
-  Bengkulu: { x: 7.84, y: 26.34 },
-  'Daerah Istimewa Yogyakarta': { x: 16.73, y: 39.02 },
-  'DKI Jakarta': { x: 13.08, y: 34.78 },
-  Gorontalo: { x: 28.86, y: 15.63 },
-  Jambi: { x: 8.47, y: 23.25 },
-  'Jawa Barat': { x: 12.92, y: 34.58 },
-  'Jawa Tengah': { x: 14.29, y: 34.49 },
-  'Jawa Timur': { x: 17.99, y: 31.47 },
-  'Kalimantan Barat': { x: 14.52, y: 11.2 },
-  'Kalimantan Selatan': { x: 21.51, y: 22.65 },
-  'Kalimantan Tengah': { x: 22.06, y: 16.47 },
-  'Kalimantan Timur': { x: 24.01, y: 11.17 },
-  'Kalimantan Utara': { x: 24.21, y: 7.83 },
-  'Kepulauan Bangka Belitung': { x: 11.79, y: 24.13 },
-  'Kepulauan Riau': { x: 9.69, y: 11.91 },
-  Lampung: { x: 11.48, y: 31.85 },
-  Maluku: { x: 29.13, y: 16.99 },
-  'Maluku Utara': { x: 30.61, y: 7.38 },
-  'Nusa Tenggara Barat': { x: 24.52, y: 39.66 },
-  'Nusa Tenggara Timur': { x: 28.87, y: 32.15 },
-  Papua: { x: 40.3, y: 16.55 },
-  'Papua Barat': { x: 39.94, y: 25.72 },
-  'Papua Barat Daya': { x: 38.12, y: 16.25 },
-  'Papua Pegunungan': { x: 45.69, y: 28.93 },
-  'Papua Selatan': { x: 43.96, y: 28.22 },
-  'Papua Tengah': { x: 41.01, y: 23.55 },
-  Riau: { x: 5.82, y: 8.56 },
-  'Sulawesi Barat': { x: 25.08, y: 27.36 },
-  'Sulawesi Selatan': { x: 23.83, y: 29.26 },
-  'Sulawesi Tengah': { x: 26.97, y: 10.77 },
-  'Sulawesi Tenggara': { x: 27.28, y: 28.64 },
-  'Sulawesi Utara': { x: 29.08, y: 9.4 },
-  'Sumatera Barat': { x: 5.2, y: 18.23 },
-  'Sumatera Selatan': { x: 10.86, y: 23.14 },
-  'Sumatera Utara': { x: 4.48, y: 1.96 },
+  Aceh: { x: 4.04, y: 13.82 },
+  Bali: { x: 44.05, y: 83.64 },
+  Banten: { x: 24.55, y: 69.01 },
+  Bengkulu: { x: 18.39, y: 58.75 },
+  'Daerah Istimewa Yogyakarta': { x: 33.84, y: 79.77 },
+  'DKI Jakarta': { x: 26.26, y: 69.97 },
+  Gorontalo: { x: 59.77, y: 33.4 },
+  Jambi: { x: 19.36, y: 47.98 },
+  'Jawa Barat': { x: 26.75, y: 69.7 },
+  'Jawa Tengah': { x: 32.52, y: 73.46 },
+  'Jawa Timur': { x: 39.65, y: 74.97 },
+  'Kalimantan Barat': { x: 30.53, y: 32.04 },
+  'Kalimantan Selatan': { x: 45.12, y: 47.23 },
+  'Kalimantan Tengah': { x: 44.62, y: 44.08 },
+  'Kalimantan Timur': { x: 50.96, y: 28.17 },
+  'Kalimantan Utara': { x: 49.15, y: 19.48 },
+  'Kepulauan Bangka Belitung': { x: 24.32, y: 48.86 },
+  'Kepulauan Riau': { x: 27.32, y: 35.35 },
+  Lampung: { x: 23.31, y: 66.09 },
+  Maluku: { x: 67.09, y: 53.27 },
+  'Maluku Utara': { x: 70.07, y: 26.98 },
+  'Nusa Tenggara Barat': { x: 52.56, y: 83.18 },
+  'Nusa Tenggara Timur': { x: 63.21, y: 82.18 },
+  Papua: { x: 89.14, y: 43.05 },
+  'Papua Barat': { x: 80.83, y: 54.62 },
+  'Papua Barat Daya': { x: 77.98, y: 41.12 },
+  'Papua Pegunungan': { x: 92.11, y: 58.54 },
+  'Papua Selatan': { x: 91.06, y: 64.3 },
+  'Papua Tengah': { x: 85.96, y: 58.16 },
+  Riau: { x: 16.37, y: 27.4 },
+  'Sulawesi Barat': { x: 52.09, y: 55.35 },
+  'Sulawesi Selatan': { x: 54.4, y: 66.5 },
+  'Sulawesi Tengah': { x: 58.09, y: 41.44 },
+  'Sulawesi Tenggara': { x: 58.06, y: 63.97 },
+  'Sulawesi Utara': { x: 62.04, y: 31.44 },
+  'Sumatera Barat': { x: 11.99, y: 38.5 },
+  'Sumatera Selatan': { x: 21.98, y: 49 },
+  'Sumatera Utara': { x: 11.52, y: 18.89 },
 };
 
 const PROVINCE_SVG_ALIASES = {
@@ -71,8 +71,8 @@ const PROVINCE_SVG_ALIASES = {
   ntt: 'Nusa Tenggara Timur',
 };
 
-const MAP_LNG_SCALE = 0.85;
-const MAP_LAT_SCALE = -1.25;
+const MAP_LNG_SCALE = 0.55;
+const MAP_LAT_SCALE = -0.85;
 const MAP_FALLBACK_X = { slope: 1.0117093001920519, intercept: -95.90458545385923 };
 const MAP_FALLBACK_Y = { slope: -2.8891979893484474, intercept: 13.789680564706929 };
 
@@ -470,8 +470,8 @@ function projectInstallBasePoint(record = {}, jitterKey = '') {
       x += (lng - geoBase.lng) * MAP_LNG_SCALE;
       y += (lat - geoBase.lat) * MAP_LAT_SCALE;
     } else if (jitterKey) {
-      x += (hash01(`${jitterKey}|x`) - 0.5) * 2.4;
-      y += (hash01(`${jitterKey}|y`) - 0.5) * 1.8;
+      x += (hash01(`${jitterKey}|x`) - 0.5) * 1.6;
+      y += (hash01(`${jitterKey}|y`) - 0.5) * 1.2;
     }
     return { x: clampMapPct(x), y: clampMapPct(y, 2, 96) };
   }

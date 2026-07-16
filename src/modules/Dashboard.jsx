@@ -86,7 +86,7 @@ function Dashboard({ data, reports, products, t, lang, session, fmt, employees =
         <KPICard label={t.win_rate} value={`${winRate.toFixed(0)}%`} sublabel={`${wonData.length}/${wonData.length + lostData.length} closed`} trend={5.1} info={t.win_rate_sub} />
       </div>
 
-      <InstallBaseDashboardCard data={data} bastRecords={bastRecords} installRecords={installRecords} manualRecords={manualInstallBaseRecords} lang={lang} t={t} />
+      <InstallBaseDashboardCard data={data} bastRecords={bastRecords} installRecords={installRecords} manualRecords={manualInstallBaseRecords} lang={lang} />
 
       <div className="card" style={{marginBottom: '20px'}}>
         <div className="card-title">{t.monthly_pipeline}</div>

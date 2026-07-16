@@ -325,23 +325,12 @@ function InstallBaseFamilyChart({ stats, lang = 'id', title, subtitle, wrapCard 
   return wrapCard ? <div className="card" style={{margin: 0}}>{content}</div> : content;
 }
 
-function InstallBaseDashboardCard({ data = [], bastRecords = [], installRecords = [], manualRecords = [], lang = 'id', t }) {
+function InstallBaseDashboardCard({ data = [], bastRecords = [], installRecords = [], manualRecords = [], lang = 'id' }) {
   const records = useMemo(() => buildInstallBase(data, bastRecords, installRecords, manualRecords), [data, bastRecords, installRecords, manualRecords]);
   const stats = useMemo(() => installBaseStats(records), [records]);
-  const subtitle = stats.liveExtra > 0
-    ? L(lang, `${stats.baselineTotal} unit baseline + ${stats.liveExtra} live sync`, `${stats.baselineTotal}-unit baseline + ${stats.liveExtra} live sync`)
-    : L(lang, `${stats.baselineTotal} unit · data Install Base PDF`, `${stats.baselineTotal} units · Install Base PDF data`);
   return (
     <div style={{marginBottom: '22px'}}>
       <InstallBaseMap records={records} stats={stats} lang={lang} />
-      <div style={{marginTop: '18px', maxWidth: '520px'}}>
-        <InstallBaseFamilyChart
-          stats={stats}
-          lang={lang}
-          title={t?.installed_modality_mix || L(lang, 'Modalitas Terinstal', 'Installed Modalities')}
-          subtitle={subtitle}
-        />
-      </div>
     </div>
   );
 }

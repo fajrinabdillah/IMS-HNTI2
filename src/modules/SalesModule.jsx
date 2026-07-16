@@ -2947,15 +2947,15 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
   const [form, setForm] = useState(createEmptySphForm);
   const existingDataRef = useRef(existingData);
   existingDataRef.current = existingData;
+  const employeesRef = useRef(employees);
+  employeesRef.current = employees;
 
+  // Hanya muat ulang form saat membuka/edit SPH berbeda — jangan reset saat employees/data cloud berubah.
   useEffect(() => {
-    if (sph) {
-      const siblings = getProjectSiblings(existingDataRef.current, sph);
-      setForm(projectToFormState(sph, siblings, employees));
-    } else {
-      setForm(createEmptySphForm());
-    }
-  }, [sph?.id, employees]);
+    if (!sph?.id) return;
+    const siblings = getProjectSiblings(existingDataRef.current, sph);
+    setForm(projectToFormState(sph, siblings, employeesRef.current));
+  }, [sph?.id]);
 
   // Duplicate detection — skip semua baris proyek yang sedang diedit
   const duplicates = useMemo(() => {
@@ -3202,7 +3202,7 @@ function SPHModal({ sph, t, lang, onSave, onClose, fmtFull, existingData, produc
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay">
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
           <h2 className="serif" style={{fontSize: '24px', margin: 0, fontWeight: 500}}>{sph ? t.edit_sph : t.add_new_sph}</h2>

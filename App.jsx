@@ -1592,6 +1592,9 @@ function AuthApp({ session, setSession, lang, setLang, theme = 've', setTheme, t
       }
     }
     setModalOpen(false); setEditingSph(null);
+    showToast(lang === 'id' ? (isEdit ? 'SPH diperbarui' : 'SPH disimpan') : (isEdit ? 'SPH updated' : 'SPH saved'), 'success');
+    blockCloudApply(STORAGE_KEY, 180000);
+    flushPersist();
   };
 
   const handleWorkflowUpdate = (id, patch, options = {}) => {

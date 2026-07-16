@@ -403,7 +403,7 @@ function SPHDetailModal({ sph, allSph = [], employees, lang, fmt, onClose, onWor
     }
   };
   return (
-    <div className="modal-overlay" onClick={onClose} style={{zIndex: 9998}}>
+    <div className="modal-overlay" style={{zIndex: 9998}}>
       <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '1180px', maxHeight: '88vh', overflow: 'hidden'}}>
         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '14px', marginBottom: '16px'}}>
           <div>
@@ -581,7 +581,7 @@ function SPHManagement({ data, employees = {}, setEmployees, products = [], docu
     const matched = data.filter(s => {
       const q = search.toLowerCase();
       const matchSearch = !search
-        || s.sphNo.toLowerCase().includes(q)
+        || (s.sphNo || '').toLowerCase().includes(q)
         || s.customer.toLowerCase().includes(q)
         || sphSiteSearchText(s).includes(q)
         || (s.subModality || '').toLowerCase().includes(q)
@@ -1542,7 +1542,7 @@ function PipelineBoard({ data, allData, setData, employees = {}, session, logAct
 
       {/* Sales Reassignment Modal — only privileged roles */}
       {reassignDeal && (
-        <div className="modal-overlay" onClick={() => setReassignDeal(null)}>
+        <div className="modal-overlay">
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '520px'}}>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
               <h2 className="serif" style={{fontSize: '20px', margin: 0, fontWeight: 500}}>{lang === 'id' ? 'Ubah Owner Sales' : 'Reassign Sales Owner'}</h2>

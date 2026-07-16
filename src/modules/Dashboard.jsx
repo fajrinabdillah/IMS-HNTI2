@@ -1,7 +1,7 @@
 // Extracted from App.jsx during modular refactor.
 import { useMemo } from 'react';
 import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { BUSINESS_PARTNERS, MODALITY_COLORS, PROJECT_TYPES, STAGES } from '../constants/sales.js';
+import { BUSINESS_PARTNERS, PROJECT_TYPES, STAGES } from '../constants/sales.js';
 import { ChartTooltip, KPICard, PieCard } from '../components/ui.jsx';
 import { CHART_COLORS } from '../constants/theme.js';
 import { getActiveSalesTeam, resolveEmpName, resolveOpsCost } from '../utils/domain.js';
@@ -35,24 +35,6 @@ function Dashboard({ data, reports, products, t, lang, session, fmt, employees =
     const projects = activeData.filter(s => s.projectType === pt.id);
     return { name: t[`ptype_${pt.id}`], value: sumGroupedProjectValue(projects), count: groupSphProjects(projects).length, color: pt.color };
   }).filter(d => d.value > 0), [activeData, t]);
-
-  // New #3: derive modality pie DYNAMICALLY from live SPH data so it always matches the
-  // Product Master modalities (X-Ray Stationer/Mobile/Ceiling/Portable, FPD, etc.) — no longer
-  // limited to a hardcoded key list that silently dropped normalized modalities.
-  const MODALITY_PALETTE = ['#1a4d8a', 'var(--ims-gold)', '#8a5a3a', '#5a8a5a', '#8a3a5a', '#3a8a8a', '#7b3fb5', '#c03030', '#d4780a', '#0f7a5a', '#5b87b8', '#b8860b', '#6a8a3a'];
-  const modalityPieData = useMemo(() => {
-    const map = new Map();
-    activeData.filter(isBillableSphRow).forEach(s => {
-      const m = s.modality || (lang === 'id' ? 'Lainnya' : 'Other');
-      if (!map.has(m)) map.set(m, { value: 0, count: 0 });
-      const e = map.get(m); e.value += (Number(s.totalValue) || 0); e.count += 1;
-    });
-    let i = 0;
-    return Array.from(map.entries())
-      .map(([name, e]) => ({ name, value: e.value, count: e.count, color: MODALITY_COLORS[name] || MODALITY_PALETTE[i++ % MODALITY_PALETTE.length] }))
-      .filter(d => d.value > 0)
-      .sort((a, b) => b.value - a.value);
-  }, [activeData, lang]);
 
   const customerTypePieData = useMemo(() => [
     { name: t.type_hospital, value: sumGroupedProjectValue(activeData.filter(s => s.customerType === 'hospital')), color: '#1a4d8a' },
@@ -126,9 +108,8 @@ function Dashboard({ data, reports, products, t, lang, session, fmt, employees =
         </ResponsiveContainer>
       </div>
 
-      <div className="three-col" style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '20px'}}>
+      <div className="two-col" style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginBottom: '20px'}}>
         <PieCard title={t.project_type_mix} data={projectTypePieData} fmt={fmt} />
-        <PieCard title={t.modality_mix} data={modalityPieData} fmt={fmt} />
         <PieCard title={t.customer_type_dist} data={customerTypePieData} fmt={fmt} />
       </div>
 

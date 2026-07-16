@@ -116,7 +116,7 @@ function InstallBaseMap({ records = [], stats, selectedProvince = 'all', lang = 
             radial-gradient(circle at 80% 30%, rgba(214,179,106,0.18), transparent 28%),
             linear-gradient(135deg, rgba(5,12,28,0.98), rgba(10,28,55,0.94));
           padding: 18px;
-          min-height: 430px;
+          min-height: 0;
           box-shadow: inset 0 0 80px rgba(26,77,138,0.22), 0 24px 60px rgba(0,0,0,0.28);
         }
         .installbase-map-panel::before {
@@ -150,27 +150,63 @@ function InstallBaseMap({ records = [], stats, selectedProvince = 'all', lang = 
         .ib-map-stage {
           position: relative;
           z-index: 1;
-          height: 330px;
+          width: 100%;
           margin-top: 18px;
-          overflow: visible;
-          display: flex;
-          justify-content: center;
-          align-items: center;
+          overflow: hidden;
         }
         .ib-map-canvas {
           position: relative;
-          height: 100%;
+          width: 100%;
           aspect-ratio: 1600 / 620;
-          max-width: 100%;
+          margin: 0 auto;
         }
         .ib-map-img {
           position: absolute;
           inset: 0;
           width: 100%;
           height: 100%;
-          object-fit: fill;
+          object-fit: contain;
+          object-position: center;
           opacity: 0.62;
           filter: invert(1) sepia(1) saturate(2.2) hue-rotate(150deg) drop-shadow(0 0 16px rgba(76,201,240,0.45)) drop-shadow(0 0 30px rgba(214,179,106,0.20));
+          pointer-events: none;
+        }
+        .ib-map-overlay {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+        }
+        .ib-map-overlay .ib-dot {
+          pointer-events: auto;
+        }
+        .ib-map-header {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+          align-items: flex-start;
+        }
+        .ib-map-stats {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(88px, 1fr));
+          gap: 8px;
+          min-width: 310px;
+        }
+        @media (max-width: 768px) {
+          .installbase-map-panel {
+            padding: 14px;
+          }
+          .ib-map-header {
+            flex-direction: column;
+          }
+          .ib-map-stats {
+            width: 100%;
+            min-width: 0;
+          }
+          .ib-map-title {
+            font-size: 26px !important;
+          }
         }
         .ib-tip {
           position: absolute;
@@ -191,19 +227,19 @@ function InstallBaseMap({ records = [], stats, selectedProvince = 'all', lang = 
           box-shadow: 0 18px 44px rgba(0,0,0,0.35);
         }
       `}</style>
-      <div style={{position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', gap: '16px', alignItems: 'flex-start'}}>
+      <div className="ib-map-header">
         <div>
           <div style={{fontSize: '10px', letterSpacing: '0.24em', textTransform: 'uppercase', color: 'var(--ims-gold)', fontWeight: 800}}>
             {L(lang, 'Pusat Komando Install Base HNTI', 'HNTI Installed Base Command Center')}
           </div>
-          <div className="serif" style={{fontSize: '34px', marginTop: '6px', color: '#fff', fontWeight: 500}}>
+          <div className="serif ib-map-title" style={{fontSize: '34px', marginTop: '6px', color: '#fff', fontWeight: 500}}>
             {L(lang, '203 Unit di Seluruh Indonesia', '203 Units Across Indonesia')}
           </div>
           <div style={{fontSize: '12px', color: 'rgba(255,255,255,0.66)', marginTop: '4px'}}>
             {L(lang, 'Baseline PDF 203 unit; data operasional tampil sebagai live sync terpisah', '203-unit PDF baseline; operations data appears as separate live sync')}
           </div>
         </div>
-        <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, minmax(88px, 1fr))', gap: '8px', minWidth: '310px'}}>
+        <div className="ib-map-stats">
           {[
             [L(lang, 'TOTAL UNIT', 'TOTAL UNITS'), stats.totalUnits],
             [L(lang, 'PROVINSI', 'PROVINCES'), stats.provinceCount],
@@ -220,7 +256,7 @@ function InstallBaseMap({ records = [], stats, selectedProvince = 'all', lang = 
       <div className="ib-map-stage">
         <div className="ib-map-canvas">
           <img src={indonesiaMapUrl} alt={L(lang, 'Peta Indonesia', 'Indonesia Map')} className="ib-map-img" />
-          <div style={{position: 'absolute', left: 0, right: 0, bottom: '36px', borderTop: '1px dashed rgba(214,179,106,0.18)'}} />
+          <div className="ib-map-overlay">
           {points.map((p, idx) => {
             const size = Math.min(24, 8 + Math.sqrt(p.qty || 1) * 3.5);
             const isFeatured = (p.qty || 0) >= 3 || /nashrul/i.test(p.hospitalName || '');
@@ -237,6 +273,7 @@ function InstallBaseMap({ records = [], stats, selectedProvince = 'all', lang = 
               </div>
             );
           })}
+          </div>
         </div>
       </div>
     </div>

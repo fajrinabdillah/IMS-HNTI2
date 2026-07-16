@@ -38,4 +38,14 @@ const IMS_THEMES = {
 };
 const CHART_COLORS = ['#5b8def', '#a026a0', '#2f8f6f', '#d4af37', '#5b87b8', '#c03030', '#7b3fb5', '#94a3b8'];
 
-export { IMS_THEMES, CHART_COLORS };
+// Semantic dashboard series — navy + gold family with enough hue separation on dark UI.
+const DASHBOARD_CHART = {
+  pipeline: '#1a4d8a',   // imperial navy — pipeline / SPH current
+  revenue: '#d6b36a',    // antique gold — pendapatan / earned value
+  sphPrior: '#8faecf',   // mist blue — SPH tahun lalu
+  sphCurrent: '#1a4d8a',
+  poPrior: '#c97b3f',    // warm copper — PO tahun lalu
+  poCurrent: '#3eb88a',  // emerald — PO tahun ini
+};
+
+export { IMS_THEMES, CHART_COLORS, DASHBOARD_CHART };

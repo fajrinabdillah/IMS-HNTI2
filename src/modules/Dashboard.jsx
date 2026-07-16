@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { BUSINESS_PARTNERS, PROJECT_TYPES, STAGES } from '../constants/sales.js';
 import { ChartTooltip, KPICard, PieCard } from '../components/ui.jsx';
-import { CHART_COLORS } from '../constants/theme.js';
+import { DASHBOARD_CHART } from '../constants/theme.js';
 import { getActiveSalesTeam, resolveEmpName, resolveOpsCost } from '../utils/domain.js';
 import { currentYear } from '../utils/format.js';
 import { groupSphProjects, sumGroupedProjectValue, sumWeightedGroupedPipeline } from '../utils/sphProject.js';
@@ -86,7 +86,7 @@ function Dashboard({ data, reports, products, t, lang, session, fmt, employees =
         <KPICard label={t.win_rate} value={`${winRate.toFixed(0)}%`} sublabel={`${wonData.length}/${wonData.length + lostData.length} closed`} trend={5.1} info={t.win_rate_sub} />
       </div>
 
-      <InstallBaseDashboardCard data={data} bastRecords={bastRecords} installRecords={installRecords} manualRecords={manualInstallBaseRecords} lang={lang} />
+      <InstallBaseDashboardCard data={data} bastRecords={bastRecords} installRecords={installRecords} manualRecords={manualInstallBaseRecords} lang={lang} t={t} />
 
       <div className="card" style={{marginBottom: '20px'}}>
         <div className="card-title">{t.monthly_pipeline}</div>
@@ -138,8 +138,8 @@ function Dashboard({ data, reports, products, t, lang, session, fmt, employees =
               <YAxis stroke="var(--ims-text-2)" style={{fontSize: 10}} tickFormatter={(v) => v >= 1e9 ? `${(v/1e9).toFixed(0)}M` : v >= 1e6 ? `${(v/1e6).toFixed(0)}Jt` : v} />
               <Tooltip content={<ChartTooltip fmt={fmt} />} />
               <Legend wrapperStyle={{fontSize: '11px'}} />
-              <Bar dataKey="pipeline" name={t.pipeline_value} fill="#1a4d8a" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="won" name={t.revenue_ytd} fill="var(--ims-accent-2)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="pipeline" name={t.pipeline_value} fill={DASHBOARD_CHART.pipeline} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="won" name={t.revenue_ytd} fill={DASHBOARD_CHART.revenue} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -185,21 +185,21 @@ function Dashboard({ data, reports, products, t, lang, session, fmt, employees =
           <div className="card" style={{marginBottom: '20px'}}>
             <div className="card-title">{t.yoy_title} <span style={{fontSize: '10px', fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--ims-text-2)', marginLeft: '8px'}}>· {t.yoy_subtitle}</span></div>
             <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '14px', marginBottom: '20px'}}>
-              <div style={{padding: '14px', background: 'rgba(94,135,184,0.10)', borderLeft: '3px solid #5b87b8'}}>
+              <div style={{padding: '14px', background: 'rgba(143,174,207,0.12)', borderLeft: `3px solid ${DASHBOARD_CHART.sphPrior}`}}>
                 <div style={{fontSize: '10px', letterSpacing: '0.18em', color: 'var(--ims-text-2)', textTransform: 'uppercase'}}>SPH {py}</div>
                 <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{totalSphPrev}</div>
               </div>
-              <div style={{padding: '14px', background: 'rgba(26,77,138,0.10)', borderLeft: '3px solid #1a4d8a'}}>
+              <div style={{padding: '14px', background: 'rgba(26,77,138,0.10)', borderLeft: `3px solid ${DASHBOARD_CHART.sphCurrent}`}}>
                 <div style={{fontSize: '10px', letterSpacing: '0.18em', color: 'var(--ims-text-2)', textTransform: 'uppercase'}}>SPH {cy}</div>
-                <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{totalSphCurr} <span style={{fontSize: '12px', color: sphGrowth >= 0 ? 'var(--ims-accent-2)' : '#8b3a3a'}}>{sphGrowth >= 0 ? '↑' : '↓'}{Math.abs(sphGrowth).toFixed(0)}%</span></div>
+                <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{totalSphCurr} <span style={{fontSize: '12px', color: sphGrowth >= 0 ? DASHBOARD_CHART.poCurrent : '#8b3a3a'}}>{sphGrowth >= 0 ? '↑' : '↓'}{Math.abs(sphGrowth).toFixed(0)}%</span></div>
               </div>
-              <div style={{padding: '14px', background: 'rgba(200,169,106,0.12)', borderLeft: '3px solid var(--ims-accent)'}}>
+              <div style={{padding: '14px', background: 'rgba(201,123,63,0.12)', borderLeft: `3px solid ${DASHBOARD_CHART.poPrior}`}}>
                 <div style={{fontSize: '10px', letterSpacing: '0.18em', color: 'var(--ims-text-2)', textTransform: 'uppercase'}}>PO {py}</div>
                 <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{totalPoPrev}</div>
               </div>
-              <div style={{padding: '14px', background: 'rgba(58,107,58,0.10)', borderLeft: '3px solid var(--ims-accent-2)'}}>
+              <div style={{padding: '14px', background: 'rgba(62,184,138,0.10)', borderLeft: `3px solid ${DASHBOARD_CHART.poCurrent}`}}>
                 <div style={{fontSize: '10px', letterSpacing: '0.18em', color: 'var(--ims-text-2)', textTransform: 'uppercase'}}>PO {cy}</div>
-                <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{totalPoCurr} <span style={{fontSize: '12px', color: poGrowth >= 0 ? 'var(--ims-accent-2)' : '#8b3a3a'}}>{poGrowth >= 0 ? '↑' : '↓'}{Math.abs(poGrowth).toFixed(0)}%</span></div>
+                <div className="serif" style={{fontSize: '26px', fontWeight: 500, marginTop: '4px'}}>{totalPoCurr} <span style={{fontSize: '12px', color: poGrowth >= 0 ? DASHBOARD_CHART.poCurrent : '#8b3a3a'}}>{poGrowth >= 0 ? '↑' : '↓'}{Math.abs(poGrowth).toFixed(0)}%</span></div>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={260}>
@@ -209,10 +209,10 @@ function Dashboard({ data, reports, products, t, lang, session, fmt, employees =
                 <YAxis stroke="var(--ims-text-2)" style={{fontSize: 10}} />
                 <Tooltip content={<ChartTooltip />} />
                 <Legend wrapperStyle={{fontSize: '11px'}} />
-                <Bar dataKey={`SPH ${py}`} fill="#5b87b8" radius={[3, 3, 0, 0]} />
-                <Bar dataKey={`SPH ${cy}`} fill="#1a4d8a" radius={[3, 3, 0, 0]} />
-                <Bar dataKey={`PO ${py}`} fill="var(--ims-accent)" radius={[3, 3, 0, 0]} />
-                <Bar dataKey={`PO ${cy}`} fill="var(--ims-accent-2)" radius={[3, 3, 0, 0]} />
+                <Bar dataKey={`SPH ${py}`} fill={DASHBOARD_CHART.sphPrior} radius={[3, 3, 0, 0]} />
+                <Bar dataKey={`SPH ${cy}`} fill={DASHBOARD_CHART.sphCurrent} radius={[3, 3, 0, 0]} />
+                <Bar dataKey={`PO ${py}`} fill={DASHBOARD_CHART.poPrior} radius={[3, 3, 0, 0]} />
+                <Bar dataKey={`PO ${cy}`} fill={DASHBOARD_CHART.poCurrent} radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

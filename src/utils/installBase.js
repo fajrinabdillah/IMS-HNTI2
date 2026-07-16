@@ -30,6 +30,18 @@ const AUTHORITATIVE_PRODUCT_FAMILY_TOTALS = [
   { name: 'ESWL', qty: 3 },
 ];
 
+const INSTALL_BASE_FAMILY_COLORS = {
+  'CT Scan': '#4cc9f0',
+  'Stationary X-Ray': '#d6b36a',
+  'Mobile X-Ray': '#7dd3fc',
+  'Portable X-Ray': '#a78bfa',
+  'C-Arm': '#fb7185',
+  FPD: '#34d399',
+  'Generator PXR': '#f59e0b',
+  ESWL: '#f59e0b',
+  Other: '#94a3b8',
+};
+
 const KNOWN_SITE_COORDS = {
   'rsia andini': { lat: 0.5115, lng: 101.4246 },
   'rsi nashrul ummah': { lat: -7.1166, lng: 112.4162 },
@@ -334,7 +346,6 @@ function buildInstallBase(data = [], bastRecords = [], installRecords = [], manu
 function installBaseStats(records = []) {
   const baselineTotal = INSTALL_BASE_PROVINCE_SUMMARY.reduce((s, p) => s + p.qty, 0);
   const liveExtra = records.filter(r => r.source !== 'pdf_import').reduce((s, r) => s + (Number(r.quantity) || 1), 0);
-  const totalUnits = baselineTotal;
   const byProvince = new Map(INSTALL_BASE_PROVINCE_SUMMARY.map(p => [p.province, { province: p.province, qty: p.qty, lat: PROVINCE_COORDS[p.province]?.lat, lng: PROVINCE_COORDS[p.province]?.lng }]));
   records.forEach(r => {
     if (!r.province) return;
@@ -343,25 +354,44 @@ function installBaseStats(records = []) {
     if (r.source !== 'pdf_import') e.qty += Number(r.quantity) || 1;
   });
   const family = new Map(AUTHORITATIVE_PRODUCT_FAMILY_TOTALS.map(x => [x.name, x.qty]));
+  records.forEach(r => {
+    if (r.source === 'pdf_import') return;
+    const fam = r.productFamily || productFamily(r.product, r.type);
+    family.set(fam, (family.get(fam) || 0) + (Number(r.quantity) || 1));
+  });
+  const byProductFamily = [...family.entries()].map(([name, qty]) => ({ name, qty })).sort((a, b) => b.qty - a.qty);
+  const familyTotal = byProductFamily.reduce((s, x) => s + x.qty, 0);
   return {
     baselineTotal,
     liveExtra,
-    totalUnits,
+    totalUnits: baselineTotal + liveExtra,
+    familyTotal,
     provinceCount: byProvince.size,
     hospitalCount: new Set(records.map(r => norm(r.hospitalName)).filter(Boolean)).size,
     byProvince: [...byProvince.values()].sort((a, b) => b.qty - a.qty),
-    byProductFamily: [...family.entries()].map(([name, qty]) => ({ name, qty })).sort((a, b) => b.qty - a.qty),
+    byProductFamily,
   };
+}
+
+function installBaseFamilyChartData(stats = {}) {
+  return (stats.byProductFamily || []).map((entry, i) => ({
+    name: entry.name,
+    value: entry.qty,
+    qty: entry.qty,
+    color: INSTALL_BASE_FAMILY_COLORS[entry.name] || Object.values(INSTALL_BASE_FAMILY_COLORS)[i % 8],
+  }));
 }
 
 export {
   INSTALL_BASE_PROVINCE_SUMMARY,
   AUTHORITATIVE_PRODUCT_FAMILY_TOTALS,
+  INSTALL_BASE_FAMILY_COLORS,
   PROVINCE_COORDS,
   canonicalHospitalName,
   mapLocationKey,
   normalizeInstallBaseRecord,
   buildInstallBase,
   installBaseStats,
+  installBaseFamilyChartData,
   productFamily,
 };

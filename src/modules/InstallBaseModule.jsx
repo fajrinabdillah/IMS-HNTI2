@@ -2,20 +2,10 @@ import { useMemo, useState } from 'react';
 import { Activity, MapPin, Pencil, Plus, Save, Search, Sparkles, Target, Trash2, X, Zap } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Th, Td } from '../components/ui.jsx';
-import { buildInstallBase, installBaseStats, mapLocationKey, normalizeInstallBaseRecord } from '../utils/installBase.js';
+import { buildInstallBase, installBaseFamilyChartData, installBaseStats, INSTALL_BASE_FAMILY_COLORS, mapLocationKey, normalizeInstallBaseRecord } from '../utils/installBase.js';
 import indonesiaMapUrl from '../assets/indonesia-provinces-outline.svg';
 
-const FAMILY_COLORS = {
-  'CT Scan': '#4cc9f0',
-  'Stationary X-Ray': '#d6b36a',
-  'Mobile X-Ray': '#7dd3fc',
-  'Portable X-Ray': '#a78bfa',
-  'C-Arm': '#fb7185',
-  'FPD': '#34d399',
-  'Generator PXR': '#f59e0b',
-  'ESWL': '#f59e0b',
-  Other: '#94a3b8',
-};
+const FAMILY_COLORS = INSTALL_BASE_FAMILY_COLORS;
 
 const RADIAN = Math.PI / 180;
 
@@ -280,12 +270,78 @@ function InstallBaseMap({ records = [], stats, selectedProvince = 'all', lang = 
   );
 }
 
-function InstallBaseDashboardCard({ data = [], bastRecords = [], installRecords = [], manualRecords = [], lang = 'id' }) {
+function InstallBaseFamilyChart({ stats, lang = 'id', title, subtitle, wrapCard = true }) {
+  const chartData = useMemo(() => installBaseFamilyChartData(stats), [stats]);
+  const total = stats.familyTotal || chartData.reduce((s, d) => s + d.value, 0);
+  const content = (
+    <>
+      <div className="card-title">
+        {title || L(lang, 'Modalitas Terinstal', 'Installed Modalities')}
+        {subtitle && (
+          <span style={{fontSize: '10px', fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--ims-text-2)', marginLeft: '8px'}}>
+            · {subtitle}
+          </span>
+        )}
+      </div>
+      <ResponsiveContainer width="100%" height={200}>
+        <PieChart>
+          <Pie
+            data={chartData}
+            dataKey="value"
+            nameKey="name"
+            cx="50%"
+            cy="50%"
+            innerRadius={46}
+            outerRadius={78}
+            paddingAngle={2}
+            stroke="none"
+            label={renderPieLabel}
+          >
+            {chartData.map((entry, i) => <Cell key={entry.name} fill={entry.color || FAMILY_COLORS[entry.name] || Object.values(FAMILY_COLORS)[i % 8]} />)}
+          </Pie>
+          <Tooltip
+            contentStyle={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', fontSize: 11, color: '#fff'}}
+            itemStyle={{color: '#fff'}}
+            labelStyle={{color: '#fff'}}
+            formatter={(value, name) => [`${value} ${L(lang, 'unit', 'units')}`, name]}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px 12px', marginTop: '8px'}}>
+        {chartData.map((entry) => {
+          const pct = total > 0 ? ((entry.value / total) * 100).toFixed(0) : 0;
+          return (
+            <div key={entry.name} style={{display: 'flex', alignItems: 'center', gap: 7, fontSize: '11px'}}>
+              <span style={{width: 9, height: 9, borderRadius: 99, background: entry.color, boxShadow: `0 0 8px ${entry.color}`, flexShrink: 0}} />
+              <span style={{flex: 1, color: 'var(--ims-text)'}}>{entry.name}</span>
+              <strong style={{color: '#fff'}}>{entry.qty}</strong>
+              <span style={{color: 'var(--ims-text-2)', minWidth: 28, textAlign: 'right'}}>{pct}%</span>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+  return wrapCard ? <div className="card" style={{margin: 0}}>{content}</div> : content;
+}
+
+function InstallBaseDashboardCard({ data = [], bastRecords = [], installRecords = [], manualRecords = [], lang = 'id', t }) {
   const records = useMemo(() => buildInstallBase(data, bastRecords, installRecords, manualRecords), [data, bastRecords, installRecords, manualRecords]);
   const stats = useMemo(() => installBaseStats(records), [records]);
+  const subtitle = stats.liveExtra > 0
+    ? L(lang, `${stats.baselineTotal} unit baseline + ${stats.liveExtra} live sync`, `${stats.baselineTotal}-unit baseline + ${stats.liveExtra} live sync`)
+    : L(lang, `${stats.baselineTotal} unit · data Install Base PDF`, `${stats.baselineTotal} units · Install Base PDF data`);
   return (
     <div style={{marginBottom: '22px'}}>
       <InstallBaseMap records={records} stats={stats} lang={lang} />
+      <div style={{marginTop: '18px', maxWidth: '520px'}}>
+        <InstallBaseFamilyChart
+          stats={stats}
+          lang={lang}
+          title={t?.installed_modality_mix || L(lang, 'Modalitas Terinstal', 'Installed Modalities')}
+          subtitle={subtitle}
+        />
+      </div>
     </div>
   );
 }
@@ -485,37 +541,12 @@ function InstallBaseModule({ data = [], bastRecords = [], installRecords = [], m
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <div className="card">
-          <div className="card-title">{L(lang, 'Product Family Mix', 'Product Family Mix')}</div>
-          <ResponsiveContainer width="100%" height={210}>
-            <PieChart>
-              <Pie
-                data={stats.byProductFamily}
-                dataKey="qty"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={78}
-                label={renderPieLabel}
-              >
-                {stats.byProductFamily.map((entry, i) => <Cell key={entry.name} fill={FAMILY_COLORS[entry.name] || Object.values(FAMILY_COLORS)[i % 8]} />)}
-              </Pie>
-              <Tooltip contentStyle={{background: 'var(--ims-bg-card)', border: '1px solid var(--ims-border)', fontSize: 11, color: '#fff'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#fff'}} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px 10px', marginTop: '8px'}}>
-            {stats.byProductFamily.map((entry, i) => {
-              const color = FAMILY_COLORS[entry.name] || Object.values(FAMILY_COLORS)[i % 8];
-              return (
-                <div key={entry.name} style={{display: 'flex', alignItems: 'center', gap: 7, color: '#fff', fontSize: '10px'}}>
-                  <span style={{width: 9, height: 9, borderRadius: 99, background: color, boxShadow: `0 0 10px ${color}`}} />
-                  <span style={{flex: 1}}>{entry.name}</span>
-                  <strong>{entry.qty}</strong>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <InstallBaseFamilyChart
+          stats={stats}
+          lang={lang}
+          title={L(lang, 'Product Family Mix', 'Product Family Mix')}
+          subtitle={L(lang, 'Komposisi unit terinstal', 'Installed unit composition')}
+        />
       </div>
 
       <div className="card">

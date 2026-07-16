@@ -2,12 +2,28 @@ import { useMemo, useState } from 'react';
 import { Activity, MapPin, Pencil, Plus, Save, Search, Sparkles, Target, Trash2, X, Zap } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Th, Td } from '../components/ui.jsx';
-import { buildInstallBase, installBaseFamilyChartData, installBaseStats, INSTALL_BASE_FAMILY_COLORS, mapLocationKey, normalizeInstallBaseRecord, projectInstallBasePoint } from '../utils/installBase.js';
+import { buildInstallBase, installBaseFamilyChartData, installBaseStats, INSTALL_BASE_FAMILY_COLORS, mapLocationKey, normalizeInstallBaseRecord } from '../utils/installBase.js';
 import indonesiaMapUrl from '../assets/indonesia-provinces-outline.svg';
 
 const FAMILY_COLORS = INSTALL_BASE_FAMILY_COLORS;
 
 const RADIAN = Math.PI / 180;
+
+// Visual lat/lng tuned to align with the Indonesia SVG map asset (not raw geodesic coords).
+const MAP_POINT_OVERRIDES = {
+  'rsi nashrul ummah lamongan': { lat: -7.82, lng: 113.46 },
+  'rsud pratama adonara': { lat: -8.3242, lng: 123.1645 },
+  'rsud otanaha': { lat: 0.18, lng: 123.02 },
+  'rsud dr. irwan bokings': { lat: 0.10, lng: 122.58 },
+  'rsud dr irwan bokings': { lat: 0.10, lng: 122.58 },
+  'rsu bangli': { lat: -9.7327, lng: 116.0380 },
+  'dr yanti health center - bali': { lat: -10.0732, lng: 116.1352 },
+  'rs pratama kubu': { lat: -9.8689, lng: 116.7181 },
+  'rs shanti graha': { lat: -9.4149, lng: 115.6494 },
+  'rsu bunda jembrana': { lat: -9.5738, lng: 115.2607 },
+};
+
+const BALI_VISUAL_DEFAULT = { lat: -9.73, lng: 116.04 };
 
 const EMPTY_MANUAL_RECORD = {
   hospitalName: '',
@@ -39,13 +55,31 @@ function renderPieLabel({ cx, cy, midAngle, outerRadius, name, percent }) {
   );
 }
 
+function mapCoordsFor(record = {}) {
+  const key = String(record.hospitalName || '').trim().toLowerCase();
+  if (MAP_POINT_OVERRIDES[key]) return MAP_POINT_OVERRIDES[key];
+  if (key.includes('nashrul')) return MAP_POINT_OVERRIDES['rsi nashrul ummah lamongan'];
+  if (record.province === 'Bali') return BALI_VISUAL_DEFAULT;
+  return { lat: record.lat, lng: record.lng };
+}
+
+function projectPoint(lat, lng) {
+  const x = ((Number(lng) - 94.2744) / (142.8539 - 94.2744)) * 100;
+  const y = ((9.1521 - Number(lat)) / (9.1521 - (-13.5460))) * 100;
+  return {
+    x: Math.max(3, Math.min(97, x)),
+    y: Math.max(6, Math.min(94, y)),
+  };
+}
+
 function InstallBaseMap({ records = [], stats, selectedProvince = 'all', lang = 'id' }) {
   const points = useMemo(() => {
     const grouped = new Map();
     records.forEach(r => {
       if (selectedProvince !== 'all' && r.province !== selectedProvince) return;
+      const mapCoords = mapCoordsFor(r);
       const key = mapLocationKey(r);
-      if (!grouped.has(key)) grouped.set(key, { ...r, qty: 0, families: new Set() });
+      if (!grouped.has(key)) grouped.set(key, { ...r, qty: 0, families: new Set(), mapLat: mapCoords.lat, mapLng: mapCoords.lng });
       const g = grouped.get(key);
       g.qty += Number(r.quantity) || 1;
       g.families.add(r.productFamily || 'Other');
@@ -54,7 +88,7 @@ function InstallBaseMap({ records = [], stats, selectedProvince = 'all', lang = 
       .sort((a, b) => (Number(a.qty) || 1) - (Number(b.qty) || 1))
       .map(p => ({
         ...p,
-        ...projectInstallBasePoint(p, mapLocationKey(p)),
+        ...projectPoint(p.mapLat, p.mapLng),
         color: FAMILY_COLORS[[...p.families][0]] || FAMILY_COLORS.Other,
       }));
   }, [records, selectedProvince]);

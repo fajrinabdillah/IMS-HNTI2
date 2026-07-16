@@ -20,62 +20,6 @@ const PROVINCE_COORDS = {
   'Gorontalo': { lat: 0.6999, lng: 122.4467 },
 };
 
-// Anchor points from each province path's initial moveto in indonesia-provinces-outline.svg (viewBox 1600×620).
-const PROVINCE_SVG_POSITIONS = {
-  Aceh: { x: 4.04, y: 13.82 },
-  Bali: { x: 44.05, y: 83.64 },
-  Banten: { x: 24.55, y: 69.01 },
-  Bengkulu: { x: 18.39, y: 58.75 },
-  'Daerah Istimewa Yogyakarta': { x: 33.84, y: 79.77 },
-  'DKI Jakarta': { x: 26.26, y: 69.97 },
-  Gorontalo: { x: 59.77, y: 33.4 },
-  Jambi: { x: 19.36, y: 47.98 },
-  'Jawa Barat': { x: 26.75, y: 69.7 },
-  'Jawa Tengah': { x: 32.52, y: 73.46 },
-  'Jawa Timur': { x: 39.65, y: 74.97 },
-  'Kalimantan Barat': { x: 30.53, y: 32.04 },
-  'Kalimantan Selatan': { x: 45.12, y: 47.23 },
-  'Kalimantan Tengah': { x: 44.62, y: 44.08 },
-  'Kalimantan Timur': { x: 50.96, y: 28.17 },
-  'Kalimantan Utara': { x: 49.15, y: 19.48 },
-  'Kepulauan Bangka Belitung': { x: 24.32, y: 48.86 },
-  'Kepulauan Riau': { x: 27.32, y: 35.35 },
-  Lampung: { x: 23.31, y: 66.09 },
-  Maluku: { x: 67.09, y: 53.27 },
-  'Maluku Utara': { x: 70.07, y: 26.98 },
-  'Nusa Tenggara Barat': { x: 52.56, y: 83.18 },
-  'Nusa Tenggara Timur': { x: 63.21, y: 82.18 },
-  Papua: { x: 89.14, y: 43.05 },
-  'Papua Barat': { x: 80.83, y: 54.62 },
-  'Papua Barat Daya': { x: 77.98, y: 41.12 },
-  'Papua Pegunungan': { x: 92.11, y: 58.54 },
-  'Papua Selatan': { x: 91.06, y: 64.3 },
-  'Papua Tengah': { x: 85.96, y: 58.16 },
-  Riau: { x: 16.37, y: 27.4 },
-  'Sulawesi Barat': { x: 52.09, y: 55.35 },
-  'Sulawesi Selatan': { x: 54.4, y: 66.5 },
-  'Sulawesi Tengah': { x: 58.09, y: 41.44 },
-  'Sulawesi Tenggara': { x: 58.06, y: 63.97 },
-  'Sulawesi Utara': { x: 62.04, y: 31.44 },
-  'Sumatera Barat': { x: 11.99, y: 38.5 },
-  'Sumatera Selatan': { x: 21.98, y: 49 },
-  'Sumatera Utara': { x: 11.52, y: 18.89 },
-};
-
-const PROVINCE_SVG_ALIASES = {
-  'bangka belitung': 'Kepulauan Bangka Belitung',
-  babel: 'Kepulauan Bangka Belitung',
-  yogyakarta: 'Daerah Istimewa Yogyakarta',
-  diy: 'Daerah Istimewa Yogyakarta',
-  ntb: 'Nusa Tenggara Barat',
-  ntt: 'Nusa Tenggara Timur',
-};
-
-const MAP_LNG_SCALE = 0.55;
-const MAP_LAT_SCALE = -0.85;
-const MAP_FALLBACK_X = { slope: 1.0117093001920519, intercept: -95.90458545385923 };
-const MAP_FALLBACK_Y = { slope: -2.8891979893484474, intercept: 13.789680564706929 };
-
 const AUTHORITATIVE_PRODUCT_FAMILY_TOTALS = [
   { name: 'FPD', qty: 88 },
   { name: 'Portable X-Ray', qty: 58 },
@@ -438,54 +382,6 @@ function installBaseFamilyChartData(stats = {}) {
   }));
 }
 
-function resolveProvinceSvgPosition(province = '') {
-  const canonical = normalizeProvince(province);
-  if (PROVINCE_SVG_POSITIONS[canonical]) return PROVINCE_SVG_POSITIONS[canonical];
-  const alias = PROVINCE_SVG_ALIASES[norm(canonical)];
-  if (alias && PROVINCE_SVG_POSITIONS[alias]) return PROVINCE_SVG_POSITIONS[alias];
-  const hit = Object.keys(PROVINCE_SVG_POSITIONS).find(p => {
-    const pNorm = norm(p);
-    const cNorm = norm(canonical);
-    return pNorm.includes(cNorm) || cNorm.includes(pNorm);
-  });
-  return hit ? PROVINCE_SVG_POSITIONS[hit] : null;
-}
-
-function clampMapPct(value, min = 2, max = 98) {
-  return Math.max(min, Math.min(max, value));
-}
-
-function projectInstallBasePoint(record = {}, jitterKey = '') {
-  const province = inferProvince(record) || normalizeProvince(record.province || '');
-  const svgBase = resolveProvinceSvgPosition(province);
-  const geoBase = PROVINCE_COORDS[province] || PROVINCE_COORDS[normalizeProvince(province)];
-  const lat = Number(record.lat);
-  const lng = Number(record.lng);
-  const hasExact = Number.isFinite(lat) && Number.isFinite(lng);
-
-  if (svgBase) {
-    let x = svgBase.x;
-    let y = svgBase.y;
-    if (hasExact && geoBase) {
-      x += (lng - geoBase.lng) * MAP_LNG_SCALE;
-      y += (lat - geoBase.lat) * MAP_LAT_SCALE;
-    } else if (jitterKey) {
-      x += (hash01(`${jitterKey}|x`) - 0.5) * 1.6;
-      y += (hash01(`${jitterKey}|y`) - 0.5) * 1.2;
-    }
-    return { x: clampMapPct(x), y: clampMapPct(y, 2, 96) };
-  }
-
-  if (hasExact) {
-    return {
-      x: clampMapPct(MAP_FALLBACK_X.slope * lng + MAP_FALLBACK_X.intercept),
-      y: clampMapPct(MAP_FALLBACK_Y.slope * lat + MAP_FALLBACK_Y.intercept, 2, 96),
-    };
-  }
-
-  return { x: 50, y: 50 };
-}
-
 export {
   INSTALL_BASE_PROVINCE_SUMMARY,
   AUTHORITATIVE_PRODUCT_FAMILY_TOTALS,
@@ -497,6 +393,5 @@ export {
   buildInstallBase,
   installBaseStats,
   installBaseFamilyChartData,
-  projectInstallBasePoint,
   productFamily,
 };
